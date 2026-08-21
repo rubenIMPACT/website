@@ -72,9 +72,17 @@ nav{gap:14px}
 .hero-content{order:1;align-self:center;padding:120px 40px 80px var(--mx);min-width:0}
 .hero h1{font-size:clamp(44px,6.2vw,104px)}
 }
-.ticker{background:var(--gold);color:var(--black);overflow:hidden;padding:12px 0;font-weight:800;font-size:15px;text-transform:uppercase;white-space:nowrap}
-.ticker-inner{display:inline-block;animation:mq 22s linear infinite}
-@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.claimband{background:var(--gold);color:var(--black);padding:26px var(--mx)}
+.claimband ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:16px 22px;max-width:1240px;margin:0 auto}
+@media(min-width:900px){.claimband ul{grid-template-columns:repeat(4,1fr);gap:0 28px}}
+.claimband li{display:flex;align-items:center;gap:10px;font-weight:800;font-size:clamp(12px,2.7vw,15px);text-transform:uppercase;letter-spacing:.4px;line-height:1.12}
+.claimband li.rev{transform:translateY(16px)}
+.claimband li.rev.vis{animation:rise .55s cubic-bezier(.3,1.15,.3,1) forwards}
+.claimband li.rev.vis:nth-child(2){animation-delay:.07s}
+.claimband li.rev.vis:nth-child(3){animation-delay:.14s}
+.claimband li.rev.vis:nth-child(4){animation-delay:.21s}
+.claimband .cb{flex:none;width:13px;height:24px;overflow:visible}
+.claimband .cb path{stroke:var(--black);stroke-width:4.4;fill:none}
 .chapter{padding:96px 0 0}
 .chapter .idx{font-size:14px;color:var(--gold);font-weight:800;letter-spacing:3px;padding:0 var(--mx)}
 .chapter h2{font-size:clamp(44px,8vw,96px);padding:8px var(--mx) 0;line-height:1.06}
@@ -235,8 +243,6 @@ footer a{color:var(--grey)}
 @keyframes ctasweep{0%{opacity:1;transform:translateX(0)}100%{opacity:1;transform:translateX(420px)}}
 .cta:active{animation:ctaflash .18s}
 @keyframes ctaflash{0%{filter:brightness(1.7)}100%{filter:none}}
-/* Ticker skew */
-.tickerwrap{transform:rotate(-2.2deg) scaleX(1.03);margin:26px -10px;position:relative;z-index:3}
 /* Bolt-A */
 /* hero video */
 .hero-media video{width:100%;height:100%;object-fit:cover}
@@ -259,6 +265,39 @@ section.deep{background:#12100b}
 .ambientsec > *:not(.ambient){position:relative}
 .photostrip{height:clamp(220px,34vh,380px)}
 .photostrip img{object-position:50% 30%}
+
+/* --- Rhythm: section spacing --- */
+.chapter{padding-top:118px}
+.chapter.deep{padding-top:118px;padding-bottom:96px}
+.faq{padding-top:118px}
+.coachsec{margin-top:128px}
+.gisec{margin-top:128px}
+.formsec{padding:96px 0}
+.photostrip{margin:64px 0}
+.fullphoto{margin:88px 0 0}
+.claimband{margin-top:0}
+#beweis{padding-bottom:26px}
+@media(min-width:900px){
+.chapter{padding-top:168px}
+.chapter.deep{padding-top:168px;padding-bottom:120px}
+.faq{padding-top:168px}
+.coachsec{margin-top:180px}
+.gisec{margin-top:180px}
+.formsec{padding:120px 0}
+.photostrip{margin:88px auto}
+.fullphoto{margin:112px auto 0}
+#beweis{padding-bottom:40px}
+}
+/* --- Photos: contained on desktop, not full-bleed --- */
+@media(min-width:1000px){
+.photostrip,.fullphoto{width:min(880px,64vw);margin-left:auto;margin-right:auto;height:auto;aspect-ratio:3/2}
+.photostrip .cap,.fullphoto .cap{left:18px}
+.coachsec .photo{width:min(520px,40vw);margin-left:var(--mx);height:auto;aspect-ratio:4/5}
+.coachsec .vert{right:auto;left:calc(min(520px,40vw) + var(--mx) + 16px);top:24px}
+.chapgrid{grid-template-columns:minmax(0,400px) minmax(0,1fr);column-gap:clamp(36px,5vw,72px);padding-left:var(--mx);padding-right:var(--mx)}
+.chapgrid .photo{min-height:0;aspect-ratio:3/4}
+.chapgrid .txt{padding:0}
+}
 </style>
 </head>
 <body>
@@ -293,9 +332,14 @@ Technoparkstrasse 3, Winterthur
 </div>
 </header>
 
-<div class="tickerwrap"><div class="ticker"><div class="ticker-inner" id="tickinner" data-seg="KEIN EGO&nbsp;·&nbsp;TECHNIK STATT KRAFT&nbsp;·&nbsp;EINSTEIGERFREUNDLICH&nbsp;·&nbsp;BLACK BELT COACHING&nbsp;·&nbsp;"></div></div></div>
+<div class="claimband"><ul>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>KEIN EGO</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>TECHNIK STATT KRAFT</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>EINSTEIGERFREUNDLICH</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>BLACK BELT COACHING</li>
+</ul></div>
 
-<section class="chapter" id="beweis" style="padding-top:84px">
+<section class="chapter" id="beweis">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <h2 class="rev">Members<br>über <span class="accent">uns.</span></h2>
@@ -389,7 +433,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<section class="chapter" id="warum" style="padding-top:110px">
+<section class="chapter" id="warum">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <div class="idx rev">WARUM IMPACT</div>
@@ -440,7 +484,7 @@ Technoparkstrasse 3, Winterthur
 <p class="ginote">Du musst dich nicht sofort entscheiden. Probier beides aus und finde deinen Stil.</p>
 </section>
 
-<div class="photo rev" style="height:clamp(260px,45vh,460px)"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a356508e92bb161c27da37c_IMPACT%20Website%20(12).png" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
+<div class="photo rev fullphoto" style="height:clamp(260px,45vh,460px)"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a356508e92bb161c27da37c_IMPACT%20Website%20(12).png" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
 
 <section class="faq deep" id="faq">
 <div class="chaphead">
@@ -483,18 +527,6 @@ Technoparkstrasse 3, Winterthur
 
 <script>
 (function(){
-(function(){
-var ti=document.getElementById('tickinner');
-function fill(){
-var seg=ti.dataset.seg;
-ti.innerHTML=seg;
-var one=ti.scrollWidth;
-var need=Math.max(2, Math.ceil((window.innerWidth*1.1)/one));
-ti.innerHTML=seg.repeat(need*2);
-}
-fill();
-var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(fill,200)});
-})();
 (function(){try{
 var p=new URLSearchParams(location.search);
 var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc'};

@@ -72,9 +72,17 @@ nav{gap:14px}
 .hero-content{order:1;align-self:center;padding:120px 40px 80px var(--mx);min-width:0}
 .hero h1{font-size:clamp(44px,6.2vw,104px)}
 }
-.ticker{background:var(--gold);color:var(--black);overflow:hidden;padding:12px 0;font-weight:800;font-size:15px;text-transform:uppercase;white-space:nowrap}
-.ticker-inner{display:inline-block;animation:mq 22s linear infinite}
-@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.claimband{background:var(--gold);color:var(--black);padding:26px var(--mx)}
+.claimband ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:16px 22px;max-width:1240px;margin:0 auto}
+@media(min-width:900px){.claimband ul{grid-template-columns:repeat(4,1fr);gap:0 28px}}
+.claimband li{display:flex;align-items:center;gap:10px;font-weight:800;font-size:clamp(12px,2.7vw,15px);text-transform:uppercase;letter-spacing:.4px;line-height:1.12}
+.claimband li.rev{transform:translateY(16px)}
+.claimband li.rev.vis{animation:rise .55s cubic-bezier(.3,1.15,.3,1) forwards}
+.claimband li.rev.vis:nth-child(2){animation-delay:.07s}
+.claimband li.rev.vis:nth-child(3){animation-delay:.14s}
+.claimband li.rev.vis:nth-child(4){animation-delay:.21s}
+.claimband .cb{flex:none;width:13px;height:24px;overflow:visible}
+.claimband .cb path{stroke:var(--black);stroke-width:4.4;fill:none}
 .chapter{padding:96px 0 0}
 .chapter .idx{font-size:14px;color:var(--gold);font-weight:800;letter-spacing:3px;padding:0 var(--mx)}
 .chapter h2{font-size:clamp(44px,8vw,96px);padding:8px var(--mx) 0;line-height:1.06}
@@ -183,14 +191,6 @@ select{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:
 .final:before,.statband:before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120vw;height:150%;background:radial-gradient(ellipse at center,rgba(226,194,16,.07),transparent 55%);pointer-events:none}
 .final>*{position:relative}
 .final h2{font-size:clamp(36px,7vw,84px)}
-.beltknot{margin:22px auto 34px;display:block;overflow:visible}
-.beltknot .bband{stroke:var(--gold);stroke-width:6;fill:none;stroke-dasharray:1000;stroke-dashoffset:1000}
-.beltknot .bseam{stroke:var(--gold-dark);stroke-width:1;fill:none;stroke-dasharray:1000;stroke-dashoffset:1000}
-.beltknot .kknot{fill:var(--gold);opacity:0}
-.beltknot .ktail{stroke:var(--gold);stroke-width:5;fill:none;stroke-dasharray:70;stroke-dashoffset:70}
-.beltknot.drawn .bband,.beltknot.drawn .bseam{animation:draw 1s cubic-bezier(.4,0,.2,1) forwards}
-.beltknot.drawn .kknot{animation:kpop .3s .95s forwards}
-.beltknot.drawn .ktail{animation:draw .4s 1.05s cubic-bezier(.3,1.2,.4,1) forwards}
 @keyframes kpop{from{opacity:0}to{opacity:1}}
 footer{border-top:1px solid var(--hair);padding:36px var(--mx);text-align:center;color:#6e6a5f;font-size:13px}
 footer .flogo{height:26px;margin:0 auto 14px}
@@ -235,8 +235,6 @@ footer a{color:var(--grey)}
 @keyframes ctasweep{0%{opacity:1;transform:translateX(0)}100%{opacity:1;transform:translateX(420px)}}
 .cta:active{animation:ctaflash .18s}
 @keyframes ctaflash{0%{filter:brightness(1.7)}100%{filter:none}}
-/* Ticker skew */
-.tickerwrap{transform:rotate(-2.2deg) scaleX(1.03);margin:26px -10px;position:relative;z-index:3}
 /* Bolt-A */
 /* hero video */
 .hero-media video{width:100%;height:100%;object-fit:cover}
@@ -259,6 +257,78 @@ section.deep{background:#12100b}
 .ambientsec > *:not(.ambient){position:relative}
 .photostrip{height:clamp(220px,34vh,380px)}
 .photostrip img{object-position:50% 30%}
+
+/* --- Rhythm: section spacing --- */
+.chapter{padding-top:118px}
+.chapter.deep{padding-top:118px;padding-bottom:96px}
+.faq{padding-top:118px}
+.coachsec{margin-top:128px}
+.gisec{margin-top:128px}
+.formsec{padding:96px 0}
+.photostrip{margin:64px 0}
+.fullphoto{margin:88px 0 0}
+.claimband{margin-top:0}
+#beweis{padding-bottom:26px}
+@media(min-width:900px){
+.chapter{padding-top:168px}
+.chapter.deep{padding-top:168px;padding-bottom:120px}
+.faq{padding-top:168px}
+.coachsec{margin-top:180px}
+.gisec{margin-top:180px}
+.formsec{padding:120px 0}
+.photostrip{margin:88px auto}
+.fullphoto{margin:112px auto 0}
+#beweis{padding-bottom:40px}
+}
+/* --- Photos: contained on desktop, not full-bleed --- */
+@media(min-width:1000px){
+.photostrip,.fullphoto{width:min(880px,64vw);margin-left:auto;margin-right:auto;height:auto;aspect-ratio:3/2}
+.photostrip .cap,.fullphoto .cap{left:18px}
+.coachsec .photo{width:min(520px,40vw);margin-left:var(--mx);height:auto;aspect-ratio:4/5}
+.coachsec .vert{right:auto;left:calc(min(520px,40vw) + var(--mx) + 16px);top:24px}
+.chapgrid{grid-template-columns:minmax(0,400px) minmax(0,1fr);column-gap:clamp(36px,5vw,72px);padding-left:var(--mx);padding-right:var(--mx)}
+.chapgrid .photo{min-height:0;aspect-ratio:3/4}
+.chapgrid .txt{padding:0}
+}
+
+/* --- Muay Thai: punch-in headlines --- */
+.hero h1 .rw{transform:scale(1.7);filter:blur(7px);transform-origin:50% 62%}
+.hero h1 .rw.go{animation:punch .4s cubic-bezier(.2,.9,.25,1) forwards}
+@keyframes punch{0%{opacity:0;transform:scale(1.7);filter:blur(7px)}55%{opacity:1;transform:scale(.93);filter:blur(0)}78%{transform:scale(1.03)}100%{opacity:1;transform:none;filter:blur(0)}}
+.chaphead h2.rev{transform:scale(1.32);transform-origin:0 62%}
+.chaphead h2.rev.vis{animation:punchh .42s cubic-bezier(.2,.9,.25,1) forwards}
+@keyframes punchh{0%{opacity:0;transform:scale(1.32)}55%{opacity:1;transform:scale(.97)}78%{transform:scale(1.02)}100%{opacity:1;transform:none}}
+/* --- Eight weapons grid --- */
+.weapons{display:grid;grid-template-columns:1fr;border-top:1px solid var(--hair);margin-top:46px}
+@media(min-width:800px){.weapons{grid-template-columns:1fr 1fr}.weapons .wcell:nth-child(odd){border-right:1px solid var(--hair)}}
+.wcell{position:relative;padding:40px var(--mx) 44px;border-bottom:1px solid var(--hair)}
+.wcell h3{font-size:clamp(28px,4.4vw,42px);margin:20px 0 10px}
+.wcell p{color:var(--grey);font-size:15px;max-width:360px;line-height:1.55}
+.wnum{position:absolute;top:42px;right:var(--mx);font-size:12px;font-weight:800;letter-spacing:3px;color:var(--gold)}
+.wart{width:104px;height:104px}
+.wart svg{width:104px;height:104px;overflow:visible}
+.wart .l1{stroke:#fff;stroke-width:2.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.wart .l2{stroke:var(--gold);stroke-width:3.4;fill:none;stroke-linecap:round}
+.wart path{stroke-dasharray:100;stroke-dashoffset:100}
+.wcell.vis .wart path{animation:draw2 .5s cubic-bezier(.4,0,.2,1) forwards}
+.wcell.vis .wart path:nth-child(2){animation-delay:.09s}
+.wcell.vis .wart path:nth-child(3){animation-delay:.18s}
+.wcell.vis .wart path:nth-child(4){animation-delay:.27s}
+.wcell.vis .wart path:nth-child(5){animation-delay:.34s}
+.wcell.vis .wart path:nth-child(6){animation-delay:.41s}
+.wcell.vis .wart path:nth-child(7){animation-delay:.48s}
+.wcell.vis .wart path:nth-child(8){animation-delay:.55s}
+.wcell.vis .wart path:nth-child(9){animation-delay:.62s}
+@keyframes draw2{to{stroke-dashoffset:0}}
+/* --- Final motif: Muay Thai shorts --- */
+.shortsart{margin:26px auto 36px;display:block;overflow:visible}
+.shortsart path{fill:none;stroke:var(--gold);stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100}
+.shortsart .sline{stroke-width:3.4}
+.shortsart .sband{stroke-width:13}
+.shortsart .sdet{stroke-width:1.6;stroke:var(--gold-dark)}
+.shortsart.drawn .sline{animation:draw .95s cubic-bezier(.4,0,.2,1) forwards}
+.shortsart.drawn .sband{animation:draw .5s cubic-bezier(.4,0,.2,1) forwards}
+.shortsart.drawn .sdet{animation:draw .6s .55s cubic-bezier(.4,0,.2,1) forwards}
 </style>
 </head>
 <body>
@@ -293,9 +363,14 @@ Technoparkstrasse 3, Winterthur
 </div>
 </header>
 
-<div class="tickerwrap"><div class="ticker"><div class="ticker-inner" id="tickinner" data-seg="ACHT WAFFEN&nbsp;·&nbsp;TECHNIK &amp; RESPEKT&nbsp;·&nbsp;EINSTEIGERFREUNDLICH&nbsp;·&nbsp;WELTMEISTER-COACHING&nbsp;·&nbsp;"></div></div></div>
+<div class="claimband"><ul>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>ACHT WAFFEN</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>TECHNIK &amp; RESPEKT</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>EINSTEIGERFREUNDLICH</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>WELTMEISTER-COACHING</li>
+</ul></div>
 
-<section class="chapter" id="beweis" style="padding-top:84px">
+<section class="chapter" id="beweis">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <h2 class="rev">Members<br>über <span class="accent">uns.</span></h2>
@@ -332,11 +407,11 @@ Technoparkstrasse 3, Winterthur
 <div class="steprows">
 <a class="steprow rev steplink" href="#anmelden"><div class="n numpunch">01</div><h3><span class="ulink">Anfrage</span> senden</h3><p>Füll das kurze Formular aus – dauert keine 60 Sekunden.</p></a>
 <div class="steprow rev"><div class="n numpunch">02</div><h3>Wir rufen dich an</h3><p>Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.</p></div>
-<div class="steprow rev"><div class="n numpunch">03</div><h3>Dein erstes Training</h3><p>Komm vorbei und roll mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.</p></div>
+<div class="steprow rev"><div class="n numpunch">03</div><h3>Dein erstes Training</h3><p>Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.</p></div>
 </div>
 </section>
 
-<div class="photo rev photostrip"><img src="../assets/reviews-bg.jpg" alt="Training bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
+<div class="photo rev photostrip"><img src="../assets/mt-class.jpg" alt="Training bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
 
 <section class="formsec" id="anmelden">
 <div class="formgrid">
@@ -389,7 +464,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<section class="chapter" id="warum" style="padding-top:110px">
+<section class="chapter" id="warum">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <div class="idx rev">WARUM IMPACT</div>
@@ -397,7 +472,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 <svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
 <div class="chapgrid">
-<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d6795b769f05589695c57e_Class%20Thumbnail%20%20Resize%20%20(8).jpg" alt="BJJ Training bei IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · Im Training</div></div>
+<div class="photo rev"><img src="../assets/mt-clinch.jpg" alt="Muay-Thai-Training bei IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · Im Training</div></div>
 <div class="txt">
 <p class="rev">Bei uns gewinnt nicht, wer am härtesten ist – sondern wer am meisten lernt.</p>
 <div class="wordlist">
@@ -412,7 +487,7 @@ Technoparkstrasse 3, Winterthur
 
 <section class="coachsec deep" id="coach">
 <div class="vert">Nova União · Weltmeister · Seit 2014</div>
-<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67dc9a3d2e311002f6ff5_Jo%C3%A3o%20-%20L.jpg" alt="Sergei Liubchenko, Head Coach BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxen</div></div>
+<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxen</div></div>
 <div class="nameblock rev"><h2>Sergei<span class="last">Liubchenko</span></h2></div>
 <p class="bio rev">Profikämpfer und Trainer aus der Ukraine mit über 24 Jahren im Kampfsport und mehreren Weltmeistertiteln. Muay Thai ist sein Leben – und er bringt dich vom ersten Tag an weiter, in deinem Tempo.</p>
 </section>
@@ -424,26 +499,73 @@ Technoparkstrasse 3, Winterthur
 <h2 class="rev">Acht <span class="accent">Waffen.</span></h2>
 </div>
 <p class="lead rev" style="padding:18px var(--mx) 0;max-width:640px">Fäuste, Ellbogen, Knie, Schienbeine – Muay Thai nutzt den ganzen Körper. Kraftvoll und direkt, aber auch rhythmisch und präzise.</p>
-<div class="gigrid">
-<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
-<path pathLength="100" class="g1" d="M30 30 Q28 14 44 12 L62 12 Q78 12 78 30 L78 52 Q78 66 64 68 L46 68 Q30 66 30 50 Z"/>
-<path pathLength="100" class="g1" d="M30 40 L18 44 Q10 48 14 58 Q18 66 28 62 L32 60"/>
-<path pathLength="100" class="g1" d="M46 68 L46 92 L64 92 L64 68"/>
-<g transform="translate(40,24) scale(0.36)"><path pathLength="100" class="g2" d="M50.4 16.4 L37.4 50"/><path pathLength="100" class="g2" d="M56.7 16.4 L43.7 50"/><path pathLength="100" class="g2" d="M62.9 16.4 L37 83.5"/><path pathLength="100" class="g2" d="M56.2 50.1 L43.3 83.5"/></g>
-</svg></div><h3>Fäuste <span class="accent">&amp; Ellbogen</span></h3>
-<ul><li>Präzise Schlagtechnik und Kombinationen</li><li>Ellbogen für die Nahdistanz – Kontrolle statt Chaos</li><li>Deckung, Timing, Übersicht</li></ul></div>
-<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
-<path pathLength="100" class="g1" d="M34 8 L46 8 L48 42 Q48 52 42 58 L28 74 Q22 82 30 88 L38 94"/>
-<path pathLength="100" class="g1" d="M46 8 Q60 26 58 44 Q56 58 46 66"/>
-<path pathLength="100" class="g2" d="M26 98 L54 98"/>
-<path pathLength="100" class="g2" d="M23 104 L57 104"/>
-</svg></div><h3>Knie <span class="accent">&amp; Kicks</span></h3>
-<ul><li>Hohe Kicks für Beweglichkeit und Präzision</li><li>Knietechniken und Clinch-Kontrolle</li><li>Fussarbeit, Balance, Rhythmus</li></ul></div>
+<div class="weapons">
+<div class="wcell rev">
+<div class="wnum">01</div>
+<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
+<path pathLength="100" class="l1" d="M26 16 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
+<path pathLength="100" class="l1" d="M34 25 L31 58"/>
+<path pathLength="100" class="l1" d="M33 32 L22 40 L31 46"/>
+<path pathLength="100" class="l1" d="M31 58 L18 88"/>
+<path pathLength="100" class="l1" d="M31 58 L52 86"/>
+<path pathLength="100" class="l2" d="M33 34 L62 38 L80 42"/>
+<path pathLength="100" class="l2" d="M81 43 a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0"/>
+</svg></div>
+<h3>Fäuste</h3>
+<p>Gerade, Haken, Aufwärtshaken. Saubere Schlagtechnik in Kombinationen – mit Deckung, Timing und Übersicht.</p>
 </div>
+<div class="wcell rev">
+<div class="wnum">02</div>
+<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
+<path pathLength="100" class="l1" d="M24 16 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
+<path pathLength="100" class="l1" d="M32 25 L29 58"/>
+<path pathLength="100" class="l1" d="M30 38 L20 48 L28 54"/>
+<path pathLength="100" class="l1" d="M29 58 L16 88"/>
+<path pathLength="100" class="l1" d="M29 58 L50 86"/>
+<path pathLength="100" class="l2" d="M32 33 L66 28 L46 46"/>
+<path pathLength="100" class="l2" d="M74 22 L84 17"/>
+<path pathLength="100" class="l2" d="M75 31 L88 31"/>
+</svg></div>
+<h3>Ellbogen</h3>
+<p>Die Waffe der Nahdistanz. Kurz, präzise, kontrolliert – im Training immer mit klarer Partnerkontrolle.</p>
+</div>
+<div class="wcell rev">
+<div class="wnum">03</div>
+<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
+<path pathLength="100" class="l1" d="M22 14 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
+<path pathLength="100" class="l1" d="M30 23 L28 54"/>
+<path pathLength="100" class="l1" d="M29 30 L58 24"/>
+<path pathLength="100" class="l1" d="M29 36 L56 34"/>
+<path pathLength="100" class="l1" d="M28 54 L22 90"/>
+<path pathLength="100" class="l1" d="M22 90 L34 92"/>
+<path pathLength="100" class="l2" d="M28 54 L63 27 L54 60"/>
+<path pathLength="100" class="l2" d="M68 14 L77 8"/>
+<path pathLength="100" class="l2" d="M72 22 L84 19"/>
+</svg></div>
+<h3>Knie</h3>
+<p>Aus dem Clinch heraus. Kraft aus der Hüfte, Balance und Kontrolle über deinen Partner.</p>
+</div>
+<div class="wcell rev">
+<div class="wnum">04</div>
+<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
+<path pathLength="100" class="l1" d="M22 20 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
+<path pathLength="100" class="l1" d="M30 29 L27 58"/>
+<path pathLength="100" class="l1" d="M28 34 L17 43"/>
+<path pathLength="100" class="l1" d="M29 39 L41 49"/>
+<path pathLength="100" class="l1" d="M27 58 L22 92"/>
+<path pathLength="100" class="l1" d="M22 92 L34 94"/>
+<path pathLength="100" class="l2" d="M27 58 L58 42 L94 28"/>
+<path pathLength="100" class="l2" d="M40 93 Q80 84 96 45"/>
+</svg></div>
+<h3>Kicks</h3>
+<p>Schienbein statt Spann. Roundhouse, Teep und Fussarbeit – Reichweite, Beweglichkeit, Präzision.</p>
+</div>
+</div>
+<div class="photo rev fullphoto" style="height:clamp(240px,40vh,420px)"><img src="../assets/mt-kick.jpg" alt="Muay Thai Kick – IMPACT Winterthur" loading="lazy"><div class="cap">Acht Waffen · IMPACT Winterthur</div></div>
 <p class="ginote rev">Du brauchst keine Vorerfahrung. Handschuhe leihst du bei uns – bring nur Sportkleidung und Wasser.</p>
 </section>
 
-<div class="photo rev" style="height:clamp(260px,45vh,460px)"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a356508e92bb161c27da37c_IMPACT%20Website%20(12).png" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
+<div class="photo rev fullphoto" style="height:clamp(260px,45vh,460px)"><img src="../assets/mt-smile.jpg" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
 
 <section class="faq deep" id="faq">
 <div class="chaphead">
@@ -473,7 +595,12 @@ Technoparkstrasse 3, Winterthur
 
 <section class="final">
 <h2 class="rev">Runde <span class="accent">eins.</span></h2>
-<svg class="beltknot" width="320" height="80" viewBox="0 0 320 80"><path class="bband" d="M0 20 H140 M180 20 H320"/><path class="bseam" d="M0 16.5 H140 M180 16.5 H320 M0 23.5 H140 M180 23.5 H320"/><rect class="kknot" x="138" y="8" width="44" height="24" rx="4"/><path class="ktail" d="M150 32 L136 68"/><path class="ktail" d="M170 32 L186 68"/></svg>
+<svg class="shortsart" width="210" height="120" viewBox="0 0 220 120" aria-hidden="true">
+<path pathLength="100" class="sline" d="M48 20 L34 96 Q33 106 43 106 H90 Q99 106 100 97 L110 62 L120 97 Q121 106 130 106 H177 Q187 106 186 96 L172 20"/>
+<path pathLength="100" class="sband" d="M48 24 H172"/>
+<path pathLength="100" class="sdet" d="M46 36 H174"/>
+<path pathLength="100" class="sdet" d="M110 62 L110 36"/>
+</svg>
 <a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </section>
 
@@ -485,18 +612,6 @@ Technoparkstrasse 3, Winterthur
 
 <script>
 (function(){
-(function(){
-var ti=document.getElementById('tickinner');
-function fill(){
-var seg=ti.dataset.seg;
-ti.innerHTML=seg;
-var one=ti.scrollWidth;
-var need=Math.max(2, Math.ceil((window.innerWidth*1.1)/one));
-ti.innerHTML=seg.repeat(need*2);
-}
-fill();
-var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(fill,200)});
-})();
 (function(){try{
 var p=new URLSearchParams(location.search);
 var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc'};
@@ -521,13 +636,13 @@ var io=new IntersectionObserver(function(entries){
 entries.forEach(function(e){
 if(!e.isIntersecting)return;
 var t=e.target;
-if(t.classList.contains('beltline')||t.classList.contains('beltknot')){t.classList.add('drawn')}
+if(t.classList.contains('beltline')||t.classList.contains('shortsart')){t.classList.add('drawn')}
 else{t.classList.add('vis')}
 if(t.classList.contains('stat')){var c=t.querySelector('.cnt');if(c&&!c.dataset.done){c.dataset.done=1;count(c)}}
 io.unobserve(t);
 });
 },{threshold:.45});
-document.querySelectorAll('.beltline,.beltknot,.rev,.photo,.chapbolt,.numpunch').forEach(function(el){io.observe(el)});
+document.querySelectorAll('.beltline,.shortsart,.rev,.photo,.chapbolt,.numpunch').forEach(function(el){io.observe(el)});
 
 function count(el){
 var t=+el.dataset.t,s=el.dataset.s||'',st=performance.now();
