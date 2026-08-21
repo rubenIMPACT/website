@@ -10,7 +10,7 @@ DE = Root, EN = /en/. Skeleton-Seiten tragen den Hinweis "Inhalt folgt" im Desig
 | /de/zurich · /de/winterthur             | /zurich/ · /winterthur/              | Grundgerüst |
 | /en/zurich · /en/winterthur             | /en/zurich/ · /en/winterthur/        | Grundgerüst |
 | /de/{stadt}/kurse · /en/{city}/classes  | /{stadt}/kurse/ · /en/{city}/classes/| Übersicht mit allen 10 Kursen |
-| /kurse/{slug} (CMS, 21 Items)           | /{stadt}/kurse/{disziplin}/          | 10 Disziplinen × 2 Standorte × 2 Sprachen = 40 Seiten, Skeleton |
+| /kurse/{slug} (CMS, 21 Items)           | /{stadt}/kurse/{disziplin}/          | Winterthur DE: 9 Kurse VOLL mit Webflow-CMS-Inhalt (What-is, Warum, Quote, FAQ, Bild). Zürich DE + EN: Skeleton, Inhalt liegt im CMS bereit |
 | /de/{stadt}/stundenplan · /en timetable | /{stadt}/stundenplan/ · /en/{city}/timetable/ | Skeleton |
 | /de/{stadt}/coaches                     | /{stadt}/team/                       | Skeleton |
 | /gr/probetraining · /trial-session      | /probetraining/ · /trial/ (Hub)      | Hub live, verlinkt BJJ/MT-LPs |
@@ -31,3 +31,10 @@ DE = Root, EN = /en/. Skeleton-Seiten tragen den Hinweis "Inhalt folgt" im Desig
 
 ## Cutover-Redirects (für den Domain-Umzug, noch NICHT aktiv)
 /de/zurich→/zurich/ · /de/winterthur→/winterthur/ · /kurse/winterthur-*→/winterthur/kurse/* · /kurse/*→/zurich/kurse/* · /gr/*→/* · /home→/ · /de/*/kurse→/*/kurse/ etc.
+
+## Nächste Schritte Content-Migration
+1. Zürich-DE-Kurse (11 CMS-Items, gleiche Struktur wie Winterthur)
+2. EN-Kurse (21 Items, Collection 'Classes')
+3. Team-Seiten (24 Items je Sprache, dedupliziert per Standort-Suffix)
+4. Little-Ninjas-Alterssektionen (10 Items)
+Script-Vorlage: tools/enrich_winterthur_de.py – Struktur wiederverwendbar.
