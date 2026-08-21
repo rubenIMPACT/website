@@ -280,15 +280,14 @@ section.deep{background:#12100b}
 .fullphoto{margin:112px auto 0}
 #beweis{padding-bottom:40px}
 }
-/* --- Full-bleed strips: generous height, faces safe --- */
-.fullphoto img,.photostrip img{object-position:50% 38%}
+/* --- Photos: natural aspect ratio, never cropped --- */
+.photostrip,.fullphoto,.chapgrid .photo,.coachsec .photo{height:auto!important;min-height:0!important}
+.photostrip img,.fullphoto img,.chapgrid .photo img,.coachsec .photo img{width:100%;height:100%;object-fit:cover;object-position:center}
+.photostrip.vis img,.fullphoto.vis img,.chapgrid .photo.vis img,.coachsec .photo.vis img{transform:none}
 @media(min-width:1000px){
-.fullphoto{height:clamp(380px,62vh,660px)!important}
-.photostrip{height:clamp(340px,50vh,540px)}
-.chapgrid .photo{height:clamp(460px,66vh,640px);min-height:0}
 /* Coach: portrait left, text right (hero logic) */
 .coachsec{display:grid;grid-template-columns:minmax(0,44vw) minmax(0,1fr);grid-template-rows:1fr auto auto auto 1fr;column-gap:clamp(40px,5vw,90px);padding:0 var(--mx)}
-.coachsec .photo{grid-column:1;grid-row:1/6;height:clamp(460px,74vh,720px);width:100%}
+.coachsec .photo{grid-column:1;grid-row:1/6;width:100%;align-self:center}
 .coachsec .photo:after{display:none}
 .coachsec .photo .cap{left:18px}
 .coachsec .vert{position:static;grid-column:2;grid-row:2;writing-mode:horizontal-tb;font-size:12px;letter-spacing:3px;margin-bottom:14px}
@@ -435,7 +434,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<div class="photo rev photostrip"><img src="../../assets/mt-class.jpg" alt="Training bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
+<div class="photo rev photostrip" style="aspect-ratio:1600/1067"><img src="../../assets/mt-class.jpg" alt="Training bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
 
 <section class="formsec" id="anmelden">
 <div class="formgrid">
@@ -496,7 +495,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 <svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
 <div class="chapgrid">
-<div class="photo rev"><img src="../../assets/mt-clinch.jpg" alt="Muay-Thai-Training bei IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · Im Training</div></div>
+<div class="photo rev" style="aspect-ratio:1067/1600"><img src="../../assets/mt-clinch.jpg" alt="Muay-Thai-Training bei IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · Im Training</div></div>
 <div class="txt">
 <p class="rev">Bei uns gewinnt nicht, wer am härtesten ist – sondern wer am meisten lernt.</p>
 <div class="wordlist">
@@ -511,7 +510,7 @@ Technoparkstrasse 3, Winterthur
 
 <section class="coachsec deep" id="coach">
 <div class="vert">Nova União · Weltmeister · Seit 2014</div>
-<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxen</div></div>
+<div class="photo rev" style="aspect-ratio:938/938"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxen</div></div>
 <div class="nameblock rev"><h2>Sergei<span class="last">Liubchenko</span></h2></div>
 <p class="bio rev">Profikämpfer und Trainer aus der Ukraine mit über 24 Jahren im Kampfsport und mehreren Weltmeistertiteln. Muay Thai ist sein Leben – und er bringt dich vom ersten Tag an weiter, in deinem Tempo.</p>
 </section>
@@ -585,11 +584,11 @@ Technoparkstrasse 3, Winterthur
 <p>Schienbein statt Spann. Roundhouse, Teep und Fussarbeit – Reichweite, Beweglichkeit, Präzision.</p>
 </div>
 </div>
-<div class="photo rev fullphoto" style="height:clamp(240px,40vh,420px)"><img src="../../assets/mt-kick.jpg" alt="Muay Thai Kick – IMPACT Winterthur" loading="lazy"><div class="cap">Acht Waffen · IMPACT Winterthur</div></div>
+<div class="photo rev fullphoto" style="aspect-ratio:1600/1067"><img src="../../assets/mt-kick.jpg" alt="Muay Thai Kick – IMPACT Winterthur" loading="lazy"><div class="cap">Acht Waffen · IMPACT Winterthur</div></div>
 <p class="ginote rev">Du brauchst keine Vorerfahrung. Handschuhe leihst du bei uns – bring nur Sportkleidung und Wasser.</p>
 </section>
 
-<div class="photo rev fullphoto" style="height:clamp(260px,45vh,460px)"><img src="../../assets/mt-smile.jpg" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
+<div class="photo rev fullphoto" style="aspect-ratio:1600/1067"><img src="../../assets/mt-smile.jpg" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
 
 <section class="faq deep" id="faq">
 <div class="chaphead">
