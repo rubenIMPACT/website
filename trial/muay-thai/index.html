@@ -372,6 +372,30 @@ section.deep{background:#12100b}
 .coachsec .nameblock{grid-column:2;grid-row:3;margin:0 0 0 calc(-1*clamp(40px,6vw,110px));padding:0;position:relative;z-index:2}
 .coachsec .bio{grid-column:2;grid-row:4;padding:20px 0 0;margin:0;max-width:470px;position:relative;z-index:2}
 }
+/* weapons typographic + warum-bg + form photo */
+.wrows{border-top:1px solid var(--hair);margin-top:44px}
+.wrow{display:grid;grid-template-columns:64px 1fr;gap:6px 18px;padding:26px var(--mx);border-bottom:1px solid var(--hair);align-items:baseline}
+.wrow .wn{color:var(--gold);font-weight:800;letter-spacing:2px;font-size:15px}
+.wrow h3{font-size:clamp(26px,4.5vw,46px);text-transform:uppercase;letter-spacing:-.5px}
+.wrow p{grid-column:2;color:var(--grey);font-size:16px;max-width:560px}
+@media(min-width:900px){.wrow{grid-template-columns:100px 340px 1fr}.wrow p{grid-column:3;grid-row:1}}
+#warum{position:relative;overflow:hidden}
+#warum .chapgrid .photo{display:none}
+#warum:before{content:"";position:absolute;inset:0;background:url('../../assets/mt-smile-2.jpg') center 32%/cover no-repeat}
+#warum:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.85) 42%,rgba(0,0,0,.5) 74%,rgba(0,0,0,.3) 100%),linear-gradient(180deg,#000,transparent 16%,transparent 84%,#000)}
+#warum>*{position:relative;z-index:2}
+#warum .chapgrid{display:block;max-width:760px;padding:36px var(--mx) 72px}
+#warum .chapgrid .txt{padding:0}
+/* bjj-tweaks */
+.hero-content .cta{font-size:14px;padding:13px 22px}
+.formphoto{display:none}
+@media(min-width:1100px){
+.formphoto{display:block;max-width:430px;margin-top:36px;border-radius:4px;overflow:hidden;aspect-ratio:1600/1067}
+.formphoto img{width:100%;height:100%;object-fit:cover}
+.photostrip{display:none}
+}
+.gisec .chaphead{min-height:104px}
+.gisec .lead{padding-left:calc(var(--mx) + 36px)!important}
 </style>
 </head>
 <body>
@@ -416,7 +440,7 @@ Technoparkstrasse 3, Winterthur
 <section class="chapter" id="beweis">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<h2 class="rev">What members<br><span class="accent">say.</span></h2>
+<h2 class="rev">What our members <span class="accent">say.</span></h2>
 </div>
 <div class="statband">
 <div class="stat rev"><div><div class="n cnt" data-t="120" data-s="+">0</div><div class="l">5-star reviews</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
@@ -454,7 +478,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<div class="photo rev photostrip" style="aspect-ratio:1600/1067"><img src="../../assets/mt-class.jpg" alt="Training at IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
+<div class="photo rev photostrip" style="aspect-ratio:1600/1067"><img src="../../assets/mt-class-2.jpg" alt="Training at IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
 
 <section class="formsec" id="anmelden">
 <div class="formgrid">
@@ -515,7 +539,6 @@ Technoparkstrasse 3, Winterthur
 </div>
 <svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
 <div class="chapgrid">
-<div class="photo rev" style="aspect-ratio:1067/1600"><img src="../../assets/mt-clinch.jpg" alt="Training at IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · In training</div></div>
 <div class="txt">
 <p class="rev">Here it's not the toughest who wins – it's the one who learns the most.</p>
 <div class="wordlist">
@@ -542,73 +565,9 @@ Technoparkstrasse 3, Winterthur
 <h2 class="rev">Eight <span class="accent">limbs.</span></h2>
 </div>
 <p class="lead rev" style="padding:18px var(--mx) 0;max-width:640px">Fists, elbows, knees, shins – Muay Thai uses the whole body. Powerful and direct, but also rhythmic and precise.</p>
-<div class="weapons">
-<div class="wcell rev">
-<div class="wnum">01</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M26 16 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M34 25 L31 58"/>
-<path pathLength="100" class="l1" d="M33 32 L22 40 L31 46"/>
-<path pathLength="100" class="l1" d="M31 58 L18 88"/>
-<path pathLength="100" class="l1" d="M31 58 L52 86"/>
-<path pathLength="100" class="l2" d="M33 34 L62 38 L80 42"/>
-<path pathLength="100" class="l2" d="M81 43 a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0"/>
-</svg></div>
-<h3>Fists</h3>
-<p>Jab, hook, uppercut. Clean punching in combinations – with guard, timing and awareness.</p>
-</div>
-<div class="wcell rev">
-<div class="wnum">02</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M24 16 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M32 25 L29 58"/>
-<path pathLength="100" class="l1" d="M30 38 L20 48 L28 54"/>
-<path pathLength="100" class="l1" d="M29 58 L16 88"/>
-<path pathLength="100" class="l1" d="M29 58 L50 86"/>
-<path pathLength="100" class="l2" d="M32 33 L66 28 L46 46"/>
-<path pathLength="100" class="l2" d="M74 22 L84 17"/>
-<path pathLength="100" class="l2" d="M75 31 L88 31"/>
-</svg></div>
-<h3>Elbows</h3>
-<p>The close-range weapon. Short, precise, controlled – always with clear partner control in training.</p>
-</div>
-<div class="wcell rev">
-<div class="wnum">03</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M22 14 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M30 23 L28 54"/>
-<path pathLength="100" class="l1" d="M29 30 L58 24"/>
-<path pathLength="100" class="l1" d="M29 36 L56 34"/>
-<path pathLength="100" class="l1" d="M28 54 L22 90"/>
-<path pathLength="100" class="l1" d="M22 90 L34 92"/>
-<path pathLength="100" class="l2" d="M28 54 L63 27 L54 60"/>
-<path pathLength="100" class="l2" d="M68 14 L77 8"/>
-<path pathLength="100" class="l2" d="M72 22 L84 19"/>
-</svg></div>
-<h3>Knees</h3>
-<p>Straight out of the clinch. Power from the hips, balance and control over your partner.</p>
-</div>
-<div class="wcell rev">
-<div class="wnum">04</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M22 20 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M30 29 L27 58"/>
-<path pathLength="100" class="l1" d="M28 34 L17 43"/>
-<path pathLength="100" class="l1" d="M29 39 L41 49"/>
-<path pathLength="100" class="l1" d="M27 58 L22 92"/>
-<path pathLength="100" class="l1" d="M22 92 L34 94"/>
-<path pathLength="100" class="l2" d="M27 58 L58 42 L94 28"/>
-<path pathLength="100" class="l2" d="M40 93 Q80 84 96 45"/>
-</svg></div>
-<h3>Kicks</h3>
-<p>Shin, not instep. Roundhouse, teep and footwork – range, mobility, precision.</p>
-</div>
-</div>
-<div class="photo rev fullphoto" style="aspect-ratio:1600/1067"><img src="../../assets/mt-kick.jpg" alt="Muay Thai Kick – IMPACT Winterthur" loading="lazy"><div class="cap">Eight weapons · IMPACT Winterthur</div></div>
+<div class="wrows"><div class="wrow rev"><div class="wn">01</div><h3>Fists</h3><p>Jab, hook, uppercut. Clean punching in combinations – with guard, timing and awareness.</p></div><div class="wrow rev"><div class="wn">02</div><h3>Elbows</h3><p>The close-range weapon. Short, precise, controlled – always with respect and protection in training.</p></div><div class="wrow rev"><div class="wn">03</div><h3>Knees</h3><p>Power from the hips. Knee strikes and clinch work for dominance at short range.</p></div><div class="wrow rev"><div class="wn">04</div><h3>Kicks</h3><p>Shin over instep. Roundhouse, teep and footwork – range, mobility, precision.</p></div></div>
 <p class="ginote rev">No experience needed. You can borrow gloves from us – just bring sportswear and water.</p>
 </section>
-
-<div class="photo rev fullphoto" style="aspect-ratio:1600/1067"><img src="../../assets/mt-smile.jpg" alt="IMPACT community after training" loading="lazy" onerror="this.remove()"><div class="cap">The community · IMPACT</div></div>
 
 <section class="faq deep" id="faq">
 <div class="chaphead">
