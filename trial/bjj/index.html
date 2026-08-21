@@ -324,6 +324,16 @@ section.deep{background:#12100b}
 .claimband li.rev.vis:nth-child(4){animation-delay:.54s}
 .claimband .cb{width:10px;height:18px}
 .claimband .cb path{stroke:var(--gold);stroke-width:5}
+/* claim-desktop */
+@media(min-width:1000px){.claimband li{font-size:16.5px;letter-spacing:2.6px}}
+/* bjj-tweaks */
+.hero-content .cta{font-size:14px;padding:13px 22px}
+.formphoto{display:none}
+@media(min-width:1100px){
+.formphoto{display:block;max-width:430px;margin-top:36px;border-radius:4px;overflow:hidden;aspect-ratio:1600/1069}
+.formphoto img{width:100%;height:100%;object-fit:cover}
+.photostrip{display:none}
+}
 </style>
 </head>
 <body>
@@ -413,6 +423,7 @@ Technoparkstrasse 3, Winterthur
 <div class="left">
 <h2 class="rev">Claim your <span class="accent">free</span> trial session</h2>
 <p>Fill in the form – we'll call you and find your way in together. Trial is free, loaner gear included.</p>
+<div class="photo formphoto rev"><img src="../../assets/reviews-bg.jpg" alt="BJJ at IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT WINTERTHUR</div></div>
 </div>
 <form id="leadform" novalidate>
 <div><label for="floc">Where do you want to train? *</label><select id="floc" name="location" required>
@@ -669,7 +680,7 @@ window.dataLayer=window.dataLayer||[];
 window.dataLayer.push({event:'generate_lead',lead_location:payload.location,lead_discipline:payload.discipline});
 if(typeof gtag==='function'){gtag('event','generate_lead',{lead_location:payload.location,lead_discipline:payload.discipline})}
 if(typeof fbq==='function'){fbq('track','Lead')}
-showSuccess(false);
+setTimeout(function(){location.href='/trial/thanks/'},400);
 })
 .catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Senden fehlgeschlagen. Bitte versuch es nochmal oder ruf uns an.');});
 });

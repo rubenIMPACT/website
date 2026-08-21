@@ -354,6 +354,8 @@ section.deep{background:#12100b}
 .shortsart.drawn .sline{animation:draw .95s cubic-bezier(.4,0,.2,1) forwards}
 .shortsart.drawn .sband{animation:draw .5s cubic-bezier(.4,0,.2,1) forwards}
 .shortsart.drawn .sdet{animation:draw .6s .55s cubic-bezier(.4,0,.2,1) forwards}
+/* claim-desktop */
+@media(min-width:1000px){.claimband li{font-size:16.5px;letter-spacing:2.6px}}
 </style>
 </head>
 <body>
@@ -753,7 +755,7 @@ window.dataLayer=window.dataLayer||[];
 window.dataLayer.push({event:'generate_lead',lead_location:payload.location,lead_discipline:payload.discipline});
 if(typeof gtag==='function'){gtag('event','generate_lead',{lead_location:payload.location,lead_discipline:payload.discipline})}
 if(typeof fbq==='function'){fbq('track','Lead')}
-showSuccess(false);
+setTimeout(function(){location.href='/trial/thanks/'},400);
 })
 .catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Sending failed. Please try again or give us a call.');});
 });
