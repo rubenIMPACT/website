@@ -441,6 +441,27 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 @keyframes stamp{0%{transform:scale(1.9);opacity:0}60%{transform:scale(.95);opacity:1}100%{transform:scale(1);opacity:1}}
 .wrow.vis:after{animation:lshoot .45s ease-out forwards;animation-delay:.25s}
 @keyframes lshoot{to{transform:scaleX(1)}}
+/* warum polish r8 */
+#warum h2 .accent{display:inline-block;opacity:0;transform:translateX(64px) rotate(6deg)}
+#warum h2.vis .accent{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) .35s forwards}
+#warum .beltline{display:none}
+#warum .wordlist>div{border-bottom:none!important;border-top:none!important}
+#warum:after{background:linear-gradient(90deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.92) 42%,rgba(0,0,0,.6) 72%,rgba(0,0,0,.34) 100%),linear-gradient(180deg,#000,transparent 16%,transparent 84%,#000)}
+@media(max-width:999px){#warum:before{background-position:76% 32%}}
+/* weapons anim A+B */
+.wrow.rev{opacity:0;border-bottom:none;position:relative}
+.wrow.rev:nth-child(odd){transform:translateX(-56px)}
+.wrow.rev:nth-child(even){transform:translateX(56px)}
+.wrow.rev.vis{animation:punchL .6s cubic-bezier(.3,1.2,.3,1) forwards}
+.wrow.rev:nth-child(even).vis{animation-name:punchR}
+@keyframes punchL{0%{opacity:0;transform:translateX(-56px)}60%{opacity:1;transform:translateX(6px)}100%{opacity:1;transform:none}}
+@keyframes punchR{0%{opacity:0;transform:translateX(56px)}60%{opacity:1;transform:translateX(-6px)}100%{opacity:1;transform:none}}
+.wrow:after{content:"";position:absolute;left:0;bottom:0;height:1px;width:100%;background:var(--hair);transform:scaleX(0);transform-origin:0 50%}
+.wrow.vis:after{animation:lineshoot .38s cubic-bezier(.2,.8,.2,1) .22s forwards}
+@keyframes lineshoot{to{transform:scaleX(1)}}
+.wrow .wn{display:inline-block}
+.wrow.vis .wn{animation:stamp .5s cubic-bezier(.3,1.4,.4,1) .08s both}
+@keyframes stamp{0%{transform:scale(1.8);opacity:0}55%{opacity:1}100%{transform:scale(1);opacity:1}}
 </style>
 </head>
 <body>
