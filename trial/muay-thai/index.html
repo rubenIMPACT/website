@@ -526,6 +526,22 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .hero h1 .rw.accent{transform:scale(1.5);opacity:0}
 .hero h1 .rw.accent.go{animation:punchIn .7s cubic-bezier(.3,1.2,.4,1) forwards!important}
 @keyframes punchIn{0%{opacity:0;transform:scale(1.5);filter:blur(12px)}55%{opacity:1;transform:scale(.97);filter:blur(2px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+/* duo coaches r15 */
+.steprow{border-bottom:none!important}
+.duosec{margin-top:110px;padding:0 var(--mx)}
+.duokick{font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:26px}
+.duogrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,40px);max-width:1100px}
+.duocard .photo{aspect-ratio:3/4;overflow:hidden;position:relative}
+.duocard .photo img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;filter:saturate(.95)}
+.duocard h3{font-size:clamp(20px,3.2vw,40px);text-transform:uppercase;letter-spacing:-.5px;margin-top:14px}
+.duocard h3 span{display:block;color:var(--gold);font-size:.62em}
+.duocard .role{color:var(--grey);font-size:13px;margin-top:4px}
+.biobtn{margin-top:14px;background:none;border:1px solid var(--gold);color:var(--gold);font-family:inherit;font-weight:500;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;border-radius:3px;cursor:pointer}
+.biobtn:hover{background:var(--gold);color:var(--black)}
+.biofull{max-height:0;overflow:hidden;transition:max-height .5s ease}
+.biofull.open{max-height:1200px}
+.biofull p{color:var(--grey);font-size:15px;line-height:1.6;margin-top:12px}
+@media(max-width:559px){.duogrid{gap:12px}.duocard h3{font-size:17px}.biobtn{padding:8px 10px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -682,20 +698,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<section class="coachsec deep" id="coach">
-<div class="vert">Your Coaches</div>
-<div class="photo rev" style="aspect-ratio:938/938"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxing</div></div>
-<div class="nameblock rev"><h2>Sergei<span class="last">Liubchenko</span></h2></div>
-<p class="bio rev">Professional fighter and coach from Ukraine with over 24 years in combat sports and multiple world titles. Muay Thai is his life – and he moves you forward from day one, at your pace.</p>
-
-</section>
-<section class="coachsec deep" id="coach2sec">
-
-<div class="photo rev" style="aspect-ratio:938/938"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e719eac89fd95595cc8_Nathan%20Melliger.jpg" alt="Nathan Melliger, Coach Muay Thai, MMA & BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxing</div></div>
-<div class="nameblock rev"><h2>Nathan<span class="last">Melliger</span></h2></div>
-<p class="bio rev">From taekwondo via kickboxing to Muay Thai – with fight experience across Switzerland, plus a purple belt in BJJ. Precise striking, clear teaching and an eye for detail.</p>
-
-</section>
+<section class="duosec" id="coach"><div class="duokick rev">Your Coaches</div><div class="duogrid"><div class="duocard rev"><div class="photo"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko" loading="lazy"></div><h3>Sergei<span>Liubchenko</span></h3><div class="role">Head Coach Muay Thai & Boxing</div><button class="biobtn" type="button">Full bio</button><div class="biofull"><p>Sergei is a professional fighter and trainer from Ukraine with over 24 years of experience in combat sports. His journey began in 2002 at the age of 14 with Muay Thai — a discipline that remains the foundation of his style and philosophy to this day.</p><p>His impressive amateur career includes over 200 fights on both national and international levels. Sergei became multiple-time World Champion in Thailand and won the Ukrainian National Championship seven times.</p><p>He made his professional debut in 2005. Across 30 professional fights, he secured major titles including European Champion, Intercontinental Champion, Ukrainian Champion, World Champion in Khmer Boxing (Cambodia), World Champion in Muay Thai, and World Champion in Kickboxing (WPK). For his outstanding achievements, he was awarded the title "Master of Sports of International Class."</p><p>Today, Sergei continues to live and breathe the sport, teaching Muay Thai, kickboxing and classical boxing at a professional level.</p></div></div><div class="duocard rev"><div class="photo"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e719eac89fd95595cc8_Nathan%20Melliger.jpg" alt="Nathan Melliger" loading="lazy"></div><h3>Nathan<span>Melliger</span></h3><div class="role">Coach Muay Thai, MMA & BJJ</div><button class="biobtn" type="button">Full bio</button><div class="biofull"><p>Driven from childhood by discipline, passion, and an insatiable desire for self-improvement, Nathan Melliger transformed the initial spark of his youthful fascination into an impressive martial arts career. His expertise emerged from countless hours of hard work and fights — from precise strikes in kickboxing to explosive combinations in Muay Thai. His recent pursuit of Brazilian Jiu-Jitsu (purple belt) completes his style, making him a versatile all-rounder.</p><p>Disciplines: Muay Thai, Kickboxing, Taekwondo, Brazilian Jiu-Jitsu.</p></div></div></div></section>
 
 <section class="gisec" id="gi">
 <div class="chaphead">
@@ -874,5 +877,6 @@ setTimeout(function(){location.href='/trial/thanks/'},400);
 });
 })();
 </script>
+<script>document.querySelectorAll('.biobtn').forEach(function(b){b.addEventListener('click',function(){var f=b.nextElementSibling;var open=f.classList.toggle('open');b.textContent=open?'Less':'Full bio';});});</script>
 </body>
 </html>
