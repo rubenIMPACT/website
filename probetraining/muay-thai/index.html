@@ -500,6 +500,18 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .roundcard .rc{transform:scale(.6) rotate(-8deg);transform-origin:50% 100%;opacity:0}
 .final.vis .roundcard .rc,.roundcard.vis .rc{animation:cardup .7s cubic-bezier(.3,1.3,.4,1) forwards}
 @keyframes cardup{60%{opacity:1;transform:scale(1.06) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(-3deg)}}
+/* r12 */
+.statband{display:none!important}
+/* r12 mt */
+@media(min-width:1000px){
+#warum:before{background-position:center 58%!important}
+.faq:before{background-position:70% 42%!important}
+}
+.photostrip{display:none!important}
+.coach2{display:flex;align-items:center;gap:16px;margin:26px 0 0;padding:18px 0 0;border-top:1px solid var(--hair);max-width:470px}
+.coach2 img{width:64px;height:64px;object-fit:cover;border-radius:50%;filter:saturate(.9)}
+.coach2 b{display:block;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.coach2 span{color:var(--grey);font-size:14px}
 </style>
 </head>
 <body>
@@ -528,14 +540,14 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 Technoparkstrasse 3, Winterthur
 </a>
 <h1><span class="rw">Kraft.</span>  <span class="rw">Präzision.</span> <span class="rw accent">IMPACT.</span></h1>
-<p class="sub">Muay Thai in Winterthur. Die Kunst der acht Waffen – Technik, Rhythmus, Respekt. Keine Vorkenntnisse nötig.</p>
+<p class="sub">Muay Thai in Winterthur. Die Kunst der acht Gliedmassen – Technik, Rhythmus, Respekt. Keine Vorkenntnisse nötig.</p>
 <p class="cred">Sergei Liubchenko – Head Coach Muay Thai <span>· Mehrfacher Weltmeister</span></p>
 <a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </div>
 </header>
 
 <div class="claimband"><ul>
-<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>ACHT WAFFEN</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>ACHT GLIEDMASSEN</li>
 <li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>TECHNIK &amp; RESPEKT</li>
 <li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>EINSTEIGERFREUNDLICH</li>
 <li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>WELTMEISTER-COACHING</li>
@@ -649,24 +661,25 @@ Technoparkstrasse 3, Winterthur
 <div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Weltklasse <small>Coaching von Sergei – 24 Jahre im Ring</small></div>
 <div class="rev accent"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Kein Ego <small>Eine Community, die dich trägt</small></div>
 <div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Struktur <small>Klar aufgebaute Trainings, jedes Level</small></div>
-<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Acht Waffen <small>Fäuste, Ellbogen, Knie, Schienbeine</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Acht Gliedmassen <small>Fäuste, Ellbogen, Knie, Schienbeine</small></div>
 </div>
 </div>
 </div>
 </section>
 
 <section class="coachsec deep" id="coach">
-<div class="vert">Nova União · Weltmeister · Seit 2014</div>
+<div class="vert">Deine Coaches</div>
 <div class="photo rev" style="aspect-ratio:938/938"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxen</div></div>
 <div class="nameblock rev"><h2>Sergei<span class="last">Liubchenko</span></h2></div>
 <p class="bio rev">Profikämpfer und Trainer aus der Ukraine mit über 24 Jahren im Kampfsport und mehreren Weltmeistertiteln. Muay Thai ist sein Leben – und er bringt dich vom ersten Tag an weiter, in deinem Tempo.</p>
+<div class="coach2 rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e719eac89fd95595cc8_Nathan%20Melliger.jpg" alt="Nathan Melliger" loading="lazy"><div><b>Nathan Melliger</b><span>Coach Muay Thai, MMA & BJJ</span></div></div>
 </section>
 
 <section class="gisec" id="gi">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <div class="idx rev">DIE KUNST</div>
-<h2 class="rev">Acht <span class="accent">Waffen.</span></h2>
+<h2 class="rev">Acht <span class="accent">Gliedmassen.</span></h2>
 </div>
 <p class="lead rev" style="padding:18px var(--mx) 0;max-width:640px">Fäuste, Ellbogen, Knie, Schienbeine – Muay Thai nutzt den ganzen Körper. Kraftvoll und direkt, aber auch rhythmisch und präzise.</p>
 <div class="wrows"><div class="wrow rev"><div class="wn">01</div><h3>Fäuste</h3><p>Gerade, Haken, Aufwärtshaken. Saubere Schlagtechnik in Kombinationen – mit Deckung, Timing und Übersicht.</p></div><div class="wrow rev"><div class="wn">02</div><h3>Ellbogen</h3><p>Die Waffe der Nahdistanz. Kurz, präzise, kontrolliert – im Training immer mit Respekt und Schutz.</p></div><div class="wrow rev"><div class="wn">03</div><h3>Knie</h3><p>Kraft aus der Hüfte. Knietechniken und Clinch-Arbeit für Dominanz in der kurzen Distanz.</p></div><div class="wrow rev"><div class="wn">04</div><h3>Kicks</h3><p>Schienbein statt Spann. Roundhouse, Teep und Fussarbeit – Reichweite, Beweglichkeit, Präzision.</p></div></div>

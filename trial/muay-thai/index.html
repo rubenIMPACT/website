@@ -500,6 +500,18 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .roundcard .rc{transform:scale(.6) rotate(-8deg);transform-origin:50% 100%;opacity:0}
 .final.vis .roundcard .rc,.roundcard.vis .rc{animation:cardup .7s cubic-bezier(.3,1.3,.4,1) forwards}
 @keyframes cardup{60%{opacity:1;transform:scale(1.06) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(-3deg)}}
+/* r12 */
+.statband{display:none!important}
+/* r12 mt */
+@media(min-width:1000px){
+#warum:before{background-position:center 58%!important}
+.faq:before{background-position:70% 42%!important}
+}
+.photostrip{display:none!important}
+.coach2{display:flex;align-items:center;gap:16px;margin:26px 0 0;padding:18px 0 0;border-top:1px solid var(--hair);max-width:470px}
+.coach2 img{width:64px;height:64px;object-fit:cover;border-radius:50%;filter:saturate(.9)}
+.coach2 b{display:block;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.coach2 span{color:var(--grey);font-size:14px}
 </style>
 </head>
 <body>
@@ -656,10 +668,11 @@ Technoparkstrasse 3, Winterthur
 </section>
 
 <section class="coachsec deep" id="coach">
-<div class="vert">Nova União · Weltmeister · Seit 2014</div>
+<div class="vert">Your Coaches</div>
 <div class="photo rev" style="aspect-ratio:938/938"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxing</div></div>
 <div class="nameblock rev"><h2>Sergei<span class="last">Liubchenko</span></h2></div>
 <p class="bio rev">Professional fighter and coach from Ukraine with over 24 years in combat sports and multiple world titles. Muay Thai is his life – and he moves you forward from day one, at your pace.</p>
+<div class="coach2 rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e719eac89fd95595cc8_Nathan%20Melliger.jpg" alt="Nathan Melliger" loading="lazy"><div><b>Nathan Melliger</b><span>Coach Muay Thai, MMA & BJJ</span></div></div>
 </section>
 
 <section class="gisec" id="gi">
