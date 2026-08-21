@@ -61,7 +61,7 @@ nav{gap:14px}
 @keyframes roll{60%{opacity:1;transform:translateX(5px) rotate(2.5deg)}100%{opacity:1;transform:none}}
 .hero .sub{font-size:clamp(16px,2.2vw,20px);color:#ddd;max-width:520px;margin:16px 0 10px}
 .hero .cred{font-size:14px;color:var(--gold);font-weight:500;margin-bottom:26px}
-.hero-content .cta{min-width:min(350px,calc(100vw - 2*var(--mx)));text-align:center}
+.hero-content .cta{min-width:min(350px,calc(100vw - 2*var(--mx)));min-height:84px;display:inline-flex;align-items:center;justify-content:center;text-align:center}
 .hero .cred span{color:var(--grey);font-weight:300}
 @media(min-width:1100px){
 .hero{flex-direction:row;align-items:stretch;min-height:94vh}
@@ -75,7 +75,7 @@ nav{gap:14px}
 @keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .chapter{padding:96px 0 0}
 .chapter .idx{font-size:14px;color:var(--gold);font-weight:800;letter-spacing:3px;padding:0 var(--mx)}
-.chapter h2{font-size:clamp(44px,8vw,96px);padding:8px var(--mx) 0}
+.chapter h2{font-size:clamp(44px,8vw,96px);padding:8px var(--mx) 0;line-height:1.06}
 .beltline{margin:26px var(--mx) 0;display:block;overflow:visible;width:calc(100% - 2*var(--mx))}
 .beltline .bband{stroke:var(--gold);stroke-width:6;fill:none;stroke-dasharray:1200;stroke-dashoffset:1200}
 .beltline .bseam{stroke:var(--gold-dark);stroke-width:1;fill:none;stroke-dasharray:1200;stroke-dashoffset:1200}
@@ -121,11 +121,12 @@ nav{gap:14px}
 .gbadge b{color:var(--gold);font-weight:800}
 .coachsec{position:relative;margin-top:110px}
 .coachsec .photo{height:clamp(420px,70vh,680px)}
+.coachsec .photo:after{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(180deg,transparent,#12100b)}
 .coachsec .vert{position:absolute;right:calc(var(--mx)/2);top:60px;font-size:11px;letter-spacing:3px;color:var(--gold);writing-mode:vertical-rl;text-transform:uppercase;z-index:3}
 .coachsec .nameblock{margin-top:-.62em;position:relative;z-index:2;padding:0 var(--mx)}
 .coachsec .nameblock h2{font-size:clamp(52px,11vw,130px);letter-spacing:-2px}
 .coachsec .nameblock .last{display:block;font-size:clamp(26px,5vw,56px);color:var(--gold);letter-spacing:0}
-.coachsec .bio{padding:18px var(--mx) 0;color:var(--grey);font-size:19px;max-width:560px;line-height:1.55}
+.coachsec .bio{padding:18px var(--mx) 56px;color:var(--grey);font-size:19px;max-width:560px;line-height:1.55}
 .gisec{margin-top:110px;border-top:1px solid var(--hair)}
 .gicols{display:grid;grid-template-columns:1fr}
 @media(min-width:800px){.gicols{grid-template-columns:1fr 1fr}}
@@ -137,15 +138,15 @@ nav{gap:14px}
 .giart .g1{stroke:#fff;stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
 .giart .g2{stroke:var(--gold);stroke-width:2.4;fill:none;stroke-linecap:round}
 .giart path{stroke-dasharray:100;stroke-dashoffset:100}
-.gicol.rev.vis .giart path{animation:boltz2 .7s cubic-bezier(.5,0,.3,1) forwards;animation-delay:.2s}
-.gicol.rev.vis .giart path:nth-child(2){animation-delay:.32s}
-.gicol.rev.vis .giart path:nth-child(3){animation-delay:.44s}
-.gicol.rev.vis .giart path:nth-child(4){animation-delay:.56s}
-.gicol.rev.vis .giart path:nth-child(5){animation-delay:.68s}
-.gicol.rev.vis .giart .g2{animation-delay:.82s}
-.gicol.rev.vis .giart g .g2:nth-child(2){animation-delay:.9s}
-.gicol.rev.vis .giart g .g2:nth-child(3){animation-delay:.98s}
-.gicol.rev.vis .giart g .g2:nth-child(4){animation-delay:1.06s}
+.gicol.rev.vis .giart path{animation:boltz2 .5s cubic-bezier(.5,0,.3,1) forwards;animation-delay:.15s}
+.gicol.rev.vis .giart path:nth-child(2){animation-delay:.22s}
+.gicol.rev.vis .giart path:nth-child(3){animation-delay:.29s}
+.gicol.rev.vis .giart path:nth-child(4){animation-delay:.36s}
+.gicol.rev.vis .giart path:nth-child(5){animation-delay:.43s}
+.gicol.rev.vis .giart .g2{animation-delay:.55s}
+.gicol.rev.vis .giart g .g2:nth-child(2){animation-delay:.62s}
+.gicol.rev.vis .giart g .g2:nth-child(3){animation-delay:.69s}
+.gicol.rev.vis .giart g .g2:nth-child(4){animation-delay:.76s}
 .gicol li{list-style:none;color:var(--grey);font-size:15px;padding-left:18px;position:relative;margin-bottom:10px}
 .gicol li:before{content:"";position:absolute;left:0;top:9px;width:8px;height:3px;background:var(--gold)}
 .ginote{padding:26px var(--mx);color:var(--grey);font-size:15px}
@@ -297,7 +298,7 @@ Technoparkstrasse 3, Winterthur
 <h2 class="rev">What members<br><span class="accent">say.</span></h2>
 </div>
 <div class="statband">
-<div class="stat rev"><div><div class="n cnt" data-t="110" data-s="+">0</div><div class="l">5-star reviews</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
+<div class="stat rev"><div><div class="n cnt" data-t="120" data-s="+">0</div><div class="l">5-star reviews</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
 <div class="stat rev"><div><div class="n cnt" data-t="12" data-s="">0</div><div class="l">Years of coaching</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
 <div class="stat rev"><div><div class="n numpunch">2.</div><div class="l">Degree black belt</div></div></div>
 </div>
@@ -307,7 +308,7 @@ Technoparkstrasse 3, Winterthur
 <div class="qdots" id="qdots"></div>
 </div>
 <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
-<a class="gbadge" href="https://maps.app.goo.gl/4WLKoHRziA7jtjWp9" target="_blank" rel="noopener"><b>110+</b> 5-star reviews on Google</a>
+<a class="gbadge" href="https://maps.app.goo.gl/4WLKoHRziA7jtjWp9" target="_blank" rel="noopener"><b>120+</b> 5-star reviews on Google</a>
 <div class="facesrow" aria-hidden="true">
 <img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/692ba359b9b2ac707e0951e4_unnamed%20(1).png" alt="">
 <img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/692ba49b02828a7c8eac7b7a_unnamed%20(3).png" alt="">
@@ -489,7 +490,14 @@ var rws=document.querySelectorAll('.hero .rw');
 rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},300+i*260)});
 var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn');
 var heroEl=document.querySelector('.hero');
-if(sb){sb.addEventListener('click',function(){if(hv.muted){hv.muted=false;hv.currentTime=0;hv.play();sb.classList.add('sndon');heroEl.classList.add('cinema');}else{hv.muted=true;sb.classList.remove('sndon');heroEl.classList.remove('cinema');}})}
+function cineEls(){return document.querySelectorAll('.hero .kicker,.hero h1,.hero .sub,.hero .cred')}
+function setCinema(on){
+heroEl.classList.toggle('cinema',on);
+var mob=window.innerWidth<1100;
+cineEls().forEach(function(el){el.style.transition='opacity .45s';el.style.opacity=(on&&mob)?'0':'';el.style.pointerEvents=(on&&mob)?'none':''});
+var ov=document.querySelector('.hero-ovl');if(ov){ov.style.transition='opacity .45s';ov.style.opacity=(on&&mob)?'.25':''}
+}
+if(sb){sb.addEventListener('click',function(){if(hv.muted){setCinema(true);hv.muted=false;sb.classList.add('sndon');var pr=hv.play();if(pr&&pr.catch){pr.catch(function(){})}}else{hv.muted=true;sb.classList.remove('sndon');setCinema(false);}})}
 
 var io=new IntersectionObserver(function(entries){
 entries.forEach(function(e){
@@ -544,7 +552,7 @@ var hb=hero.getBoundingClientRect().bottom;
 var fr=formsec.getBoundingClientRect();
 var overForm=fr.top<window.innerHeight&&fr.bottom>0;
 if(hb<0&&!overForm){fc.classList.add('on')}else{fc.classList.remove('on')}
-if(sb){var gone=hb<window.innerHeight*0.35;sb.classList.toggle('hid',gone);if(gone&&heroEl.classList.contains('cinema')){heroEl.classList.remove('cinema')}}
+if(sb){var gone=hb<window.innerHeight*0.35;sb.classList.toggle('hid',gone);if(gone&&heroEl.classList.contains('cinema')){setCinema(false);sb.classList.remove('sndon');hv.muted=true;}}
 }
 var navEl=document.querySelector('nav');
 window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd)}navEl.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
