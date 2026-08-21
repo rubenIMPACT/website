@@ -92,7 +92,7 @@ nav .cta{padding:10px 18px;font-size:13px}
 .wordlist div{font-size:clamp(22px,3.5vw,34px);font-weight:800;text-transform:uppercase;padding:14px 0;border-bottom:1px solid var(--hair);display:flex;align-items:center;gap:14px}
 .wordlist div:first-child{border-top:1px solid var(--hair)}
 .wordlist small{font-size:13px;font-weight:300;text-transform:none;color:var(--grey);letter-spacing:0}
-.statband{margin-top:96px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);display:grid;grid-template-columns:repeat(3,1fr)}
+.statband{margin-top:96px;position:relative;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);display:grid;grid-template-columns:repeat(3,1fr)}
 .stat{padding:34px var(--mx)}
 .stat .n{font-size:clamp(34px,6vw,72px);font-weight:800;color:var(--gold);letter-spacing:-2px}
 .stat .l{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--grey);margin-top:4px}
@@ -111,7 +111,7 @@ nav .cta{padding:10px 18px;font-size:13px}
 .coachsec .vert{position:absolute;right:calc(var(--mx)/2);top:60px;font-size:11px;letter-spacing:3px;color:var(--gold);writing-mode:vertical-rl;text-transform:uppercase;z-index:3}
 .coachsec .nameblock{margin-top:-.62em;position:relative;z-index:2;padding:0 var(--mx)}
 .coachsec .nameblock h2{font-size:clamp(52px,11vw,130px);letter-spacing:-2px}
-.coachsec .nameblock .last{display:block;font-size:clamp(26px,5vw,56px);-webkit-text-stroke:1.5px var(--gold);color:transparent;letter-spacing:0}
+.coachsec .nameblock .last{display:block;font-size:clamp(26px,5vw,56px);color:var(--gold);letter-spacing:0}
 .coachsec .bio{padding:18px var(--mx) 0;color:var(--grey);font-size:19px;max-width:560px;line-height:1.55}
 .gisec{margin-top:110px;border-top:1px solid var(--hair)}
 .gicols{display:grid;grid-template-columns:1fr}
@@ -132,7 +132,10 @@ nav .cta{padding:10px 18px;font-size:13px}
 form{display:flex;flex-direction:column;gap:14px}
 label{font-size:13px;color:var(--grey);letter-spacing:.5px;text-transform:uppercase;font-weight:500}
 input{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:var(--white);font-family:inherit;font-size:16px;padding:14px 16px;width:100%}
-input:focus{outline:none;border-color:var(--gold)}
+input:focus,select:focus{outline:none;border-color:var(--gold)}
+select{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:var(--white);font-family:inherit;font-size:16px;padding:14px 16px;width:100%;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23e2c210' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+.errfield{border-color:#e5484d!important;animation:errpulse .9s ease-out}
+@keyframes errpulse{0%{box-shadow:0 0 0 0 rgba(229,72,77,.7)}70%{box-shadow:0 0 0 9px rgba(229,72,77,0)}100%{box-shadow:0 0 0 0 rgba(229,72,77,0)}}
 .consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--grey)}
 .consent input{width:auto;margin-top:3px}
 .form-note{font-size:13px;color:#6e6a5f}
@@ -146,7 +149,9 @@ input:focus{outline:none;border-color:var(--gold)}
 .faq summary:after{content:"+";color:var(--gold);font-size:26px;font-weight:300;transition:transform .2s}
 .faq details[open] summary:after{transform:rotate(45deg)}
 .faq details p{margin-top:12px;color:var(--grey);font-size:15px;max-width:640px}
-.final{text-align:center;padding:110px var(--mx) 90px}
+.final{text-align:center;padding:110px var(--mx) 90px;position:relative;overflow:hidden}
+.final:before,.statband:before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120vw;height:150%;background:radial-gradient(ellipse at center,rgba(226,194,16,.07),transparent 55%);pointer-events:none}
+.final>*{position:relative}
 .final h2{font-size:clamp(36px,7vw,84px)}
 .beltknot{margin:22px auto 34px;display:block;overflow:visible}
 .beltknot .bband{stroke:var(--gold);stroke-width:6;fill:none;stroke-dasharray:1000;stroke-dashoffset:1000}
@@ -180,15 +185,16 @@ footer a{color:var(--grey)}
 .chaphead .idx,.chaphead h2{padding-left:calc(var(--mx) + 38px)}
 .tri{flex:none}
 .tri path{stroke:var(--gold);stroke-width:3.4;fill:none}
-.wordlist .tri path{stroke-dasharray:60;stroke-dashoffset:60}
-.wordlist .rev.vis .tri path{animation:boltz .16s cubic-bezier(.7,0,.3,1) forwards}
-.wordlist .rev.vis .tri path:nth-child(2){animation-delay:.05s}
-.wordlist .rev.vis .tri path:nth-child(3){animation-delay:.09s}
-.wordlist .rev.vis .tri path:nth-child(4){animation-delay:.14s}
+.wordlist .tri path{stroke-dasharray:100;stroke-dashoffset:100}
+.wordlist .rev.vis .tri path{animation:boltz2 .18s cubic-bezier(.7,0,.3,1) forwards}
+.wordlist .rev.vis .tri path:nth-child(2){animation-delay:.06s}
+.wordlist .rev.vis .tri path:nth-child(3){animation-delay:.1s}
+.wordlist .rev.vis .tri path:nth-child(4){animation-delay:.16s}
+@keyframes boltz2{to{stroke-dashoffset:0}}
 .wordlist .tri{margin-right:2px}
 .statbolt{align-self:center;height:44px;width:20px}
 .statbolt path{stroke-width:3.4}
-.statband{position:relative}
+
 .stat{display:flex;gap:16px}
 .stat > div:last-child{flex:1}
 /* CTA hover sweep + click flash */
@@ -210,6 +216,7 @@ footer a{color:var(--grey)}
 .facesrow{display:flex;margin-left:14px}
 .facesrow img{width:34px;height:34px;border-radius:50%;border:2px solid var(--black);object-fit:cover;margin-left:-10px;filter:none}
 
+body:after{content:"";position:fixed;inset:0;z-index:200;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
 </style>
 </head>
 <body>
@@ -267,7 +274,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<section class="chapter" id="ablauf">
+<section class="chapter deep" id="ablauf">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <div class="idx rev">01 / DEIN START</div>
@@ -293,13 +300,40 @@ Technoparkstrasse 3, Winterthur
 </div>
 </div>
 <form id="leadform" novalidate>
-<div><label for="fname">Vorname</label><input id="fname" name="firstname" type="text" autocomplete="given-name" required></div>
-<div><label for="lname">Nachname</label><input id="lname" name="lastname" type="text" autocomplete="family-name" required></div>
-<div><label for="phone">Telefon</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
-<div><label for="email">E-Mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
-<input type="hidden" name="location" value="Winterthur">
-<input type="hidden" name="discipline" value="BJJ">
-<div class="consent"><input id="consent" type="checkbox" required><label for="consent" style="text-transform:none;letter-spacing:0">Ich bin einverstanden, dass IMPACT mich zur Terminvereinbarung kontaktiert.</label></div>
+<div><label for="floc">Wo möchtest du trainieren? *</label><select id="floc" name="location" required>
+<option value="">Option auswählen</option>
+<option value="Zürich">Zürich</option>
+<option value="Winterthur" selected>Winterthur</option>
+</select></div>
+<div><label for="fdis">Ich interessiere mich für: *</label><select id="fdis" name="discipline" required>
+<option value="">Option auswählen</option>
+<option value="MMA">MMA</option>
+<option value="Thai-Boxen / Muay Thai">Thai-Boxen / Muay Thai</option>
+<option value="Brazilian Jiu-jitsu / BJJ" selected>Brazilian Jiu-jitsu / BJJ</option>
+<option value="Fitnessboxen / Kickboxen">Fitnessboxen / Kickboxen</option>
+<option value="Little Ninjas">Little Ninjas</option>
+<option value="Boxen">Boxen</option>
+<option value="Street Defense">Street Defense</option>
+<option value="Ringen">Ringen</option>
+<option value="Selbstverteidigung für Frauen">Selbstverteidigung für Frauen</option>
+<option value="Personal Training">Personal Training</option>
+</select></div>
+<div id="kidagewrap" style="display:none"><label for="fkid">Alter deines Kindes *</label><select id="fkid" name="kid_age">
+<option value="">Option auswählen</option>
+<option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option>
+</select></div>
+<div><label for="fname">Vorname *</label><input id="fname" name="firstname" type="text" autocomplete="given-name" required></div>
+<div><label for="lname">Nachname *</label><input id="lname" name="lastname" type="text" autocomplete="family-name" required></div>
+<div><label for="phone">Telefon *</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
+<div><label for="email">E-Mail *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+<div><label for="fmsg">Nachricht</label><input id="fmsg" name="message" type="text" placeholder="Optional – z.B. wenn ihr zu zweit kommt"></div>
+<div><label for="fsrc">Wie bist du auf uns aufmerksam geworden?</label><select id="fsrc" name="source">
+<option value="">Option auswählen</option>
+<option>Website</option><option>Google</option><option>Instagram</option><option>Facebook</option>
+<option>Empfehlung von Freund</option><option>Social media</option><option>Plakat oder Flyer</option>
+<option>Event</option><option>Jemand trainiert hier</option><option>Anderes</option>
+</select></div>
+<div class="consent"><input id="consent" type="checkbox" required><label for="consent" style="text-transform:none;letter-spacing:0">Ich bin einverstanden, dass IMPACT mich zur Terminvereinbarung kontaktiert. *</label></div>
 <button class="cta" type="submit">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
 <div class="form-note">Wir rufen dich innerhalb von 24 Stunden an.</div>
 </form>
@@ -318,16 +352,16 @@ Technoparkstrasse 3, Winterthur
 <div class="txt">
 <p class="rev">Bei uns gewinnt nicht, wer am härtesten ist – sondern wer am meisten lernt.</p>
 <div class="wordlist">
-<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Black Belt <small>Coaching, das dich wirklich begleitet</small></div>
-<div class="rev accent"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Kein Ego <small>Eine Community, die dich trägt</small></div>
-<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Struktur <small>Einsteigerfreundlich, egal wie fit</small></div>
-<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Mehr <small>Zugang zu MMA, Thaiboxen und mehr</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Black Belt <small>Coaching, das dich wirklich begleitet</small></div>
+<div class="rev accent"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Kein Ego <small>Eine Community, die dich trägt</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Struktur <small>Einsteigerfreundlich, egal wie fit</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Mehr <small>Zugang zu MMA, Thaiboxen und mehr</small></div>
 </div>
 </div>
 </div>
 </section>
 
-<section class="coachsec" id="coach">
+<section class="coachsec deep" id="coach">
 <div class="vert">Nova União · Weltmeister · Seit 2014</div>
 <div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67dc9a3d2e311002f6ff5_Jo%C3%A3o%20-%20L.jpg" alt="João de Oliveira, Head Coach BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach BJJ &amp; MMA</div></div>
 <div class="nameblock rev"><h2>João<span class="last">de Oliveira</span></h2></div>
@@ -344,7 +378,7 @@ Technoparkstrasse 3, Winterthur
 
 <div class="photo rev" style="height:clamp(260px,45vh,460px)"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a356508e92bb161c27da37c_IMPACT%20Website%20(12).png" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
 
-<section class="faq" id="faq">
+<section class="faq deep" id="faq">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <div class="idx rev">03 / WAS DICH ZURÜCKHÄLT</div>
@@ -461,10 +495,26 @@ var navEl=document.querySelector('nav');
 window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd)}navEl.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
 upd();
 
+var dis=document.getElementById('fdis'),kw=document.getElementById('kidagewrap'),kid=document.getElementById('fkid');
+dis.addEventListener('change',function(){var ln=dis.value==='Little Ninjas';kw.style.display=ln?'':'none';if(ln){kid.setAttribute('required','')}else{kid.removeAttribute('required')}});
 document.getElementById('leadform').addEventListener('submit',function(ev){
 ev.preventDefault();
 var f=ev.target;
-if(!f.checkValidity()){f.reportValidity();return}
+var bad=null;
+f.querySelectorAll('.errfield').forEach(function(e){e.classList.remove('errfield')});
+f.querySelectorAll('[required]').forEach(function(el){
+if(bad)return;
+var empty=(el.type==='checkbox')?!el.checked:!el.value.trim();
+var invalid=empty||(el.type==='email'&&!el.checkValidity());
+if(invalid)bad=el;
+});
+if(bad){
+var target=(bad.type==='checkbox')?bad.parentElement:bad;
+target.classList.add('errfield');
+bad.scrollIntoView({behavior:'smooth',block:'center'});
+setTimeout(function(){bad.focus({preventScroll:true})},450);
+return;
+}
 alert('TODO: Submit-Endpoint anbinden (exercise.com / mcforms / UCONIC GTM)');
 });
 })();
