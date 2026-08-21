@@ -70,7 +70,7 @@ nav{gap:14px}
 .chapter{padding:96px 0 0}
 .chapter .idx{font-size:14px;color:var(--gold);font-weight:800;letter-spacing:3px;padding:0 var(--mx)}
 .chapter h2{font-size:clamp(44px,8vw,96px);padding:8px var(--mx) 0}
-.beltline{margin:26px var(--mx) 0;display:block;overflow:visible}
+.beltline{margin:26px var(--mx) 0;display:block;overflow:visible;width:calc(100% - 2*var(--mx))}
 .beltline .bband{stroke:var(--gold);stroke-width:6;fill:none;stroke-dasharray:1200;stroke-dashoffset:1200}
 .beltline .bseam{stroke:var(--gold-dark);stroke-width:1;fill:none;stroke-dasharray:1200;stroke-dashoffset:1200}
 .beltline.drawn .bband,.beltline.drawn .bseam{animation:draw 1.2s cubic-bezier(.4,0,.2,1) forwards}
@@ -144,7 +144,7 @@ nav{gap:14px}
 .ginote{padding:26px var(--mx);color:var(--grey);font-size:15px}
 .formsec{margin-top:110px;background:#0d0c0a;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:84px 0}
 .formgrid{display:grid;grid-template-columns:1fr;gap:56px;padding:0 var(--mx);max-width:1060px;margin:0 auto}
-@media(min-width:900px){.formgrid{grid-template-columns:1fr 480px;justify-content:space-between}}
+@media(min-width:1100px){.formgrid{grid-template-columns:1fr 480px;justify-content:space-between}}
 .formgrid .left h2{font-size:clamp(34px,5vw,60px)}
 .formgrid .left p{color:var(--grey);font-size:17px;margin-top:16px;max-width:440px}
 .riskline{display:flex;gap:10px;align-items:flex-start;margin-top:22px;font-size:14px;color:var(--grey)}
