@@ -92,7 +92,7 @@ nav .cta{padding:10px 18px;font-size:13px}
 .wordlist div{font-size:clamp(22px,3.5vw,34px);font-weight:800;text-transform:uppercase;padding:14px 0;border-bottom:1px solid var(--hair);display:flex;align-items:center;gap:14px}
 .wordlist div:first-child{border-top:1px solid var(--hair)}
 .wordlist small{font-size:13px;font-weight:300;text-transform:none;color:var(--grey);letter-spacing:0}
-.statband{margin-top:96px;position:relative;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);display:grid;grid-template-columns:repeat(3,1fr)}
+.statband{margin-top:44px;position:relative;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);display:grid;grid-template-columns:repeat(3,1fr)}
 .stat{padding:34px var(--mx)}
 .stat .n{font-size:clamp(34px,6vw,72px);font-weight:800;color:var(--gold);letter-spacing:-2px}
 .stat .l{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--grey);margin-top:4px}
@@ -119,6 +119,19 @@ nav .cta{padding:10px 18px;font-size:13px}
 .gicol{padding:44px var(--mx);border-bottom:1px solid var(--hair)}
 @media(min-width:800px){.gicol:first-child{border-right:1px solid var(--hair)}}
 .gicol h3{font-size:clamp(26px,4vw,40px);margin-bottom:18px}
+.giart{height:110px;margin-bottom:18px}
+.giart svg{height:110px;overflow:visible}
+.giart .g1{stroke:#fff;stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.giart .g2{stroke:var(--gold);stroke-width:2.4;fill:none;stroke-linecap:round}
+.giart path{stroke-dasharray:100;stroke-dashoffset:100}
+.gicol.rev.vis .giart path{animation:boltz2 .7s cubic-bezier(.5,0,.3,1) forwards}
+.gicol.rev.vis .giart path:nth-child(2){animation-delay:.12s}
+.gicol.rev.vis .giart path:nth-child(3){animation-delay:.24s}
+.gicol.rev.vis .giart path:nth-child(4){animation-delay:.36s}
+.gicol.rev.vis .giart path:nth-child(5){animation-delay:.48s}
+.gicol.rev.vis .giart .g2{animation-delay:.62s}
+.gicol.rev.vis .giart .g2:nth-child(7){animation-delay:.74s}
+.gicol.rev.vis .giart .g2:nth-child(8){animation-delay:.86s}
 .gicol li{list-style:none;color:var(--grey);font-size:15px;padding-left:18px;position:relative;margin-bottom:10px}
 .gicol li:before{content:"";position:absolute;left:0;top:9px;width:8px;height:3px;background:var(--gold)}
 .ginote{padding:26px var(--mx);color:var(--grey);font-size:15px}
@@ -277,7 +290,7 @@ Technoparkstrasse 3, Winterthur
 <section class="chapter deep" id="ablauf">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">01 / DEIN START</div>
+<div class="idx rev">DEIN START</div>
 <h2 class="rev">So einfach<br>geht's <span class="accent">los.</span></h2>
 </div>
 <svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
@@ -293,10 +306,7 @@ Technoparkstrasse 3, Winterthur
 <div class="formgrid">
 <div class="left">
 <h2 class="rev">Sichere dir dein <span class="accent">gratis</span> Probetraining</h2>
-<p>Füll das Formular aus – wir melden uns telefonisch bei dir und finden gemeinsam den richtigen Einstieg.</p>
-<div class="riskline">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e2c210" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-<div>Probetraining gratis, Leihausrüstung inklusive. Wir achten auf unsere Community – deshalb sprechen wir vorher kurz miteinander.</div>
+<p>Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.</p>
 </div>
 </div>
 <form id="leadform" novalidate>
@@ -333,9 +343,7 @@ Technoparkstrasse 3, Winterthur
 <option>Empfehlung von Freund</option><option>Social media</option><option>Plakat oder Flyer</option>
 <option>Event</option><option>Jemand trainiert hier</option><option>Anderes</option>
 </select></div>
-<div class="consent"><input id="consent" type="checkbox" required><label for="consent" style="text-transform:none;letter-spacing:0">Ich bin einverstanden, dass IMPACT mich zur Terminvereinbarung kontaktiert. *</label></div>
 <button class="cta" type="submit">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
-<div class="form-note">Wir rufen dich innerhalb von 24 Stunden an.</div>
 </form>
 </div>
 </section>
@@ -343,7 +351,7 @@ Technoparkstrasse 3, Winterthur
 <section class="chapter" id="warum" style="padding-top:110px">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">02 / WARUM IMPACT</div>
+<div class="idx rev">WARUM IMPACT</div>
 <h2 class="rev">Nicht härter.<br><span class="accent">Klüger.</span></h2>
 </div>
 <svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
@@ -370,8 +378,23 @@ Technoparkstrasse 3, Winterthur
 
 <section class="gisec" id="gi">
 <div class="gicols">
-<div class="gicol rev"><h3>Mit <span class="accent">Gi</span></h3><ul><li>Traditionell und technisch, mit Griffen am Stoff</li><li>Mit Gürtel-System</li><li>Strukturiert, fokussiert, tief</li></ul></div>
-<div class="gicol rev"><h3>Ohne Gi <span class="accent">NoGi</span></h3><ul><li>Dynamisch und körpernah</li><li>Ohne schwere Kleidung – pure Kontrolle</li><li>Beliebt bei Allroundern und MMA-Fans</li></ul></div>
+<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
+<path pathLength="100" class="g1" d="M35 8 L20 14 L8 34 L16 42 L24 32"/>
+<path pathLength="100" class="g1" d="M65 8 L80 14 L92 34 L84 42 L76 32"/>
+<path pathLength="100" class="g1" d="M35 8 L50 42 L65 8"/>
+<path pathLength="100" class="g1" d="M35 8 L38 30 L30 92 L70 92 L62 30 L65 8"/>
+<path pathLength="100" class="g1" d="M50 42 L46 92"/>
+<path pathLength="100" class="g2" d="M30 62 L70 62 M30 67 L70 67"/>
+<path pathLength="100" class="g2" d="M44 60 L56 60 L56 70 L44 70 Z"/>
+<path pathLength="100" class="g2" d="M47 70 L42 86 M53 70 L58 86"/>
+</svg></div><h3>Mit <span class="accent">Gi</span></h3><ul><li>Traditionell und technisch, mit Griffen am Stoff</li><li>Mit Gürtel-System</li><li>Strukturiert, fokussiert, tief</li></ul></div>
+<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
+<path pathLength="100" class="g1" d="M38 10 Q50 16 62 10 L74 16 L82 36 L72 40 L68 30"/>
+<path pathLength="100" class="g1" d="M38 10 L26 16 L18 36 L28 40 L32 30"/>
+<path pathLength="100" class="g1" d="M32 30 L32 92 L68 92 L68 30"/>
+<path pathLength="100" class="g1" d="M42 12 Q50 20 58 12"/>
+<path pathLength="100" class="g2" d="M52 50 L45 64 M58 50 L51 64 M50 66 L43 80"/>
+</svg></div><h3>Ohne Gi <span class="accent">NoGi</span></h3><ul><li>Dynamisch und körpernah</li><li>Ohne schwere Kleidung – pure Kontrolle</li><li>Beliebt bei Allroundern und MMA-Fans</li></ul></div>
 </div>
 <p class="ginote">Du musst dich nicht sofort entscheiden. Probier beides aus und finde deinen Stil.</p>
 </section>
@@ -381,7 +404,7 @@ Technoparkstrasse 3, Winterthur
 <section class="faq deep" id="faq">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">03 / WAS DICH ZURÜCKHÄLT</div>
+<div class="idx rev">WAS DICH ZURÜCKHÄLT</div>
 <h2 class="rev">Keine <span class="accent">Ausreden.</span></h2>
 </div>
 <details><summary>Wie melde ich mich an?</summary><p>Melde dich einfach über das Formular für dein Probetraining an. Du kannst kostenlos kommen, um uns und den Unterricht kennenzulernen – wir rufen dich vorher kurz an.</p></details>
