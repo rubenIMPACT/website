@@ -512,6 +512,16 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .coach2 img{width:64px;height:64px;object-fit:cover;border-radius:50%;filter:saturate(.9)}
 .coach2 b{display:block;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
 .coach2 span{color:var(--grey);font-size:14px}
+/* r13 */
+.hero h1 .rw{transform:translateX(70px) rotate(12deg)}
+.hero h1 .rw.go{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards}
+.hero h1 .rw.accent{transform:translateX(-60px) rotate(-12deg)}
+.hero h1 .rw.accent.go{animation:roll .85s cubic-bezier(.3,1.15,.3,1) forwards!important}
+.formtrust{margin-top:34px;max-width:430px}
+.formtrust div{display:flex;gap:12px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--hair);font-size:15px;color:var(--grey)}
+.formtrust b{color:var(--gold);font-weight:800;letter-spacing:1px;font-size:13px}
+.formphoto{display:none!important}
+.rc-hand{stroke:var(--gold);stroke-width:2.5;fill:none;stroke-linecap:round}
 </style>
 </head>
 <body>
@@ -601,6 +611,7 @@ Technoparkstrasse 3, Winterthur
 <div class="left">
 <h2 class="rev">Sichere dir dein <span class="accent">gratis</span> Probetraining</h2>
 <p>Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.</p>
+<div class="formtrust rev"><div><b>01</b>Gratis &amp; unverbindlich – erst kennenlernen, dann entscheiden</div><div><b>02</b>Leihausr&uuml;stung inklusive – bring nur Sportkleidung</div><div><b>03</b>Antwort meist am selben Tag</div></div>
 </div>
 <form id="leadform" novalidate>
 <div><label for="floc">Wo möchtest du trainieren? *</label><select id="floc" name="location" required>
@@ -672,7 +683,14 @@ Technoparkstrasse 3, Winterthur
 <div class="photo rev" style="aspect-ratio:938/938"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxen</div></div>
 <div class="nameblock rev"><h2>Sergei<span class="last">Liubchenko</span></h2></div>
 <p class="bio rev">Profikämpfer und Trainer aus der Ukraine mit über 24 Jahren im Kampfsport und mehreren Weltmeistertiteln. Muay Thai ist sein Leben – und er bringt dich vom ersten Tag an weiter, in deinem Tempo.</p>
-<div class="coach2 rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e719eac89fd95595cc8_Nathan%20Melliger.jpg" alt="Nathan Melliger" loading="lazy"><div><b>Nathan Melliger</b><span>Coach Muay Thai, MMA & BJJ</span></div></div>
+
+</section>
+<section class="coachsec deep" id="coach2sec">
+
+<div class="photo rev" style="aspect-ratio:938/938"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e719eac89fd95595cc8_Nathan%20Melliger.jpg" alt="Nathan Melliger, Coach Muay Thai, MMA & BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Coach Muay Thai, MMA &amp; BJJ</div></div>
+<div class="nameblock rev"><h2>Nathan<span class="last">Melliger</span></h2></div>
+<p class="bio rev">Vom Taekwondo über Kickboxen zum Muay Thai – mit Wettkampferfahrung in der ganzen Schweiz, dazu Violettgurt im BJJ. Präzises Striking, klare Didaktik und ein Auge fürs Detail.</p>
+
 </section>
 
 <section class="gisec" id="gi">
@@ -718,7 +736,7 @@ Technoparkstrasse 3, Winterthur
 <g class="rc"><rect x="14" y="10" width="92" height="118" rx="6" fill="none" stroke="var(--gold)" stroke-width="2.5"/>
 <rect x="22" y="18" width="76" height="102" rx="3" fill="none" stroke="rgba(226,194,16,.35)" stroke-width="1"/>
 <text x="60" y="97" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="800" font-size="72" fill="var(--gold)">1</text>
-<line x1="60" y1="128" x2="60" y2="150" stroke="var(--gold)" stroke-width="2.5"/></g></svg>
+<path class="rc-hand" d="M30 128 q-6 10 2 16 q8 6 14 -2"/><path class="rc-hand" d="M90 128 q6 10 -2 16 q-8 6 -14 -2"/></g></svg>
 <a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </section>
 
