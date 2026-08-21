@@ -650,7 +650,7 @@ bad.scrollIntoView({behavior:'smooth',block:'center'});
 setTimeout(function(){bad.focus({preventScroll:true})},450);
 return;
 }
-var LEAD_ENDPOINT='';/* Make.com Webhook-URL hier einsetzen (Blueprint: IMPACT_StartLP_zu_exercise) */
+var LEAD_ENDPOINT='/api/lead';
 var payload={};new FormData(f).forEach(function(v,k){payload[k]=v});
 payload.page=location.href;
 function showSuccess(test){
