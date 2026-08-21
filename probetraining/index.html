@@ -537,7 +537,7 @@ var hb=hero.getBoundingClientRect().bottom;
 var fr=formsec.getBoundingClientRect();
 var overForm=fr.top<window.innerHeight&&fr.bottom>0;
 if(hb<0&&!overForm){fc.classList.add('on')}else{fc.classList.remove('on')}
-if(sb){sb.classList.toggle('hid',hb<-100)}
+if(sb){sb.classList.toggle('hid',hb<window.innerHeight*0.35)}
 }
 var navEl=document.querySelector('nav');
 window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd)}navEl.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
