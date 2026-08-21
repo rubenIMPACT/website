@@ -26,6 +26,9 @@ h1,h2,h3{font-weight:800;text-transform:uppercase;line-height:.95;letter-spacing
 .mx{padding-left:var(--mx);padding-right:var(--mx)}
 .rev{opacity:0;transform:translateY(34px)}
 .rev.vis{animation:rise .8s cubic-bezier(.3,1.15,.3,1) forwards}
+.chaphead h2.rev{transform:translateX(-60px) rotate(-8deg);transform-origin:0 100%}
+.chaphead h2.rev.vis{animation:rollh .85s cubic-bezier(.3,1.15,.3,1) forwards}
+@keyframes rollh{60%{opacity:1;transform:translateX(5px) rotate(1.5deg)}100%{opacity:1;transform:none}}
 @keyframes rise{60%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:none}}
 .photo{position:relative;background:#14120e;overflow:hidden}
 .photo img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;filter:grayscale(1) contrast(1.08) brightness(.92);transition:transform 6s ease}
@@ -68,8 +71,11 @@ nav .cta{padding:10px 18px;font-size:13px}
 @keyframes draw{to{stroke-dashoffset:0}}
 .chapter .lead{font-size:17px;color:var(--grey);max-width:520px;margin:22px var(--mx) 0}
 .steprows{margin:44px 0 0;border-top:1px solid var(--hair)}
+.steplink{color:inherit;cursor:pointer}
+.steplink:hover h3{color:var(--gold)}
+.ulink{text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:3px;text-underline-offset:5px}
 .steprow{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:26px var(--mx);border-bottom:1px solid var(--hair);align-items:baseline}
-.steprow .n{font-size:30px;font-weight:800;color:transparent;-webkit-text-stroke:1.2px var(--gold)}
+.steprow .n{font-size:30px;font-weight:800;color:var(--gold)}
 .numpunch{opacity:0;transform:scale(1.7)}
 .numpunch.vis{animation:npunch .35s cubic-bezier(.2,1.3,.3,1) forwards}
 @keyframes npunch{0%{opacity:0;transform:scale(1.7)}60%{opacity:1;transform:scale(.94)}100%{opacity:1;transform:scale(1)}}
@@ -106,7 +112,7 @@ nav .cta{padding:10px 18px;font-size:13px}
 .coachsec .nameblock{margin-top:-.62em;position:relative;z-index:2;padding:0 var(--mx)}
 .coachsec .nameblock h2{font-size:clamp(52px,11vw,130px);letter-spacing:-2px}
 .coachsec .nameblock .last{display:block;font-size:clamp(26px,5vw,56px);-webkit-text-stroke:1.5px var(--gold);color:transparent;letter-spacing:0}
-.coachsec .bio{padding:18px var(--mx) 0;color:var(--grey);font-size:16px;max-width:520px}
+.coachsec .bio{padding:18px var(--mx) 0;color:var(--grey);font-size:19px;max-width:560px;line-height:1.55}
 .gisec{margin-top:110px;border-top:1px solid var(--hair)}
 .gicols{display:grid;grid-template-columns:1fr}
 @media(min-width:800px){.gicols{grid-template-columns:1fr 1fr}}
@@ -174,6 +180,11 @@ footer a{color:var(--grey)}
 .chaphead .idx,.chaphead h2{padding-left:calc(var(--mx) + 38px)}
 .tri{flex:none}
 .tri path{stroke:var(--gold);stroke-width:3.4;fill:none}
+.wordlist .tri path{stroke-dasharray:60;stroke-dashoffset:60}
+.wordlist .rev.vis .tri path{animation:boltz .16s cubic-bezier(.7,0,.3,1) forwards}
+.wordlist .rev.vis .tri path:nth-child(2){animation-delay:.05s}
+.wordlist .rev.vis .tri path:nth-child(3){animation-delay:.09s}
+.wordlist .rev.vis .tri path:nth-child(4){animation-delay:.14s}
 .wordlist .tri{margin-right:2px}
 .statbolt{align-self:center;height:44px;width:20px}
 .statbolt path{stroke-width:3.4}
@@ -190,22 +201,12 @@ footer a{color:var(--grey)}
 @keyframes ctaflash{0%{filter:brightness(1.7)}100%{filter:none}}
 /* Ticker skew */
 .tickerwrap{transform:rotate(-2.2deg) scaleX(1.03);margin:26px -10px;position:relative;z-index:3}
-/* Hero intro bolt */
-#introbolt{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none}
-#introbolt svg{height:82%;opacity:.55}
-#introbolt path{stroke:var(--gold);stroke-width:3.4;fill:none;stroke-dasharray:600;stroke-dashoffset:600}
-#introbolt.go path{animation:introz .3s cubic-bezier(.7,0,.3,1) forwards,introfade .5s .5s forwards}
-#introbolt path:nth-child(2){animation-delay:.06s,.5s!important}
-#introbolt path:nth-child(3){animation-delay:.1s,.5s!important}
-#introbolt path:nth-child(4){animation-delay:.15s,.5s!important}
-#introbolt path:nth-child(5){animation-delay:.19s,.5s!important}
-@keyframes introz{to{stroke-dashoffset:0}}
-@keyframes introfade{to{opacity:0}}
 /* Bolt-A */
-.alogo{display:inline-block;height:1.22em;width:auto;vertical-align:baseline;margin:0 .02em -.45em .03em;filter:none}
 /* hero video */
 .hero-media video{width:100%;height:100%;object-fit:cover}
-.soundbtn{position:absolute;right:16px;bottom:16px;z-index:4;background:rgba(0,0,0,.55);border:1px solid var(--gold);color:var(--gold);border-radius:99px;width:44px;height:44px;font-size:18px;cursor:pointer}
+.soundbtn{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;background:rgba(0,0,0,.7);border:2px solid var(--gold);color:var(--gold);border-radius:99px;width:54px;height:54px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+.soundbtn.hid{opacity:0;pointer-events:none}
+@media(min-width:900px){.soundbtn{position:absolute;right:16px;bottom:16px;z-index:5}}
 .facesrow{display:flex;margin-left:14px}
 .facesrow img{width:34px;height:34px;border-radius:50%;border:2px solid var(--black);object-fit:cover;margin-left:-10px;filter:none}
 
@@ -225,7 +226,6 @@ footer a{color:var(--grey)}
 <video id="herovid" autoplay muted loop playsinline poster="assets/joao-hero-poster.jpg"><source src="assets/joao-hero.mp4" type="video/mp4"></video>
 <button class="soundbtn" id="soundbtn" aria-label="Ton an">&#9658;&#41;</button>
 </div>
-<div id="introbolt" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
 <div class="hero-ovl"></div>
 <div class="hero-content">
 <a class="kicker" href="https://maps.app.goo.gl/LKEFnT2AsnPj5VGd7" target="_blank" rel="noopener">
@@ -239,48 +239,11 @@ Technoparkstrasse 3, Winterthur
 </div>
 </header>
 
-<div class="tickerwrap"><div class="ticker"><div class="ticker-inner">KEIN EGO&nbsp;·&nbsp;TECHNIK STATT KRAFT&nbsp;·&nbsp;EINSTEIGERFREUNDLICH&nbsp;·&nbsp;BLACK BELT COACHING&nbsp;·&nbsp;KEIN EGO&nbsp;·&nbsp;TECHNIK STATT KRAFT&nbsp;·&nbsp;EINSTEIGERFREUNDLICH&nbsp;·&nbsp;BLACK BELT COACHING&nbsp;·&nbsp;</div></div></div>
+<div class="tickerwrap"><div class="ticker"><div class="ticker-inner" id="tickinner" data-seg="KEIN EGO&nbsp;·&nbsp;TECHNIK STATT KRAFT&nbsp;·&nbsp;EINSTEIGERFREUNDLICH&nbsp;·&nbsp;BLACK BELT COACHING&nbsp;·&nbsp;"></div></div></div>
 
-<section class="chapter" id="ablauf">
+<section class="chapter" id="beweis" style="padding-top:84px">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">01 / DEIN START</div>
-<h2 class="rev">So einfach<br>geht's <span class="accent">los.</span></h2>
-</div>
-<svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
-<p class="lead rev">Kein Abo, keine Verpflichtung. Dein erstes Training ist gratis.</p>
-<div class="steprows">
-<div class="steprow rev"><div class="n numpunch">01</div><h3>Anfrage senden</h3><p>Füll das kurze Formular aus – dauert keine 60 Sekunden.</p></div>
-<div class="steprow rev"><div class="n numpunch">02</div><h3>Wir rufen dich an</h3><p>Wir besprechen kurz, was du suchst, und finden die richtige Klasse und den passenden Termin für dich.</p></div>
-<div class="steprow rev"><div class="n numpunch">03</div><h3>Dein erstes Training</h3><p>Komm vorbei und roll mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.</p></div>
-</div>
-</section>
-
-<section class="chapter" id="warum" style="padding-top:110px">
-<div class="chaphead">
-<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">02 / WARUM IMPACT</div>
-<h2 class="rev">Nicht härter.<br><span class="accent">Klüger.</span></h2>
-</div>
-<svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
-<div class="chapgrid">
-<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d6795b769f05589695c57e_Class%20Thumbnail%20%20Resize%20%20(8).jpg" alt="BJJ Training bei IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · Auf der Matte</div></div>
-<div class="txt">
-<p class="rev">Bei uns geht's nicht darum, der Härteste im Raum zu sein – sondern der, der am meisten lernt.</p>
-<div class="wordlist">
-<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Black Belt <small>Coaching, das dich wirklich begleitet</small></div>
-<div class="rev accent"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Kein Ego <small>Eine Community, die dich trägt</small></div>
-<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Struktur <small>Einsteigerfreundlich, egal wie fit</small></div>
-<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Mehr <small>Zugang zu MMA, Thaiboxen und mehr</small></div>
-</div>
-</div>
-</div>
-</section>
-
-<section class="chapter" id="beweis" style="padding-top:110px">
-<div class="chaphead">
-<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">03 / DER BEWEIS</div>
 <h2 class="rev">Members<br>über <span class="accent">uns.</span></h2>
 </div>
 <div class="statband">
@@ -304,19 +267,19 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<section class="coachsec" id="coach">
-<div class="vert">Nova União · Weltmeister · Seit 2014</div>
-<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67dc9a3d2e311002f6ff5_Jo%C3%A3o%20-%20L.jpg" alt="João de Oliveira, Head Coach BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach BJJ &amp; MMA</div></div>
-<div class="nameblock rev"><h2>João<span class="last">de Oliveira</span></h2></div>
-<p class="bio rev">Schwarzgurt 2. Grad, Welt- und Europameister, geprägt vom legendären Team Nova União. Seit 2014 als Coach aktiv. Er bringt dich vom ersten Tag an weiter – in deinem Tempo.</p>
-</section>
-
-<section class="gisec" id="gi">
-<div class="gicols">
-<div class="gicol rev"><h3>Mit <span class="accent">Gi</span></h3><ul><li>Traditionell und technisch, mit Griffen am Stoff</li><li>Mit Gürtel-System</li><li>Strukturiert, fokussiert, tief</li></ul></div>
-<div class="gicol rev"><h3>Ohne Gi <span class="accent">NoGi</span></h3><ul><li>Dynamisch und körpernah</li><li>Ohne schwere Kleidung – pure Kontrolle</li><li>Beliebt bei Allroundern und MMA-Fans</li></ul></div>
+<section class="chapter" id="ablauf">
+<div class="chaphead">
+<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
+<div class="idx rev">01 / DEIN START</div>
+<h2 class="rev">So einfach<br>geht's <span class="accent">los.</span></h2>
 </div>
-<p class="ginote">Du musst dich nicht sofort entscheiden. Probier beides aus und finde deinen Stil.</p>
+<svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
+<p class="lead rev">Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.</p>
+<div class="steprows">
+<a class="steprow rev steplink" href="#anmelden"><div class="n numpunch">01</div><h3><span class="ulink">Anfrage</span> senden</h3><p>Füll das kurze Formular aus – dauert keine 60 Sekunden.</p></a>
+<div class="steprow rev"><div class="n numpunch">02</div><h3>Wir rufen dich an</h3><p>Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.</p></div>
+<div class="steprow rev"><div class="n numpunch">03</div><h3>Dein erstes Training</h3><p>Komm vorbei und roll mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.</p></div>
+</div>
 </section>
 
 <section class="formsec" id="anmelden">
@@ -326,7 +289,7 @@ Technoparkstrasse 3, Winterthur
 <p>Füll das Formular aus – wir melden uns telefonisch bei dir und finden gemeinsam den richtigen Einstieg.</p>
 <div class="riskline">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e2c210" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-<div>100&nbsp;% gratis und unverbindlich. Kein Abo, keine versteckten Kosten. Leihausrüstung inklusive.</div>
+<div>Probetraining gratis, Leihausrüstung inklusive. Wir achten auf unsere Community – deshalb sprechen wir vorher kurz miteinander.</div>
 </div>
 </div>
 <form id="leadform" novalidate>
@@ -343,21 +306,73 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
+<section class="chapter" id="warum" style="padding-top:110px">
+<div class="chaphead">
+<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
+<div class="idx rev">02 / WARUM IMPACT</div>
+<h2 class="rev">Nicht härter.<br><span class="accent">Klüger.</span></h2>
+</div>
+<svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
+<div class="chapgrid">
+<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d6795b769f05589695c57e_Class%20Thumbnail%20%20Resize%20%20(8).jpg" alt="BJJ Training bei IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · Auf der Matte</div></div>
+<div class="txt">
+<p class="rev">Bei uns gewinnt nicht, wer am härtesten ist – sondern wer am meisten lernt.</p>
+<div class="wordlist">
+<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Black Belt <small>Coaching, das dich wirklich begleitet</small></div>
+<div class="rev accent"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Kein Ego <small>Eine Community, die dich trägt</small></div>
+<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Struktur <small>Einsteigerfreundlich, egal wie fit</small></div>
+<div class="rev"><svg class="tri" width="14" height="20" viewBox="33 14 36 72" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>Mehr <small>Zugang zu MMA, Thaiboxen und mehr</small></div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="coachsec" id="coach">
+<div class="vert">Nova União · Weltmeister · Seit 2014</div>
+<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67dc9a3d2e311002f6ff5_Jo%C3%A3o%20-%20L.jpg" alt="João de Oliveira, Head Coach BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach BJJ &amp; MMA</div></div>
+<div class="nameblock rev"><h2>João<span class="last">de Oliveira</span></h2></div>
+<p class="bio rev">Schwarzgurt 2. Grad, Welt- und Europameister, geprägt vom legendären Team Nova União. Seit 2014 als Coach aktiv. Er bringt dich vom ersten Tag an weiter – in deinem Tempo.</p>
+</section>
+
+<section class="gisec" id="gi">
+<div class="gicols">
+<div class="gicol rev"><h3>Mit <span class="accent">Gi</span></h3><ul><li>Traditionell und technisch, mit Griffen am Stoff</li><li>Mit Gürtel-System</li><li>Strukturiert, fokussiert, tief</li></ul></div>
+<div class="gicol rev"><h3>Ohne Gi <span class="accent">NoGi</span></h3><ul><li>Dynamisch und körpernah</li><li>Ohne schwere Kleidung – pure Kontrolle</li><li>Beliebt bei Allroundern und MMA-Fans</li></ul></div>
+</div>
+<p class="ginote">Du musst dich nicht sofort entscheiden. Probier beides aus und finde deinen Stil.</p>
+</section>
+
 <div class="photo rev" style="height:clamp(260px,45vh,460px)"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a356508e92bb161c27da37c_IMPACT%20Website%20(12).png" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
+
 <section class="faq" id="faq">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">04 / WAS DICH ZURÜCKHÄLT</div>
-<h2 class="rev">Keine <img class="alogo" src="assets/impact-a.png" alt="A">usreden.</h2>
+<div class="idx rev">03 / WAS DICH ZURÜCKHÄLT</div>
+<h2 class="rev">Keine <span class="accent">Ausreden.</span></h2>
 </div>
+<details><summary>Wie melde ich mich an?</summary><p>Melde dich einfach über das Formular für dein Probetraining an. Du kannst kostenlos kommen, um uns und den Unterricht kennenzulernen – wir rufen dich vorher kurz an.</p></details>
 <details><summary>Ich bin nicht fit genug. Ist das ein Problem?</summary><p>Nein. Jede Übung lässt sich anpassen und du bestimmst dein Tempo. Die meisten hier haben genau so angefangen wie du.</p></details>
 <details><summary>Blamiere ich mich als Anfänger beim Rollen?</summary><p>Nein. Alle auf der Matte waren mal Weissgurte. Bei uns gibt es keinen Platz für Ego – Fehler machen gehört zum Lernen dazu.</p></details>
 <details><summary>Ist das Verletzungsrisiko hoch?</summary><p>BJJ funktioniert ohne Schläge. Wir legen grössten Wert darauf, uns nicht gegenseitig zu verletzen – kontrolliertes, technisches Training steht im Zentrum.</p></details>
 <details><summary>Brauche ich eine eigene Ausrüstung?</summary><p>Nein. Für dein Probetraining ist alles da. Sportkleidung und Wasser reichen.</p></details>
+<details><summary>Kann ich nach dem Training duschen?</summary><p>Ja, wir haben Duschmöglichkeiten im Studio. So kannst du direkt zur Arbeit oder frisch und energiegeladen in deinen Tag.</p></details>
 </section>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 <section class="final">
-<h2 class="rev">Auf die M<img class="alogo" src="assets/impact-a.png" alt="A">tte.</h2>
+<h2 class="rev">Auf die <span class="accent">Matte.</span></h2>
 <svg class="beltknot" width="320" height="80" viewBox="0 0 320 80"><path class="bband" d="M0 20 H140 M180 20 H320"/><path class="bseam" d="M0 16.5 H140 M180 16.5 H320 M0 23.5 H140 M180 23.5 H320"/><rect class="kknot" x="138" y="8" width="44" height="24" rx="4"/><path class="ktail" d="M150 32 L136 68"/><path class="ktail" d="M170 32 L186 68"/></svg>
 <a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </section>
@@ -370,11 +385,20 @@ Technoparkstrasse 3, Winterthur
 
 <script>
 (function(){
-var ib=document.getElementById('introbolt');
-ib.classList.add('go');
-setTimeout(function(){ib.remove()},1100);
+(function(){
+var ti=document.getElementById('tickinner');
+function fill(){
+var seg=ti.dataset.seg;
+ti.innerHTML=seg;
+var one=ti.scrollWidth;
+var need=Math.max(2, Math.ceil((window.innerWidth*1.1)/one));
+ti.innerHTML=seg.repeat(need*2);
+}
+fill();
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(fill,200)});
+})();
 var rws=document.querySelectorAll('.hero .rw');
-rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},550+i*260)});
+rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},300+i*260)});
 var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn');
 if(sb){sb.addEventListener('click',function(){if(hv.muted){hv.muted=false;hv.currentTime=0;hv.play();sb.textContent='\u25AA)';}else{hv.muted=true;sb.innerHTML='&#9658;&#41;';}})}
 
@@ -431,6 +455,7 @@ var hb=hero.getBoundingClientRect().bottom;
 var fr=formsec.getBoundingClientRect();
 var overForm=fr.top<window.innerHeight&&fr.bottom>0;
 if(hb<0&&!overForm){fc.classList.add('on')}else{fc.classList.remove('on')}
+if(sb){sb.classList.toggle('hid',hb<-100)}
 }
 var navEl=document.querySelector('nav');
 window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd)}navEl.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
