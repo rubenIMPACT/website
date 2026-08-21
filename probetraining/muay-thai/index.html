@@ -462,6 +462,13 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .wrow .wn{display:inline-block}
 .wrow.vis .wn{animation:stamp .5s cubic-bezier(.3,1.4,.4,1) .08s both}
 @keyframes stamp{0%{transform:scale(1.8);opacity:0}55%{opacity:1}100%{transform:scale(1);opacity:1}}
+/* coach canvas r9 - head-safe */
+.coachsec .photo{background:linear-gradient(180deg,#dcdcdc,#bfbfbf);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%)!important;mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%)!important}
+.coachsec .photo img{position:absolute!important;left:0;right:0;top:10%!important;height:80%!important;width:100%;object-fit:contain!important;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 95%,transparent 100%)!important;mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 95%,transparent 100%)!important}
+@media(max-width:999px){.coachsec .photo{height:64vh!important}}
+@media(min-width:1000px){
+.coachsec .photo{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%),linear-gradient(90deg,#000 58%,transparent 100%)!important;-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%),linear-gradient(90deg,#000 58%,transparent 100%)!important;mask-composite:intersect}
+}
 </style>
 </head>
 <body>
