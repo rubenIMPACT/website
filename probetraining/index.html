@@ -233,6 +233,10 @@ footer a{color:var(--grey)}
 .hero-media video{width:100%;height:100%;object-fit:cover}
 .soundbtn{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;background:rgba(0,0,0,.7);border:2px solid var(--gold);color:var(--gold);border-radius:99px;width:54px;height:54px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
 .soundbtn.hid{opacity:0;pointer-events:none}
+.soundbtn svg{display:none}
+.soundbtn .ic-off{display:block}
+.soundbtn.sndon .ic-off{display:none}
+.soundbtn.sndon .ic-on{display:block}
 @media(min-width:1100px){.soundbtn{bottom:20px;right:20px}}
 .facesrow{display:flex;margin-left:14px}
 .facesrow img{width:34px;height:34px;border-radius:50%;border:2px solid var(--black);object-fit:cover;margin-left:-10px;filter:none}
@@ -250,7 +254,10 @@ section.deep{background:#12100b}
 </head>
 <body>
 
-<button class="soundbtn" id="soundbtn" aria-label="Ton an">&#9658;&#41;</button>
+<button class="soundbtn" id="soundbtn" aria-label="Ton an">
+<svg class="ic-off" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
+<svg class="ic-on" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>
+</button>
 <div id="floatcta"><a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 
 <nav>
@@ -475,7 +482,7 @@ var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeou
 var rws=document.querySelectorAll('.hero .rw');
 rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},300+i*260)});
 var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn');
-if(sb){sb.addEventListener('click',function(){if(hv.muted){hv.muted=false;hv.currentTime=0;hv.play();sb.textContent='\u25AA)';}else{hv.muted=true;sb.innerHTML='&#9658;&#41;';}})}
+if(sb){sb.addEventListener('click',function(){if(hv.muted){hv.muted=false;hv.currentTime=0;hv.play();sb.classList.add('sndon');}else{hv.muted=true;sb.classList.remove('sndon');}})}
 
 var io=new IntersectionObserver(function(entries){
 entries.forEach(function(e){
