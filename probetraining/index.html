@@ -47,7 +47,10 @@ nav{gap:14px}
 .hero-media{position:absolute;inset:0;z-index:0}
 .hero-media .vid-slot{width:100%;height:100%;background:var(--panel);display:flex;align-items:center;justify-content:center}
 .vid-slot .hint{color:#3a352a;font-size:13px;text-transform:uppercase;letter-spacing:2px;text-align:center}
-.hero-ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.12) 40%,rgba(0,0,0,.9));z-index:1}
+.hero-ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.12) 40%,rgba(0,0,0,.9));z-index:1;transition:opacity .45s}
+.hero .kicker,.hero h1,.hero .sub,.hero .cred{transition:opacity .45s}
+.hero.cinema .kicker,.hero.cinema h1,.hero.cinema .sub,.hero.cinema .cred{opacity:0;pointer-events:none}
+.hero.cinema .hero-ovl{opacity:.25}
 .hero-content{position:relative;z-index:2;padding:0 var(--mx) 84px;width:100%}
 .kicker{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:400;letter-spacing:1px;color:var(--gold);margin-bottom:14px}
 .hero h1{font-size:clamp(48px,10vw,110px)}
@@ -482,7 +485,8 @@ var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeou
 var rws=document.querySelectorAll('.hero .rw');
 rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},300+i*260)});
 var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn');
-if(sb){sb.addEventListener('click',function(){if(hv.muted){hv.muted=false;hv.currentTime=0;hv.play();sb.classList.add('sndon');}else{hv.muted=true;sb.classList.remove('sndon');}})}
+var heroEl=document.querySelector('.hero');
+if(sb){sb.addEventListener('click',function(){if(hv.muted){hv.muted=false;hv.currentTime=0;hv.play();sb.classList.add('sndon');heroEl.classList.add('cinema');}else{hv.muted=true;sb.classList.remove('sndon');heroEl.classList.remove('cinema');}})}
 
 var io=new IntersectionObserver(function(entries){
 entries.forEach(function(e){
@@ -537,7 +541,7 @@ var hb=hero.getBoundingClientRect().bottom;
 var fr=formsec.getBoundingClientRect();
 var overForm=fr.top<window.innerHeight&&fr.bottom>0;
 if(hb<0&&!overForm){fc.classList.add('on')}else{fc.classList.remove('on')}
-if(sb){sb.classList.toggle('hid',hb<window.innerHeight*0.35)}
+if(sb){var gone=hb<window.innerHeight*0.35;sb.classList.toggle('hid',gone);if(gone&&heroEl.classList.contains('cinema')){heroEl.classList.remove('cinema')}}
 }
 var navEl=document.querySelector('nav');
 window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd)}navEl.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
