@@ -522,6 +522,10 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .formtrust b{color:var(--gold);font-weight:800;letter-spacing:1px;font-size:13px}
 .formphoto{display:none!important}
 .rc-hand{stroke:var(--gold);stroke-width:2.5;fill:none;stroke-linecap:round}
+/* r14 impact punch */
+.hero h1 .rw.accent{transform:scale(1.5);opacity:0}
+.hero h1 .rw.accent.go{animation:punchIn .7s cubic-bezier(.3,1.2,.4,1) forwards!important}
+@keyframes punchIn{0%{opacity:0;transform:scale(1.5);filter:blur(12px)}55%{opacity:1;transform:scale(.97);filter:blur(2px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 </style>
 </head>
 <body>
