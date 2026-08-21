@@ -31,7 +31,7 @@ h1,h2,h3{font-weight:800;text-transform:uppercase;line-height:.95;letter-spacing
 @keyframes rollh{60%{opacity:1;transform:translateX(5px) rotate(1.5deg)}100%{opacity:1;transform:none}}
 @keyframes rise{60%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:none}}
 .photo{position:relative;background:#14120e;overflow:hidden}
-.photo img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;filter:grayscale(1) contrast(1.08) brightness(.92);transition:transform 6s ease}
+.photo img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;filter:contrast(1.04) brightness(.97);transition:transform 6s ease}
 .photo.vis img{transform:scale(1.05)}
 .photo .cap{position:absolute;left:var(--mx);bottom:16px;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);z-index:2}
 nav{position:absolute;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:center;padding:18px var(--mx);transition:background .3s,padding .3s}
@@ -143,7 +143,7 @@ nav{gap:14px}
 .gicol li{list-style:none;color:var(--grey);font-size:15px;padding-left:18px;position:relative;margin-bottom:10px}
 .gicol li:before{content:"";position:absolute;left:0;top:9px;width:8px;height:3px;background:var(--gold)}
 .ginote{padding:26px var(--mx);color:var(--grey);font-size:15px}
-.formsec{margin-top:110px;background:#0d0c0a;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:84px 0}
+.formsec{margin-top:0;background:#0d0c0a;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:84px 0}
 .formgrid{display:grid;grid-template-columns:1fr;gap:56px;padding:0 var(--mx);max-width:1060px;margin:0 auto}
 @media(min-width:1100px){.formgrid{grid-template-columns:1fr 480px;justify-content:space-between}}
 .formgrid .left h2{font-size:clamp(34px,5vw,60px)}
@@ -244,6 +244,8 @@ section.deep{background:#12100b}
 .ambientsec{position:relative;overflow:hidden}
 .ambient{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 22%;opacity:.12;pointer-events:none}
 .ambientsec > *:not(.ambient){position:relative}
+.photostrip{height:clamp(220px,34vh,380px)}
+.photostrip img{object-position:50% 30%}
 </style>
 </head>
 <body>
@@ -302,8 +304,7 @@ Technoparkstrasse 3, Winterthur
 </div>
 </section>
 
-<section class="chapter deep ambientsec" id="ablauf">
-<img class="ambient" src="../assets/reviews-bg.jpg" alt="" aria-hidden="true">
+<section class="chapter deep" id="ablauf">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <div class="idx rev">YOUR START</div>
@@ -317,6 +318,8 @@ Technoparkstrasse 3, Winterthur
 <div class="steprow rev"><div class="n numpunch">03</div><h3>Your first session</h3><p>Come by and roll with us. Loaner gear is ready – all you need is sportswear.</p></div>
 </div>
 </section>
+
+<div class="photo rev photostrip"><img src="../assets/reviews-bg.jpg" alt="Training bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
 
 <section class="formsec" id="anmelden">
 <div class="formgrid">
