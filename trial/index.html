@@ -49,8 +49,10 @@ nav{gap:14px}
 .vid-slot .hint{color:#3a352a;font-size:13px;text-transform:uppercase;letter-spacing:2px;text-align:center}
 .hero-ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.12) 40%,rgba(0,0,0,.9));z-index:1;transition:opacity .45s}
 .hero .kicker,.hero h1,.hero .sub,.hero .cred{transition:opacity .45s}
+@media(max-width:1099px){
 .hero.cinema .kicker,.hero.cinema h1,.hero.cinema .sub,.hero.cinema .cred{opacity:0;pointer-events:none}
 .hero.cinema .hero-ovl{opacity:.25}
+}
 .hero-content{position:relative;z-index:2;padding:0 var(--mx) 84px;width:100%}
 .kicker{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:400;letter-spacing:1px;color:var(--gold);margin-bottom:14px}
 .hero h1{font-size:clamp(48px,10vw,110px)}
