@@ -422,6 +422,25 @@ section.deep{background:#12100b}
 @media(min-width:1000px){
 .coachsec .photo{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 10%,#000 90%,transparent 100%),linear-gradient(90deg,#000 58%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0,#000 10%,#000 90%,transparent 100%),linear-gradient(90deg,#000 58%,transparent 100%);mask-composite:intersect}
 }
+/* r8 */
+.rwR{display:inline-block;opacity:0;transform:translateX(70px) rotate(6deg)}
+h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-delay:.35s}
+#warum .beltline{display:none}
+#warum .wordlist>div{border-bottom:none!important}
+.wrows{border-top:none}
+.wrow{border-bottom:none;position:relative}
+.wrow:after{content:"";position:absolute;left:var(--mx);right:var(--mx);bottom:0;height:1px;background:var(--hair);transform:scaleX(0);transform-origin:left center}
+.wrow.rev{transform:translateX(-70px)}
+.wrow.rev:nth-child(even){transform:translateX(70px)}
+.wrow.rev.vis{animation:wpL .7s cubic-bezier(.3,1.15,.3,1) forwards}
+.wrow.rev.vis:nth-child(even){animation:wpR .7s cubic-bezier(.3,1.15,.3,1) forwards}
+@keyframes wpL{0%{opacity:0;transform:translateX(-70px)}60%{opacity:1;transform:translateX(8px)}100%{opacity:1;transform:none}}
+@keyframes wpR{0%{opacity:0;transform:translateX(70px)}60%{opacity:1;transform:translateX(-8px)}100%{opacity:1;transform:none}}
+.wrow .wn{display:inline-block}
+.wrow.vis .wn{animation:stamp .5s ease-out both;animation-delay:.15s}
+@keyframes stamp{0%{transform:scale(1.9);opacity:0}60%{transform:scale(.95);opacity:1}100%{transform:scale(1);opacity:1}}
+.wrow.vis:after{animation:lshoot .45s ease-out forwards;animation-delay:.25s}
+@keyframes lshoot{to{transform:scaleX(1)}}
 </style>
 </head>
 <body>
@@ -561,7 +580,7 @@ Technoparkstrasse 3, Winterthur
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
 <div class="idx rev">WHY IMPACT</div>
-<h2 class="rev">Not tougher.<br><span class="accent">Smarter.</span></h2>
+<h2 class="rev">Not tougher.<br><span class="accent rwR">Smarter.</span></h2>
 </div>
 <svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
 <div class="chapgrid">
