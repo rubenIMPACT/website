@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>BJJ Free Trial Winterthur – IMPACT Martial Arts</title>
+<meta name="description" content="Free BJJ trial session in Winterthur. Black belt coaching, beginner friendly, technique over strength.">
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W6SM24HX');</script>
+<!-- End Google Tag Manager -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;800&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#e2c210;--gold-dark:#b39a0c;--black:#000;--panel:#161410;--white:#fff;--grey:#b9b6ad;--hair:#26231c;--mx:clamp(20px,5vw,64px)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--black);color:var(--white);font-weight:300;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-weight:800;text-transform:uppercase;line-height:.95;letter-spacing:-.5px}
+.accent{color:var(--gold)}
+.outline{-webkit-text-stroke:1.5px var(--white);color:transparent}
+.outline.g{-webkit-text-stroke:1.5px var(--gold)}
+.cta{display:inline-block;background:var(--gold);color:var(--black);font-weight:800;font-size:16px;text-transform:uppercase;letter-spacing:.5px;padding:16px 28px;border-radius:4px;border:2px solid var(--gold);transition:transform .15s;cursor:pointer}
+.cta:hover{transform:translateY(-2px)}
+.cta:active{transform:scale(.98)}
+.mx{padding-left:var(--mx);padding-right:var(--mx)}
+.rev{opacity:0;transform:translateY(34px)}
+.rev.vis{animation:rise .8s cubic-bezier(.3,1.15,.3,1) forwards}
+.chaphead h2.rev{transform:translateX(-60px) rotate(-8deg);transform-origin:0 100%}
+.chaphead h2.rev.vis{animation:rollh .85s cubic-bezier(.3,1.15,.3,1) forwards}
+@keyframes rollh{60%{opacity:1;transform:translateX(5px) rotate(1.5deg)}100%{opacity:1;transform:none}}
+@keyframes rise{60%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:none}}
+.photo{position:relative;background:#14120e;overflow:hidden}
+.photo img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;filter:contrast(1.04) brightness(.97);transition:transform 6s ease}
+.photo.vis img{transform:scale(1.05)}
+.photo .cap{position:absolute;left:var(--mx);bottom:16px;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);z-index:2}
+nav{position:absolute;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:center;padding:18px var(--mx);transition:background .3s,padding .3s}
+@media(min-width:900px){nav{position:fixed}nav.scrolled{background:rgba(0,0,0,.9);backdrop-filter:blur(8px);padding:10px var(--mx);border-bottom:1px solid var(--hair)}}
+nav .logo img{height:34px;filter:none}
+nav .cta{padding:10px 18px;font-size:13px}
+nav{gap:14px}
+.langtog{margin-left:auto;display:flex;gap:8px;font-size:13px;letter-spacing:1px;color:#6e6a5f;align-items:center}
+.langtog a{color:#6e6a5f;font-weight:500}
+.langtog a.on{color:var(--gold)}
+.langtog a:hover{color:var(--white)}
+.hero{position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.hero-media{position:absolute;inset:0;z-index:0}
+.hero-media .vid-slot{width:100%;height:100%;background:var(--panel);display:flex;align-items:center;justify-content:center}
+.vid-slot .hint{color:#3a352a;font-size:13px;text-transform:uppercase;letter-spacing:2px;text-align:center}
+.hero-ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.12) 40%,rgba(0,0,0,.9));z-index:1;transition:opacity .45s}
+.hero .kicker,.hero h1,.hero .sub,.hero .cred{transition:opacity .45s}
+@media(max-width:1099px){
+.hero.cinema .kicker,.hero.cinema h1,.hero.cinema .sub,.hero.cinema .cred{opacity:0;pointer-events:none}
+.hero.cinema .hero-ovl{opacity:.25}
+}
+.hero-content{position:relative;z-index:2;padding:0 var(--mx) 84px;width:100%}
+.kicker{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:400;letter-spacing:1px;color:var(--gold);margin-bottom:14px}
+.hero h1{font-size:clamp(48px,10vw,110px)}
+.hero h1 .rw{display:inline-block;opacity:0;transform:translateX(-60px) rotate(-12deg);transform-origin:50% 100%}
+.hero h1 .rw.go{animation:roll .85s cubic-bezier(.3,1.15,.3,1) forwards}
+@keyframes roll{60%{opacity:1;transform:translateX(5px) rotate(2.5deg)}100%{opacity:1;transform:none}}
+.hero .sub{font-size:clamp(16px,2.2vw,20px);color:#ddd;max-width:520px;margin:16px 0 10px}
+.hero .cred{font-size:14px;color:var(--gold);font-weight:500;margin-bottom:26px}
+.hero-content .cta{min-width:min(350px,calc(100vw - 2*var(--mx)));min-height:84px;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.hero .cred span{color:var(--grey);font-weight:300}
+@media(min-width:1100px){
+.hero{flex-direction:row;align-items:stretch;min-height:94vh}
+.hero-media{position:relative;order:2;width:36%;flex:none}
+.hero-ovl{display:none}
+.hero-content{order:1;align-self:center;padding:120px 40px 80px var(--mx);min-width:0}
+.hero h1{font-size:clamp(44px,6.2vw,104px)}
+}
+.ticker{background:var(--gold);color:var(--black);overflow:hidden;padding:12px 0;font-weight:800;font-size:15px;text-transform:uppercase;white-space:nowrap}
+.ticker-inner{display:inline-block;animation:mq 22s linear infinite}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.chapter{padding:96px 0 0}
+.chapter .idx{font-size:14px;color:var(--gold);font-weight:800;letter-spacing:3px;padding:0 var(--mx)}
+.chapter h2{font-size:clamp(44px,8vw,96px);padding:8px var(--mx) 0;line-height:1.06}
+.beltline{margin:26px var(--mx) 0;display:block;overflow:visible;width:calc(100% - 2*var(--mx))}
+.beltline .bband{stroke:var(--gold);stroke-width:6;fill:none;stroke-dasharray:1200;stroke-dashoffset:1200}
+.beltline .bseam{stroke:var(--gold-dark);stroke-width:1;fill:none;stroke-dasharray:1200;stroke-dashoffset:1200}
+.beltline.drawn .bband,.beltline.drawn .bseam{animation:draw 1.2s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.chapter .lead{font-size:17px;color:var(--grey);max-width:520px;margin:22px var(--mx) 0}
+.steprows{margin:44px 0 0;border-top:1px solid var(--hair)}
+.steplink{color:inherit;cursor:pointer}
+.steplink:hover h3{color:var(--gold)}
+.ulink{text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:3px;text-underline-offset:5px}
+.steprow{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:26px var(--mx);border-bottom:1px solid var(--hair);align-items:baseline}
+.steprow .n{font-size:30px;font-weight:800;color:var(--gold)}
+.numpunch{opacity:0;transform:scale(1.7)}
+.numpunch.vis{animation:npunch .35s cubic-bezier(.2,1.3,.3,1) forwards}
+@keyframes npunch{0%{opacity:0;transform:scale(1.7)}60%{opacity:1;transform:scale(.94)}100%{opacity:1;transform:scale(1)}}
+.steprow h3{font-size:20px;margin-bottom:6px}
+.steprow p{color:var(--grey);font-size:15px;max-width:520px;grid-column:2}
+@media(min-width:800px){.steprow{grid-template-columns:120px 260px 1fr}.steprow h3{font-size:24px}.steprow p{grid-column:3;grid-row:1}}
+.chapgrid{display:grid;grid-template-columns:1fr;margin-top:48px}
+@media(min-width:900px){.chapgrid{grid-template-columns:1fr 1fr}.chapgrid .photo{min-height:560px}.chapgrid .txt{padding-top:40px}}
+.chapgrid .photo{min-height:320px}
+.chapgrid .txt{padding:36px var(--mx) 48px}
+.chapgrid .txt h3{font-size:clamp(30px,4.5vw,52px);margin-bottom:16px;text-transform:uppercase}
+.chapgrid .txt p{color:var(--grey);font-size:16px;max-width:440px;margin-bottom:18px}
+.wordlist{margin-top:10px}
+.wordlist div{font-size:clamp(22px,3.5vw,34px);font-weight:800;text-transform:uppercase;padding:14px 0;border-bottom:1px solid var(--hair);display:flex;align-items:center;gap:14px}
+.wordlist div:first-child{border-top:1px solid var(--hair)}
+.wordlist small{font-size:13px;font-weight:300;text-transform:none;color:var(--grey);letter-spacing:0}
+.statband{margin-top:44px;position:relative;overflow:hidden;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);display:grid;grid-template-columns:repeat(3,1fr)}
+.stat{padding:34px var(--mx)}
+.stat .n{font-size:clamp(34px,6vw,72px);font-weight:800;color:var(--gold);letter-spacing:-2px}
+.stat .l{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--grey);margin-top:4px}
+@media(max-width:640px){.stat{padding:24px 10px 24px var(--mx);gap:8px}.stat .l{font-size:10px;letter-spacing:1px}.statbolt{width:14px}}
+.quotebox{padding:64px var(--mx) 0;max-width:900px}
+.quotebox blockquote{font-size:clamp(22px,3.6vw,36px);font-weight:300;line-height:1.3;min-height:3.9em}
+.quotebox blockquote b{color:var(--gold);font-weight:800}
+.quotebox .who{margin-top:18px;font-size:14px;color:var(--grey)}
+.quotebox .who b{color:var(--white);font-weight:500}
+.qdots{display:flex;gap:8px;margin-top:22px}
+.qdots span{width:34px;height:3px;background:var(--hair);cursor:pointer;transition:background .3s}
+.qdots span.on{background:var(--gold)}
+.gbadge{display:inline-flex;align-items:center;gap:8px;margin:34px var(--mx) 0;font-size:14px;color:var(--grey);border:1px solid var(--hair);border-radius:99px;padding:10px 18px}
+.gbadge b{color:var(--gold);font-weight:800}
+.coachsec{position:relative;margin-top:110px}
+.coachsec .photo{height:clamp(420px,70vh,680px)}
+.coachsec .photo:after{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(180deg,transparent,#12100b)}
+.coachsec .vert{position:absolute;right:calc(var(--mx)/2);top:60px;font-size:11px;letter-spacing:3px;color:var(--gold);writing-mode:vertical-rl;text-transform:uppercase;z-index:3}
+.coachsec .nameblock{margin-top:-.62em;position:relative;z-index:2;padding:0 var(--mx)}
+.coachsec .nameblock h2{font-size:clamp(52px,11vw,130px);letter-spacing:-2px}
+.coachsec .nameblock .last{display:block;font-size:clamp(26px,5vw,56px);color:var(--gold);letter-spacing:0}
+.coachsec .bio{padding:18px var(--mx) 56px;color:var(--grey);font-size:19px;max-width:560px;line-height:1.55}
+.gisec{margin-top:110px;border-top:1px solid var(--hair)}
+.gicols{display:grid;grid-template-columns:1fr}
+@media(min-width:800px){.gicols{grid-template-columns:1fr 1fr}}
+.gicol{padding:44px var(--mx);border-bottom:1px solid var(--hair)}
+@media(min-width:800px){.gicol:first-child{border-right:1px solid var(--hair)}}
+.gicol h3{font-size:clamp(26px,4vw,40px);margin-bottom:18px}
+.giart{height:110px;margin-bottom:18px}
+.giart svg{height:110px;overflow:visible}
+.giart .g1{stroke:#fff;stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.giart .g2{stroke:var(--gold);stroke-width:2.4;fill:none;stroke-linecap:round}
+.giart path{stroke-dasharray:100;stroke-dashoffset:100}
+.gicol.rev.vis .giart path{animation:boltz2 .5s cubic-bezier(.5,0,.3,1) forwards;animation-delay:.15s}
+.gicol.rev.vis .giart path:nth-child(2){animation-delay:.22s}
+.gicol.rev.vis .giart path:nth-child(3){animation-delay:.29s}
+.gicol.rev.vis .giart path:nth-child(4){animation-delay:.36s}
+.gicol.rev.vis .giart path:nth-child(5){animation-delay:.43s}
+.gicol.rev.vis .giart .g2{animation-delay:.55s}
+.gicol.rev.vis .giart g .g2:nth-child(2){animation-delay:.62s}
+.gicol.rev.vis .giart g .g2:nth-child(3){animation-delay:.69s}
+.gicol.rev.vis .giart g .g2:nth-child(4){animation-delay:.76s}
+.gicol li{list-style:none;color:var(--grey);font-size:15px;padding-left:18px;position:relative;margin-bottom:10px}
+.gicol li:before{content:"";position:absolute;left:0;top:9px;width:8px;height:3px;background:var(--gold)}
+.ginote{padding:26px var(--mx);color:var(--grey);font-size:15px}
+.formsec{margin-top:0;background:#0d0c0a;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:84px 0}
+.formgrid{display:grid;grid-template-columns:1fr;gap:56px;padding:0 var(--mx);max-width:1060px;margin:0 auto}
+@media(min-width:1100px){.formgrid{grid-template-columns:1fr 480px;justify-content:space-between}}
+.formgrid .left h2{font-size:clamp(34px,5vw,60px)}
+.formgrid .left p{color:var(--grey);font-size:17px;margin-top:16px;max-width:440px}
+.riskline{display:flex;gap:10px;align-items:flex-start;margin-top:22px;font-size:14px;color:var(--grey)}
+.riskline svg{flex:none;margin-top:2px}
+form{display:flex;flex-direction:column;gap:14px;max-width:480px}
+label{font-size:13px;color:var(--grey);letter-spacing:.5px;text-transform:uppercase;font-weight:500}
+input{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:var(--white);font-family:inherit;font-size:16px;padding:14px 16px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--gold)}
+select{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:var(--white);font-family:inherit;font-size:16px;padding:14px 16px;width:100%;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23e2c210' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+.errfield{border-color:#e5484d!important;animation:errpulse .9s ease-out}
+@keyframes errpulse{0%{box-shadow:0 0 0 0 rgba(229,72,77,.7)}70%{box-shadow:0 0 0 9px rgba(229,72,77,0)}100%{box-shadow:0 0 0 0 rgba(229,72,77,0)}}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--grey)}
+.consent input{width:auto;margin-top:3px}
+.form-note{font-size:13px;color:#6e6a5f}
+.faq{padding:96px 0 0}
+.faq .idx{font-size:14px;color:var(--gold);font-weight:800;letter-spacing:3px;padding:0 var(--mx)}
+.faq h2{font-size:clamp(34px,6vw,72px);padding:8px var(--mx) 26px}
+.faq details{border-top:1px solid var(--hair);padding:22px var(--mx)}
+.faq details:last-of-type{border-bottom:1px solid var(--hair)}
+.faq summary{font-size:18px;font-weight:500;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:"+";color:var(--gold);font-size:26px;font-weight:300;transition:transform .2s}
+.faq details[open] summary:after{transform:rotate(45deg)}
+.faq details p{margin-top:12px;color:var(--grey);font-size:15px;max-width:640px}
+.final{text-align:center;padding:110px var(--mx) 90px;position:relative;overflow:hidden}
+.final:before,.statband:before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120vw;height:150%;background:radial-gradient(ellipse at center,rgba(226,194,16,.07),transparent 55%);pointer-events:none}
+.final>*{position:relative}
+.final h2{font-size:clamp(36px,7vw,84px)}
+.beltknot{margin:22px auto 34px;display:block;overflow:visible}
+.beltknot .bband{stroke:var(--gold);stroke-width:6;fill:none;stroke-dasharray:1000;stroke-dashoffset:1000}
+.beltknot .bseam{stroke:var(--gold-dark);stroke-width:1;fill:none;stroke-dasharray:1000;stroke-dashoffset:1000}
+.beltknot .kknot{fill:var(--gold);opacity:0}
+.beltknot .ktail{stroke:var(--gold);stroke-width:5;fill:none;stroke-dasharray:70;stroke-dashoffset:70}
+.beltknot.drawn .bband,.beltknot.drawn .bseam{animation:draw 1s cubic-bezier(.4,0,.2,1) forwards}
+.beltknot.drawn .kknot{animation:kpop .3s .95s forwards}
+.beltknot.drawn .ktail{animation:draw .4s 1.05s cubic-bezier(.3,1.2,.4,1) forwards}
+@keyframes kpop{from{opacity:0}to{opacity:1}}
+footer{border-top:1px solid var(--hair);padding:36px var(--mx);text-align:center;color:#6e6a5f;font-size:13px}
+footer .flogo{height:26px;margin:0 auto 14px}
+footer a{color:var(--grey)}
+#floatcta{position:fixed;left:0;right:0;bottom:0;z-index:50;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(0,0,0,.92);border-top:1px solid var(--hair);transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+#floatcta.on{transform:none}
+#floatcta .cta{display:block;text-align:center;width:100%}
+@media(min-width:900px){#floatcta{display:none}}
+
+/* BOLT SYSTEM */
+.bolt path{stroke:var(--gold);fill:none;stroke-linecap:butt}
+.bolt-draw path{stroke-dasharray:220;stroke-dashoffset:220}
+.bolt-draw.drawn path,.bolt-draw.vis path{animation:boltz .18s cubic-bezier(.7,0,.3,1) forwards}
+.bolt-draw path:nth-child(2){animation-delay:.05s!important}
+.bolt-draw path:nth-child(3){animation-delay:.09s!important}
+.bolt-draw path:nth-child(4){animation-delay:.14s!important}
+
+@keyframes boltz{to{stroke-dashoffset:0}}
+.chaphead{position:relative}
+.chapbolt{position:absolute;left:var(--mx);top:6px;height:110px;width:22px}
+.chapbolt path{stroke-width:3.4}
+.chaphead .idx,.chaphead h2{padding-left:calc(var(--mx) + 38px)}
+.tri{flex:none}
+.tri path{stroke:var(--gold);stroke-width:3.4;fill:none}
+.wordlist .tri path{stroke-dasharray:100;stroke-dashoffset:100}
+.wordlist .rev.vis .tri path{animation:boltz2 .18s cubic-bezier(.7,0,.3,1) forwards;animation-delay:.15s}
+.wordlist .rev.vis .tri path:nth-child(2){animation-delay:.21s}
+.wordlist .rev.vis .tri path:nth-child(3){animation-delay:.25s}
+.wordlist .rev.vis .tri path:nth-child(4){animation-delay:.31s}
+@keyframes boltz2{to{stroke-dashoffset:0}}
+.wordlist .tri{margin-right:2px}
+.statbolt{align-self:center;height:44px;width:20px}
+.statbolt path{stroke-width:3.4}
+
+.stat{display:flex;gap:16px}
+.stat > div:last-child{flex:1}
+/* CTA hover sweep + click flash */
+.cta{position:relative;overflow:hidden}
+.cta .sweep{position:absolute;top:-30%;bottom:-30%;left:-46px;width:34px;opacity:0;pointer-events:none}
+.cta .sweep path{stroke:rgba(0,0,0,.45);stroke-width:4;fill:none}
+.cta:hover .sweep{animation:ctasweep .45s ease-out}
+@keyframes ctasweep{0%{opacity:1;transform:translateX(0)}100%{opacity:1;transform:translateX(420px)}}
+.cta:active{animation:ctaflash .18s}
+@keyframes ctaflash{0%{filter:brightness(1.7)}100%{filter:none}}
+/* Ticker skew */
+.tickerwrap{transform:rotate(-2.2deg) scaleX(1.03);margin:26px -10px;position:relative;z-index:3}
+/* Bolt-A */
+/* hero video */
+.hero-media video{width:100%;height:100%;object-fit:cover}
+.soundbtn{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;background:rgba(0,0,0,.7);border:2px solid var(--gold);color:var(--gold);border-radius:99px;width:54px;height:54px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+.soundbtn.hid{opacity:0;pointer-events:none}
+.soundbtn svg{display:none}
+.soundbtn .ic-off{display:block}
+.soundbtn.sndon .ic-off{display:none}
+.soundbtn.sndon .ic-on{display:block}
+@media(min-width:1100px){.soundbtn{bottom:20px;right:20px}}
+.facesrow{display:flex;margin-left:14px}
+.facesrow img{width:34px;height:34px;border-radius:50%;border:2px solid var(--black);object-fit:cover;margin-left:-10px;filter:none}
+
+body:after{content:"";position:fixed;inset:0;z-index:200;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+section.deep{background:#12100b}
+.chapter.deep{padding-bottom:84px}
+.ambientsec{position:relative;overflow:hidden}
+.ambient{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 22%;opacity:.12;pointer-events:none}
+.ambientsec > *:not(.ambient){position:relative}
+.photostrip{height:clamp(220px,34vh,380px)}
+.photostrip img{object-position:50% 30%}
+</style>
+</head>
+<body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W6SM24HX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<button class="soundbtn" id="soundbtn" aria-label="Sound on">
+<svg class="ic-off" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
+<svg class="ic-on" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>
+</button>
+<div id="floatcta"><a class="cta" href="#anmelden">Claim your free trial<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
+
+<nav>
+<a class="logo" href="#"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/652a61bd13ed5242e0d0baff_IMPACT_Martial_Arts_Logo_neg_gold_web.png" alt="IMPACT Martial Arts" onerror="this.outerHTML='<b style=\'color:#e2c210;font-size:18px;letter-spacing:1px\'>IMPACT</b>'"></a>
+<div class="langtog"><a href="../bjjprobetraining/">DE</a><span>|</span><a href="../bjjtrial/" class="on">EN</a></div>
+<a class="cta" href="#anmelden">Trial Session<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+</nav>
+
+<header class="hero">
+<div class="hero-media">
+<video id="herovid" autoplay muted loop playsinline poster="../assets/joao-hero-poster.jpg"><source src="../assets/joao-hero.mp4" type="video/mp4"></video>
+</div>
+<div class="hero-ovl"></div>
+<div class="hero-content">
+<a class="kicker" href="https://maps.app.goo.gl/LKEFnT2AsnPj5VGd7" target="_blank" rel="noopener">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.1-7-11a7 7 0 1 1 14 0c0 5.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+Technoparkstrasse 3, Winterthur
+</a>
+<h1><span class="rw">Control.</span> <span class="rw accent">IMPACT.</span> <span class="rw">Flow.</span></h1>
+<p class="sub">Brazilian Jiu-Jitsu in Winterthur. Technique over strength – from your very first session. No experience needed.</p>
+<p class="cred">João de Oliveira – 2nd Degree Black Belt <span>· World &amp; European Champion</span></p>
+<a class="cta" href="#anmelden">Claim your free trial<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+</div>
+</header>
+
+<div class="tickerwrap"><div class="ticker"><div class="ticker-inner" id="tickinner" data-seg="NO EGO&nbsp;·&nbsp;TECHNIQUE OVER STRENGTH&nbsp;·&nbsp;BEGINNER FRIENDLY&nbsp;·&nbsp;BLACK BELT COACHING&nbsp;·&nbsp;"></div></div></div>
+
+<section class="chapter" id="beweis" style="padding-top:84px">
+<div class="chaphead">
+<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
+<h2 class="rev">What members<br><span class="accent">say.</span></h2>
+</div>
+<div class="statband">
+<div class="stat rev"><div><div class="n cnt" data-t="120" data-s="+">0</div><div class="l">5-star reviews</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
+<div class="stat rev"><div><div class="n cnt" data-t="12" data-s="">0</div><div class="l">Years of coaching</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
+<div class="stat rev"><div><div class="n numpunch">2.</div><div class="l">Degree black belt</div></div></div>
+</div>
+<div class="quotebox">
+<blockquote id="qtext"></blockquote>
+<div class="who" id="qwho"></div>
+<div class="qdots" id="qdots"></div>
+</div>
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+<a class="gbadge" href="https://maps.app.goo.gl/4WLKoHRziA7jtjWp9" target="_blank" rel="noopener"><b>120+</b> 5-star reviews on Google</a>
+<div class="facesrow" aria-hidden="true">
+<img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/692ba359b9b2ac707e0951e4_unnamed%20(1).png" alt="">
+<img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/692ba49b02828a7c8eac7b7a_unnamed%20(3).png" alt="">
+<img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/692ba35f2d7b98e2b632d33a_y.png" alt="">
+<img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/6538e57219c608fccfba844e_unnamed.png" alt="">
+</div>
+</div>
+</section>
+
+<section class="chapter deep" id="ablauf">
+<div class="chaphead">
+<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
+<div class="idx rev">YOUR START</div>
+<h2 class="rev">Getting started<br>is <span class="accent">easy.</span></h2>
+</div>
+<svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
+<p class="lead rev">Your first session is free. Before that, we talk – and find out together whether IMPACT and you are a match.</p>
+<div class="steprows">
+<a class="steprow rev steplink" href="#anmelden"><div class="n numpunch">01</div><h3>Send your <span class="ulink">request</span></h3><p>Fill in the short form – takes less than 60 seconds.</p></a>
+<div class="steprow rev"><div class="n numpunch">02</div><h3>We call you</h3><p>A short get-to-know call: what are you looking for, what do we offer – and does it match? If yes, we find your class and your date.</p></div>
+<div class="steprow rev"><div class="n numpunch">03</div><h3>Your first session</h3><p>Come by and roll with us. Loaner gear is ready – all you need is sportswear.</p></div>
+</div>
+</section>
+
+<div class="photo rev photostrip"><img src="../assets/reviews-bg.jpg" alt="Training bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
+
+<section class="formsec" id="anmelden">
+<div class="formgrid">
+<div class="left">
+<h2 class="rev">Claim your <span class="accent">free</span> trial session</h2>
+<p>Fill in the form – we'll call you and find your way in together. Trial is free, loaner gear included.</p>
+</div>
+<form id="leadform" novalidate>
+<div><label for="floc">Where do you want to train? *</label><select id="floc" name="location" required>
+<option value="">Select an option</option>
+<option value="Zürich">Zürich</option>
+<option value="Winterthur" selected>Winterthur</option>
+</select></div>
+<div><label for="fdis">I'm interested in: *</label><select id="fdis" name="discipline" required>
+<option value="">Select an option</option>
+<option value="MMA">MMA</option>
+<option value="Thai-Boxen / Muay Thai">Thai-Boxen / Muay Thai</option>
+<option value="Brazilian Jiu-jitsu / BJJ" selected>Brazilian Jiu-jitsu / BJJ</option>
+<option value="Fitnessboxen / Kickboxen">Fitnessboxen / Kickboxen</option>
+<option value="Little Ninjas">Little Ninjas</option>
+<option value="Boxen">Boxen</option>
+<option value="Street Defense">Street Defense</option>
+<option value="Ringen">Ringen</option>
+<option value="Selbstverteidigung für Frauen">Women's Self Defense</option>
+<option value="Personal Training">Personal Training</option>
+</select></div>
+<div id="kidagewrap" style="display:none"><label for="fkid">Your child's age *</label><select id="fkid" name="kid_age">
+<option value="">Select an option</option>
+<option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option>
+</select></div>
+<div><label for="fname">First name *</label><input id="fname" name="firstname" type="text" autocomplete="given-name" required></div>
+<div><label for="lname">Last name *</label><input id="lname" name="lastname" type="text" autocomplete="family-name" required></div>
+<div><label for="phone">Phone *</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
+<div><label for="email">Email *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+<div><label for="fmsg">Message</label><input id="fmsg" name="message" type="text" placeholder="Optional – e.g. if the two of you are coming together"></div>
+<div><label for="fsrc">How did you hear about us?</label><select id="fsrc" name="source">
+<option value="">Select an option</option>
+<option>Website</option><option>Google</option><option>Instagram</option><option>Facebook</option>
+<option>Friend's recommendation</option><option>Social media</option><option>Poster or flyer</option>
+<option>Event</option><option>Someone trains here</option><option>Other</option>
+</select></div>
+<input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
+<button class="cta" type="submit">Claim your free trial<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
+</form>
+<div id="formsuccess" style="display:none">
+<h2 style="font-size:clamp(28px,4vw,44px)">Request received.</h2>
+<p style="color:var(--grey);font-size:17px;margin-top:14px;max-width:420px">We'll call you and find your way in together. See you on the mats.</p>
+<div id="testnote" class="form-note" style="margin-top:12px">Test mode – form not connected yet</div>
+</div>
+</div>
+</section>
+
+<section class="chapter" id="warum" style="padding-top:110px">
+<div class="chaphead">
+<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
+<div class="idx rev">WHY IMPACT</div>
+<h2 class="rev">Not tougher.<br><span class="accent">Smarter.</span></h2>
+</div>
+<svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
+<div class="chapgrid">
+<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d6795b769f05589695c57e_Class%20Thumbnail%20%20Resize%20%20(8).jpg" alt="BJJ training at IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · On the mats</div></div>
+<div class="txt">
+<p class="rev">Here it's not the toughest who wins – it's the one who learns the most.</p>
+<div class="wordlist">
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Black Belt <small>Coaching that actually guides you</small></div>
+<div class="rev accent"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>No Ego <small>A community that carries you</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Structure <small>Beginner friendly, whatever your shape</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>More <small>Access to MMA, Muay Thai and more</small></div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="coachsec deep" id="coach">
+<div class="vert">Nova União · Weltmeister · Seit 2014</div>
+<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67dc9a3d2e311002f6ff5_Jo%C3%A3o%20-%20L.jpg" alt="João de Oliveira, head coach BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach BJJ &amp; MMA</div></div>
+<div class="nameblock rev"><h2>João<span class="last">de Oliveira</span></h2></div>
+<p class="bio rev">2nd degree black belt, world and European champion, shaped by the legendary Team Nova União. Coaching since 2014. He moves you forward from day one – at your pace.</p>
+</section>
+
+<section class="gisec" id="gi">
+<div class="gicols">
+<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
+<path pathLength="100" class="g1" d="M35 8 L20 14 L8 34 L16 42 L24 32"/>
+<path pathLength="100" class="g1" d="M65 8 L80 14 L92 34 L84 42 L76 32"/>
+<path pathLength="100" class="g1" d="M35 8 L50 42 L65 8"/>
+<path pathLength="100" class="g1" d="M35 8 L38 30 L30 92 L70 92 L62 30 L65 8"/>
+<path pathLength="100" class="g1" d="M50 42 L46 92"/>
+<path pathLength="100" class="g2" d="M30 62 L70 62 M30 67 L70 67"/>
+<path pathLength="100" class="g2" d="M44 60 L56 60 L56 70 L44 70 Z"/>
+<path pathLength="100" class="g2" d="M47 70 L42 86 M53 70 L58 86"/>
+</svg></div><h3>With <span class="accent">Gi</span></h3><ul><li>Traditional and technical, gripping the fabric</li><li>With belt system</li><li>Structured, focused, deep</li></ul></div>
+<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
+<path pathLength="100" class="g1" d="M38 10 Q50 16 62 10 L74 16 L82 36 L72 40 L68 30"/>
+<path pathLength="100" class="g1" d="M38 10 L26 16 L18 36 L28 40 L32 30"/>
+<path pathLength="100" class="g1" d="M32 30 L32 92 L68 92 L68 30"/>
+<path pathLength="100" class="g1" d="M42 12 Q50 20 58 12"/>
+<g transform="translate(28,42) scale(0.44)"><path pathLength="100" class="g2" d="M50.4 16.4 L37.4 50"/><path pathLength="100" class="g2" d="M56.7 16.4 L43.7 50"/><path pathLength="100" class="g2" d="M62.9 16.4 L37 83.5"/><path pathLength="100" class="g2" d="M56.2 50.1 L43.3 83.5"/></g>
+</svg></div><h3>Without Gi <span class="accent">NoGi</span></h3><ul><li>Dynamic and close-contact</li><li>No heavy clothing – pure control</li><li>Popular with all-rounders and MMA fans</li></ul></div>
+</div>
+<p class="ginote">No need to decide right away. Try both and find your style.</p>
+</section>
+
+<div class="photo rev" style="height:clamp(260px,45vh,460px)"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a356508e92bb161c27da37c_IMPACT%20Website%20(12).png" alt="IMPACT community after training" loading="lazy" onerror="this.remove()"><div class="cap">The community · IMPACT</div></div>
+
+<section class="faq deep" id="faq">
+<div class="chaphead">
+<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
+<div class="idx rev">WHAT HOLDS YOU BACK</div>
+<h2 class="rev">No <span class="accent">excuses.</span></h2>
+</div>
+<details><summary>How do I sign up?</summary><p>Simply sign up for your trial session via the form. You can come for free to get to know us and the training – we'll give you a quick call beforehand.</p></details>
+<details><summary>I'm not fit enough. Is that a problem?</summary><p>No. Every drill can be adapted and you set the pace. Most people here started exactly like you.</p></details>
+<details><summary>Will I embarrass myself rolling as a beginner?</summary><p>No. Everyone on the mats was a white belt once. There's no room for ego here – making mistakes is part of learning.</p></details>
+<details><summary>Is the injury risk high?</summary><p>BJJ works without strikes. We take great care not to injure each other – controlled, technical training is at the core.</p></details>
+<details><summary>Do I need my own gear?</summary><p>No. Everything is ready for your trial. Sportswear and water are all you need.</p></details>
+<details><summary>Can I shower after training?</summary><p>Yes, we have showers in the studio. Head straight to work or into your day fresh and energized.</p></details>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="final">
+<h2 class="rev">Get on the <span class="accent">mats.</span></h2>
+<svg class="beltknot" width="320" height="80" viewBox="0 0 320 80"><path class="bband" d="M0 20 H140 M180 20 H320"/><path class="bseam" d="M0 16.5 H140 M180 16.5 H320 M0 23.5 H140 M180 23.5 H320"/><rect class="kknot" x="138" y="8" width="44" height="24" rx="4"/><path class="ktail" d="M150 32 L136 68"/><path class="ktail" d="M170 32 L186 68"/></svg>
+<a class="cta" href="#anmelden">Claim your free trial<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+</section>
+
+<footer>
+<img class="flogo" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/652a61bd13ed5242e0d0baff_IMPACT_Martial_Arts_Logo_neg_gold_web.png" alt="IMPACT Martial Arts" onerror="this.remove()">
+<div>IMPACT Martial Arts · Technoparkstrasse 3, 8406 Winterthur</div>
+<div style="margin-top:8px"><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">Terms</a> · <a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Privacy</a></div>
+</footer>
+
+<script>
+(function(){
+(function(){
+var ti=document.getElementById('tickinner');
+function fill(){
+var seg=ti.dataset.seg;
+ti.innerHTML=seg;
+var one=ti.scrollWidth;
+var need=Math.max(2, Math.ceil((window.innerWidth*1.1)/one));
+ti.innerHTML=seg.repeat(need*2);
+}
+fill();
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(fill,200)});
+})();
+(function(){try{
+var p=new URLSearchParams(location.search);
+var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc'};
+Object.keys(m).forEach(function(k){var v=p.get(k);if(v){var el=document.getElementById(m[k]);if(el)el.value=v;try{sessionStorage.setItem('imp_'+k,v)}catch(e){}}else{try{var s=sessionStorage.getItem('imp_'+k);if(s){var el2=document.getElementById(m[k]);if(el2)el2.value=s}}catch(e){}}});
+var lp=document.getElementById('t_lp');if(lp)lp.value=location.href.split('?')[0];
+var rf=document.getElementById('t_rf');if(rf)rf.value=document.referrer||'';
+}catch(e){}})();
+var rws=document.querySelectorAll('.hero .rw');
+rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},300+i*260)});
+var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn');
+var heroEl=document.querySelector('.hero');
+function cineEls(){return document.querySelectorAll('.hero .kicker,.hero h1,.hero .sub,.hero .cred')}
+function setCinema(on){
+heroEl.classList.toggle('cinema',on);
+var mob=window.innerWidth<1100;
+cineEls().forEach(function(el){el.style.transition='opacity .45s';el.style.opacity=(on&&mob)?'0':'';el.style.pointerEvents=(on&&mob)?'none':''});
+var ov=document.querySelector('.hero-ovl');if(ov){ov.style.transition='opacity .45s';ov.style.opacity=(on&&mob)?'.25':''}
+}
+if(sb){sb.addEventListener('click',function(){if(hv.muted){setCinema(true);hv.muted=false;sb.classList.add('sndon');var pr=hv.play();if(pr&&pr.catch){pr.catch(function(){})}}else{hv.muted=true;sb.classList.remove('sndon');setCinema(false);}})}
+
+var io=new IntersectionObserver(function(entries){
+entries.forEach(function(e){
+if(!e.isIntersecting)return;
+var t=e.target;
+if(t.classList.contains('beltline')||t.classList.contains('beltknot')){t.classList.add('drawn')}
+else{t.classList.add('vis')}
+if(t.classList.contains('stat')){var c=t.querySelector('.cnt');if(c&&!c.dataset.done){c.dataset.done=1;count(c)}}
+io.unobserve(t);
+});
+},{threshold:.45});
+document.querySelectorAll('.beltline,.beltknot,.rev,.photo,.chapbolt,.numpunch').forEach(function(el){io.observe(el)});
+
+function count(el){
+var t=+el.dataset.t,s=el.dataset.s||'',st=performance.now();
+function f(n){var p=Math.min((n-st)/1300,1);el.textContent=Math.round(t*(1-Math.pow(1-p,3)))+s;if(p<1)requestAnimationFrame(f)}
+requestAnimationFrame(f);
+}
+
+var quotes=[
+{t:'Great martial arts school, João the head coach is <b>very experienced</b> and helped me a lot developing my BJJ. Recommended.',w:'Carlos C. · Google review'},
+{t:'I had no martial arts experience at the start and João looked after me in a very <b>beginner-friendly</b> way. The atmosphere is respectful and collective.',w:'Sandro Jörg · Google review, translated'},
+{t:'I wasn\'t sure I would fit in. <b>Try it – you won\'t regret it!</b> I really like the atmosphere and the community.',w:'Google review · translated'},
+{t:'A place that keeps evolving but still feels <b>like a family</b>.',w:'Google review · translated'}
+];
+var qi=0,qt=document.getElementById('qtext'),qw=document.getElementById('qwho'),qd=document.getElementById('qdots');
+quotes.forEach(function(_,i){
+var d=document.createElement('span');
+d.addEventListener('click',function(){qi=i;show()});
+qd.appendChild(d);
+});
+function show(){
+qt.style.opacity=0;qw.style.opacity=0;
+setTimeout(function(){
+qt.innerHTML='«'+quotes[qi].t+'»';
+qw.innerHTML='<b>'+quotes[qi].w+'</b>';
+qt.style.transition='opacity .5s';qw.style.transition='opacity .5s';
+qt.style.opacity=1;qw.style.opacity=1;
+qd.querySelectorAll('span').forEach(function(s,i){s.classList.toggle('on',i===qi)});
+},300);
+}
+show();
+setInterval(function(){qi=(qi+1)%quotes.length;show()},7000);
+
+var fc=document.getElementById('floatcta');
+var hero=document.querySelector('.hero');
+var formsec=document.getElementById('anmelden');
+var ticking=false;
+function upd(){
+ticking=false;
+var hb=hero.getBoundingClientRect().bottom;
+var fr=formsec.getBoundingClientRect();
+var overForm=fr.top<window.innerHeight&&fr.bottom>0;
+if(hb<0&&!overForm){fc.classList.add('on')}else{fc.classList.remove('on')}
+if(sb){var gone=hb<window.innerHeight*0.35;sb.classList.toggle('hid',gone);if(gone&&heroEl.classList.contains('cinema')){setCinema(false);sb.classList.remove('sndon');hv.muted=true;}}
+}
+var navEl=document.querySelector('nav');
+window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd)}navEl.classList.toggle('scrolled',window.scrollY>40);},{passive:true});
+upd();
+
+var dis=document.getElementById('fdis'),kw=document.getElementById('kidagewrap'),kid=document.getElementById('fkid');
+dis.addEventListener('change',function(){var ln=dis.value==='Little Ninjas';kw.style.display=ln?'':'none';if(ln){kid.setAttribute('required','')}else{kid.removeAttribute('required')}});
+document.getElementById('leadform').addEventListener('submit',function(ev){
+ev.preventDefault();
+var f=ev.target;
+var bad=null;
+f.querySelectorAll('.errfield').forEach(function(e){e.classList.remove('errfield')});
+f.querySelectorAll('[required]').forEach(function(el){
+if(bad)return;
+var empty=(el.type==='checkbox')?!el.checked:!el.value.trim();
+var invalid=empty||(el.type==='email'&&!el.checkValidity());
+if(invalid)bad=el;
+});
+if(bad){
+var target=(bad.type==='checkbox')?bad.parentElement:bad;
+target.classList.add('errfield');
+bad.scrollIntoView({behavior:'smooth',block:'center'});
+setTimeout(function(){bad.focus({preventScroll:true})},450);
+return;
+}
+var LEAD_ENDPOINT='';/* Cloudflare Worker URL, folgt nach UCONIC-Antwort */
+var payload={};new FormData(f).forEach(function(v,k){payload[k]=v});
+payload.page=location.href;
+function showSuccess(test){
+f.style.display='none';
+var s=document.getElementById('formsuccess');s.style.display='';
+document.getElementById('testnote').style.display=test?'':'none';
+s.scrollIntoView({behavior:'smooth',block:'center'});
+}
+if(!LEAD_ENDPOINT){console.warn('lead endpoint not configured');showSuccess(true);return;}
+var btn=f.querySelector('button[type=submit]');btn.disabled=true;btn.style.opacity=.6;
+fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+.then(function(r){if(!r.ok)throw 0;
+window.dataLayer=window.dataLayer||[];
+window.dataLayer.push({event:'generate_lead',lead_location:payload.location,lead_discipline:payload.discipline});
+showSuccess(false);
+})
+.catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Senden fehlgeschlagen. Bitte versuch es nochmal oder ruf uns an.');});
+});
+})();
+</script>
+</body>
+</html>

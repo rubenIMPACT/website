@@ -1,0 +1,4 @@
+/probetraining/* /bjjprobetraining/:splat 301
+/trial/* /bjjtrial/:splat 301
+/bjj-winterthur.html /bjjprobetraining/ 301
+/ /bjjprobetraining/ 302
