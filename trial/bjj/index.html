@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Muay Thai Free Trial Winterthur – IMPACT Martial Arts</title>
-<meta name="description" content="Free Muay Thai trial session in Winterthur. World champion coaching, beginner friendly, technique and respect.">
+<title>BJJ Free Trial Winterthur – IMPACT Martial Arts</title>
+<meta name="description" content="Free BJJ trial session in Winterthur. Black belt coaching, beginner friendly, technique over strength.">
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W6SM24HX');</script>
 <!-- End Google Tag Manager -->
@@ -64,6 +64,7 @@ nav{gap:14px}
 @keyframes roll{60%{opacity:1;transform:translateX(5px) rotate(2.5deg)}100%{opacity:1;transform:none}}
 .hero .sub{font-size:clamp(16px,2.2vw,20px);color:#ddd;max-width:520px;margin:16px 0 10px}
 .hero .cred{font-size:14px;color:var(--gold);font-weight:500;margin-bottom:26px}
+.hero-content .cta{min-width:min(350px,calc(100vw - 2*var(--mx)));min-height:84px;display:inline-flex;align-items:center;justify-content:center;text-align:center}
 .hero .cred span{color:var(--grey);font-weight:300}
 @media(min-width:1100px){
 .hero{flex-direction:row;align-items:stretch;min-height:94vh}
@@ -191,6 +192,14 @@ select{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:
 .final:before,.statband:before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120vw;height:150%;background:radial-gradient(ellipse at center,rgba(226,194,16,.07),transparent 55%);pointer-events:none}
 .final>*{position:relative}
 .final h2{font-size:clamp(36px,7vw,84px)}
+.beltknot{margin:22px auto 34px;display:block;overflow:visible}
+.beltknot .bband{stroke:var(--gold);stroke-width:6;fill:none;stroke-dasharray:1000;stroke-dashoffset:1000}
+.beltknot .bseam{stroke:var(--gold-dark);stroke-width:1;fill:none;stroke-dasharray:1000;stroke-dashoffset:1000}
+.beltknot .kknot{fill:var(--gold);opacity:0}
+.beltknot .ktail{stroke:var(--gold);stroke-width:5;fill:none;stroke-dasharray:70;stroke-dashoffset:70}
+.beltknot.drawn .bband,.beltknot.drawn .bseam{animation:draw 1s cubic-bezier(.4,0,.2,1) forwards}
+.beltknot.drawn .kknot{animation:kpop .3s .95s forwards}
+.beltknot.drawn .ktail{animation:draw .4s 1.05s cubic-bezier(.3,1.2,.4,1) forwards}
 @keyframes kpop{from{opacity:0}to{opacity:1}}
 footer{border-top:1px solid var(--hair);padding:36px var(--mx);text-align:center;color:#6e6a5f;font-size:13px}
 footer .flogo{height:26px;margin:0 auto 14px}
@@ -290,45 +299,6 @@ section.deep{background:#12100b}
 .chapgrid .photo{min-height:0;aspect-ratio:3/4}
 .chapgrid .txt{padding:0}
 }
-
-/* --- Muay Thai: punch-in headlines --- */
-.hero h1 .rw{transform:scale(1.7);filter:blur(7px);transform-origin:50% 62%}
-.hero h1 .rw.go{animation:punch .4s cubic-bezier(.2,.9,.25,1) forwards}
-@keyframes punch{0%{opacity:0;transform:scale(1.7);filter:blur(7px)}55%{opacity:1;transform:scale(.93);filter:blur(0)}78%{transform:scale(1.03)}100%{opacity:1;transform:none;filter:blur(0)}}
-.chaphead h2.rev{transform:scale(1.32);transform-origin:0 62%}
-.chaphead h2.rev.vis{animation:punchh .42s cubic-bezier(.2,.9,.25,1) forwards}
-@keyframes punchh{0%{opacity:0;transform:scale(1.32)}55%{opacity:1;transform:scale(.97)}78%{transform:scale(1.02)}100%{opacity:1;transform:none}}
-/* --- Eight weapons grid --- */
-.weapons{display:grid;grid-template-columns:1fr;border-top:1px solid var(--hair);margin-top:46px}
-@media(min-width:800px){.weapons{grid-template-columns:1fr 1fr}.weapons .wcell:nth-child(odd){border-right:1px solid var(--hair)}}
-.wcell{position:relative;padding:40px var(--mx) 44px;border-bottom:1px solid var(--hair)}
-.wcell h3{font-size:clamp(28px,4.4vw,42px);margin:20px 0 10px}
-.wcell p{color:var(--grey);font-size:15px;max-width:360px;line-height:1.55}
-.wnum{position:absolute;top:42px;right:var(--mx);font-size:12px;font-weight:800;letter-spacing:3px;color:var(--gold)}
-.wart{width:104px;height:104px}
-.wart svg{width:104px;height:104px;overflow:visible}
-.wart .l1{stroke:#fff;stroke-width:2.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.wart .l2{stroke:var(--gold);stroke-width:3.4;fill:none;stroke-linecap:round}
-.wart path{stroke-dasharray:100;stroke-dashoffset:100}
-.wcell.vis .wart path{animation:draw2 .5s cubic-bezier(.4,0,.2,1) forwards}
-.wcell.vis .wart path:nth-child(2){animation-delay:.09s}
-.wcell.vis .wart path:nth-child(3){animation-delay:.18s}
-.wcell.vis .wart path:nth-child(4){animation-delay:.27s}
-.wcell.vis .wart path:nth-child(5){animation-delay:.34s}
-.wcell.vis .wart path:nth-child(6){animation-delay:.41s}
-.wcell.vis .wart path:nth-child(7){animation-delay:.48s}
-.wcell.vis .wart path:nth-child(8){animation-delay:.55s}
-.wcell.vis .wart path:nth-child(9){animation-delay:.62s}
-@keyframes draw2{to{stroke-dashoffset:0}}
-/* --- Final motif: Muay Thai shorts --- */
-.shortsart{margin:26px auto 36px;display:block;overflow:visible}
-.shortsart path{fill:none;stroke:var(--gold);stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100}
-.shortsart .sline{stroke-width:3.4}
-.shortsart .sband{stroke-width:13}
-.shortsart .sdet{stroke-width:1.6;stroke:var(--gold-dark)}
-.shortsart.drawn .sline{animation:draw .95s cubic-bezier(.4,0,.2,1) forwards}
-.shortsart.drawn .sband{animation:draw .5s cubic-bezier(.4,0,.2,1) forwards}
-.shortsart.drawn .sdet{animation:draw .6s .55s cubic-bezier(.4,0,.2,1) forwards}
 </style>
 </head>
 <body>
@@ -342,13 +312,13 @@ section.deep{background:#12100b}
 
 <nav>
 <a class="logo" href="#"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/652a61bd13ed5242e0d0baff_IMPACT_Martial_Arts_Logo_neg_gold_web.png" alt="IMPACT Martial Arts" onerror="this.outerHTML='<b style=\'color:#e2c210;font-size:18px;letter-spacing:1px\'>IMPACT</b>'"></a>
-<div class="langtog"><a href="../muaythaiprobetraining/">DE</a><span>|</span><a href="../muaythaitrial/" class="on">EN</a></div>
+<div class="langtog"><a href="/probetraining/bjj/">DE</a><span>|</span><a href="/trial/bjj/" class="on">EN</a></div>
 <a class="cta" href="#anmelden">Trial Session<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </nav>
 
 <header class="hero">
 <div class="hero-media">
-<video id="herovid" autoplay muted loop playsinline poster="../assets/sergei-hero-poster.jpg"><source src="../assets/sergei-hero.mp4" type="video/mp4"></video>
+<video id="herovid" autoplay muted loop playsinline poster="../../assets/joao-hero-poster.jpg"><source src="../../assets/joao-hero.mp4" type="video/mp4"></video>
 </div>
 <div class="hero-ovl"></div>
 <div class="hero-content">
@@ -356,18 +326,18 @@ section.deep{background:#12100b}
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.1-7-11a7 7 0 1 1 14 0c0 5.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
 Technoparkstrasse 3, Winterthur
 </a>
-<h1><span class="rw">Power.</span> <span class="rw accent">IMPACT.</span> <span class="rw">Precision.</span></h1>
-<p class="sub">Muay Thai in Winterthur. The art of eight limbs – technique, rhythm, respect. No experience needed.</p>
-<p class="cred">Sergei Liubchenko – Head Coach Muay Thai <span>· Multiple-time World Champion</span></p>
+<h1><span class="rw">Control.</span> <span class="rw accent">IMPACT.</span> <span class="rw">Flow.</span></h1>
+<p class="sub">Brazilian Jiu-Jitsu in Winterthur. Technique over strength – from your very first session. No experience needed.</p>
+<p class="cred">João de Oliveira – 2nd Degree Black Belt <span>· World &amp; European Champion</span></p>
 <a class="cta" href="#anmelden">Claim your free trial<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </div>
 </header>
 
 <div class="claimband"><ul>
-<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>EIGHT LIMBS</li>
-<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>TECHNIQUE &amp; RESPECT</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>NO EGO</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>TECHNIQUE OVER STRENGTH</li>
 <li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>BEGINNER FRIENDLY</li>
-<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>WORLD CHAMPION COACHING</li>
+<li class="rev"><svg class="cb" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>BLACK BELT COACHING</li>
 </ul></div>
 
 <section class="chapter" id="beweis">
@@ -377,8 +347,8 @@ Technoparkstrasse 3, Winterthur
 </div>
 <div class="statband">
 <div class="stat rev"><div><div class="n cnt" data-t="120" data-s="+">0</div><div class="l">5-star reviews</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
-<div class="stat rev"><div><div class="n cnt" data-t="24" data-s="">0</div><div class="l">Years in combat sports</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
-<div class="stat rev"><div><div class="n numpunch">WM</div><div class="l">Multiple-time champion</div></div></div>
+<div class="stat rev"><div><div class="n cnt" data-t="12" data-s="">0</div><div class="l">Years of coaching</div></div><svg class="statbolt bolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></div>
+<div class="stat rev"><div><div class="n numpunch">2.</div><div class="l">Degree black belt</div></div></div>
 </div>
 <div class="quotebox">
 <blockquote id="qtext"></blockquote>
@@ -407,11 +377,11 @@ Technoparkstrasse 3, Winterthur
 <div class="steprows">
 <a class="steprow rev steplink" href="#anmelden"><div class="n numpunch">01</div><h3>Send your <span class="ulink">request</span></h3><p>Fill in the short form – takes less than 60 seconds.</p></a>
 <div class="steprow rev"><div class="n numpunch">02</div><h3>We call you</h3><p>A short get-to-know call: what are you looking for, what do we offer – and does it match? If yes, we find your class and your date.</p></div>
-<div class="steprow rev"><div class="n numpunch">03</div><h3>Your first session</h3><p>Come by and train with us. Loaner gloves are ready – all you need is sportswear.</p></div>
+<div class="steprow rev"><div class="n numpunch">03</div><h3>Your first session</h3><p>Come by and roll with us. Loaner gear is ready – all you need is sportswear.</p></div>
 </div>
 </section>
 
-<div class="photo rev photostrip"><img src="../assets/mt-class.jpg" alt="Training at IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
+<div class="photo rev photostrip"><img src="../../assets/reviews-bg.jpg" alt="Training bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT Winterthur</div></div>
 
 <section class="formsec" id="anmelden">
 <div class="formgrid">
@@ -428,8 +398,8 @@ Technoparkstrasse 3, Winterthur
 <div><label for="fdis">I'm interested in: *</label><select id="fdis" name="discipline" required>
 <option value="">Select an option</option>
 <option value="MMA">MMA</option>
-<option value="Thai-Boxen / Muay Thai" selected>Thai-Boxen / Muay Thai</option>
-<option value="Brazilian Jiu-jitsu / BJJ">Brazilian Jiu-jitsu / BJJ</option>
+<option value="Thai-Boxen / Muay Thai">Thai-Boxen / Muay Thai</option>
+<option value="Brazilian Jiu-jitsu / BJJ" selected>Brazilian Jiu-jitsu / BJJ</option>
 <option value="Fitnessboxen / Kickboxen">Fitnessboxen / Kickboxen</option>
 <option value="Little Ninjas">Little Ninjas</option>
 <option value="Boxen">Boxen</option>
@@ -458,7 +428,7 @@ Technoparkstrasse 3, Winterthur
 </form>
 <div id="formsuccess" style="display:none">
 <h2 style="font-size:clamp(28px,4vw,44px)">Request received.</h2>
-<p style="color:var(--grey);font-size:17px;margin-top:14px;max-width:420px">We'll call you and find your way in together. See you in training.</p>
+<p style="color:var(--grey);font-size:17px;margin-top:14px;max-width:420px">We'll call you and find your way in together. See you on the mats.</p>
 <div id="testnote" class="form-note" style="margin-top:12px">Test mode – form not connected yet</div>
 </div>
 </div>
@@ -472,14 +442,14 @@ Technoparkstrasse 3, Winterthur
 </div>
 <svg class="beltline" width="100%" height="14" viewBox="0 0 1200 14" preserveAspectRatio="none"><path class="bband" d="M0 7 H1200"/><path class="bseam" d="M0 3.5 H1200 M0 10.5 H1200"/></svg>
 <div class="chapgrid">
-<div class="photo rev"><img src="../assets/mt-clinch.jpg" alt="Training at IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · In training</div></div>
+<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d6795b769f05589695c57e_Class%20Thumbnail%20%20Resize%20%20(8).jpg" alt="BJJ training at IMPACT Winterthur" loading="lazy" onerror="this.remove()"><div class="cap">IMPACT Winterthur · On the mats</div></div>
 <div class="txt">
 <p class="rev">Here it's not the toughest who wins – it's the one who learns the most.</p>
 <div class="wordlist">
-<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>World class <small>Coaching by Sergei – 24 years in the ring</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Black Belt <small>Coaching that actually guides you</small></div>
 <div class="rev accent"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>No Ego <small>A community that carries you</small></div>
-<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Structure <small>Clearly built sessions, every level</small></div>
-<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Eight limbs <small>Fists, elbows, knees, shins</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Structure <small>Beginner friendly, whatever your shape</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>More <small>Access to MMA, Muay Thai and more</small></div>
 </div>
 </div>
 </div>
@@ -487,85 +457,35 @@ Technoparkstrasse 3, Winterthur
 
 <section class="coachsec deep" id="coach">
 <div class="vert">Nova União · Weltmeister · Seit 2014</div>
-<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko, Head Coach Muay Thai" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach Muay Thai &amp; Boxing</div></div>
-<div class="nameblock rev"><h2>Sergei<span class="last">Liubchenko</span></h2></div>
-<p class="bio rev">Professional fighter and coach from Ukraine with over 24 years in combat sports and multiple world titles. Muay Thai is his life – and he moves you forward from day one, at your pace.</p>
+<div class="photo rev"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67dc9a3d2e311002f6ff5_Jo%C3%A3o%20-%20L.jpg" alt="João de Oliveira, head coach BJJ" loading="lazy" onerror="this.remove()"><div class="cap">Head Coach BJJ &amp; MMA</div></div>
+<div class="nameblock rev"><h2>João<span class="last">de Oliveira</span></h2></div>
+<p class="bio rev">2nd degree black belt, world and European champion, shaped by the legendary Team Nova União. Coaching since 2014. He moves you forward from day one – at your pace.</p>
 </section>
 
 <section class="gisec" id="gi">
-<div class="chaphead">
-<svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">THE ART</div>
-<h2 class="rev">Eight <span class="accent">limbs.</span></h2>
+<div class="gicols">
+<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
+<path pathLength="100" class="g1" d="M35 8 L20 14 L8 34 L16 42 L24 32"/>
+<path pathLength="100" class="g1" d="M65 8 L80 14 L92 34 L84 42 L76 32"/>
+<path pathLength="100" class="g1" d="M35 8 L50 42 L65 8"/>
+<path pathLength="100" class="g1" d="M35 8 L38 30 L30 92 L70 92 L62 30 L65 8"/>
+<path pathLength="100" class="g1" d="M50 42 L46 92"/>
+<path pathLength="100" class="g2" d="M30 62 L70 62 M30 67 L70 67"/>
+<path pathLength="100" class="g2" d="M44 60 L56 60 L56 70 L44 70 Z"/>
+<path pathLength="100" class="g2" d="M47 70 L42 86 M53 70 L58 86"/>
+</svg></div><h3>With <span class="accent">Gi</span></h3><ul><li>Traditional and technical, gripping the fabric</li><li>With belt system</li><li>Structured, focused, deep</li></ul></div>
+<div class="gicol rev"><div class="giart" aria-hidden="true"><svg viewBox="0 0 100 110">
+<path pathLength="100" class="g1" d="M38 10 Q50 16 62 10 L74 16 L82 36 L72 40 L68 30"/>
+<path pathLength="100" class="g1" d="M38 10 L26 16 L18 36 L28 40 L32 30"/>
+<path pathLength="100" class="g1" d="M32 30 L32 92 L68 92 L68 30"/>
+<path pathLength="100" class="g1" d="M42 12 Q50 20 58 12"/>
+<g transform="translate(28,42) scale(0.44)"><path pathLength="100" class="g2" d="M50.4 16.4 L37.4 50"/><path pathLength="100" class="g2" d="M56.7 16.4 L43.7 50"/><path pathLength="100" class="g2" d="M62.9 16.4 L37 83.5"/><path pathLength="100" class="g2" d="M56.2 50.1 L43.3 83.5"/></g>
+</svg></div><h3>Without Gi <span class="accent">NoGi</span></h3><ul><li>Dynamic and close-contact</li><li>No heavy clothing – pure control</li><li>Popular with all-rounders and MMA fans</li></ul></div>
 </div>
-<p class="lead rev" style="padding:18px var(--mx) 0;max-width:640px">Fists, elbows, knees, shins – Muay Thai uses the whole body. Powerful and direct, but also rhythmic and precise.</p>
-<div class="weapons">
-<div class="wcell rev">
-<div class="wnum">01</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M26 16 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M34 25 L31 58"/>
-<path pathLength="100" class="l1" d="M33 32 L22 40 L31 46"/>
-<path pathLength="100" class="l1" d="M31 58 L18 88"/>
-<path pathLength="100" class="l1" d="M31 58 L52 86"/>
-<path pathLength="100" class="l2" d="M33 34 L62 38 L80 42"/>
-<path pathLength="100" class="l2" d="M81 43 a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0"/>
-</svg></div>
-<h3>Fists</h3>
-<p>Jab, hook, uppercut. Clean punching in combinations – with guard, timing and awareness.</p>
-</div>
-<div class="wcell rev">
-<div class="wnum">02</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M24 16 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M32 25 L29 58"/>
-<path pathLength="100" class="l1" d="M30 38 L20 48 L28 54"/>
-<path pathLength="100" class="l1" d="M29 58 L16 88"/>
-<path pathLength="100" class="l1" d="M29 58 L50 86"/>
-<path pathLength="100" class="l2" d="M32 33 L66 28 L46 46"/>
-<path pathLength="100" class="l2" d="M74 22 L84 17"/>
-<path pathLength="100" class="l2" d="M75 31 L88 31"/>
-</svg></div>
-<h3>Elbows</h3>
-<p>The close-range weapon. Short, precise, controlled – always with clear partner control in training.</p>
-</div>
-<div class="wcell rev">
-<div class="wnum">03</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M22 14 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M30 23 L28 54"/>
-<path pathLength="100" class="l1" d="M29 30 L58 24"/>
-<path pathLength="100" class="l1" d="M29 36 L56 34"/>
-<path pathLength="100" class="l1" d="M28 54 L22 90"/>
-<path pathLength="100" class="l1" d="M22 90 L34 92"/>
-<path pathLength="100" class="l2" d="M28 54 L63 27 L54 60"/>
-<path pathLength="100" class="l2" d="M68 14 L77 8"/>
-<path pathLength="100" class="l2" d="M72 22 L84 19"/>
-</svg></div>
-<h3>Knees</h3>
-<p>Straight out of the clinch. Power from the hips, balance and control over your partner.</p>
-</div>
-<div class="wcell rev">
-<div class="wnum">04</div>
-<div class="wart" aria-hidden="true"><svg viewBox="-2 -2 104 104">
-<path pathLength="100" class="l1" d="M22 20 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0"/>
-<path pathLength="100" class="l1" d="M30 29 L27 58"/>
-<path pathLength="100" class="l1" d="M28 34 L17 43"/>
-<path pathLength="100" class="l1" d="M29 39 L41 49"/>
-<path pathLength="100" class="l1" d="M27 58 L22 92"/>
-<path pathLength="100" class="l1" d="M22 92 L34 94"/>
-<path pathLength="100" class="l2" d="M27 58 L58 42 L94 28"/>
-<path pathLength="100" class="l2" d="M40 93 Q80 84 96 45"/>
-</svg></div>
-<h3>Kicks</h3>
-<p>Shin, not instep. Roundhouse, teep and footwork – range, mobility, precision.</p>
-</div>
-</div>
-<div class="photo rev fullphoto" style="height:clamp(240px,40vh,420px)"><img src="../assets/mt-kick.jpg" alt="Muay Thai Kick – IMPACT Winterthur" loading="lazy"><div class="cap">Eight weapons · IMPACT Winterthur</div></div>
-<p class="ginote rev">No experience needed. You can borrow gloves from us – just bring sportswear and water.</p>
+<p class="ginote">No need to decide right away. Try both and find your style.</p>
 </section>
 
-<div class="photo rev fullphoto" style="height:clamp(260px,45vh,460px)"><img src="../assets/mt-smile.jpg" alt="IMPACT community after training" loading="lazy" onerror="this.remove()"><div class="cap">The community · IMPACT</div></div>
+<div class="photo rev fullphoto" style="height:clamp(260px,45vh,460px)"><img src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a356508e92bb161c27da37c_IMPACT%20Website%20(12).png" alt="IMPACT community after training" loading="lazy" onerror="this.remove()"><div class="cap">The community · IMPACT</div></div>
 
 <section class="faq deep" id="faq">
 <div class="chaphead">
@@ -574,9 +494,10 @@ Technoparkstrasse 3, Winterthur
 <h2 class="rev">No <span class="accent">excuses.</span></h2>
 </div>
 <details><summary>How do I sign up?</summary><p>Simply sign up for your trial session via the form. You can come for free to get to know us and the training – we'll give you a quick call beforehand.</p></details>
-<details><summary>Is Muay Thai too tough for me?</summary><p>No. Every drill can be adapted to your level and you set the pace. The sessions are demanding but doable for anyone who wants to move.</p></details>
-<details><summary>Do I have to spar?</summary><p>No. Sparring is optional and strictly controlled – there are clear rules, and the head is never hit hard. We take great care not to injure each other.</p></details>
-<details><summary>Do I need my own gloves?</summary><p>No. We provide boxing gloves for your trial free of charge. Sportswear and water are all you need.</p></details>
+<details><summary>I'm not fit enough. Is that a problem?</summary><p>No. Every drill can be adapted and you set the pace. Most people here started exactly like you.</p></details>
+<details><summary>Will I embarrass myself rolling as a beginner?</summary><p>No. Everyone on the mats was a white belt once. There's no room for ego here – making mistakes is part of learning.</p></details>
+<details><summary>Is the injury risk high?</summary><p>BJJ works without strikes. We take great care not to injure each other – controlled, technical training is at the core.</p></details>
+<details><summary>Do I need my own gear?</summary><p>No. Everything is ready for your trial. Sportswear and water are all you need.</p></details>
 <details><summary>Can I shower after training?</summary><p>Yes, we have showers in the studio. Head straight to work or into your day fresh and energized.</p></details>
 </section>
 
@@ -594,13 +515,8 @@ Technoparkstrasse 3, Winterthur
 
 
 <section class="final">
-<h2 class="rev">Round <span class="accent">one.</span></h2>
-<svg class="shortsart" width="210" height="120" viewBox="0 0 220 120" aria-hidden="true">
-<path pathLength="100" class="sline" d="M48 20 L34 96 Q33 106 43 106 H90 Q99 106 100 97 L110 62 L120 97 Q121 106 130 106 H177 Q187 106 186 96 L172 20"/>
-<path pathLength="100" class="sband" d="M48 24 H172"/>
-<path pathLength="100" class="sdet" d="M46 36 H174"/>
-<path pathLength="100" class="sdet" d="M110 62 L110 36"/>
-</svg>
+<h2 class="rev">Get on the <span class="accent">mats.</span></h2>
+<svg class="beltknot" width="320" height="80" viewBox="0 0 320 80"><path class="bband" d="M0 20 H140 M180 20 H320"/><path class="bseam" d="M0 16.5 H140 M180 16.5 H320 M0 23.5 H140 M180 23.5 H320"/><rect class="kknot" x="138" y="8" width="44" height="24" rx="4"/><path class="ktail" d="M150 32 L136 68"/><path class="ktail" d="M170 32 L186 68"/></svg>
 <a class="cta" href="#anmelden">Claim your free trial<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </section>
 
@@ -636,13 +552,13 @@ var io=new IntersectionObserver(function(entries){
 entries.forEach(function(e){
 if(!e.isIntersecting)return;
 var t=e.target;
-if(t.classList.contains('beltline')||t.classList.contains('shortsart')){t.classList.add('drawn')}
+if(t.classList.contains('beltline')||t.classList.contains('beltknot')){t.classList.add('drawn')}
 else{t.classList.add('vis')}
 if(t.classList.contains('stat')){var c=t.querySelector('.cnt');if(c&&!c.dataset.done){c.dataset.done=1;count(c)}}
 io.unobserve(t);
 });
 },{threshold:.45});
-document.querySelectorAll('.beltline,.shortsart,.rev,.photo,.chapbolt,.numpunch').forEach(function(el){io.observe(el)});
+document.querySelectorAll('.beltline,.beltknot,.rev,.photo,.chapbolt,.numpunch').forEach(function(el){io.observe(el)});
 
 function count(el){
 var t=+el.dataset.t,s=el.dataset.s||'',st=performance.now();
@@ -651,10 +567,10 @@ requestAnimationFrame(f);
 }
 
 var quotes=[
-{t:'A place that lets you <b>grow mentally and physically</b> – with the support of experienced coaches. You leave training stronger.',w:'Jasna · Google review, translated'},
-{t:'Top coaches, <b>great atmosphere</b> and individual coaching for every level. Everyone gets pushed and is guaranteed to sweat!',w:'Iva Vilus · Google review, translated'},
-{t:'A super friendly and motivated coaching team! The coaches watch closely and <b>correct at the right moment</b>.',w:'Google review · translated'},
-{t:'The team adapts to <b>each person\'s level</b> – even though it was my first time, I really enjoyed it.',w:'Google review · translated'}
+{t:'Great martial arts school, João the head coach is <b>very experienced</b> and helped me a lot developing my BJJ. Recommended.',w:'Carlos C. · Google review'},
+{t:'I had no martial arts experience at the start and João looked after me in a very <b>beginner-friendly</b> way. The atmosphere is respectful and collective.',w:'Sandro Jörg · Google review, translated'},
+{t:'I wasn\'t sure I would fit in. <b>Try it – you won\'t regret it!</b> I really like the atmosphere and the community.',w:'Google review · translated'},
+{t:'A place that keeps evolving but still feels <b>like a family</b>.',w:'Google review · translated'}
 ];
 var qi=0,qt=document.getElementById('qtext'),qw=document.getElementById('qwho'),qd=document.getElementById('qdots');
 quotes.forEach(function(_,i){
@@ -728,7 +644,7 @@ window.dataLayer=window.dataLayer||[];
 window.dataLayer.push({event:'generate_lead',lead_location:payload.location,lead_discipline:payload.discipline});
 showSuccess(false);
 })
-.catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Sending failed. Please try again or give us a call.');});
+.catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Senden fehlgeschlagen. Bitte versuch es nochmal oder ruf uns an.');});
 });
 })();
 </script>

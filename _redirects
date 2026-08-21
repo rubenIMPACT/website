@@ -1,4 +1,8 @@
-/probetraining/* /bjjprobetraining/:splat 301
-/trial/* /bjjtrial/:splat 301
-/bjj-winterthur.html /bjjprobetraining/ 301
-/ /bjjprobetraining/ 302
+/bjjprobetraining/* /probetraining/bjj/ 301
+/muaythaiprobetraining/* /probetraining/muay-thai/ 301
+/bjjtrial/* /trial/bjj/ 301
+/muaythaitrial/* /trial/muay-thai/ 301
+/bjj-winterthur.html /probetraining/bjj/ 301
+/probetraining /probetraining/bjj/ 302
+/trial /trial/bjj/ 302
+/ /probetraining/bjj/ 302
