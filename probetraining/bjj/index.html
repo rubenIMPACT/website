@@ -434,6 +434,13 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 #leadform>div{margin-bottom:13px}
 #leadform label{margin-bottom:5px;font-size:11px}
 }
+/* r22 bjj */
+@media(max-width:640px){
+#floatcta{padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+#floatcta .cta{font-size:12.5px;padding:11px 14px;white-space:nowrap;letter-spacing:.3px;display:block;text-align:center}
+}
+.beltknot{display:block!important}
+#floatcta.atend{opacity:0;pointer-events:none;transition:opacity .3s}
 </style>
 </head>
 <body>
@@ -463,7 +470,7 @@ Technoparkstrasse 3, Winterthur
 </a>
 <h1><span class="rw">Kontrolle.</span> <span class="rw accent">IMPACT.</span> <span class="rw">Flow.</span></h1>
 <p class="sub">Brazilian Jiu-Jitsu in Winterthur. Technik statt Kraft – ab deinem ersten Training. Keine Vorkenntnisse nötig.</p>
-<p class="cred">João de Oliveira – Schwarzgurt 2. Grad <span>· IBJJF Black Belt European Champion</span></p>
+<p class="cred">João de Oliveira <span>· IBJJF Black Belt European Champion</span></p>
 <a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </div>
 </header>
@@ -575,7 +582,7 @@ Technoparkstrasse 3, Winterthur
 <div class="txt">
 <p class="rev">Bei uns gewinnt nicht, wer am härtesten ist – sondern wer am meisten lernt.</p>
 <div class="wordlist">
-<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Black Belt <small>Coaching, das dich wirklich begleitet</small></div>
+<div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>2. Degree Black Belt <small>Coaching, das dich wirklich begleitet</small></div>
 <div class="rev accent"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Kein Ego <small>Eine Community, die dich trägt</small></div>
 <div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Struktur <small>Einsteigerfreundlich, egal wie fit</small></div>
 <div class="rev"><svg class="tri" width="16" height="24" viewBox="33 12 36 76" overflow="visible" aria-hidden="true"><path pathLength="100" d="M50.4 16.4 L37.4 50"/><path pathLength="100" d="M56.7 16.4 L43.7 50"/><path pathLength="100" d="M62.9 16.4 L37 83.5"/><path pathLength="100" d="M56.2 50.1 L43.3 83.5"/></svg>Mehr <small>Zugang zu MMA, Thaiboxen und mehr</small></div>
@@ -780,5 +787,6 @@ setTimeout(function(){location.href='/probetraining/danke/'},400);
 })();
 </script>
 <script>document.querySelectorAll('.msgtoggle').forEach(function(t){t.addEventListener('click',function(){t.nextElementSibling.classList.add('open');t.remove();});});</script>
+<script>(function(){var fc=document.getElementById('floatcta');var fin=document.querySelector('.final');if(fc&&fin&&'IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(e){fc.classList.toggle('atend',e.isIntersecting)})},{threshold:.2}).observe(fin);}})();</script>
 </body>
 </html>
