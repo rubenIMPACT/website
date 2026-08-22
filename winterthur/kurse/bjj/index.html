@@ -454,6 +454,15 @@ html body .chaphead h2,html body .duohead h2{font-size:clamp(19px,6.6vw,26px)!im
 .admode .sitenav{display:none}
 body>nav:not(.sitenav),.langtog{display:none!important}
 @media(max-width:760px){.sitenav{gap:14px;font-size:11px}.sitenav a.extra{display:none}}
+
+/* ablauf background: Maedchen-Foto, links dunkel, rechts hell */
+@media(min-width:1000px){
+#ablauf{position:relative;overflow:hidden}
+#ablauf:before{content:"";position:absolute;inset:0;background:url('/assets/reviews-bg.jpg') 0% 26%/118% auto no-repeat;filter:saturate(.88)}
+#ablauf:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.97) 0%,rgba(0,0,0,.92) 44%,rgba(0,0,0,.55) 72%,rgba(0,0,0,.22) 100%),linear-gradient(180deg,#000,transparent 16%,transparent 84%,#000)}
+#ablauf>*{position:relative;z-index:2}
+#ablauf .lead,#ablauf .steprows{max-width:640px}
+}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 </head>
@@ -547,7 +556,6 @@ Technoparkstrasse 3, Winterthur
 <div class="idx rev">TERMINVEREINBARUNG</div>
 <h2 class="rev">Sichere dir dein <span class="accent">gratis</span> Probetraining</h2>
 <p>Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.</p>
-<div class="photo formphoto rev"><img src="/assets/reviews-bg.jpg" alt="BJJ bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT WINTERTHUR</div></div>
 </div>
 <form id="leadform" novalidate>
 <div><label for="floc">Wo möchtest du trainieren? *</label><select id="floc" name="location" required>
