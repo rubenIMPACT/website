@@ -423,6 +423,17 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .hero.cinema .hero-content,.hero.cinema .loc{opacity:0!important;pointer-events:none;transition:opacity .45s}
 .hero .hero-content,.hero .loc{transition:opacity .45s}
 }
+/* form compact r21 */
+.namerow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.namerow>div{margin:0}
+.msgtoggle{background:none;border:none;color:var(--gold);font-family:inherit;font-size:14px;font-weight:500;padding:2px 0;cursor:pointer;text-align:left}
+.msgwrap{display:none}
+.msgwrap.open{display:block}
+@media(max-width:640px){
+#leadform input,#leadform select,#leadform textarea{padding:12px 12px}
+#leadform>div{margin-bottom:13px}
+#leadform label{margin-bottom:5px;font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -537,17 +548,10 @@ Technoparkstrasse 3, Winterthur
 <option value="">Option auswählen</option>
 <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option>
 </select></div>
-<div><label for="fname">Vorname *</label><input id="fname" name="firstname" type="text" autocomplete="given-name" required></div>
-<div><label for="lname">Nachname *</label><input id="lname" name="lastname" type="text" autocomplete="family-name" required></div>
+<div class="namerow"><div><label for="fname">Vorname *</label><input id="fname" name="firstname" type="text" autocomplete="given-name" required></div><div><label for="lname">Nachname *</label><input id="lname" name="lastname" type="text" autocomplete="family-name" required></div></div>
 <div><label for="phone">Telefon *</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
 <div><label for="email">E-Mail *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
-<div><label for="fmsg">Nachricht</label><input id="fmsg" name="message" type="text" placeholder="Optional – z.B. wenn ihr zu zweit kommt"></div>
-<div><label for="fsrc">Wie bist du auf uns aufmerksam geworden?</label><select id="fsrc" name="source">
-<option value="">Option auswählen</option>
-<option>Website</option><option>Google</option><option>Instagram</option><option>Facebook</option>
-<option>Empfehlung von Freund</option><option>Social media</option><option>Plakat oder Flyer</option>
-<option>Event</option><option>Jemand trainiert hier</option><option>Anderes</option>
-</select></div>
+<button type="button" class="msgtoggle">+ Nachricht hinzufügen</button><div class="msgwrap"><div><label for="fmsg">Nachricht</label><input id="fmsg" name="message" type="text" placeholder="Optional – z.B. wenn ihr zu zweit kommt"></div></div>
 <input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
 <button class="cta" type="submit">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
 </form>
@@ -775,5 +779,6 @@ setTimeout(function(){location.href='/probetraining/danke/'},400);
 });
 })();
 </script>
+<script>document.querySelectorAll('.msgtoggle').forEach(function(t){t.addEventListener('click',function(){t.nextElementSibling.classList.add('open');t.remove();});});</script>
 </body>
 </html>
