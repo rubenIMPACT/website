@@ -133,7 +133,6 @@ section.deep{background:#12100b}
 .loccard .lm h3{font-size:30px}
 .loccard .lm .addr{color:var(--grey);font-size:14px;margin-top:4px}
 .loccard .lm .go{margin-top:10px;display:inline-block;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:500;color:var(--gold)}
-.secintro{color:var(--grey);max-width:640px;font-size:16px;margin-top:14px}
 /* — Reviews — */
 .revhead{padding:80px var(--mx) 0}
 .revhead .bigq{font-size:clamp(26px,4vw,44px);font-weight:800;text-transform:uppercase;line-height:1.02;max-width:850px}
@@ -154,6 +153,28 @@ section.deep{background:#12100b}
 .iggrid a{display:block;overflow:hidden}
 .iggrid img{width:100%;aspect-ratio:1/1;object-fit:cover;transition:transform .35s}
 .iggrid a:hover img{transform:scale(1.05)}
+
+/* hero punch + zweizeilig */
+.vhero h1 .punchword{display:inline-block;opacity:0;transform:scale(1.5);filter:blur(12px);animation:punchIn .7s cubic-bezier(.3,1.2,.4,1) .4s forwards}
+.vhero h1 .yl{display:inline-block;opacity:0;animation:ylrise .7s cubic-bezier(.3,1.15,.3,1) .85s forwards}
+@keyframes punchIn{0%{opacity:0;transform:scale(1.5);filter:blur(12px)}55%{opacity:1;transform:scale(.97);filter:blur(2px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+@keyframes ylrise{0%{opacity:0;transform:translateY(26px)}100%{opacity:1;transform:none}}
+/* claims: schlanke Goldlinie, Titel kleiner */
+.claim h3{font-size:16px;letter-spacing:.8px}
+.claim{position:relative;padding-top:34px}
+.claim:before{content:"";position:absolute;top:22px;left:var(--mx);right:0;height:1px;background:linear-gradient(90deg,rgba(226,194,16,.7) 0%,rgba(226,194,16,.5) 40%,rgba(226,194,16,.22) 66%,transparent 84%)}
+/* standort-intro: groesser, an Ueberschrift ausgerichtet */
+.secintro{color:var(--grey);font-size:18px;line-height:1.6;max-width:760px;margin-top:16px;padding:0 var(--mx) 0 calc(var(--mx) + 36px)}
+/* final bolt */
+.bolt path{stroke:var(--gold);fill:none;stroke-linecap:butt}
+.bolt-draw path{stroke-dasharray:220;stroke-dashoffset:220}
+.bolt-draw.vis path{animation:boltz .18s cubic-bezier(.7,0,.3,1) forwards}
+.bolt-draw path:nth-child(2){animation-delay:.05s!important}
+.bolt-draw path:nth-child(3){animation-delay:.09s!important}
+.bolt-draw path:nth-child(4){animation-delay:.14s!important}
+@keyframes boltz{to{stroke-dashoffset:0}}
+.finalbolt{display:block;margin:0 auto 22px;height:130px;width:34px}
+.finalbolt path{stroke-width:3.6}
 </style></head>
 <body>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
@@ -163,10 +184,10 @@ section.deep{background:#12100b}
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav>
 <div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/">Zürich</a><a href="/winterthur/">Winterthur</a><a href="/zurich/kurse/">Kurse Zürich</a><a href="/winterthur/kurse/">Kurse Winterthur</a><a href="/ueber-uns/">Über uns</a><a href="/probetraining/">Gratis Probetraining</a></div>
 <header class="vhero">
-<video autoplay muted loop playsinline preload="metadata" poster="/assets/sergei-hero-poster.jpg"><source src="/assets/sergei-hero-2.mp4" type="video/mp4"></video>
+<video autoplay muted loop playsinline preload="metadata" poster="/assets/main-trailer-poster.jpg"><source src="/assets/main-trailer.mp4" type="video/mp4"></video>
 <div class="inner">
 <div class="kick rev">Zürich · Winterthur</div>
-<h1 class="rev">IMPACT <span class="accent">your life!</span></h1>
+<h1><span class="punchword">IMPACT</span><br><span class="accent yl">your life!</span></h1>
 <p class="lead rev">Lerne zu kämpfen. Werde fit. Wachse über dich hinaus – in einem Umfeld, das dich wirklich unterstützt.</p>
 <div class="rev"><a class="cta" href="/probetraining/">Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a><a class="gbadge" href="https://maps.app.goo.gl/1ow5T1yypnd7zvXM6" target="_blank" rel="noopener"><b>300+</b> 5-Sterne-Bewertungen auf Google</a></div>
 </div>
@@ -175,7 +196,7 @@ section.deep{background:#12100b}
 <div class="claimband">
 <div class="claim rev"><h3>Top Trainer.</h3><p>Strukturierter Lehrplan.</p></div>
 <div class="claim rev"><h3>Community.</h3><p>Eine unterstützende Community und ein sicherer Raum, in dem dein Selbstvertrauen wachsen kann.</p></div>
-<div class="claim rev"><h3>Alles unter einem Dach.</h3><p>Das grösste Kampfsportangebot – zentral gelegen in Zürich &amp; Winterthur.</p></div>
+<div class="claim rev"><h3>Grösstes Kampfsportangebot.</h3><p>Zentral gelegen in Zürich &amp; Winterthur.</p></div>
 </div>
 
 <section class="chapter" id="standorte"><div class="chaphead"><div class="idx rev">01 — STANDORTE</div><h2 class="rev">Mitten in <span class="accent">Zürich &amp; Winterthur.</span></h2></div>
@@ -219,7 +240,8 @@ section.deep{background:#12100b}
 <a class="rev" href="https://www.instagram.com/p/DbumlWHDLCH/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/f2cea1f3-6a757839ecb99463c7415916-766287673-18069422675722301-1441070538995836477-n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
 </div></section>
 
-<section class="final deep"><h2 class="rev">IMPACT <span class="accent">your life.</span></h2><a class="cta" href="/probetraining/">Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></section>
+<section class="final deep"><svg class="finalbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
+<h2 class="rev">IMPACT <span class="accent">your life.</span></h2><a class="cta" href="/probetraining/">Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></section>
 
 <footer><div class="fgrid">
 <div><img class="flogo" src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT"><div>Strong Body, Strong Mind, Great Vibes.</div>
@@ -235,7 +257,7 @@ section.deep{background:#12100b}
 var nv=document.querySelector('nav');
 window.addEventListener('scroll',function(){nv.classList.toggle('scrolled',window.scrollY>40)});
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -8% 0px'});
-document.querySelectorAll('.rev').forEach(function(el){io.observe(el)});
+document.querySelectorAll('.rev,.bolt-draw').forEach(function(el){io.observe(el)});
 function sweepRev(){document.querySelectorAll('.rev:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight)el.classList.add('vis')})}
 window.addEventListener('scroll',sweepRev,{passive:true});window.addEventListener('load',sweepRev);
 var b=document.getElementById('burger'),m=document.getElementById('mobmenu');
