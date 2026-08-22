@@ -188,8 +188,10 @@ section.deep{background:#12100b}
 (function(){
 var nv=document.querySelector('nav');
 window.addEventListener('scroll',function(){nv.classList.toggle('scrolled',window.scrollY>40)});
-var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:.2});
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -8% 0px'});
 document.querySelectorAll('.rev').forEach(function(el){io.observe(el)});
+function sweepRev(){document.querySelectorAll('.rev:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight)el.classList.add('vis')})}
+window.addEventListener('scroll',sweepRev,{passive:true});window.addEventListener('load',sweepRev);
 var b=document.getElementById('burger'),m=document.getElementById('mobmenu');
 if(b){b.addEventListener('click',function(){m.classList.add('open')});
 m.querySelector('.close').addEventListener('click',function(){m.classList.remove('open')});}
