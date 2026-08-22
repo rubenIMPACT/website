@@ -455,14 +455,23 @@ html body .chaphead h2,html body .duohead h2{font-size:clamp(19px,6.6vw,26px)!im
 body>nav:not(.sitenav),.langtog{display:none!important}
 @media(max-width:760px){.sitenav{gap:14px;font-size:11px}.sitenav a.extra{display:none}}
 
+
+@media(max-width:999px){
+#ablauf{position:relative;overflow:hidden}
+#ablauf:before{content:"";position:absolute;inset:0;background:url('/assets/reviews-bg.jpg') 24% 66%/auto 120% no-repeat;filter:saturate(.88)}
+#ablauf:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.9) 46%,rgba(0,0,0,.62) 74%,rgba(0,0,0,.3) 100%),linear-gradient(180deg,#000,transparent 16%,transparent 84%,#000)}
+#ablauf>*{position:relative;z-index:2}
+}
 /* ablauf background: Maedchen-Foto, links dunkel, rechts hell */
 @media(min-width:1000px){
 #ablauf{position:relative;overflow:hidden}
-#ablauf:before{content:"";position:absolute;inset:0;background:url('/assets/reviews-bg.jpg') 0% 26%/118% auto no-repeat;filter:saturate(.88)}
+#ablauf:before{content:"";position:absolute;inset:0;background:url('/assets/reviews-bg.jpg') 0% 0%/150% auto no-repeat;filter:saturate(.88)}
 #ablauf:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.97) 0%,rgba(0,0,0,.92) 44%,rgba(0,0,0,.55) 72%,rgba(0,0,0,.22) 100%),linear-gradient(180deg,#000,transparent 16%,transparent 84%,#000)}
 #ablauf>*{position:relative;z-index:2}
 #ablauf .lead{max-width:640px}#ablauf .steprows{max-width:780px}
 }
+
+#ablauf .hairpair:before,#ablauf .hairpair:after{background:linear-gradient(90deg,rgba(226,194,16,.7) 0%,rgba(226,194,16,.55) 40%,rgba(226,194,16,.25) 68%,transparent 86%);transform-origin:left}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 </head>
