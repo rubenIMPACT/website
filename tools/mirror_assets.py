@@ -2,7 +2,7 @@
 import os, re, hashlib, urllib.request, urllib.parse
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.makedirs(os.path.join(ROOT,'assets','wf'),exist_ok=True)
-PAT=re.compile(r'https://cdn\.prod\.website-files\.com/[^"\')\s]+')
+PAT=re.compile(r'https://cdn\.prod\.website-files\.com/[^"\'\s]+')
 seen={}
 def local_name(url):
     clean=urllib.parse.unquote(url.split('?')[0])
