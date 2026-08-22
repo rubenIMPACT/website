@@ -41,6 +41,7 @@ def rows_from(points):
 def build(base, city, slug, name, c):
     d=base
     zur = city=='Zürich'
+    d=d.replace('../../assets/','/assets/')
     # nav + ad-mode
     d=d.replace('</style>', NAV_CSS+'</style>',1)
     zur0 = city=='Zürich'
