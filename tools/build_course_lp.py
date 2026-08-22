@@ -22,7 +22,7 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 ADJS = """<script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>"""
 
 def nav(city_de, de_u, en_u):
-    return ('<nav class="sitenav"><a class="brand" href="/">IMPACT</a>'
+    return ('<nav class="sitenav"><a class="brand" href="/"><img src="/assets/impact-logo.png" alt="IMPACT Martial Arts" style="height:30px;display:block"></a>'
             '<a href="/winterthur/">Winterthur</a><a href="/zurich/">Z&uuml;rich</a>'
             '<a class="extra" href="/stundenplan/">Stundenplan</a>'
             '<a href="%s" style="color:var(--gold)">DE</a><a href="%s">EN</a>'
