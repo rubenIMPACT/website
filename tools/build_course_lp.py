@@ -16,7 +16,7 @@ NAV_CSS = """/* sitenav */
 .sitenav a.brand{font-weight:800;color:var(--gold);letter-spacing:2px;margin-right:auto}
 .sitenav a:hover{color:var(--gold)}
 .admode .sitenav{display:none}
-.topbar{display:none!important}
+body>nav:not(.sitenav),.langtog{display:none!important}
 @media(max-width:760px){.sitenav{gap:14px;font-size:11px}.sitenav a.extra{display:none}}
 """
 ADJS = """<script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>"""
