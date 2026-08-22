@@ -598,6 +598,11 @@ html,body{overflow-x:hidden;max-width:100vw}
 #leadform label{margin-bottom:5px;font-size:11px}
 }
 #floatcta.atend{opacity:0;pointer-events:none;transition:opacity .3s}
+/* r23 headline mobile + form kicker */
+@media(max-width:640px){
+html body .chaphead h2,html body .duohead h2{font-size:clamp(20px,7vw,27px)!important;line-height:1.06;letter-spacing:-.3px}
+}
+.formgrid .idx{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:800;text-transform:uppercase;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -686,6 +691,7 @@ Technoparkstrasse 3, Winterthur
 <section class="formsec" id="anmelden">
 <div class="formgrid">
 <div class="left">
+<div class="idx rev">TERMINVEREINBARUNG</div>
 <h2 class="rev">Sichere dir dein <span class="accent">gratis</span> Probetraining</h2>
 <p>Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.</p>
 

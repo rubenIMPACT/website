@@ -441,6 +441,11 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 }
 .beltknot{display:block!important}
 #floatcta.atend{opacity:0;pointer-events:none;transition:opacity .3s}
+/* r23 headline mobile + form kicker */
+@media(max-width:640px){
+html body .chaphead h2,html body .duohead h2{font-size:clamp(20px,7vw,27px)!important;line-height:1.06;letter-spacing:-.3px}
+}
+.formgrid .idx{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:800;text-transform:uppercase;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -528,6 +533,7 @@ Technoparkstrasse 3, Winterthur
 <section class="formsec" id="anmelden">
 <div class="formgrid">
 <div class="left">
+<div class="idx rev">TERMINVEREINBARUNG</div>
 <h2 class="rev">Sichere dir dein <span class="accent">gratis</span> Probetraining</h2>
 <p>Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.</p>
 <div class="photo formphoto rev"><img src="../../assets/reviews-bg.jpg" alt="BJJ bei IMPACT Winterthur" loading="lazy"><div class="cap">IMPACT WINTERTHUR</div></div>
