@@ -105,8 +105,8 @@ def build(base, city, slug, name, c):
     return d
 
 os.makedirs('winterthur/kurse',exist_ok=True); os.makedirs('zurich/kurse',exist_ok=True)
-bjj_base=open('probetraining/bjj/index.html',encoding='utf-8').read()
-mt_base=open('probetraining/muay-thai/index.html',encoding='utf-8').read()
+bjj_base=open('tools/templates/lp-bjj.html',encoding='utf-8').read()
+mt_base=open('tools/templates/lp-mt.html',encoding='utf-8').read()
 NAMES=dict((s,(n,dsc)) for s,n,dsc in G.COURSES['de'])
 count=0
 for city,cslug in [('Winterthur','winterthur'),('Zürich','zurich')]:
