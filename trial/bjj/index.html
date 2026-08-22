@@ -419,6 +419,11 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 .hairpair:before{top:4px}.hairpair:after{bottom:4px}
 .hairpair.vis:before{transform:scaleX(1)}
 .hairpair.vis:after{transform:scaleX(1);transition-delay:.14s}
+/* cinema fade mobile (class-based, immune to animation inline styles) */
+@media(max-width:1099px){
+.hero.cinema .hero-content,.hero.cinema .loc{opacity:0!important;pointer-events:none;transition:opacity .45s}
+.hero .hero-content,.hero .loc{transition:opacity .45s}
+}
 </style>
 </head>
 <body>
@@ -660,10 +665,10 @@ var rws=document.querySelectorAll('.hero .rw');
 rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},300+i*260)});
 var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn');
 var heroEl=document.querySelector('.hero');
-function cineEls(){return document.querySelectorAll('.hero-content,.hero .loc,.hero .kicker,.hero h1,.hero .sub,.hero .cred')}
+function cineEls(){return document.querySelectorAll('.hero .kicker,.hero h1,.hero .sub,.hero .cred')}
 function setCinema(on){
 heroEl.classList.toggle('cinema',on);
-var mob=true;
+var mob=window.innerWidth<1100;
 cineEls().forEach(function(el){el.style.transition='opacity .45s';el.style.opacity=(on&&mob)?'0':'';el.style.pointerEvents=(on&&mob)?'none':''});
 var ov=document.querySelector('.hero-ovl');if(ov){ov.style.transition='opacity .45s';ov.style.opacity=(on&&mob)?'.25':''}
 }
