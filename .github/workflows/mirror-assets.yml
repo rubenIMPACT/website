@@ -1,5 +1,8 @@
 name: Mirror Webflow assets
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    paths: ['tools/mirror-trigger.txt']
 permissions:
   contents: write
 jobs:
