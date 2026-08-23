@@ -346,7 +346,7 @@ document.querySelectorAll('.rev,.bolt-draw,.secline,.claimband,.rollhead').forEa
 function sweepRev(){document.querySelectorAll('.rev:not(.vis),.secline:not(.vis),.rollhead:not(.vis),.claimband:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight*0.82)el.classList.add('vis')})}
 window.addEventListener('scroll',sweepRev,{passive:true});window.addEventListener('load',sweepRev);
 var b=document.getElementById('burger'),m=document.getElementById('mobmenu');
-if(b){b.addEventListener('click',function(){m.classList.add('open')});
+if(b&&m){b.addEventListener('click',function(){m.classList.add('open')});
 m.querySelector('.close').addEventListener('click',function(){m.classList.remove('open')});}
 /* Kurs-Umschalter */
 document.querySelectorAll('.loctog button').forEach(function(bt){
