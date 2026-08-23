@@ -611,6 +611,32 @@ html body .chaphead h2,html body .duohead h2{font-size:clamp(19px,6.6vw,26px)!im
 .admode .sitenav{display:none}
 body>nav:not(.sitenav),.langtog{display:none!important}
 @media(max-width:760px){.sitenav{gap:14px;font-size:11px}.sitenav a.extra{display:none}}
+
+/* topbar + dropdown */
+.topbar{display:flex;gap:26px;align-items:center;justify-content:flex-end;padding:10px var(--mx);font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;border-bottom:1px solid var(--hair);position:relative;z-index:60;background:rgba(10,9,8,.85)}
+.topbar a{color:var(--grey)}
+.topbar a:hover{color:var(--gold)}
+.topbar .tsep{flex:0 0 1px;height:14px;background:var(--hair)}
+.topbar .lang.on{color:var(--gold);font-weight:600}
+.dd{position:relative}
+.dd .caret{font-size:10px;color:var(--gold)}
+.ddm{display:none;position:absolute;top:100%;left:0;min-width:190px;background:#0e0d0b;border:1px solid var(--hair);padding:6px 0;z-index:70}
+.ddm a{display:block;padding:12px 20px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase}
+.ddm a:hover{color:var(--gold);background:rgba(226,194,16,.06)}
+.dd:hover .ddm,.dd:focus-within .ddm{display:block}
+
+.navwrap{position:fixed;top:0;left:0;right:0;z-index:60}
+.navwrap nav{position:static;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent)}
+.navwrap.scrolled nav{background:rgba(0,0,0,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
+
+.navwrap nav{position:static;padding:18px var(--mx)}
+.ddt.on{color:var(--gold)}
+
+.navwrap nav{padding:18px var(--mx)}
+.navlinks{margin-left:clamp(24px,4vw,70px);display:flex;gap:clamp(20px,2.6vw,42px)}
+.navlinks a,.ddt{font-size:14.5px;letter-spacing:2.2px}
+.topbar{font-size:13px;padding:11px var(--mx)}
+.topbar a{color:#cfcbc2}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 </head>
@@ -622,11 +648,11 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 
 <div id="floatcta"><a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 
-<nav>
-<a class="logo" href="#"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts" onerror="this.outerHTML='<b style=\'color:#e2c210;font-size:18px;letter-spacing:1px\'>IMPACT</b>'"></a>
-<div class="langtog"><a href="/zurich/kurse/street-defense/" class="on">DE</a><span>|</span><a href="/en/zurich/classes/street-defense/">EN</a></div>
-<a class="cta" href="#anmelden">Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
-</nav>
+<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
+<nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
+<a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+<button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
 
 <header class="hero">
 <div class="hero-media">
