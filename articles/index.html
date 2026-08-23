@@ -331,5 +331,16 @@ t.addEventListener('click',function(e){
 });
 document.addEventListener('click',function(e){var d=document.querySelector('.dd.open');if(d&&!d.contains(e.target))d.classList.remove('open');});
 })();/*ddtap*/</script>
+<script>
+(function(){var fc=document.querySelector('.floatcta');if(!fc)return;
+var targets=document.querySelectorAll('.vhero,.final');if(!targets.length)return;
+fc.style.transition='opacity .25s';var st=new Map();
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){st.set(e.target,e.isIntersecting)});
+  var any=false;st.forEach(function(v){if(v)any=true});
+  fc.style.opacity=any?'0':'1';fc.style.pointerEvents=any?'none':'auto';
+},{threshold:.12});
+targets.forEach(function(t){io.observe(t)});
+})();/*ctahide*/</script>
 </body>
 </html>
