@@ -201,12 +201,12 @@ for slug,c in C.items():
     faqs=''.join('<details><summary>%s</summary><p>%s</p></details>'%qa for qa in c['faq'])
     body = RT_CSS
     body += '<div class="photo rev coursephoto" style="aspect-ratio:1584/894;max-width:1100px;margin-left:auto;margin-right:auto"><img src="%s" alt="%s bei IMPACT Winterthur" loading="lazy" style="width:100%%;height:100%%;object-fit:cover" onerror="this.parentNode.remove()"></div>'%(c['img'],name)
-    body += '<section class="chapter"><div class="chaphead">%s<div class="idx rev">01 — DIE DISZIPLIN</div><h2 class="rev">%s</h2></div><div class="rt rev">%s</div>%s</section>'%(G.bolt(),c['what_h'],rt(c['rt_what']),wl(c['learn']))
+    body += '<section class="chapter"><div class="chaphead">%s<div class="idx rev">DIE DISZIPLIN</div><h2 class="rev">%s</h2></div><div class="rt rev">%s</div>%s</section>'%(G.bolt(),c['what_h'],rt(c['rt_what']),wl(c['learn']))
     body += quote
-    body += '<section class="chapter deep" style="padding-bottom:90px"><div class="chaphead">%s<div class="idx rev">02 — WARUM IMPACT</div><h2 class="rev">Warum <span class="accent">IMPACT.</span></h2></div><div class="rt rev">%s</div>%s</section>'%(G.bolt(),rt(c['why_rt']),wl(c['why_pts']))
+    body += '<section class="chapter deep" style="padding-bottom:90px"><div class="chaphead">%s<div class="idx rev">WARUM IMPACT</div><h2 class="rev">Warum <span class="accent">IMPACT.</span></h2></div><div class="rt rev">%s</div>%s</section>'%(G.bolt(),rt(c['why_rt']),wl(c['why_pts']))
     body += q2
-    body += '<section class="chapter"><div class="chaphead">%s<div class="idx rev">03 — %s</div><h2 class="rev">%s</h2></div><div class="rt rev">%s</div></section>'%(G.bolt(),c['special_h'].upper(),('Dein <span class="accent">Einstieg.</span>' if 'Einstieg' in c['special_h'] else 'Dein <span class="accent">Weg.</span>'),rt(c['special_rt']))
-    body += '<section class="chapter deep" style="padding-bottom:80px"><div class="chaphead">%s<div class="idx rev">04 — FAQ</div><h2 class="rev">Keine <span class="accent">Ausreden.</span></h2></div><div class="faqs">%s</div></section>'%(G.bolt(),faqs)
+    body += '<section class="chapter"><div class="chaphead">%s<div class="idx rev">%s</div><h2 class="rev">%s</h2></div><div class="rt rev">%s</div></section>'%(G.bolt(),c['special_h'].upper(),('Dein <span class="accent">Einstieg.</span>' if 'Einstieg' in c['special_h'] else 'Dein <span class="accent">Weg.</span>'),rt(c['special_rt']))
+    body += '<section class="chapter deep" style="padding-bottom:80px"><div class="chaphead">%s<div class="idx rev">FAQ</div><h2 class="rev">Keine <span class="accent">Ausreden.</span></h2></div><div class="faqs">%s</div></section>'%(G.bolt(),faqs)
     G.page('de','/winterthur/kurse/%s/'%slug,'%s Winterthur – IMPACT Martial Arts'%name.strip(),desc,
         'IMPACT Winterthur',name.strip().replace(' / ','<br>'),c['sub'],body,
         '/winterthur/kurse/%s/'%slug,'/en/winterthur/classes/%s/'%dict(zip([x[0] for x in G.COURSES['de']],[x[0] for x in G.COURSES['en']]))[slug],

@@ -100,7 +100,7 @@ section.deep{background:#12100b}
 .ddt.on{color:var(--gold)}
 
 .navwrap nav{padding:18px var(--mx)}
-.navlinks{margin-left:clamp(24px,4vw,70px);display:flex;gap:clamp(20px,2.6vw,42px)}
+.navlinks{margin-left:auto;display:flex;gap:clamp(20px,2.6vw,42px)}
 .navlinks a,.ddt{font-size:14.5px;letter-spacing:2.2px}
 .topbar{font-size:13px;padding:11px var(--mx)}
 .topbar a{color:#cfcbc2}
@@ -159,7 +159,7 @@ section.deep{background:#12100b}
 .nlform{display:flex;flex-direction:column;gap:12px;max-width:340px}
 .nlform input{background:transparent;border:1px solid var(--hair);color:var(--white);padding:13px 14px;font-size:15px}
 .nlform .cta{justify-content:center}
-.fcta{margin-top:6px;display:inline-flex}
+.fcta{margin-top:6px;display:inline-flex;white-space:nowrap}
 .fsocial{margin-top:26px}
 .fsocial a{color:var(--white)}
 .fsocial a:hover{color:var(--gold)}
@@ -172,17 +172,44 @@ section.deep{background:#12100b}
 .dd:hover .ddm,.dd:focus-within .ddm{display:block}
 .ddm a{display:block;padding:7px 0;font-size:13px;letter-spacing:1px;text-transform:none;color:#cfcbc2;white-space:nowrap}
 .ddm a:hover{color:var(--gold)}
+
+/* trainer grid */
+.trgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;background:var(--hair);margin:44px var(--mx) 0}
+@media(min-width:700px){.trgrid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1100px){.trgrid{grid-template-columns:repeat(4,1fr)}}
+.trcard{display:flex;flex-direction:column;background:var(--black);overflow:hidden}
+.trcard img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;transition:transform .3s;display:block}
+@media(max-width:559px){.trcard .tm{padding:9px 10px 12px}.trcard .tm b{font-size:12.5px}.trcard .tm i{font-size:10px}.trcard .tm em{font-size:10px}}
+.trcard .tm{display:block;padding:12px 14px 16px}
+.trcard .tm b{display:block;font-size:15px;font-weight:800;line-height:1.15}
+.trcard .tm i{display:block;font-style:normal;color:var(--grey);font-size:12px;margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
+.trcard .tm em{display:block;font-style:normal;color:var(--gold);font-size:12px;margin-top:6px;font-weight:600}
+.trcard:hover img{transform:scale(1.03)}
+.trcard:hover .tm b{color:var(--gold)}
+.teamsec{padding-bottom:90px}
 </style></head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><span class="dd teamdd"><a class="ddt" href="/zurich/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/abdallah-elshahaibi" target="_blank" rel="noopener">Abdallah Elshahaibi</a><a href="https://www.impact-martialarts.com/de-team/joao-zh" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-zh" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-zh" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener">Natassja Eckerström</a><a href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener">Nathan Melliger</a><a href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener">Dario Kashani</a><a href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener">Florian Helmke-Becker</a><a href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener">Quentz Alexis II</a><a href="https://www.impact-martialarts.com/de-team/sam-zh" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-zh" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><span class="dd teamdd"><a class="ddt" href="/zurich/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/abdallah-elshahaibi" target="_blank" rel="noopener">Abdallah Elshahaibi</a><a href="https://www.impact-martialarts.com/de-team/joao-zh" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-zh" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-zh" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener">Natassja Eckerström</a><a href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener">Nathan Melliger</a><a href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener">Dario Kashani</a><a href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener">Florian Helmke-Becker</a><a href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener">Quentz Alexis II</a><a href="https://www.impact-martialarts.com/de-team/sam-zh" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-zh" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
-<header class="pagehero"><div class="kick rev">IMPACT Zürich</div><h1 class="rev">Team.</h1>
-<p class="lead rev"></p><a class="cta rev" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></header>
-<section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><div class="idx rev">01</div><h2 class="rev">Team <span class="accent">Zürich.</span></h2></div>
-<p class="lead rev">Diese Seite ist Teil der neuen Architektur. Inhalt wird als Nächstes übertragen – Design-System steht.</p><div class="cardlist"><a class="cardrow rev" href="/zurich/kurse/"><div><h3>Kurse</h3><small></small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/probetraining/"><div><h3>Gratis Probetraining</h3><small></small></div><div class="arr">&rarr;</div></a></div></section>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
+<header class="pagehero"><div class="kick rev">IMPACT Zürich</div><h1 class="rev">Team <span class="accent">Zürich.</span></h1>
+<p class="lead rev">Unser Team in Zürich: Trainerinnen und Trainer mit Wettkampf- und Lehrerfahrung und dein Studio Manager vor Ort.</p></header>
+<section class="chapter teamsec"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Unser <span class="accent">Team.</span></h2></div>
+<div class="trgrid">
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/abdallah-elshahaibi" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67fc7e3c26ecf62fed656_Abdi%20-%20L.jpg" alt="Abdallah Elshahaibi"><span class="tm"><b>Abdallah Elshahaibi</b><i>Studio Manager Zürich</i></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/joao-zh" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67dc9a3d2e311002f6ff5_Jo%C3%A3o%20-%20L.jpg" alt="João de Oliveira"><span class="tm"><b>João de Oliveira</b><i>Studio Head Coach, Head Coach BJJ &amp; MMA</i><em>IBJJF Black Belt European Champion</em></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/sergei-zh" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67eb3597eab232dd3b389_SERGEY%20-%20L%20(2).jpg" alt="Sergei Liubchenko"><span class="tm"><b>Sergei Liubchenko</b><i>Head Coach Muay Thai &amp; Boxen</i><em>Über 300 Muay-Thai-Kämpfe</em></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/laszlo-simo-zh" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e51e6703f741976850b_Laszlo%20%20-%20L.jpg" alt="Laszlo Simo"><span class="tm"><b>Laszlo Simo</b><i>Head Coach Wrestling</i></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e693af5791add004278_23.jpg" alt="Natassja Eckerström"><span class="tm"><b>Natassja Eckerström</b><i>Fitness Kickboxen Coach</i></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e719eac89fd95595cc8_Nathan%20Melliger.jpg" alt="Nathan Melliger"><span class="tm"><b>Nathan Melliger</b><i>MMA, Muay Thai &amp; BJJ Coach</i><em>BJJ Purple Belt</em></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e104da72f44d967e2c5_DARIO%20-%20L%20(2).jpg" alt="Dario Kashani"><span class="tm"><b>Dario Kashani</b><i>MMA &amp; BJJ Coach</i></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a85ce88746d213d99a331ee_Florian%20-%20L%20(1).jpg" alt="Florian Helmke-Becker"><span class="tm"><b>Florian Helmke-Becker</b><i>BJJ Coach</i></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/67329828c144f16c336ccb10_L%20(7).png" alt="Quentz Alexis II"><span class="tm"><b>Quentz Alexis II</b><i>Boxen Coach</i></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/sam-zh" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e934ae50a369dc61a09_20.jpg" alt="Samuel S. Bauer"><span class="tm"><b>Samuel S. Bauer</b><i>Co-Founder, Head Coach Street Defense</i><em>Chief Instructor Self Defense, Gründer</em></span></a>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/ruben-crawford-zh" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/69d67e7d13dcbfc2cd297982_19.jpg" alt="Ruben Crawford"><span class="tm"><b>Ruben Crawford</b><i>Co-Founder, MMA Lead</i><em>Ehem. MMA-Profi (Bellator), Nr. 1 Deutschland</em></span></a>
+</div></section>
 
 <div class="floatcta"><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 <footer><div class="fgrid f4">
@@ -215,7 +242,7 @@ section.deep{background:#12100b}
 <h4>Adresse</h4>
 <p class="fmeta">IMPACT Martial Arts,<br>Walchestrasse 15,<br>8006 Zürich</p>
 <p class="fmeta">IMPACT Martial Arts,<br>Technoparkstrasse 3,<br>8406 Winterthur</p>
-<a class="cta fcta" href="/probetraining/">Probetraining anfordern</a>
+<a class="cta fcta" href="/probetraining/">Gratis Probetraining</a>
 <div class="fsocial"><a href="https://www.instagram.com/impactmartialarts_ch/" target="_blank" rel="noopener" aria-label="Instagram"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></div>
 </div>
 </div>

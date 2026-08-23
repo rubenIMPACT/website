@@ -633,7 +633,7 @@ body>nav:not(.navwrap,.mobmenu,.langtog){display:none!important}
 .ddt.on{color:var(--gold)}
 
 .navwrap nav{padding:18px var(--mx)}
-.navlinks{margin-left:clamp(24px,4vw,70px);display:flex;gap:clamp(20px,2.6vw,42px)}
+.navlinks{margin-left:auto;display:flex;gap:clamp(20px,2.6vw,42px)}
 .navlinks a,.ddt{font-size:14.5px;letter-spacing:2.2px}
 .topbar{font-size:13px;padding:11px var(--mx)}
 .topbar a{color:#cfcbc2}
@@ -680,7 +680,7 @@ body>nav:not(.navwrap,.mobmenu,.langtog){display:none!important}
 .nlform{display:flex;flex-direction:column;gap:12px;max-width:340px}
 .nlform input{background:transparent;border:1px solid var(--hair);color:var(--white);padding:13px 14px;font-size:15px}
 .nlform .cta{justify-content:center}
-.fcta{margin-top:6px;display:inline-flex}
+.fcta{margin-top:6px;display:inline-flex;white-space:nowrap}
 .fsocial{margin-top:26px}
 .fsocial a{color:var(--white)}
 .fsocial a:hover{color:var(--gold)}
@@ -718,7 +718,7 @@ nav .logo img{height:32px}
 .navwrap nav{position:static;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent)}
 .navwrap.scrolled nav{background:rgba(0,0,0,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
 .navwrap nav{padding:18px var(--mx)}
-.navlinks{margin-left:clamp(24px,4vw,70px);display:flex;gap:clamp(20px,2.6vw,42px)}
+.navlinks{margin-left:auto;display:flex;gap:clamp(20px,2.6vw,42px)}
 .navlinks a,.ddt{font-size:14.5px;letter-spacing:2.2px}
 .topbar{font-size:13px;padding:11px var(--mx)}
 .topbar a{color:#cfcbc2}
@@ -749,22 +749,22 @@ nav .logo img{height:32px}
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><span class="dd teamdd"><a class="ddt" href="/winterthur/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/bogdan-cristea" target="_blank" rel="noopener">Bogdan Cristea</a><a href="https://www.impact-martialarts.com/de-team/joao-wt" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-wt" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-wt" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/sam-wt" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-wt" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><span class="dd teamdd"><a class="ddt" href="/winterthur/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/bogdan-cristea" target="_blank" rel="noopener">Bogdan Cristea</a><a href="https://www.impact-martialarts.com/de-team/joao-wt" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-wt" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-wt" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/sam-wt" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-wt" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/zurich/">Standort wechseln: Zürich</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/zurich/">Standort wechseln: Zürich</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W6SM24HX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 
-<div id="floatcta"><a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
+<div id="floatcta"><a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><span class="dd teamdd"><a class="ddt" href="/winterthur/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/bogdan-cristea" target="_blank" rel="noopener">Bogdan Cristea</a><a href="https://www.impact-martialarts.com/de-team/joao-wt" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-wt" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-wt" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/sam-wt" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-wt" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><span class="dd teamdd"><a class="ddt" href="/winterthur/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/bogdan-cristea" target="_blank" rel="noopener">Bogdan Cristea</a><a href="https://www.impact-martialarts.com/de-team/joao-wt" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-wt" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-wt" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/sam-wt" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-wt" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/zurich/">Standort wechseln: Zürich</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/zurich/">Standort wechseln: Zürich</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 
 <header class="hero">
 <div class="hero-media">
@@ -779,7 +779,7 @@ Technoparkstrasse 3, Winterthur
 <h1><span class="rw">MMA.</span> <span class="rw accent">IMPACT.</span></h1>
 <p class="sub">Lern MMA – mit Technik, mit Kontrolle. In sicherer Umgebung.</p>
 
-<a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+<a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </div>
 </header>
 
@@ -869,7 +869,7 @@ Technoparkstrasse 3, Winterthur
 <div><label for="email">E-Mail *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
 <button type="button" class="msgtoggle">+ Nachricht hinzufügen</button><div class="msgwrap"><div><label for="fmsg">Nachricht</label><input id="fmsg" name="message" type="text" placeholder="Optional – z.B. wenn ihr zu zweit kommt"></div></div>
 <input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
-<button class="cta" type="submit">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
+<button class="cta" type="submit">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
 </form>
 <div id="formsuccess" style="display:none">
 <h2 style="font-size:clamp(28px,4vw,44px)">Anfrage erhalten.</h2>
@@ -927,7 +927,7 @@ Technoparkstrasse 3, Winterthur
 <rect x="22" y="18" width="76" height="102" rx="3" fill="none" stroke="rgba(226,194,16,.35)" stroke-width="1"/>
 <text x="60" y="97" text-anchor="middle" font-family="Outfit,sans-serif" font-weight="800" font-size="72" fill="var(--gold)">1</text>
 <path class="rc-hand" d="M30 128 q-6 10 2 16 q8 6 14 -2"/><path class="rc-hand" d="M90 128 q6 10 -2 16 q-8 6 -14 -2"/></g></svg>
-<a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+<a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 </section>
 
 <footer><div class="fgrid f4">
@@ -960,7 +960,7 @@ Technoparkstrasse 3, Winterthur
 <h4>Adresse</h4>
 <p class="fmeta">IMPACT Martial Arts,<br>Walchestrasse 15,<br>8006 Zürich</p>
 <p class="fmeta">IMPACT Martial Arts,<br>Technoparkstrasse 3,<br>8406 Winterthur</p>
-<a class="cta fcta" href="/probetraining/">Probetraining anfordern</a>
+<a class="cta fcta" href="/probetraining/">Gratis Probetraining</a>
 <div class="fsocial"><a href="https://www.instagram.com/impactmartialarts_ch/" target="_blank" rel="noopener" aria-label="Instagram"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></div>
 </div>
 </div>
