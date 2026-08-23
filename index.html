@@ -145,8 +145,10 @@ section.deep{background:#12100b}
 @media(min-width:700px){.trgrid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1100px){.trgrid{grid-template-columns:repeat(5,1fr)}}
 .trcard{background:var(--black);position:relative}
-.trcard img{width:100%;aspect-ratio:3/4;object-fit:cover;filter:grayscale(24%);transition:filter .3s}
-.trcard:hover img{filter:none}
+.trcard img{width:100%;aspect-ratio:3/4;object-fit:cover;transition:transform .3s}
+.trcard:hover img{transform:scale(1.03)}
+.trcard:hover .tm h3{color:var(--gold)}
+.trcard{display:block;overflow:hidden;cursor:pointer}
 .trcard .tm{padding:12px 14px 16px}
 .trcard .tm h3{font-size:15px;line-height:1.15}
 .trcard .tm .role{color:var(--grey);font-size:12px;margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
@@ -178,7 +180,7 @@ section.deep{background:#12100b}
 .finalbolt path{stroke-width:3.6}
 
 /* topbar + dropdown */
-.topbar{display:flex;gap:26px;align-items:center;justify-content:flex-end;padding:10px var(--mx);font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;border-bottom:1px solid var(--hair);position:relative;z-index:60;background:rgba(10,9,8,.85)}
+.topbar{display:flex;gap:26px;align-items:center;justify-content:flex-end;padding:10px var(--mx);font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;border-bottom:1px solid var(--hair);position:relative;z-index:60;background:#0a0908}
 .topbar a{color:var(--grey)}
 .topbar a:hover{color:var(--gold)}
 .topbar .tsep{flex:0 0 1px;height:14px;background:var(--hair)}
@@ -217,6 +219,11 @@ section.deep{background:#12100b}
 .navlinks a,.ddt{font-size:14.5px;letter-spacing:2.2px}
 .topbar{font-size:13px;padding:11px var(--mx)}
 .topbar a{color:#cfcbc2}
+
+.topbar{background:#0a0908}
+.navwrap .logo{flex:0 0 auto}
+.navwrap .logo img{height:32px;width:auto;max-width:none;display:block}
+#standorte,#trainer,#instagram{scroll-margin-top:132px}
 </style></head>
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
@@ -260,16 +267,16 @@ section.deep{background:#12100b}
 
 <section class="chapter" id="trainer"><div class="chaphead"><div class="idx rev">03 — TRAINER</div><h2 class="rollhead"><span class="rw">Unsere</span> <span class="rw accent">Trainer.</span></h2></div>
 <div class="trgrid">
-<div class="trcard rev"><img loading="lazy" src="assets/wf/d0ee2751-69d67dc9a3d2e311002f6ff5-Jo-o---L.jpg" alt="João de Oliveira"><div class="tm"><h3>João de Oliveira</h3><div class="role">Studio Head Coach, Head Coach BJJ & MMA</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/56ab57f8-69d67eb3597eab232dd3b389-SERGEY---L-2-.jpg" alt="Sergei Liubchenko"><div class="tm"><h3>Sergei Liubchenko</h3><div class="role">Head Coach Muay Thai & Boxen</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/fb0cfd82-69d67e51e6703f741976850b-Laszlo---L.jpg" alt="Laszlo Simo"><div class="tm"><h3>Laszlo Simo</h3><div class="role">Head Coach Wrestling</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/eb9bfabb-69d67e693af5791add004278-23.jpg" alt="Natassja Eckerström"><div class="tm"><h3>Natassja Eckerström</h3><div class="role">Fitness Kickboxen Coach</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/d1ed4cc2-69d67e719eac89fd95595cc8-Nathan-Melliger.jpg" alt="Nathan Melliger"><div class="tm"><h3>Nathan Melliger</h3><div class="role">MMA, Muay Thai & BJJ Coach</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/4ac679cf-69d67e104da72f44d967e2c5-DARIO---L-2-.jpg" alt="Dario Kashani"><div class="tm"><h3>Dario Kashani</h3><div class="role">MMA & BJJ Coach</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/1ef26ba2-6a85ce88746d213d99a331ee-Florian---L-1-.jpg" alt="Florian Helmke-Becker"><div class="tm"><h3>Florian Helmke-Becker</h3><div class="role">BJJ Coach</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/375f533e-67329828c144f16c336ccb10-L-7-.png" alt="Quentz Alexis II"><div class="tm"><h3>Quentz Alexis II</h3><div class="role">Boxen Coach</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/aca6ee1b-69d67e934ae50a369dc61a09-20.jpg" alt="Samuel S. Bauer"><div class="tm"><h3>Samuel S. Bauer</h3><div class="role">Co-Founder, Head Coach Street Defense</div></div></div>
-<div class="trcard rev"><img loading="lazy" src="assets/wf/ac3d3164-69d67e7d13dcbfc2cd297982-19.jpg" alt="Ruben Crawford"><div class="tm"><h3>Ruben Crawford</h3><div class="role">Co-Founder, MMA Lead</div></div></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/joao" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/d0ee2751-69d67dc9a3d2e311002f6ff5-Jo-o---L.jpg" alt="João de Oliveira"><div class="tm"><h3>João de Oliveira</h3><div class="role">Studio Head Coach, Head Coach BJJ & MMA</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/sergei" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/56ab57f8-69d67eb3597eab232dd3b389-SERGEY---L-2-.jpg" alt="Sergei Liubchenko"><div class="tm"><h3>Sergei Liubchenko</h3><div class="role">Head Coach Muay Thai & Boxen</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/laszlo-simo" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/fb0cfd82-69d67e51e6703f741976850b-Laszlo---L.jpg" alt="Laszlo Simo"><div class="tm"><h3>Laszlo Simo</h3><div class="role">Head Coach Wrestling</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/eb9bfabb-69d67e693af5791add004278-23.jpg" alt="Natassja Eckerström"><div class="tm"><h3>Natassja Eckerström</h3><div class="role">Fitness Kickboxen Coach</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/d1ed4cc2-69d67e719eac89fd95595cc8-Nathan-Melliger.jpg" alt="Nathan Melliger"><div class="tm"><h3>Nathan Melliger</h3><div class="role">MMA, Muay Thai & BJJ Coach</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/4ac679cf-69d67e104da72f44d967e2c5-DARIO---L-2-.jpg" alt="Dario Kashani"><div class="tm"><h3>Dario Kashani</h3><div class="role">MMA & BJJ Coach</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/1ef26ba2-6a85ce88746d213d99a331ee-Florian---L-1-.jpg" alt="Florian Helmke-Becker"><div class="tm"><h3>Florian Helmke-Becker</h3><div class="role">BJJ Coach</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/375f533e-67329828c144f16c336ccb10-L-7-.png" alt="Quentz Alexis II"><div class="tm"><h3>Quentz Alexis II</h3><div class="role">Boxen Coach</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/sam" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/aca6ee1b-69d67e934ae50a369dc61a09-20.jpg" alt="Samuel S. Bauer"><div class="tm"><h3>Samuel S. Bauer</h3><div class="role">Co-Founder, Head Coach Street Defense</div></a></div>
+<a class="trcard rev" href="https://www.impact-martialarts.com/de-team/ruben" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/ac3d3164-69d67e7d13dcbfc2cd297982-19.jpg" alt="Ruben Crawford"><div class="tm"><h3>Ruben Crawford</h3><div class="role">Co-Founder, MMA Lead</div></a></div>
 </div></section>
 <div class="secline"></div>
 
@@ -301,9 +308,9 @@ section.deep{background:#12100b}
 (function(){
 var nv=document.querySelector('nav');
 var nw=document.getElementById('navwrap')||nv;window.addEventListener('scroll',function(){nw.classList.toggle('scrolled',window.scrollY>40)});
-var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -8% 0px'});
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -22% 0px'});
 document.querySelectorAll('.rev,.bolt-draw,.secline,.claimband,.rollhead').forEach(function(el){io.observe(el)});
-function sweepRev(){document.querySelectorAll('.rev:not(.vis),.secline:not(.vis),.rollhead:not(.vis),.claimband:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight)el.classList.add('vis')})}
+function sweepRev(){document.querySelectorAll('.rev:not(.vis),.secline:not(.vis),.rollhead:not(.vis),.claimband:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight*0.82)el.classList.add('vis')})}
 window.addEventListener('scroll',sweepRev,{passive:true});window.addEventListener('load',sweepRev);
 var b=document.getElementById('burger'),m=document.getElementById('mobmenu');
 if(b){b.addEventListener('click',function(){m.classList.add('open')});

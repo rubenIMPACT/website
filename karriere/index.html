@@ -178,7 +178,7 @@ section.deep{background:#12100b}
 .finalbolt path{stroke-width:3.6}
 
 /* topbar + dropdown */
-.topbar{display:flex;gap:26px;align-items:center;justify-content:flex-end;padding:10px var(--mx);font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;border-bottom:1px solid var(--hair);position:relative;z-index:60;background:rgba(10,9,8,.85)}
+.topbar{display:flex;gap:26px;align-items:center;justify-content:flex-end;padding:10px var(--mx);font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;border-bottom:1px solid var(--hair);position:relative;z-index:60;background:#0a0908}
 .topbar a{color:var(--grey)}
 .topbar a:hover{color:var(--gold)}
 .topbar .tsep{flex:0 0 1px;height:14px;background:var(--hair)}
@@ -217,6 +217,10 @@ section.deep{background:#12100b}
 .navlinks a,.ddt{font-size:14.5px;letter-spacing:2.2px}
 .topbar{font-size:13px;padding:11px var(--mx)}
 .topbar a{color:#cfcbc2}
+
+.topbar{background:#0a0908}
+.navwrap .logo{flex:0 0 auto}
+.navwrap .logo img{height:32px;width:auto;max-width:none;display:block}
 </style></head>
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
@@ -293,9 +297,9 @@ section.deep{background:#12100b}
 (function(){
 var nv=document.querySelector('nav');
 var nw=document.getElementById('navwrap')||nv;window.addEventListener('scroll',function(){nw.classList.toggle('scrolled',window.scrollY>40)});
-var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -8% 0px'});
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -22% 0px'});
 document.querySelectorAll('.rev,.bolt-draw,.secline,.claimband,.rollhead').forEach(function(el){io.observe(el)});
-function sweepRev(){document.querySelectorAll('.rev:not(.vis),.secline:not(.vis),.rollhead:not(.vis),.claimband:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight)el.classList.add('vis')})}
+function sweepRev(){document.querySelectorAll('.rev:not(.vis),.secline:not(.vis),.rollhead:not(.vis),.claimband:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight*0.82)el.classList.add('vis')})}
 window.addEventListener('scroll',sweepRev,{passive:true});window.addEventListener('load',sweepRev);
 var b=document.getElementById('burger'),m=document.getElementById('mobmenu');
 if(b){b.addEventListener('click',function(){m.classList.add('open')});
