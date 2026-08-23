@@ -35,7 +35,11 @@ export async function onRequestGet(context) {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  const up = await fetch(UPSTREAM, { headers: { "Accept": "application/json" } });
+  const up = await fetch(UPSTREAM, { headers: {
+    "Accept": "application/json",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+    "Referer": "https://app.impact-martialarts.com/"
+  } });
   if (!up.ok) return new Response(JSON.stringify({ error: "upstream", status: up.status }), { status: 502, headers: { "Content-Type": "application/json" } });
   const all = await up.json();
 
