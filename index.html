@@ -176,14 +176,45 @@ section.deep{background:#12100b}
 @keyframes boltz{to{stroke-dashoffset:0}}
 .finalbolt{display:block;margin:0 auto 22px;height:130px;width:34px}
 .finalbolt path{stroke-width:3.6}
+
+/* topbar + dropdown */
+.topbar{display:flex;gap:26px;align-items:center;justify-content:flex-end;padding:10px var(--mx);font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;border-bottom:1px solid var(--hair);position:relative;z-index:60;background:rgba(10,9,8,.85)}
+.topbar a{color:var(--grey)}
+.topbar a:hover{color:var(--gold)}
+.topbar .tsep{flex:0 0 1px;height:14px;background:var(--hair)}
+.topbar .lang.on{color:var(--gold);font-weight:600}
+.dd{position:relative}
+.dd .caret{font-size:10px;color:var(--gold)}
+.ddm{display:none;position:absolute;top:100%;left:0;min-width:190px;background:#0e0d0b;border:1px solid var(--hair);padding:6px 0;z-index:70}
+.ddm a{display:block;padding:12px 20px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase}
+.ddm a:hover{color:var(--gold);background:rgba(226,194,16,.06)}
+.dd:hover .ddm,.dd:focus-within .ddm{display:block}
+/* wort-roll headings */
+.rollhead{font-size:clamp(38px,6.5vw,84px);padding:6px var(--mx) 0}
+.rollhead .rw{display:inline-block;opacity:0;transform:translateX(-46px) rotate(-2deg);filter:blur(8px)}
+.rollhead.vis .rw{animation:wroll .7s cubic-bezier(.3,1.15,.3,1) forwards}
+.rollhead.vis .rw:nth-child(2){animation-delay:.08s}
+.rollhead.vis .rw:nth-child(3){animation-delay:.16s}
+.rollhead.vis .rw:nth-child(4){animation-delay:.24s}
+.rollhead.vis .rw:nth-child(5){animation-delay:.32s}
+.rollhead.vis .rw:nth-child(6){animation-delay:.4s}
+@keyframes wroll{to{opacity:1;transform:none;filter:none}}
+/* section-linien, ziehen sich von links */
+.secline{height:1px;margin:0 var(--mx);background:linear-gradient(90deg,rgba(226,194,16,.72) 0%,rgba(226,194,16,.5) 42%,rgba(226,194,16,.2) 68%,transparent 86%);transform:scaleX(0);transform-origin:left;transition:transform 1.1s cubic-bezier(.2,.7,.2,1)}
+.secline.vis{transform:scaleX(1)}
+/* claimband-linien ziehen statt nur da sein */
+.claimband:before,.claimband:after{transform:scaleX(0);transform-origin:left;transition:transform 1.1s cubic-bezier(.2,.7,.2,1)}
+.claimband.vis:before{transform:scaleX(1)}
+.claimband.vis:after{transform:scaleX(1);transition-delay:.15s}
+@media (prefers-reduced-motion:reduce){.rollhead .rw{opacity:1;transform:none;filter:none}.secline{transform:none}.claimband:before,.claimband:after{transform:none}}
 </style></head>
 <body>
+<div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><a href="/zurich/">Zürich</a><a href="/winterthur/">Winterthur</a><a href="/ueber-uns/">Über uns</a></div>
-<div class="langtog"><a href="/" class="on">DE</a><span>|</span><a href="/en/" class="">EN</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt" href="#standorte">Standorte <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a><a href="/winterthur/">Winterthur</a></div></div></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/">Zürich</a><a href="/winterthur/">Winterthur</a><a href="/ueber-uns/">Über uns</a><a href="/probetraining/">Gratis Probetraining</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/">Zürich</a><a href="/winterthur/">Winterthur</a><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><a href="/probetraining/">Gratis Probetraining</a></div>
 <header class="vhero">
 <video autoplay muted loop playsinline preload="metadata" poster="/assets/main-trailer-poster.jpg"><source src="/assets/main-trailer.mp4" type="video/mp4"></video>
 <div class="inner">
@@ -200,12 +231,13 @@ section.deep{background:#12100b}
 <div class="claim rev"><h3>Grösstes Kampfsportangebot.</h3><p>Zentral gelegen in Zürich &amp; Winterthur.</p></div>
 </div>
 
-<section class="chapter" id="standorte"><div class="chaphead"><div class="idx rev">01 — STANDORTE</div><h2 class="rev">Mitten in <span class="accent">Zürich &amp; Winterthur.</span></h2></div>
+<section class="chapter" id="standorte"><div class="chaphead"><div class="idx rev">01 — STANDORTE</div><h2 class="rollhead"><span class="rw">Mitten</span> <span class="rw">in</span> <span class="rw accent">Zürich</span> <span class="rw accent">&amp;</span> <span class="rw accent">Winterthur.</span></h2></div>
 <p class="secintro rev">Bei IMPACT Martial Arts bekommst du professionelles Training direkt in deiner Stadt. Ob in Zürich oder Winterthur – du findest bei uns alles unter einem Dach: MMA, Selbstverteidigung, Fitness Kickboxen, Brazilian Jiu-Jitsu, Boxen, Muay Thai und Kindertraining.</p></section>
 <div class="locgrid2">
 <a class="loccard rev" href="/zurich/"><img loading="lazy" src="assets/wf/2d3b22a7-6a54403bb97359ee7aac109b-3f0a513f03945f20b2e15d6205bcae21-IMPACT-Website.avif" alt="IMPACT Martial Arts Zürich"><div class="lm"><h3>Zürich</h3><div class="addr">Walchestrasse 15, 8006</div><span class="go">Erfahre mehr &rarr;</span></div></a>
 <a class="loccard rev" href="/winterthur/"><img loading="lazy" src="assets/wf/d682405b-6939cc366abb7ae079b0e152-Untitled-design-6-.avif" alt="IMPACT Martial Arts Winterthur"><div class="lm"><h3>Winterthur</h3><div class="addr">Technoparkstrasse 3, 8406</div><span class="go">Erfahre mehr &rarr;</span></div></a>
 </div>
+<div class="secline"></div>
 
 <section class="revhead"><div class="idx rev">02 — STIMMEN</div>
 <h2 class="bigq rev">„Ein Ort, der dich <span>mental und körperlich wachsen</span> lässt.”</h2></section>
@@ -214,8 +246,9 @@ section.deep{background:#12100b}
 <div class="who" id="qwho"></div>
 <div class="qdots" id="qdots"></div>
 </section>
+<div class="secline"></div>
 
-<section class="chapter" id="trainer"><div class="chaphead"><div class="idx rev">03 — TRAINER</div><h2 class="rev">Unsere <span class="accent">Trainer.</span></h2></div>
+<section class="chapter" id="trainer"><div class="chaphead"><div class="idx rev">03 — TRAINER</div><h2 class="rollhead"><span class="rw">Unsere</span> <span class="rw accent">Trainer.</span></h2></div>
 <div class="trgrid">
 <div class="trcard rev"><img loading="lazy" src="assets/wf/d0ee2751-69d67dc9a3d2e311002f6ff5-Jo-o---L.jpg" alt="João de Oliveira"><div class="tm"><h3>João de Oliveira</h3><div class="role">Studio Head Coach, Head Coach BJJ & MMA</div></div></div>
 <div class="trcard rev"><img loading="lazy" src="assets/wf/56ab57f8-69d67eb3597eab232dd3b389-SERGEY---L-2-.jpg" alt="Sergei Liubchenko"><div class="tm"><h3>Sergei Liubchenko</h3><div class="role">Head Coach Muay Thai & Boxen</div></div></div>
@@ -228,8 +261,9 @@ section.deep{background:#12100b}
 <div class="trcard rev"><img loading="lazy" src="assets/wf/aca6ee1b-69d67e934ae50a369dc61a09-20.jpg" alt="Samuel S. Bauer"><div class="tm"><h3>Samuel S. Bauer</h3><div class="role">Co-Founder, Head Coach Street Defense</div></div></div>
 <div class="trcard rev"><img loading="lazy" src="assets/wf/ac3d3164-69d67e7d13dcbfc2cd297982-19.jpg" alt="Ruben Crawford"><div class="tm"><h3>Ruben Crawford</h3><div class="role">Co-Founder, MMA Lead</div></div></div>
 </div></section>
+<div class="secline"></div>
 
-<section class="chapter" id="instagram"><div class="chaphead"><div class="idx rev">04 — INSTAGRAM</div><h2 class="rev">Follow us on <a class="accent" href="https://www.instagram.com/impactmartialarts_ch/" target="_blank" rel="noopener">Instagram.</a></h2></div>
+<section class="chapter" id="instagram"><div class="chaphead"><div class="idx rev">04 — INSTAGRAM</div><h2 class="rollhead"><span class="rw">Follow</span> <span class="rw">us</span> <span class="rw">on</span> <span class="rw"><a</span> <span class="rw">class="accent"</span> <span class="rw">href="https://www.instagram.com/impactmartialarts_ch/"</span> <span class="rw">target="_blank"</span> <span class="rw">rel="noopener">Instagram.</a></span></h2></div>
 <div class="iggrid">
 <a class="rev" href="https://www.instagram.com/p/DcVeAdzjP1U/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/ecebfedb-6a895c77e1fc7cdb757b93f6-784540989-18071866208722301-7626153932267027984-n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
 <a class="rev" href="https://www.instagram.com/reel/DcQgspYs9tN/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/3817c8f5-6a87da72300cc52d95a06c70-Screenshot-2026-08-21-065441.png" alt="Instagram Post IMPACT Martial Arts"></a>
@@ -250,7 +284,7 @@ section.deep{background:#12100b}
 <div><h4>Standorte</h4><ul><li><a href="/zurich/">Zürich</a></li><li><a href="/winterthur/">Winterthur</a></li><li><a href="/probetraining/">Gratis Probetraining</a></li></ul></div>
 <div><h4>Kurse Zürich</h4><ul><li><a href="/zurich/kurse/bjj/">BJJ</a></li><li><a href="/zurich/kurse/muay-thai/">Muay Thai</a></li><li><a href="/zurich/kurse/mma/">MMA</a></li><li><a href="/zurich/kurse/">Alle Kurse</a></li></ul></div>
 <div><h4>Kurse Winterthur</h4><ul><li><a href="/winterthur/kurse/bjj/">BJJ</a></li><li><a href="/winterthur/kurse/muay-thai/">Muay Thai</a></li><li><a href="/winterthur/kurse/mma/">MMA</a></li><li><a href="/winterthur/kurse/">Alle Kurse</a></li></ul></div>
-<div><h4>IMPACT</h4><ul><li><a href="/ueber-uns/">Über uns</a></li><li><a href="https://www.impact-martialarts.com/career" target="_blank" rel="noopener">Karriere</a></li><li><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a></li><li><a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutz</a></li></ul></div>
+<div><h4>IMPACT</h4><ul><li><a href="/ueber-uns/">Über uns</a></li><li><a href="/karriere/">Karriere</a></li><li><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a></li><li><a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutz</a></li></ul></div>
 </div><div class="fbottom">&copy; 2026 IMPACT Martial Arts</div></footer>
 
 <script>
@@ -258,8 +292,8 @@ section.deep{background:#12100b}
 var nv=document.querySelector('nav');
 window.addEventListener('scroll',function(){nv.classList.toggle('scrolled',window.scrollY>40)});
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -8% 0px'});
-document.querySelectorAll('.rev,.bolt-draw').forEach(function(el){io.observe(el)});
-function sweepRev(){document.querySelectorAll('.rev:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight)el.classList.add('vis')})}
+document.querySelectorAll('.rev,.bolt-draw,.secline,.claimband,.rollhead').forEach(function(el){io.observe(el)});
+function sweepRev(){document.querySelectorAll('.rev:not(.vis),.secline:not(.vis),.rollhead:not(.vis),.claimband:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight)el.classList.add('vis')})}
 window.addEventListener('scroll',sweepRev,{passive:true});window.addEventListener('load',sweepRev);
 var b=document.getElementById('burger'),m=document.getElementById('mobmenu');
 if(b){b.addEventListener('click',function(){m.classList.add('open')});
@@ -280,12 +314,12 @@ var quotes=[
 {t:'Ein super nettes und motiviertes Trainerteam! Die Coaches beobachten genau und <b>korrigieren im richtigen Moment</b>.',w:'Google-Rezension · IMPACT'},
 {t:'Das Team passt sich <b>dem Niveau jeder Person</b> an – obwohl es mein erstes Mal war, konnte ich es richtig geniessen.',w:'Google-Rezension · IMPACT'}
 ];
-var qi=0,qt=document.getElementById('qtext'),qw=document.getElementById('qwho'),qd=document.getElementById('qdots');
+var qi=0,qt=document.getElementById('qtext'); if(qt){,qw=document.getElementById('qwho'),qd=document.getElementById('qdots');
 quotes.forEach(function(_,i){var d=document.createElement('i');d.addEventListener('click',function(){qi=i;show()});qd.appendChild(d)});
 function show(){qt.innerHTML=quotes[qi].t;qw.textContent=quotes[qi].w;
 qd.querySelectorAll('i').forEach(function(d,i){d.classList.toggle('on',i===qi)})}
 show();
-setInterval(function(){qi=(qi+1)%quotes.length;show()},6000);
+setInterval(function(){qi=(qi+1)%quotes.length;show()},6000); }
 })();
 </script>
 </body>
