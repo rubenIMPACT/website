@@ -281,6 +281,29 @@ section.deep{background:#12100b}
 .citylabel{margin-left:auto}
 .citylabel+.burger{margin-left:6px}
 }
+.soundbtn{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;background:rgba(0,0,0,.7);border:2px solid var(--gold);color:var(--gold);border-radius:99px;width:54px;height:54px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+.soundbtn.hid{opacity:0;pointer-events:none}
+.soundbtn svg{display:none}
+.soundbtn .ic-off{display:block}
+.soundbtn.sndon .ic-off{display:none}
+.soundbtn.sndon .ic-on{display:block}
+.soundbtn{bottom:20px;right:20px}
+
+/* hero sound / cinema */
+.soundbtn{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:82}
+@media(min-width:900px){.soundbtn{bottom:22px;right:22px}}
+.vhero .inner{transition:opacity .45s}
+.vhero.cinema .inner{opacity:0;pointer-events:none}
+.vhero.cinema:before{opacity:.35;transition:opacity .45s}
+.vhero:before{transition:opacity .45s}
+/* Hochformat auf Desktop: Video rechts neben dem Slogan, Text bleibt */
+@media(min-width:900px){
+.vhero.vport{display:grid;grid-template-columns:1.05fr .95fr;align-items:stretch}
+.vhero.vport video{position:relative;inset:auto;grid-column:2;width:100%;height:92vh;object-fit:cover}
+.vhero.vport .inner{grid-column:1;grid-row:1;align-self:end}
+.vhero.vport:before{background:linear-gradient(90deg,rgba(0,0,0,.2),transparent 55%)}
+.vhero.vport.cinema .inner{opacity:1;pointer-events:auto}
+}
 </style></head>
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
@@ -298,6 +321,10 @@ section.deep{background:#12100b}
 <p class="lead rev">MMA, Muay Thai, BJJ, Boxen, Ringen, Fitness Kickboxen, Kids Training – alles unter einem Dach, mitten in Zürich.</p>
 <div class="rev"><a class="cta" href="/probetraining/">Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a><a class="gbadge" href="https://maps.app.goo.gl/1ow5T1yypnd7zvXM6" target="_blank" rel="noopener"><b>300+</b> 5-Sterne-Bewertungen auf Google</a></div>
 </div>
+<button class="soundbtn" id="soundbtn" aria-label="Ton an">
+<svg class="ic-off" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
+<svg class="ic-on" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>
+</button>
 </header>
 
 <div class="claimband">
@@ -419,5 +446,21 @@ var io=new IntersectionObserver(function(es){
 },{threshold:.12});
 targets.forEach(function(t){io.observe(t)});
 })();/*ctahide*/</script>
+<script>
+(function(){var hv=document.querySelector('.vhero video'),sb=document.getElementById('soundbtn'),hero=document.querySelector('.vhero');
+if(!hv||!sb||!hero)return;
+function fmt(){if(hv.videoWidth&&hv.videoHeight&&hv.videoHeight>hv.videoWidth){hero.classList.add('vport')}else{hero.classList.add('vland')}}
+if(hv.readyState>=1)fmt();else hv.addEventListener('loadedmetadata',fmt);
+function allowCinema(){var mob=window.innerWidth<900;return mob||hero.classList.contains('vland')}
+sb.addEventListener('click',function(){
+  if(hv.muted){hv.muted=false;sb.classList.add('sndon');if(allowCinema())hero.classList.add('cinema');var p=hv.play();if(p&&p.catch)p.catch(function(){});}
+  else{hv.muted=true;sb.classList.remove('sndon');hero.classList.remove('cinema');}
+});
+var io=new IntersectionObserver(function(es){es.forEach(function(e){
+  sb.classList.toggle('hid',!e.isIntersecting);
+  if(!e.isIntersecting&&!hv.muted){hv.muted=true;sb.classList.remove('sndon');hero.classList.remove('cinema');}
+})},{threshold:.25});
+io.observe(hero);
+})();/*herosound*/</script>
 </body>
 </html>
