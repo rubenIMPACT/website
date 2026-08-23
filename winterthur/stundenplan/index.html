@@ -142,6 +142,29 @@ section.deep{background:#12100b}
 .citylabel{margin-left:auto}
 .citylabel+.burger{margin-left:6px}
 }
+
+/* footer v2 nach Original */
+.fgrid.f4{display:grid;gap:40px;padding:70px var(--mx) 30px;grid-template-columns:1fr}
+@media(min-width:700px){.fgrid.f4{grid-template-columns:1fr 1fr}}
+@media(min-width:1100px){.fgrid.f4{grid-template-columns:1fr 1.2fr 1.4fr 1.2fr}}
+.fcol ul{list-style:none;padding:0;margin:0}
+.fcol li{margin-bottom:14px}
+.fcol li a{font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:#cfcbc2}
+.fcol li a:hover{color:var(--gold)}
+.fcol h4{font-size:14px;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;color:var(--white)}
+.fcol h4+ .fmeta{margin-bottom:26px}
+.fmeta{color:var(--grey);font-size:15px;line-height:1.7;margin:0 0 18px}
+.fmeta a{color:var(--grey)}
+.fmeta a:hover{color:var(--gold)}
+.nlform{display:flex;flex-direction:column;gap:12px;max-width:340px}
+.nlform input{background:transparent;border:1px solid var(--hair);color:var(--white);padding:13px 14px;font-size:15px}
+.nlform .cta{justify-content:center}
+.fcta{margin-top:6px;display:inline-flex}
+.fsocial{margin-top:26px}
+.fsocial a{color:var(--white)}
+.fsocial a:hover{color:var(--gold)}
+.fbottom{border-top:1px solid var(--hair);padding:18px var(--mx) 26px;color:var(--grey);font-size:12.5px}
+.fbottom a{color:var(--grey)}
 </style></head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
@@ -155,13 +178,42 @@ section.deep{background:#12100b}
 <p class="lead rev">Diese Seite ist Teil der neuen Architektur. Inhalt wird als Nächstes übertragen – Design-System steht.</p><div class="cardlist"><a class="cardrow rev" href="/winterthur/kurse/"><div><h3>Kurse</h3><small></small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/probetraining/"><div><h3>Gratis Probetraining</h3><small></small></div><div class="arr">&rarr;</div></a></div></section>
 <section class="final deep"><h2 class="rev">Bereit für <span class="accent">Runde eins?</span></h2><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></section>
 <div class="floatcta"><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
-<footer><div class="fgrid">
-<div><img class="flogo" src="../../assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT"><div>Strong Body, Strong Mind, Great Vibes.</div>
-<div style="margin-top:14px">Walchestrasse 15, 8006 Zürich<br>Technoparkstrasse 3, 8406 Winterthur</div></div>
-<div><h4>Standorte</h4><ul><li><a href="/zurich/">Zürich</a></li><li><a href="/winterthur/">Winterthur</a></li><li><a href="/probetraining/">Gratis Probetraining</a></li></ul></div>
-<div><h4>Kurse</h4><ul><li><a href="/winterthur/kurse/bjj/">Brazilian Jiu-Jitsu / BJJ</a></li><li><a href="/winterthur/kurse/muay-thai/">Thai-Boxen / Muay Thai</a></li><li><a href="/winterthur/kurse/boxen/">Boxen</a></li><li><a href="/winterthur/kurse/mma/">MMA</a></li><li><a href="/winterthur/kurse/ringen/">Ringen</a></li><li><a href="/winterthur/kurse/fitness-kickboxen/">Fitness Kickboxen</a></li></ul></div>
-<div><h4>IMPACT</h4><ul><li><a href="/ueber-uns/">Über uns</a></li><li><a href="https://www.impact-martialarts.com/career" target="_blank" rel="noopener">Karriere</a></li><li><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a></li><li><a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutz</a></li><li><a href="/en/">English</a></li></ul></div>
-</div><div class="fbottom">&copy; 2026 IMPACT Martial Arts</div></footer>
+<footer><div class="fgrid f4">
+<div class="fcol">
+<ul>
+<li><a href="/zurich/">Zürich</a></li>
+<li><a href="/winterthur/">Winterthur</a></li>
+<li><a href="/ueber-uns/">Über uns</a></li>
+<li><a href="https://www.impact-martialarts.com/de/seminars" target="_blank" rel="noopener">Seminare</a></li>
+<li><a href="/karriere/">Karriere</a></li>
+<li><a href="/articles/">Artikel &amp; News</a></li>
+</ul>
+</div>
+<div class="fcol">
+<ul>
+<li><a href="https://www.impact-martialarts.com/gr/kontakt" target="_blank" rel="noopener">Kontakt</a></li>
+<li><a href="https://www.impact-martialarts.com/gr/faq" target="_blank" rel="noopener">FAQ</a></li>
+<li><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a></li>
+<li><a href="https://www.impact-martialarts.com/agb-kidstraining" target="_blank" rel="noopener">AGB für Kindertraining</a></li>
+<li><a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutzerklärung</a></li>
+</ul>
+</div>
+<div class="fcol">
+<h4>Kontakt</h4>
+<p class="fmeta"><a href="https://wa.me/41772885269" target="_blank" rel="noopener">+41 77 288 52 69</a><br><a href="mailto:support@impact-martialarts.com">support@impact-martialarts.com</a></p>
+<h4>Abonniere unseren Newsletter</h4>
+<form class="nlform" id="nlform"><input type="email" name="email" placeholder="Email" required><button class="cta" type="submit">Abonnieren</button></form>
+</div>
+<div class="fcol">
+<h4>Adresse</h4>
+<p class="fmeta">IMPACT Martial Arts,<br>Walchestrasse 15,<br>8006 Zürich</p>
+<p class="fmeta">IMPACT Martial Arts,<br>Technoparkstrasse 3,<br>8406 Winterthur</p>
+<a class="cta fcta" href="/probetraining/">Probetraining anfordern</a>
+<div class="fsocial"><a href="https://www.instagram.com/impactmartialarts_ch/" target="_blank" rel="noopener" aria-label="Instagram"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></div>
+</div>
+</div>
+<div class="fbottom">© IMPACT Martial Arts · <a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a> · <a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutz</a></div>
+</footer>
 <script>
 (function(){
 var nv=document.querySelector('nav');
@@ -181,4 +233,10 @@ t.addEventListener('click',function(e){
 });
 document.addEventListener('click',function(e){var d=document.querySelector('.dd.open');if(d&&!d.contains(e.target))d.classList.remove('open');});
 })();/*ddtap*/</script>
+<script>
+(function(){var f=document.getElementById('nlform');if(!f)return;
+f.addEventListener('submit',function(e){e.preventDefault();
+var em=f.querySelector('input[name=email]').value;
+location.href='mailto:support@impact-martialarts.com?subject=Newsletter-Anmeldung&body='+encodeURIComponent('Bitte in den Newsletter aufnehmen: '+em);
+});})();/*nl*/</script>
 </body></html>
