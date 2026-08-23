@@ -642,6 +642,16 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 .navwrap .logo{flex:0 0 auto}
 .navwrap .logo img{height:32px;width:auto;max-width:none;display:block}
 @media(max-width:899px){.navlinks{display:none}.burger{display:block}}
+
+/* mobile nav v3 */
+@media(max-width:899px){
+ .topbar{display:none}
+ .burger{display:flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:26px;padding:0;margin-left:10px}
+ .citylabel{display:block;margin-left:auto;color:var(--gold);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:13.5px}
+ .mobmenu a.sec{font-size:15px;font-weight:400;letter-spacing:1.5px;color:var(--grey)}
+ .mobmenu .msep{height:1px;background:var(--hair);margin:14px 0}
+}
+@media(min-width:900px){.citylabel{display:none}}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 </head>
@@ -658,7 +668,7 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/winterthur/">Winterthur</a><a href="/ueber-uns/">Über uns</a><a href="/probetraining/">Gratis Probetraining</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 
 <header class="hero">
 <div class="hero-media">

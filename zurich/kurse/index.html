@@ -124,13 +124,23 @@ section.deep{background:#12100b}
 @media(min-width:900px){.floatcta{display:none}}
 .dd.open .ddm{display:block}
 @media(max-width:899px){.navlinks{display:none}.burger{display:block}}
+
+/* mobile nav v3 */
+@media(max-width:899px){
+ .topbar{display:none}
+ .burger{display:flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:26px;padding:0;margin-left:10px}
+ .citylabel{display:block;margin-left:auto;color:var(--gold);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:13.5px}
+ .mobmenu a.sec{font-size:15px;font-weight:400;letter-spacing:1.5px;color:var(--grey)}
+ .mobmenu .msep{height:1px;background:var(--hair);margin:14px 0}
+}
+@media(min-width:900px){.citylabel{display:none}}
 </style></head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/winterthur/">Winterthur</a><a href="/ueber-uns/">Über uns</a><a href="/probetraining/">Gratis Probetraining</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 <header class="pagehero"><div class="kick rev">IMPACT Zürich</div><h1 class="rev">Kurse in <span class="accent">Zürich.</span></h1>
 <p class="lead rev">Erkunde unsere Kampfsportkurse für jedes Alter und Niveau.</p><a class="cta rev" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></header>
 <section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><div class="idx rev">01</div><h2 class="rev">Alle <span class="accent">Kurse.</span></h2></div>
@@ -142,7 +152,7 @@ section.deep{background:#12100b}
 <div style="margin-top:14px">Walchestrasse 15, 8006 Zürich<br>Technoparkstrasse 3, 8406 Winterthur</div></div>
 <div><h4>Standorte</h4><ul><li><a href="/zurich/">Zürich</a></li><li><a href="/winterthur/">Winterthur</a></li><li><a href="/probetraining/">Gratis Probetraining</a></li></ul></div>
 <div><h4>Kurse</h4><ul><li><a href="/winterthur/kurse/bjj/">Brazilian Jiu-Jitsu / BJJ</a></li><li><a href="/winterthur/kurse/muay-thai/">Thai-Boxen / Muay Thai</a></li><li><a href="/winterthur/kurse/boxen/">Boxen</a></li><li><a href="/winterthur/kurse/mma/">MMA</a></li><li><a href="/winterthur/kurse/ringen/">Ringen</a></li><li><a href="/winterthur/kurse/fitness-kickboxen/">Fitness Kickboxen</a></li></ul></div>
-<div><h4>IMPACT</h4><ul><li><a href="/ueber-uns/">Über uns</a></li><li><a href="https://www.impact-martialarts.com/career" target="_blank" rel="noopener">Karriere</a></li><li><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a></li><li><a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutz</a></li></ul></div>
+<div><h4>IMPACT</h4><ul><li><a href="/ueber-uns/">Über uns</a></li><li><a href="https://www.impact-martialarts.com/career" target="_blank" rel="noopener">Karriere</a></li><li><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a></li><li><a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutz</a></li><li><a href="/en/">English</a></li></ul></div>
 </div><div class="fbottom">&copy; 2026 IMPACT Martial Arts</div></footer>
 <script>
 (function(){
