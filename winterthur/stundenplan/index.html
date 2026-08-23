@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Stundenplan Winterthur | IMPACT Martial Arts</title><meta name="description" content="Diese Seite ist Teil der neuen Architektur. Inhalt wird als Nächstes übertragen – Design-System steht.">
+<title>Stundenplan | IMPACT Martial Arts Winterthur</title><meta name="description" content="Diese Seite ist Teil der neuen Architektur. Inhalt wird als Nächstes übertragen – Design-System steht.">
 <script>window.dataLayer=window.dataLayer||[];</script>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W6SM24HX');</script>
@@ -165,18 +165,76 @@ section.deep{background:#12100b}
 .fsocial a:hover{color:var(--gold)}
 .fbottom{border-top:1px solid var(--hair);padding:18px var(--mx) 26px;color:var(--grey);font-size:12.5px}
 .fbottom a{color:var(--grey)}
+
+/* stundenplan */
+.sphead{padding:150px var(--mx) 10px}
+.daytabs{display:flex;gap:8px;flex-wrap:wrap;padding:26px var(--mx) 8px;position:sticky;top:64px;z-index:40;background:var(--black)}
+.daytabs button{background:transparent;border:1px solid var(--hair);color:var(--grey);padding:10px 16px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12.5px;cursor:pointer}
+.daytabs button.on{border-color:var(--gold);color:var(--gold)}
+.dayblock{display:none;padding:18px var(--mx) 30px}
+.dayblock.on{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:760px){.dayblock.on{grid-template-columns:1fr 1fr}}
+@media(min-width:1200px){.dayblock.on{grid-template-columns:1fr 1fr 1fr}}
+.sess{display:flex;align-items:center;gap:16px;border:1px solid var(--hair);padding:14px 16px;background:rgba(255,255,255,.02);transition:border-color .2s,transform .2s}
+.sess:hover{border-color:var(--gold);transform:translateY(-2px)}
+.sess .t{color:var(--gold);font-weight:800;font-size:17px;min-width:56px}
+.sess .n{font-weight:800;font-size:15.5px}
+.sess .lv{color:var(--grey);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.sess .who{margin-left:auto;text-align:right;color:var(--grey);font-size:12.5px;line-height:1.5}
+.sess .who b{display:block;color:var(--white);font-weight:600;font-size:13px}
+.spnote{padding:6px var(--mx) 60px;color:var(--grey);font-size:14px}
 </style></head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/zurich/">Standort wechseln: Zürich</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
-<header class="pagehero"><div class="kick rev">IMPACT Winterthur</div><h1 class="rev">Stundenplan.</h1>
-<p class="lead rev"></p><a class="cta rev" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></header>
-<section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><div class="idx rev">01</div><h2 class="rev">Stundenplan <span class="accent">Winterthur.</span></h2></div>
-<p class="lead rev">Diese Seite ist Teil der neuen Architektur. Inhalt wird als Nächstes übertragen – Design-System steht.</p><div class="cardlist"><a class="cardrow rev" href="/winterthur/kurse/"><div><h3>Kurse</h3><small></small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/probetraining/"><div><h3>Gratis Probetraining</h3><small></small></div><div class="arr">&rarr;</div></a></div></section>
-<section class="final deep"><h2 class="rev">Bereit für <span class="accent">Runde eins?</span></h2><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></section>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div>
+<section class="sphead"><div class="chaphead"><div class="idx">STUNDENPLAN WINTERTHUR</div><h2 class="rollhead" style="opacity:1"><span class="rw" style="opacity:1;transform:none">Stundenplan</span> <span class="rw accent" style="opacity:1;transform:none">Winterthur.</span></h2></div></section>
+<div class="daytabs"><button>Mo</button><button>Di</button><button>Mi</button><button>Do</button><button>Fr</button><button>Sa</button></div>
+<div class="dayblock" data-day="Montag"><a class="sess" href="/winterthur/kurse/muay-thai/"><span class="t">12:00</span><span><span class="n">Muay Thai</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/little-ninjas/"><span class="t">16:30</span><span><span class="n">Little Ninjas (10–14)</span><br><span class="lv">60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/bjj/"><span class="t">17:40</span><span><span class="n">BJJ (No-Gi)</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/mma/"><span class="t">18:50</span><span><span class="n">MMA</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/bjj/"><span class="t">20:00</span><span><span class="n">BJJ (Gi)</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/"><span class="t">20:45</span><span><span class="n">Open Mat</span><br><span class="lv">60 Min</span></span><span class="who"><b>Alle</b>Coach</span></a>
+</div>
+<div class="dayblock" data-day="Dienstag"><a class="sess" href="/winterthur/kurse/ringen/"><span class="t">10:50</span><span><span class="n">Wrestling</span><br><span class="lv">Competition · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/mma/"><span class="t">12:00</span><span><span class="n">MMA</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/little-ninjas/"><span class="t">15:30</span><span><span class="n">Little Ninjas (6–9)</span><br><span class="lv">45 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/fitness-kickboxen/"><span class="t">16:30</span><span><span class="n">Fitness Kickboxing</span><br><span class="lv">60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/muay-thai/"><span class="t">17:40</span><span><span class="n">Muay Thai</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/boxen/"><span class="t">18:50</span><span><span class="n">Boxen</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/ringen/"><span class="t">20:00</span><span><span class="n">Wrestling</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/"><span class="t">20:45</span><span><span class="n">Open Mat</span><br><span class="lv">60 Min</span></span><span class="who"><b>Alle</b>Coach</span></a>
+</div>
+<div class="dayblock" data-day="Mittwoch"><a class="sess" href="/winterthur/kurse/bjj/"><span class="t">12:00</span><span><span class="n">BJJ (No-Gi)</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/little-ninjas/"><span class="t">16:30</span><span><span class="n">Little Ninjas (10–14)</span><br><span class="lv">60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/mma/"><span class="t">17:40</span><span><span class="n">MMA</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/bjj/"><span class="t">18:50</span><span><span class="n">BJJ (No-Gi)</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/bjj/"><span class="t">20:00</span><span><span class="n">BJJ (Gi)</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+</div>
+<div class="dayblock" data-day="Donnerstag"><a class="sess" href="/winterthur/kurse/fitness-kickboxen/"><span class="t">12:00</span><span><span class="n">Fitness Kickboxing</span><br><span class="lv">60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/bjj/"><span class="t">16:30</span><span><span class="n">BJJ (Gi)</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/bjj/"><span class="t">17:40</span><span><span class="n">BJJ (No-Gi)</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>João</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/fitness-kickboxen/"><span class="t">18:50</span><span><span class="n">Fitness Kickboxing</span><br><span class="lv">60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/muay-thai/"><span class="t">20:00</span><span><span class="n">Muay Thai</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+</div>
+<div class="dayblock" data-day="Freitag"><a class="sess" href="/winterthur/kurse/ringen/"><span class="t">12:00</span><span><span class="n">Wrestling</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/little-ninjas/"><span class="t">15:30</span><span><span class="n">Little Ninjas (6–9)</span><br><span class="lv">45 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/ringen/"><span class="t">16:30</span><span><span class="n">Wrestling</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/mma/"><span class="t">17:40</span><span><span class="n">MMA</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/muay-thai/"><span class="t">18:50</span><span><span class="n">Muay Thai</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/boxen/"><span class="t">20:00</span><span><span class="n">Boxen</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+</div>
+<div class="dayblock" data-day="Samstag"><a class="sess" href="/winterthur/kurse/fitness-kickboxen/"><span class="t">09:40</span><span><span class="n">Fitness Kickboxing</span><br><span class="lv">60 Min</span></span><span class="who"><b>Laszlo & Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/mma/"><span class="t">10:50</span><span><span class="n">MMA</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/boxen/"><span class="t">10:50</span><span><span class="n">Boxen</span><br><span class="lv">Basics · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/ringen/"><span class="t">12:00</span><span><span class="n">Wrestling</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Laszlo</b>Coach</span></a>
+<a class="sess" href="/winterthur/kurse/muay-thai/"><span class="t">12:00</span><span><span class="n">Muay Thai</span><br><span class="lv">All Levels · 60 Min</span></span><span class="who"><b>Sergei</b>Coach</span></a>
+</div>
+
+<p class="spnote">Alle Stunden sind offen für Mitglieder aller Levels, sofern nicht anders angegeben. Klick auf eine Stunde für Details zur Disziplin.</p>
 <div class="floatcta"><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 <footer><div class="fgrid f4">
 <div class="fcol">
@@ -239,4 +297,10 @@ f.addEventListener('submit',function(e){e.preventDefault();
 var em=f.querySelector('input[name=email]').value;
 location.href='mailto:support@impact-martialarts.com?subject=Newsletter-Anmeldung&body='+encodeURIComponent('Bitte in den Newsletter aufnehmen: '+em);
 });})();/*nl*/</script>
+<script>
+(function(){var tabs=document.querySelectorAll('.daytabs button'),blocks=document.querySelectorAll('.dayblock');
+function show(i){tabs.forEach(function(b,j){b.classList.toggle('on',j===i)});blocks.forEach(function(b,j){b.classList.toggle('on',j===i)})}
+tabs.forEach(function(b,i){b.addEventListener('click',function(){show(i)})});
+var d=new Date().getDay();var map={1:0,2:1,3:2,4:3,5:4,6:5,0:0};show(map[d]!==undefined&&map[d]<tabs.length?map[d]:0);
+})();/*sptabs*/</script>
 </body></html>
