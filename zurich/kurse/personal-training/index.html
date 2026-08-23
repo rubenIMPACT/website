@@ -608,8 +608,8 @@ html body .chaphead h2,html body .duohead h2{font-size:clamp(19px,6.6vw,26px)!im
 .sitenav a{color:#fff;text-decoration:none;font-weight:500}
 .sitenav a.brand{font-weight:800;color:var(--gold);letter-spacing:2px;margin-right:auto}
 .sitenav a:hover{color:var(--gold)}
-.admode .sitenav{display:none}
-body>nav:not(.sitenav),.langtog{display:none!important}
+.admode .navwrap,.mobmenu{display:none}
+body>nav:not(.navwrap,.mobmenu,.langtog{display:none!important}
 @media(max-width:760px){.sitenav{gap:14px;font-size:11px}.sitenav a.extra{display:none}}
 
 /* topbar + dropdown */
@@ -686,11 +686,73 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 .fsocial a:hover{color:var(--gold)}
 .fbottom{border-top:1px solid var(--hair);padding:18px var(--mx) 26px;color:var(--grey);font-size:12.5px}
 .fbottom a{color:var(--grey)}
+
+/* teamdd */
+.dd{position:relative;display:inline-block}
+.dd .ddm{display:none;position:absolute;top:100%;left:-14px;padding:14px 18px;background:rgba(10,9,8,.97);border:1px solid var(--hair);min-width:220px;z-index:70}
+.dd:hover .ddm,.dd:focus-within .ddm{display:block}
+.ddm a{display:block;padding:7px 0;font-size:13px;letter-spacing:1px;text-transform:none;color:#cfcbc2;white-space:nowrap}
+.ddm a:hover{color:var(--gold)}
+
+/* citynav */
+nav .logo img{height:32px}
+.navlinks{display:none;gap:26px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500}
+.navlinks a:hover{color:var(--gold)}
+.burger{display:block;background:none;border:none;color:var(--white);font-size:24px;cursor:pointer;line-height:1}
+.mobmenu{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:80;display:none;flex-direction:column;gap:6px;padding:90px var(--mx) 40px;font-size:26px;font-weight:800;text-transform:uppercase}
+.mobmenu.open{display:flex}
+.mobmenu a{padding:10px 0;border-bottom:1px solid var(--hair)}
+.mobmenu .close{position:absolute;top:20px;right:var(--mx);font-size:30px;background:none;border:none;color:var(--gold);cursor:pointer}
+/* topbar + dropdown */
+.topbar{display:flex;gap:26px;align-items:center;justify-content:flex-end;padding:10px var(--mx);font-size:12.5px;letter-spacing:1.6px;text-transform:uppercase;border-bottom:1px solid var(--hair);position:relative;z-index:60;background:#0a0908}
+.topbar a{color:var(--grey)}
+.topbar a:hover{color:var(--gold)}
+.topbar .tsep{flex:0 0 1px;height:14px;background:var(--hair)}
+.topbar .lang.on{color:var(--gold);font-weight:600}
+.dd .caret{font-size:10px;color:var(--gold)}
+.ddm{display:none;position:absolute;top:100%;left:0;min-width:190px;background:#0e0d0b;border:1px solid var(--hair);padding:6px 0;z-index:70}
+.ddm a{display:block;padding:12px 20px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase}
+.ddm a:hover{color:var(--gold);background:rgba(226,194,16,.06)}
+.dd:hover .ddm,.dd:focus-within .ddm{display:block}
+.navwrap{position:fixed;top:0;left:0;right:0;z-index:60}
+.navwrap nav{position:static;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent)}
+.navwrap.scrolled nav{background:rgba(0,0,0,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair)}
+.navwrap nav{padding:18px var(--mx)}
+.navlinks{margin-left:clamp(24px,4vw,70px);display:flex;gap:clamp(20px,2.6vw,42px)}
+.navlinks a,.ddt{font-size:14.5px;letter-spacing:2.2px}
+.topbar{font-size:13px;padding:11px var(--mx)}
+.topbar a{color:#cfcbc2}
+.topbar{background:#0a0908}
+.navwrap .logo{flex:0 0 auto}
+.navwrap .logo img{height:32px;width:auto;max-width:none;display:block}
+/* mobile nav v2 */
+.topbar{flex-wrap:nowrap;white-space:nowrap;gap:clamp(10px,2.6vw,26px);font-size:clamp(10.5px,2.9vw,13px);letter-spacing:1.2px;overflow:hidden}
+.navwrap nav{padding:12px var(--mx)}
+.navwrap .logo img{height:26px}
+.navlinks{margin-left:auto}
+.navlinks a,.ddt{font-size:12.5px;letter-spacing:1.6px}
+.dd.open .ddm{display:block}
+.burger{display:block}
+.burger{display:flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:26px;padding:0;margin-left:10px}
+.citylabel{display:block;margin-left:auto;color:var(--gold);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:13.5px}
+.mobmenu a.sec{font-size:15px;font-weight:400;letter-spacing:1.5px;color:var(--grey)}
+.mobmenu .msep{height:1px;background:var(--hair);margin:14px 0}
+.navwrap .burger{display:flex;align-items:center;justify-content:center;width:52px;height:52px;font-size:30px;line-height:1;margin-left:auto;color:var(--white)}
+.citylabel{margin-left:auto}
+.citylabel+.burger{margin-left:6px}
+.dd .ddm{display:none;position:absolute;top:100%;left:-14px;padding:14px 18px;background:rgba(10,9,8,.97);border:1px solid var(--hair);min-width:220px;z-index:70}
+.ddm a{display:block;padding:7px 0;font-size:13px;letter-spacing:1px;text-transform:none;color:#cfcbc2;white-space:nowrap}
+.ddm a:hover{color:var(--gold)}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 </head>
 <body>
-<nav class="sitenav"><a class="brand" href="/"><img src="/assets/impact-logo.png" alt="IMPACT Martial Arts" style="height:30px;display:block"></a><a href="/winterthur/">Winterthur</a><a href="/zurich/">Z&uuml;rich</a><a class="extra" href="/stundenplan/">Stundenplan</a><a href="/zurich/kurse/personal-training/" style="color:var(--gold)">DE</a><a href="/en/zurich/classes/personal-training/">EN</a></nav>
+<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
+<nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><span class="dd teamdd"><a class="ddt" href="/zurich/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/abdallah-elshahaibi" target="_blank" rel="noopener">Abdallah Elshahaibi</a><a href="https://www.impact-martialarts.com/de-team/joao-zh" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-zh" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-zh" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener">Natassja Eckerström</a><a href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener">Nathan Melliger</a><a href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener">Dario Kashani</a><a href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener">Florian Helmke-Becker</a><a href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener">Quentz Alexis II</a><a href="https://www.impact-martialarts.com/de-team/sam-zh" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-zh" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
+<a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+<button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><span class="dd teamdd"><a class="ddt" href="/zurich/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/abdallah-elshahaibi" target="_blank" rel="noopener">Abdallah Elshahaibi</a><a href="https://www.impact-martialarts.com/de-team/joao-zh" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-zh" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-zh" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener">Natassja Eckerström</a><a href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener">Nathan Melliger</a><a href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener">Dario Kashani</a><a href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener">Florian Helmke-Becker</a><a href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener">Quentz Alexis II</a><a href="https://www.impact-martialarts.com/de-team/sam-zh" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-zh" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W6SM24HX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
@@ -699,10 +761,10 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><span class="dd teamdd"><a class="ddt" href="/zurich/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/abdallah-elshahaibi" target="_blank" rel="noopener">Abdallah Elshahaibi</a><a href="https://www.impact-martialarts.com/de-team/joao-zh" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-zh" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-zh" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener">Natassja Eckerström</a><a href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener">Nathan Melliger</a><a href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener">Dario Kashani</a><a href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener">Florian Helmke-Becker</a><a href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener">Quentz Alexis II</a><a href="https://www.impact-martialarts.com/de-team/sam-zh" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-zh" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><span class="dd teamdd"><a class="ddt" href="/zurich/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/abdallah-elshahaibi" target="_blank" rel="noopener">Abdallah Elshahaibi</a><a href="https://www.impact-martialarts.com/de-team/joao-zh" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-zh" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-zh" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/natassja" target="_blank" rel="noopener">Natassja Eckerström</a><a href="https://www.impact-martialarts.com/de-team/nathan-melliger" target="_blank" rel="noopener">Nathan Melliger</a><a href="https://www.impact-martialarts.com/de-team/dario-kashani" target="_blank" rel="noopener">Dario Kashani</a><a href="https://www.impact-martialarts.com/de-team/florian" target="_blank" rel="noopener">Florian Helmke-Becker</a><a href="https://www.impact-martialarts.com/de-team/quentz-alexis-ii" target="_blank" rel="noopener">Quentz Alexis II</a><a href="https://www.impact-martialarts.com/de-team/sam-zh" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-zh" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 
 <header class="hero">
 <div class="hero-media">
@@ -1047,5 +1109,41 @@ f.addEventListener('submit',function(e){e.preventDefault();
 var em=f.querySelector('input[name=email]').value;
 location.href='mailto:support@impact-martialarts.com?subject=Newsletter-Anmeldung&body='+encodeURIComponent('Bitte in den Newsletter aufnehmen: '+em);
 });})();/*nl*/</script>
+<script>
+(function(){
+var nv=document.querySelector('nav');
+var nw=document.getElementById('navwrap')||nv;window.addEventListener('scroll',function(){nw.classList.toggle('scrolled',window.scrollY>40)});
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}})},{threshold:0,rootMargin:'0px 0px -22% 0px'});
+document.querySelectorAll('.rev,.bolt-draw,.secline,.claimband,.rollhead').forEach(function(el){io.observe(el)});
+function sweepRev(){document.querySelectorAll('.rev:not(.vis),.secline:not(.vis),.rollhead:not(.vis),.claimband:not(.vis)').forEach(function(el){if(el.getBoundingClientRect().top<innerHeight*0.82)el.classList.add('vis')})}
+window.addEventListener('scroll',sweepRev,{passive:true});window.addEventListener('load',sweepRev);
+var b=document.getElementById('burger'),m=document.getElementById('mobmenu');
+if(b&&m){b.addEventListener('click',function(){m.classList.add('open')});
+m.querySelector('.close').addEventListener('click',function(){m.classList.remove('open')});}
+/* Kurs-Umschalter */
+document.querySelectorAll('.loctog button').forEach(function(bt){
+bt.addEventListener('click',function(){
+document.querySelectorAll('.loctog button').forEach(function(x){x.classList.remove('on')});
+bt.classList.add('on');
+var loc=bt.dataset.loc;
+document.querySelectorAll('.kursrow').forEach(function(r){r.href='/'+loc+'/kurse/'+r.dataset.slug+'/'});
+});
+});
+/* Zitate */
+var quotes=[
+{t:'Ein Ort, der dich <b>mental und körperlich wachsen</b> lässt – mit der Unterstützung erfahrener Trainer. Du gehst gestärkt aus dem Training.',w:'Jasna · Google-Rezension'},
+{t:'Top Trainer, <b>starke Atmosphäre</b> und individuelles Coaching für jedes Level. Hier wird jeder gefördert und kommt garantiert ins Schwitzen!',w:'Iva Vilus · Google-Rezension'},
+{t:'Ein super nettes und motiviertes Trainerteam! Die Coaches beobachten genau und <b>korrigieren im richtigen Moment</b>.',w:'Google-Rezension · IMPACT'},
+{t:'Das Team passt sich <b>dem Niveau jeder Person</b> an – obwohl es mein erstes Mal war, konnte ich es richtig geniessen.',w:'Google-Rezension · IMPACT'}
+];
+var qi=0,qt=document.getElementById('qtext'),qw=document.getElementById('qwho'),qd=document.getElementById('qdots');
+if(qt){
+quotes.forEach(function(_,i){var d=document.createElement('i');d.addEventListener('click',function(){qi=i;show()});qd.appendChild(d)});
+function show(){qt.innerHTML=quotes[qi].t;qw.textContent=quotes[qi].w;
+qd.querySelectorAll('i').forEach(function(d,i){d.classList.toggle('on',i===qi)})}
+show();
+setInterval(function(){qi=(qi+1)%quotes.length;show()},6000); }
+})();
+</script>
 </body>
 </html>

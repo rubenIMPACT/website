@@ -333,14 +333,21 @@ section.deep{background:#12100b}
 .fsocial a:hover{color:var(--gold)}
 .fbottom{border-top:1px solid var(--hair);padding:18px var(--mx) 26px;color:var(--grey);font-size:12.5px}
 .fbottom a{color:var(--grey)}
+
+/* teamdd */
+.dd{position:relative;display:inline-block}
+.dd .ddm{display:none;position:absolute;top:100%;left:-14px;padding:14px 18px;background:rgba(10,9,8,.97);border:1px solid var(--hair);min-width:220px;z-index:70}
+.dd:hover .ddm,.dd:focus-within .ddm{display:block}
+.ddm a{display:block;padding:7px 0;font-size:13px;letter-spacing:1px;text-transform:none;color:#cfcbc2;white-space:nowrap}
+.ddm a:hover{color:var(--gold)}
 </style></head>
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><span class="dd teamdd"><a class="ddt" href="/winterthur/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/bogdan-cristea" target="_blank" rel="noopener">Bogdan Cristea</a><a href="https://www.impact-martialarts.com/de-team/joao-wt" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-wt" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-wt" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/sam-wt" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-wt" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/zurich/">Standort wechseln: Zürich</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><span class="dd teamdd"><a class="ddt" href="/winterthur/team/">Team</a><span class="ddm"><a href="https://www.impact-martialarts.com/de-team/bogdan-cristea" target="_blank" rel="noopener">Bogdan Cristea</a><a href="https://www.impact-martialarts.com/de-team/joao-wt" target="_blank" rel="noopener">João de Oliveira</a><a href="https://www.impact-martialarts.com/de-team/sergei-wt" target="_blank" rel="noopener">Sergei Liubchenko</a><a href="https://www.impact-martialarts.com/de-team/laszlo-simo-wt" target="_blank" rel="noopener">Laszlo Simo</a><a href="https://www.impact-martialarts.com/de-team/sam-wt" target="_blank" rel="noopener">Samuel S. Bauer</a><a href="https://www.impact-martialarts.com/de-team/ruben-crawford-wt" target="_blank" rel="noopener">Ruben Crawford</a></span></span><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/zurich/">Standort wechseln: Zürich</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 
 <header class="vhero">
 <video autoplay muted loop playsinline preload="metadata" poster="/assets/main-trailer-poster.jpg"><source src="/assets/main-trailer.mp4" type="video/mp4"></video>
@@ -470,10 +477,9 @@ document.querySelectorAll('.kursrow').forEach(function(r){r.href='/'+loc+'/kurse
 });
 /* Zitate */
 var quotes=[
-{t:'Ein Ort, der dich <b>mental und körperlich wachsen</b> lässt – mit der Unterstützung erfahrener Trainer. Du gehst gestärkt aus dem Training.',w:'Jasna · Google-Rezension'},
-{t:'Top Trainer, <b>starke Atmosphäre</b> und individuelles Coaching für jedes Level. Hier wird jeder gefördert und kommt garantiert ins Schwitzen!',w:'Iva Vilus · Google-Rezension'},
-{t:'Ein super nettes und motiviertes Trainerteam! Die Coaches beobachten genau und <b>korrigieren im richtigen Moment</b>.',w:'Google-Rezension · IMPACT'},
-{t:'Das Team passt sich <b>dem Niveau jeder Person</b> an – obwohl es mein erstes Mal war, konnte ich es richtig geniessen.',w:'Google-Rezension · IMPACT'}
+{t:'Impact ist ein sehr professionelles Gym, in dem die Trainer <b>viel Erfahrung und Wissen</b> haben. Sie gehen individuell auf ihre Schüler ein. Probier es aus, du wirst es nicht bereuen!',w:'Google-Rezension · Winterthur'},
+{t:'Das Team ist super freundlich und <b>passt sich dem Niveau jeder einzelnen Person an</b>. Die Räumlichkeiten sind grossartig, alles ist neu und sehr gut gepflegt. Sehr empfehlenswert!',w:'Google-Rezension · Winterthur'},
+{t:'Ein innovatives Unternehmen, das ständig wächst und sich dabei <b>wie eine Familie anfühlt</b>. Das Team ist super professionell und die Ausrüstung erstklassig.',w:'Google-Rezension · Winterthur'}
 ];
 var qi=0,qt=document.getElementById('qtext'),qw=document.getElementById('qwho'),qd=document.getElementById('qdots');
 if(qt){
