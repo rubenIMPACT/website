@@ -221,14 +221,30 @@ section.deep{background:#12100b}
 .topbar{background:#0a0908}
 .navwrap .logo{flex:0 0 auto}
 .navwrap .logo img{height:32px;width:auto;max-width:none;display:block}
+
+/* mobile nav v2 */
+.topbar{flex-wrap:nowrap;white-space:nowrap;gap:clamp(10px,2.6vw,26px);font-size:clamp(10.5px,2.9vw,13px);letter-spacing:1.2px;overflow:hidden}
+@media(max-width:899px){
+  .navwrap nav .cta{display:none}
+  .navwrap nav{padding:12px var(--mx)}
+  .navwrap .logo img{height:26px}
+  .navlinks{margin-left:auto}
+  .navlinks a,.ddt{font-size:12.5px;letter-spacing:1.6px}
+  .floatcta{position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:80}
+  .floatcta .cta{display:flex;justify-content:center;width:100%}
+  body{padding-bottom:90px}
+}
+@media(min-width:900px){.floatcta{display:none}}
+.dd.open .ddm{display:block}
+@media(max-width:899px){.navlinks{display:flex}.burger{display:none}}
 </style></head>
 <body>
-<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
+<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt" href="#standorte">Standorte <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a><a href="/winterthur/">Winterthur</a></div></div></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
-<button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/">Zürich</a><a href="/winterthur/">Winterthur</a><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><a href="/probetraining/">Gratis Probetraining</a></div>
+</nav></div>
+
 <style>
 .pagehead{padding:120px var(--mx) 30px}
 .pagehead .kick{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:14px}
@@ -260,6 +276,7 @@ section.deep{background:#12100b}
 </div></section>
 <section class="final deep"><h2 class="rev">IMPACT <span class="accent">your life.</span></h2><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></section>
 
+<div class="floatcta"><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 <footer><div class="fgrid">
 <div><img class="flogo" src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT"><div>Strong Body, Strong Mind, Great Vibes.</div>
 <div style="margin-top:14px">Walchestrasse 15, 8006 Zürich<br>Technoparkstrasse 3, 8406 Winterthur</div></div>
@@ -305,5 +322,14 @@ show();
 setInterval(function(){qi=(qi+1)%quotes.length;show()},6000); }
 })();
 </script>
+<script>
+(function(){var t=document.querySelector('.ddt');if(!t)return;
+t.addEventListener('click',function(e){
+  if(window.innerWidth<900||!matchMedia('(hover:hover)').matches){
+    e.preventDefault();t.parentElement.classList.toggle('open');
+  }
+});
+document.addEventListener('click',function(e){var d=document.querySelector('.dd.open');if(d&&!d.contains(e.target))d.classList.remove('open');});
+})();/*ddtap*/</script>
 </body>
 </html>

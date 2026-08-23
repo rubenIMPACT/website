@@ -641,6 +641,7 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 .topbar{background:#0a0908}
 .navwrap .logo{flex:0 0 auto}
 .navwrap .logo img{height:32px;width:auto;max-width:none;display:block}
+@media(max-width:899px){.navlinks{display:none}.burger{display:block}}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 </head>
@@ -652,7 +653,7 @@ body>nav:not(.sitenav),.langtog{display:none!important}
 
 <div id="floatcta"><a class="cta" href="#anmelden">Gratis Probetraining anfordern<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 
-<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Articles &amp; News</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
+<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><a href="/winterthur/team/">Team</a><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/stundenplan/">Stundenplan</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
@@ -955,5 +956,14 @@ setTimeout(function(){location.href='/probetraining/danke/'},400);
 <script>document.querySelectorAll('.biobtn').forEach(function(b){b.addEventListener('click',function(){var f=b.nextElementSibling;var open=f.classList.toggle('open');b.textContent=open?'Weniger':'Erfahre mehr';});});</script>
 <script>document.querySelectorAll('.msgtoggle').forEach(function(t){t.addEventListener('click',function(){t.nextElementSibling.classList.add('open');t.remove();});});</script>
 <script>(function(){var fc=document.getElementById('floatcta');var fin=document.querySelector('.final');if(fc&&fin&&'IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(e){fc.classList.toggle('atend',e.isIntersecting)})},{threshold:.2}).observe(fin);}})();</script>
+<script>
+(function(){var t=document.querySelector('.ddt');if(!t)return;
+t.addEventListener('click',function(e){
+  if(window.innerWidth<900||!matchMedia('(hover:hover)').matches){
+    e.preventDefault();t.parentElement.classList.toggle('open');
+  }
+});
+document.addEventListener('click',function(e){var d=document.querySelector('.dd.open');if(d&&!d.contains(e.target))d.classList.remove('open');});
+})();/*ddtap*/</script>
 </body>
 </html>
