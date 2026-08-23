@@ -15,12 +15,12 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 - CTA-Wording überall "Gratis Probetraining" (auch Footer-Button, einzeilig). /probetraining/ = reine Fragebogen-Seite (nur Logo, kein Menü, Formular -> /api/lead -> /probetraining/danke/). Vorbelegung per ?loc=zurich|winterthur&dis=MMA möglich.
 - Footer v2 auf allen 25 navwrap-Seiten, 1:1 nach Original. Newsletter aktuell mailto-Übergang (Zielsystem offen, Ruben fragen). Nur Instagram, kein Facebook (Entscheid Ruben).
 - Stundenplan (/{stadt}/stundenplan/): EINE Zeitachse links (gold), Tage als Spalten (#spgrid, Renderer `/*spgrid*/`). Zürich: je Tag Mat A/Mat B, Desktop 3 Tage / mobil 1. Winterthur: eine Matte, Desktop Mo–Sa komplett (Tabs ausgeblendet) / mobil 2 Tage. Statische Daten als JSON in `<script id="spdata">`; Live-Layer ersetzt sie mit `/api/schedule?loc=...`. Migrationsskript: tools/build_schedule_grid.py (einmalig, nicht erneut laufen lassen).
-- functions/api/schedule.js: liest öffentlichen exercise.com-Endpunkt `https://app.impact-martialarts.com/api/v4/calendar` (liefert ~4 Wochen, beide Standorte, location_id 2222=Winterthur / 2508=Zürich), filtert 7 Tage, cached 15min, gibt KEINE client_names weiter (Endpunkt leakt Teilnehmernamen – DSGVO-Meldung an exercise.com via Bogdan offen). Browser-Header nötig, sonst 502 von deren Cloudflare. Live-Verifikation Stand jetzt offen: Prüfen ob unter den Tages-Tabs Datumszeilen erscheinen; wenn nicht, Plan B: native exercise.com-Domain als Upstream.
+- functions/api/schedule.js: liest öffentlichen exercise.com-Endpunkt `https://app.impact-martialarts.com/api/v4/calendar` (liefert ~4 Wochen, beide Standorte, location_id 2222=Winterthur / 2508=Zürich), filtert 7 Tage, cached 15min, gibt KEINE client_names weiter (Endpunkt leakt Teilnehmernamen – DSGVO-Meldung an exercise.com via Bogdan offen). Browser-Header nötig, sonst 502 von deren Cloudflare. Live-Verifikation 23.08.2026 OK: /api/schedule liefert Daten, Grid zeigt Datum je Tag und echte Trainernamen.
 - functions/api/lead.js: Formular -> exercise.com (sign_in mit env EXERCISE_*, dann POST /api/v2/clients, lifecycle_stage_id 9398).
 - Kursübersichten /{stadt}/kurse/: Foto-Grid (.kgrid/.kcard). Ringen + Little Ninjas: Typo-Karten, Fotos von Ruben ausstehend.
 
 ## Offene Punkte
-1. Live-API-Verifikation Stundenplan (siehe oben).
+1. (erledigt) Live-API Stundenplan verifiziert 23.08.2026.
 2. Namen der 3 Winterthur-Google-Rezensionen (aktuell "Google-Rezension · Winterthur").
 3. Fotos: Ringen, Little Ninjas (Kursgrid). 5 Trainer-Erfolge (Laszlo, Natassja, Dario, Florian, Quentz) für Trainer-Grid.
 4. Newsletter-Zielsystem (Make/Mailtool/exercise.com?).
