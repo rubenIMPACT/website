@@ -334,20 +334,38 @@ function buildTabs(){tabs.innerHTML='';days.forEach(function(d,i){var b=document
   b.innerHTML=esc(d.wd)+(d.date?'<br><span style="font-size:10px;font-weight:400">'+esc(d.date)+'</span>':'');
   b.addEventListener('click',function(){cur=i;render()});tabs.appendChild(b)});}
 buildTabs();
-var wd=new Date().getDay();var map={1:0,2:1,3:2,4:3,5:4,6:5,0:0};cur=map[wd]<days.length?map[wd]:0;
+var wd0=new Date().getDay();var map={1:0,2:1,3:2,4:3,5:4,6:5,0:0};cur=map[wd0]<days.length?map[wd0]:0;
 render();
 var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(render,80)});
-/* Live-Layer: exercise.com liefert nur gebuchte Stunden, kein vollstaendiger Plan -> deaktiviert (LIVE=true zum Reaktivieren) */
-var LIVE=false;
-if(LIVE)fetch('/api/schedule?loc='+LOC).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+/* Live-Merge: der volle Wochenplan ist immer die Basis. Der exercise.com-Feed (enthaelt nur
+   gebuchte Stunden) aktualisiert einzelne Karten (Trainer/Level) und ergaenzt Sondertermine.
+   Es wird NIE etwas entfernt - fehlende Feed-Eintraege lassen den festen Plan stehen. */
+fetch('/api/schedule?loc='+LOC).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
   if(!j.days||!j.days.length)return;
-  days=j.days.map(function(day){var rows={};
-    day.sessions.forEach(function(s){(rows[s.time]=rows[s.time]||[]).push({
-      n:s.name,lv:(s.level?s.level+' · ':'')+s.mins+' Min',who:s.coach||'Alle Levels offen',
-      href:s.slug?('/'+LOC+'/kurse/'+s.slug+'/'):('/'+LOC+'/kurse/')})});
-    return {wd:day.wd,name:DN[day.wd]||day.wd,date:day.date.slice(8,10)+'.'+day.date.slice(5,7)+'.',rows:rows};
-  });
-  cur=0;buildTabs();render();
+  var W=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  var BYWD={};days.forEach(function(d){BYWD[d.wd]=d});
+  var LV={};j.days.forEach(function(d){LV[d.date]=d});
+  function mk(s){return {n:s.name,lv:(s.level?s.level+' · ':'')+s.mins+' Min',who:s.coach||'Alle Levels offen',
+    href:s.slug?('/'+LOC+'/kurse/'+s.slug+'/'):('/'+LOC+'/kurse/')}}
+  var out=[];
+  for(var i=0;i<7;i++){
+    var d=new Date();d.setDate(d.getDate()+i);
+    var ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+    var wd=W[d.getDay()];
+    var base=BYWD[wd],live=LV[ds];
+    if(!base&&!(live&&live.sessions.length))continue;
+    var rows={};
+    if(base)Object.keys(base.rows).forEach(function(t){rows[t]=base.rows[t].slice()});
+    if(live)live.sessions.forEach(function(s){
+      var c=mk(s),items=rows[s.time]=rows[s.time]||[];
+      for(var k=0;k<items.length;k++){if(items[k]&&items[k].href===c.href){items[k]=c;return}}
+      var free=items.indexOf(null);
+      if(free>=0)items[free]=c;else items.push(c);
+    });
+    out.push({wd:wd,name:DN[wd]||wd,date:('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.',rows:rows});
+  }
+  if(!out.length)return;
+  days=out;cur=0;buildTabs();render();
 }).catch(function(){});
 })();/*spgrid*/</script>
 </body></html>
