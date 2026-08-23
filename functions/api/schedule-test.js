@@ -33,8 +33,13 @@ export async function onRequestGet(context) {
 
   const now = Math.floor(Date.now() / 1000);
   const tries = {
-    plain: "/api/v4/calendar",
     range14: "/api/v4/calendar?start=" + now + "&end=" + (now + 14 * 86400),
+    cal_loc: "/api/v4/calendar?start=" + now + "&end=" + (now + 14 * 86400) + "&location_ids[]=2508&location_ids[]=2222",
+    sched_appts: "/api/v4/scheduled_appointments",
+    appts: "/api/v4/appointments?start=" + now + "&end=" + (now + 14 * 86400),
+    services: "/api/v4/services",
+    v2_sched: "/api/v2/scheduled_appointments",
+    v2_cal: "/api/v2/calendar?start=" + now + "&end=" + (now + 14 * 86400),
   };
   const out = {};
   for (const [name, path] of Object.entries(tries)) {
@@ -43,7 +48,11 @@ export async function onRequestGet(context) {
       const body = await r.text();
       let parsed = null;
       try { parsed = JSON.parse(body); } catch {}
-      out[name] = Array.isArray(parsed) ? summarize(parsed) : { status: r.status, snippet: body.slice(0, 120) };
+      if (Array.isArray(parsed)) out[name] = summarize(parsed);
+      else if (parsed && typeof parsed === "object") {
+        const arr = parsed.data || parsed.results || parsed.appointments || parsed.scheduled_appointments || parsed.services;
+        out[name] = Array.isArray(arr) ? { keys: Object.keys(parsed), ...summarize(arr) } : { status: r.status, keys: Object.keys(parsed).slice(0, 12), snippet: body.slice(0, 160) };
+      } else out[name] = { status: r.status, snippet: body.slice(0, 120) };
     } catch (e) { out[name] = { error: String(e).slice(0, 120) }; }
   }
   return j(out);
