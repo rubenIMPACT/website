@@ -195,6 +195,16 @@ section.deep{background:#12100b}
 .slot.empty{border:1px dashed rgba(255,255,255,.06)}
 @media(max-width:559px){.trow{grid-template-columns:40px 1fr 1fr;gap:6px}.trow .tt{font-size:13px}.sess{padding:9px 9px}.sess .n{font-size:12.5px}}
 .dayblock.on{display:block}
+
+/* 3-tage-desktop */
+.spdays{display:grid;grid-template-columns:1fr;gap:14px;padding:0 var(--mx)}
+.spdays .dayblock{padding:0}
+@media(min-width:1000px){.spdays{grid-template-columns:repeat(3,1fr);gap:22px}}
+.dhead{font-weight:800;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;margin:6px 0 10px;color:var(--white)}
+.dhead i{font-style:normal;color:var(--grey);font-weight:400;font-size:12px;margin-left:8px}
+.mathead{display:grid;grid-template-columns:46px 1fr 1fr;gap:8px;margin-bottom:6px}
+.mathead b{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
+@media(max-width:559px){.mathead{grid-template-columns:40px 1fr 1fr;gap:6px}}
 </style></head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
@@ -205,14 +215,15 @@ section.deep{background:#12100b}
 
 <section class="sphead"><div class="chaphead"><div class="idx">STUNDENPLAN WINTERTHUR</div><h2 class="rollhead" style="opacity:1"><span class="rw" style="opacity:1;transform:none">Stundenplan</span> <span class="rw accent" style="opacity:1;transform:none">Winterthur.</span></h2></div></section>
 <div class="daytabs"><button>Mo</button><button>Di</button><button>Mi</button><button>Do</button><button>Fr</button><button>Sa</button></div>
-<div class="dayblock" data-day="Montag"><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/muay-thai/"><span class="n">Muay Thai</span><span class="lv">All Levels · 60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
+<div class="spdays">
+<div class="dayblock" data-day="Montag"><div class="dhead">Montag</div><div class="mathead"><span></span><b>Mat A</b><b>Mat B</b></div><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/muay-thai/"><span class="n">Muay Thai</span><span class="lv">All Levels · 60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">16:30</span><a class="sess slot" href="/winterthur/kurse/little-ninjas/"><span class="n">Little Ninjas (10–14)</span><span class="lv">60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">17:40</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (No-Gi)</span><span class="lv">Basics · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">18:50</span><a class="sess slot" href="/winterthur/kurse/mma/"><span class="n">MMA</span><span class="lv">All Levels · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">20:00</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (Gi)</span><span class="lv">All Levels · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">20:45</span><a class="sess slot" href="/winterthur/kurse/"><span class="n">Open Mat</span><span class="lv">60 Min</span><span class="who">Alle Levels offen</span></a><span class="slot empty"></span></div>
 </div>
-<div class="dayblock" data-day="Dienstag"><div class="trow"><span class="tt">10:50</span><a class="sess slot" href="/winterthur/kurse/ringen/"><span class="n">Wrestling</span><span class="lv">Competition · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
+<div class="dayblock" data-day="Dienstag"><div class="dhead">Dienstag</div><div class="mathead"><span></span><b>Mat A</b><b>Mat B</b></div><div class="trow"><span class="tt">10:50</span><a class="sess slot" href="/winterthur/kurse/ringen/"><span class="n">Wrestling</span><span class="lv">Competition · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/mma/"><span class="n">MMA</span><span class="lv">Basics · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">15:30</span><a class="sess slot" href="/winterthur/kurse/little-ninjas/"><span class="n">Little Ninjas (6–9)</span><span class="lv">45 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">16:30</span><a class="sess slot" href="/winterthur/kurse/fitness-kickboxen/"><span class="n">Fitness Kickboxing</span><span class="lv">60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
@@ -221,28 +232,29 @@ section.deep{background:#12100b}
 <div class="trow"><span class="tt">20:00</span><a class="sess slot" href="/winterthur/kurse/ringen/"><span class="n">Wrestling</span><span class="lv">All Levels · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">20:45</span><a class="sess slot" href="/winterthur/kurse/"><span class="n">Open Mat</span><span class="lv">60 Min</span><span class="who">Alle Levels offen</span></a><span class="slot empty"></span></div>
 </div>
-<div class="dayblock" data-day="Mittwoch"><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (No-Gi)</span><span class="lv">Basics · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
+<div class="dayblock" data-day="Mittwoch"><div class="dhead">Mittwoch</div><div class="mathead"><span></span><b>Mat A</b><b>Mat B</b></div><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (No-Gi)</span><span class="lv">Basics · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">16:30</span><a class="sess slot" href="/winterthur/kurse/little-ninjas/"><span class="n">Little Ninjas (10–14)</span><span class="lv">60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">17:40</span><a class="sess slot" href="/winterthur/kurse/mma/"><span class="n">MMA</span><span class="lv">Basics · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">18:50</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (No-Gi)</span><span class="lv">Basics · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">20:00</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (Gi)</span><span class="lv">All Levels · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 </div>
-<div class="dayblock" data-day="Donnerstag"><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/fitness-kickboxen/"><span class="n">Fitness Kickboxing</span><span class="lv">60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
+<div class="dayblock" data-day="Donnerstag"><div class="dhead">Donnerstag</div><div class="mathead"><span></span><b>Mat A</b><b>Mat B</b></div><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/fitness-kickboxen/"><span class="n">Fitness Kickboxing</span><span class="lv">60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">16:30</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (Gi)</span><span class="lv">Basics · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">17:40</span><a class="sess slot" href="/winterthur/kurse/bjj/"><span class="n">BJJ (No-Gi)</span><span class="lv">All Levels · 60 Min</span><span class="who">João</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">18:50</span><a class="sess slot" href="/winterthur/kurse/fitness-kickboxen/"><span class="n">Fitness Kickboxing</span><span class="lv">60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">20:00</span><a class="sess slot" href="/winterthur/kurse/muay-thai/"><span class="n">Muay Thai</span><span class="lv">All Levels · 60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
 </div>
-<div class="dayblock" data-day="Freitag"><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/ringen/"><span class="n">Wrestling</span><span class="lv">All Levels · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
+<div class="dayblock" data-day="Freitag"><div class="dhead">Freitag</div><div class="mathead"><span></span><b>Mat A</b><b>Mat B</b></div><div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/ringen/"><span class="n">Wrestling</span><span class="lv">All Levels · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">15:30</span><a class="sess slot" href="/winterthur/kurse/little-ninjas/"><span class="n">Little Ninjas (6–9)</span><span class="lv">45 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">16:30</span><a class="sess slot" href="/winterthur/kurse/ringen/"><span class="n">Wrestling</span><span class="lv">Basics · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">17:40</span><a class="sess slot" href="/winterthur/kurse/mma/"><span class="n">MMA</span><span class="lv">All Levels · 60 Min</span><span class="who">Laszlo</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">18:50</span><a class="sess slot" href="/winterthur/kurse/muay-thai/"><span class="n">Muay Thai</span><span class="lv">Basics · 60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">20:00</span><a class="sess slot" href="/winterthur/kurse/boxen/"><span class="n">Boxen</span><span class="lv">All Levels · 60 Min</span><span class="who">Sergei</span></a><span class="slot empty"></span></div>
 </div>
-<div class="dayblock" data-day="Samstag"><div class="trow"><span class="tt">09:40</span><a class="sess slot" href="/winterthur/kurse/fitness-kickboxen/"><span class="n">Fitness Kickboxing</span><span class="lv">60 Min</span><span class="who">Laszlo & Sergei</span></a><span class="slot empty"></span></div>
+<div class="dayblock" data-day="Samstag"><div class="dhead">Samstag</div><div class="mathead"><span></span><b>Mat A</b><b>Mat B</b></div><div class="trow"><span class="tt">09:40</span><a class="sess slot" href="/winterthur/kurse/fitness-kickboxen/"><span class="n">Fitness Kickboxing</span><span class="lv">60 Min</span><span class="who">Laszlo & Sergei</span></a><span class="slot empty"></span></div>
 <div class="trow"><span class="tt">10:50</span><a class="sess slot" href="/winterthur/kurse/mma/"><span class="n">MMA</span><span class="lv">Basics · 60 Min</span><span class="who">Laszlo</span></a><a class="sess slot" href="/winterthur/kurse/boxen/"><span class="n">Boxen</span><span class="lv">Basics · 60 Min</span><span class="who">Sergei</span></a></div>
 <div class="trow"><span class="tt">12:00</span><a class="sess slot" href="/winterthur/kurse/ringen/"><span class="n">Wrestling</span><span class="lv">All Levels · 60 Min</span><span class="who">Laszlo</span></a><a class="sess slot" href="/winterthur/kurse/muay-thai/"><span class="n">Muay Thai</span><span class="lv">All Levels · 60 Min</span><span class="who">Sergei</span></a></div>
+</div>
 </div>
 <p class="spnote">Alle Stunden sind offen für Mitglieder aller Levels, sofern nicht anders angegeben. Klick auf eine Stunde für Details zur Disziplin.</p>
 <div class="floatcta"><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
@@ -309,9 +321,15 @@ location.href='mailto:support@impact-martialarts.com?subject=Newsletter-Anmeldun
 });})();/*nl*/</script>
 <script>
 (function(){var tabs=document.querySelectorAll('.daytabs button'),blocks=document.querySelectorAll('.dayblock');
-function show(i){tabs.forEach(function(b,j){b.classList.toggle('on',j===i)});blocks.forEach(function(b,j){b.classList.toggle('on',j===i)})}
+function per(){return window.innerWidth>=1000?3:1}
+var cur=0;
+function show(i){cur=Math.max(0,Math.min(i,blocks.length-per()));
+  tabs.forEach(function(b,j){b.classList.toggle('on',j>=cur&&j<cur+per())});
+  blocks.forEach(function(b,j){b.classList.toggle('on',j>=cur&&j<cur+per())});}
 tabs.forEach(function(b,i){b.addEventListener('click',function(){show(i)})});
+window.addEventListener('resize',function(){show(cur)});
 var d=new Date().getDay();var map={1:0,2:1,3:2,4:3,5:4,6:5,0:0};show(map[d]!==undefined&&map[d]<tabs.length?map[d]:0);
+window.__spshow=show;
 })();/*sptabs*/</script>
 <script>
 (function(){
@@ -339,12 +357,17 @@ fetch('/api/schedule?loc='+LOC).then(function(r){if(!r.ok)throw 0;return r.json(
         rows+='<div class="trow"><span class="tt">'+(i===0?t:'')+'</span>'+c1+c2+'</div>';
       }
     });
-    var blk=document.createElement('div');blk.className='dayblock';blk.innerHTML=rows;
+    var blk=document.createElement('div');blk.className='dayblock';blk.innerHTML='<div class="dhead">'+{'Mo':'Montag','Di':'Dienstag','Mi':'Mittwoch','Do':'Donnerstag','Fr':'Freitag','Sa':'Samstag','So':'Sonntag'}[day.wd]+'<i>'+day.date.slice(8,10)+'.'+day.date.slice(5,7)+'.</i></div>'+'<div class=\"mathead\"><span></span><b>Mat A</b><b>Mat B</b></div>'+rows;
     parent.insertBefore(blk,anchor);
   });
   var bts=tabs.querySelectorAll('button'),blocks=document.querySelectorAll('.dayblock');
-  function show(i){bts.forEach(function(b,j){b.classList.toggle('on',j===i)});blocks.forEach(function(b,j){b.classList.toggle('on',j===i)})}
+  function per(){return window.innerWidth>=1000?3:1}
+  var cur=0;
+  function show(i){cur=Math.max(0,Math.min(i,blocks.length-per()));
+    bts.forEach(function(b,j){b.classList.toggle('on',j>=cur&&j<cur+per())});
+    blocks.forEach(function(b,j){b.classList.toggle('on',j>=cur&&j<cur+per())});}
   bts.forEach(function(b,i){b.addEventListener('click',function(){show(i)})});
+  window.addEventListener('resize',function(){show(cur)});
   show(0);
 }).catch(function(){});
 })();/*splive*/</script>
