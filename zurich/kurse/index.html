@@ -188,17 +188,29 @@ section.deep{background:#12100b}
 .kcard:hover .karr{transform:translate(3px,-3px)}
 .kcard.typo{background:radial-gradient(120% 120% at 20% 0%,#1a1712,#0c0b0a)}
 .kcard.typo:after{content:attr(data-big);position:absolute;top:8px;left:14px;font-size:clamp(46px,7vw,74px);font-weight:900;color:rgba(212,175,55,.10);text-transform:uppercase;letter-spacing:2px;line-height:1}
+
+/* citydd: Standortwechsel mobil neben dem Burger */
+.citydd{display:none}
+@media(max-width:899px){
+.citydd{display:inline-block;position:relative;margin-left:auto}
+.citydd .citylabel{display:inline-block;margin-left:0;color:var(--gold);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:13.5px;padding:10px 0}
+.citydd .caret{font-size:10px;color:var(--gold)}
+.navwrap .citydd+.burger,.citydd+.burger{margin-left:6px}
+.citydd .ddm{display:none;position:absolute;top:100%;right:0;left:auto;min-width:160px;background:#0e0d0b;border:1px solid var(--hair);padding:6px 0;z-index:90}
+.citydd .ddm a{display:block;padding:12px 20px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--white);white-space:nowrap;border:0}
+.citydd.open .ddm{display:block}
+}
 </style></head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/kurse/">Kurse</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/team/">Team</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
-<button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/team/">Team</a><a href="/zurich/kurse/">Kurse</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/stundenplan/">Stundenplan</a><div class="msep"></div><a class="sec" href="/winterthur/">Standort wechseln: Winterthur</a><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
+<span class="dd citydd"><a class="ddt citylabel" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><span class="ddm"><a href="/winterthur/">Winterthur</a></span></span><button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/kurse/">Kurse</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/team/">Team</a><div class="msep"></div><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
 <header class="pagehero"><div class="kick rev">IMPACT Zürich</div><h1 class="rev">Kurse in <span class="accent">Zürich.</span></h1>
 <p class="lead rev">Erkunde unsere Kampfsportkurse für jedes Alter und Niveau.</p><a class="cta rev" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></header>
 <section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Alle <span class="accent">Kurse.</span></h2></div>
-<p class="lead rev">Für jedes Alter und jedes Level – finde deine Disziplin.</p><div class="cardlist"><a class="cardrow rev" href="/zurich/kurse/bjj/"><div><h3>Brazilian Jiu-Jitsu / BJJ</h3><small>Effektiver Bodenkampf – Technik statt Kraft.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/muay-thai/"><div><h3>Thai-Boxen / Muay Thai</h3><small>Die Kunst der acht Waffen – kraftvoll, technisch, mit Respekt.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/boxen/"><div><h3>Boxen</h3><small>Schlagtechnik, Fitness und Timing – die Kunst des Boxens.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/mma/"><div><h3>MMA</h3><small>Boxen, Muay Thai, Ringen und BJJ fliessen zusammen.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/ringen/"><div><h3>Ringen</h3><small>Kraft, Technik und Ausdauer durch umfassendes Ringtraining.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/fitness-kickboxen/"><div><h3>Fitness Kickboxen</h3><small>Schweisstreibendes Fitness-Training mit Spassfaktor.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/street-defense/"><div><h3>Street Defense</h3><small>Selbstverteidigung, die im Ernstfall funktioniert.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/little-ninjas/"><div><h3>Little Ninjas – Kids Training</h3><small>Kindertraining für Selbstvertrauen, Disziplin und Fitness.</small></div><div class="arr">&rarr;</div></a><a class="cardrow rev" href="/zurich/kurse/personal-training/"><div><h3>Personal Training</h3><small>1:1-Coaching – massgeschneidert auf deine Ziele.</small></div><div class="arr">&rarr;</div></a></div></section>
+<p class="lead rev">Für jedes Alter und jedes Level – finde deine Disziplin.</p></section>
 <div class="kgrid">
 <a class="kcard" href="/zurich/kurse/mma/"><img src="/assets/wf/57b6c05c-69d679ded3fb371a59abb73d-Class-Thumbnail-Resize-11-.jpg" alt="MMA" loading="lazy"><span class="karr">→</span><span class="ktxt"><h3>MMA</h3><p>Mixed Martial Arts: Boxen, Muay Thai, Ringen und BJJ vereint.</p></span></a>
 <a class="kcard" href="/zurich/kurse/muay-thai/"><img src="/assets/mt-smile-2.jpg" alt="Muay Thai" loading="lazy"><span class="karr">→</span><span class="ktxt"><h3>Muay Thai</h3><p>Kraftvolle Schlagtechniken und Fitness mit dynamischem Muay-Thai-Training.</p></span></a>
@@ -258,12 +270,14 @@ if(b&&m){b.addEventListener('click',function(){m.classList.add('open')});
 m.querySelector('.close').addEventListener('click',function(){m.classList.remove('open')});}
 })();
 </script><script>
-(function(){var t=document.querySelector('.ddt');if(!t)return;
+(function(){document.querySelectorAll('.dd>.ddt').forEach(function(t){
 t.addEventListener('click',function(e){
   if(window.innerWidth<900||!matchMedia('(hover:hover)').matches){
-    e.preventDefault();t.parentElement.classList.toggle('open');
+    e.preventDefault();var d=t.parentElement;
+    document.querySelectorAll('.dd.open').forEach(function(x){if(x!==d)x.classList.remove('open')});
+    d.classList.toggle('open');
   }
-});
+});});
 document.addEventListener('click',function(e){var d=document.querySelector('.dd.open');if(d&&!d.contains(e.target))d.classList.remove('open');});
 })();/*ddtap*/</script>
 <script>
