@@ -185,7 +185,7 @@ section.deep{background:#12100b}
 .spnote{padding:6px var(--mx) 60px;color:var(--grey);font-size:14px}
 
 /* zeitraster: eine Zeitachse links, Tage als Spalten */
-.spgrid{display:grid;gap:8px 16px;padding:0 var(--mx);align-items:stretch;--tcol:46px}
+.spgrid{display:grid;gap:8px 16px;padding:0 var(--mx);align-items:stretch;--tcol:46px;grid-template-rows:auto;grid-auto-rows:1fr}
 .spgrid .tt{color:var(--gold);font-weight:800;font-size:15px;padding-top:12px;white-space:nowrap}
 .spgrid .dh .dn{font-weight:800;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;margin:6px 0 10px;color:var(--white)}
 .spgrid .dh .dn i{font-style:normal;color:var(--grey);font-weight:400;font-size:12px;margin-left:8px}
@@ -321,6 +321,7 @@ function render(){
     h+='<div class="tt">'+esc(t)+'</div>';
     vis.forEach(function(d){var items=d.rows[t]||[];
       if(MATS===2){while(items.length<2)items=items.concat([null]);h+='<div class="dc m2">'+items.map(card).join('')+'</div>';}
+      else if(items.length>1){h+='<div class="dc" style="grid-template-columns:repeat('+items.length+',1fr)">'+items.map(card).join('')+'</div>';}
       else{h+='<div class="dc">'+(items.length?items.map(card).join(''):card(null))+'</div>';}
     });
   });
@@ -338,8 +339,9 @@ var wd0=new Date().getDay();var map={1:0,2:1,3:2,4:3,5:4,6:5,0:0};cur=map[wd0]<d
 render();
 var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(render,80)});
 /* Live-Merge: der volle Wochenplan ist immer die Basis. Der exercise.com-Feed (enthaelt nur
-   gebuchte Stunden) aktualisiert einzelne Karten (Trainer/Level) und ergaenzt Sondertermine.
-   Es wird NIE etwas entfernt - fehlende Feed-Eintraege lassen den festen Plan stehen. */
+   gebuchte Stunden) aktualisiert passende Karten (Trainer/Level) und VERSCHIEBT eine Stunde,
+   wenn sie im Feed an einer anderen Zeit steht (Zeitwechsel/Swap greift damit automatisch am
+   richtigen Datum). Es wird nie eine Stunde doppelt gezeigt und nie eine neue erfunden. */
 fetch('/api/schedule?loc='+LOC).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
   if(!j.days||!j.days.length)return;
   var W=['So','Mo','Di','Mi','Do','Fr','Sa'];
@@ -353,15 +355,38 @@ fetch('/api/schedule?loc='+LOC).then(function(r){if(!r.ok)throw 0;return r.json(
     var ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
     var wd=W[d.getDay()];
     var base=BYWD[wd],live=LV[ds];
-    if(!base&&!(live&&live.sessions.length))continue;
+    if(!base)continue;
     var rows={};
-    if(base)Object.keys(base.rows).forEach(function(t){rows[t]=base.rows[t].slice()});
-    if(live)live.sessions.forEach(function(s){
-      var c=mk(s),items=rows[s.time]=rows[s.time]||[];
-      for(var k=0;k<items.length;k++){if(items[k]&&items[k].href===c.href){items[k]=c;return}}
-      var free=items.indexOf(null);
-      if(free>=0)items[free]=c;else items.push(c);
-    });
+    Object.keys(base.rows).forEach(function(t){rows[t]=base.rows[t].slice()});
+    if(live){
+      var rest=[];
+      /* 1) exakter Treffer (Zeit + Kurs): Karte aktualisieren */
+      live.sessions.forEach(function(s){
+        var c=mk(s),items=rows[s.time];
+        if(items)for(var k=0;k<items.length;k++){
+          if(items[k]&&!items[k]._c&&items[k].href===c.href){c._c=true;c.n=items[k].n;items[k]=c;return}
+        }
+        rest.push(s);
+      });
+      /* 2) Kurs existiert am selben Tag zu anderer Zeit: verschieben statt doppeln */
+      rest.forEach(function(s){
+        var c=mk(s),found=null;
+        Object.keys(rows).forEach(function(t){var its=rows[t];
+          for(var k=0;k<its.length;k++){if(!found&&its[k]&&!its[k]._c&&its[k].href===c.href)found={t:t,k:k}}});
+        if(!found)return; /* unbekannte Stunde: nicht ergaenzen */
+        c.n=rows[found.t][found.k].n;
+        rows[found.t][found.k]=null;
+        var items=rows[s.time]=rows[s.time]||[];
+        c._c=true;
+        var free=items.indexOf(null);
+        if(free>=0)items[free]=c;else items.push(c);
+      });
+      /* aufraeumen: leere Slots/Zeiten entfernen (bei 2 Matten Positionen behalten) */
+      Object.keys(rows).forEach(function(t){
+        if(MATS===1)rows[t]=rows[t].filter(Boolean);
+        if(!rows[t].some(function(x){return x}))delete rows[t];
+      });
+    }
     out.push({wd:wd,name:DN[wd]||wd,date:('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.',rows:rows});
   }
   if(!out.length)return;
