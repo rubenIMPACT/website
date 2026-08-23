@@ -22,7 +22,9 @@ for dirpath,dirs,files in os.walk(ROOT):
                 if not os.path.exists(dest):
                     try:
                         req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
-                        open(dest,'wb').write(urllib.request.urlopen(req,timeout=30).read())
+                        data=urllib.request.urlopen(req,timeout=30).read()
+                        assert data, 'leer'
+                        open(dest,'wb').write(data)
                         print('downloaded',name)
                     except Exception as e:
                         print('SKIP',url,e); continue

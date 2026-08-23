@@ -244,10 +244,10 @@ section.deep{background:#12100b}
 .trgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;background:var(--hair);margin-top:34px}
 @media(min-width:700px){.trgrid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1100px){.trgrid{grid-template-columns:repeat(5,1fr)}}
-@media(max-width:559px){.trgrid{grid-template-columns:1fr}}
+
 .trcard{display:flex;flex-direction:column;background:var(--black);overflow:hidden}
 .trcard img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;transition:transform .3s;display:block}
-@media(max-width:559px){.trcard img{aspect-ratio:4/4.4}}
+@media(max-width:559px){.trcard .tm{padding:9px 10px 12px}.trcard .tm b{font-size:12.5px}.trcard .tm i{font-size:10px}.trcard .tm em{font-size:10px}}
 .trcard .tm{display:block;padding:12px 14px 16px}
 .trcard .tm b{display:block;font-size:15px;font-weight:800;line-height:1.15}
 .trcard .tm i{display:block;font-style:normal;color:var(--grey);font-size:12px;margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
@@ -304,6 +304,12 @@ section.deep{background:#12100b}
 .vhero.vport:before{background:linear-gradient(90deg,rgba(0,0,0,.2),transparent 55%)}
 .vhero.vport.cinema .inner{opacity:1;pointer-events:auto}
 }
+
+/* finalbg */
+.final.deep{position:relative;overflow:hidden}
+.final.deep:before{content:"";position:absolute;inset:0;background:url('https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd23/69afc8595587bec9bfa05231_Team%20Photo%2001.jpg') center 30%/cover no-repeat}
+.final.deep:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.92),rgba(0,0,0,.62) 45%,rgba(0,0,0,.9))}
+.final.deep>*{position:relative;z-index:2}
 </style></head>
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
@@ -367,14 +373,14 @@ section.deep{background:#12100b}
 
 <section class="chapter" id="instagram"><div class="chaphead"><div class="idx rev">04 — INSTAGRAM</div><h2 class="rollhead"><span class="rw">Follow</span> <span class="rw">us</span> <span class="rw">on</span> <a class="rw accent" href="https://www.instagram.com/impactmartialarts_ch/" target="_blank" rel="noopener">Instagram.</a></h2></div>
 <div class="iggrid">
-<a class="rev" href="https://www.instagram.com/p/DcVeAdzjP1U/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/ecebfedb-6a895c77e1fc7cdb757b93f6-784540989-18071866208722301-7626153932267027984-n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
-<a class="rev" href="https://www.instagram.com/reel/DcQgspYs9tN/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/3817c8f5-6a87da72300cc52d95a06c70-Screenshot-2026-08-21-065441.png" alt="Instagram Post IMPACT Martial Arts"></a>
-<a class="rev" href="https://www.instagram.com/p/DcK8Tx-jL1S/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/12fe0274-6a83f89fca90094b991ece3e-778899201-18071222465722301-292451918563897309-n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
-<a class="rev" href="https://www.instagram.com/reel/DcEM04cs1rq/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/a6e9b0f4-6a83478b5160f0771b9c0bd5-Screenshot-2026-08-17-193953.png" alt="Instagram Post IMPACT Martial Arts"></a>
-<a class="rev" href="https://www.instagram.com/p/Db7v3fajEPV/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/6a81b6df-6a7c308fe5be1e5dfac3b0ec-771822967-18070192370722301-3886518216202831162-n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
-<a class="rev" href="https://www.instagram.com/reel/Db5Otmhs_Dx/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/4ff88821-6a7be6841dcccecb02728528-Screenshot-2026-08-12-052028.png" alt="Instagram Post IMPACT Martial Arts"></a>
-<a class="rev" href="https://www.instagram.com/reel/Db05dWKMF-f/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/3e1a245e-6a79dbeea95ad98f4df76574-Screenshot-2026-08-10-161046.png" alt="Instagram Post IMPACT Martial Arts"></a>
-<a class="rev" href="https://www.instagram.com/p/DbumlWHDLCH/" target="_blank" rel="noopener"><img loading="lazy" src="assets/wf/f2cea1f3-6a757839ecb99463c7415916-766287673-18069422675722301-1441070538995836477-n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/p/DcVeAdzjP1U/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a895c77e1fc7cdb757b93f6_784540989_18071866208722301_7626153932267027984_n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/reel/DcQgspYs9tN/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a87da72300cc52d95a06c70_Screenshot%202026-08-21%20065441.png" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/p/DcK8Tx-jL1S/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a83f89fca90094b991ece3e_778899201_18071222465722301_292451918563897309_n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/reel/DcEM04cs1rq/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a83478b5160f0771b9c0bd5_Screenshot%202026-08-17%20193953.png" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/p/Db7v3fajEPV/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a7c308fe5be1e5dfac3b0ec_771822967_18070192370722301_3886518216202831162_n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/reel/Db5Otmhs_Dx/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a7be6841dcccecb02728528_Screenshot%202026-08-12%20052028.png" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/reel/Db05dWKMF-f/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a79dbeea95ad98f4df76574_Screenshot%202026-08-10%20161046.png" alt="Instagram Post IMPACT Martial Arts"></a>
+<a class="rev" href="https://www.instagram.com/p/DbumlWHDLCH/" target="_blank" rel="noopener"><img loading="lazy" src="https://cdn.prod.website-files.com/651f0961164dd76d2ce8fd62/6a757839ecb99463c7415916_766287673_18069422675722301_1441070538995836477_n.jpeg" alt="Instagram Post IMPACT Martial Arts"></a>
 </div></section>
 
 <section class="final deep"><svg class="finalbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
