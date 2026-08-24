@@ -2,8 +2,10 @@
 /probetraining/bjj /winterthur/kurse/bjj/ 301
 /probetraining/muay-thai/ /winterthur/kurse/muay-thai/ 301
 /probetraining/muay-thai /winterthur/kurse/muay-thai/ 301
-/bjjprobetraining/* /probetraining/bjj/ 301
-/muaythaiprobetraining/* /probetraining/muay-thai/ 301
+/bjjprobetraining /winterthur/kurse/bjj/ 301
+/bjjprobetraining/* /winterthur/kurse/bjj/ 301
+/muaythaiprobetraining /winterthur/kurse/muay-thai/ 301
+/muaythaiprobetraining/* /winterthur/kurse/muay-thai/ 301
 /bjjtrial/* /trial/bjj/ 301
 /muaythaitrial/* /trial/muay-thai/ 301
 /bjj-winterthur.html /probetraining/bjj/ 301
