@@ -204,19 +204,84 @@ section.deep{background:#12100b}
 .kidwhy .wc{background:var(--black);padding:26px 24px}
 .kidwhy .wc h4{font-size:16px;letter-spacing:.5px;margin-bottom:8px}
 .kidwhy .wc p{color:var(--grey);font-size:14px;line-height:1.55}
+
+/* kids formular */
+.formsec{background:#0d0c0a;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:84px 0;margin-top:90px}
+.formgrid{display:grid;grid-template-columns:1fr;gap:44px;padding:0 var(--mx);max-width:1180px;margin:0 auto}
+@media(min-width:1000px){.formgrid{grid-template-columns:minmax(0,1fr) 440px;justify-content:space-between;align-items:center;gap:48px}.formgrid .left{padding-right:clamp(16px,3vw,56px)}}
+.formgrid .idx{font-size:12px;letter-spacing:3px;color:var(--gold);font-weight:800;text-transform:uppercase;margin-bottom:12px}
+.formgrid .left h2{font-size:clamp(30px,4vw,52px)}
+.formgrid .left p{color:var(--grey);font-size:17px;margin-top:16px;max-width:440px}
+#leadform{display:flex;flex-direction:column;gap:14px;max-width:480px;width:100%}
+#leadform label{font-size:13px;color:var(--grey);letter-spacing:.5px;text-transform:uppercase;font-weight:500;display:block;margin-bottom:6px}
+#leadform input,#leadform select{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:var(--white);font-family:inherit;font-size:16px;padding:14px 16px;width:100%}
+#leadform input:focus,#leadform select:focus{outline:none;border-color:var(--gold)}
+#leadform select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23e2c210' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+.namerow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.msgtoggle{background:none;border:none;color:var(--gold);font-family:inherit;font-size:14px;font-weight:500;padding:2px 0;cursor:pointer;text-align:left}
+.msgwrap{display:none}
+.msgwrap.open{display:block}
+.errfield{border-color:#e5484d!important;animation:errpulse .9s ease-out}
+@keyframes errpulse{0%{box-shadow:0 0 0 0 rgba(229,72,77,.7)}70%{box-shadow:0 0 0 9px rgba(229,72,77,0)}100%{box-shadow:0 0 0 0 rgba(229,72,77,0)}}
+.form-note{font-size:13px;color:#6e6a5f}
+#formsuccess h2{font-size:clamp(28px,4vw,44px)}
+@media(max-width:640px){#leadform input,#leadform select{padding:12px 12px}#leadform label{font-size:11px;margin-bottom:5px}}
 </style><script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 <style>.admode .navwrap,.admode .floatcta{display:none}</style>
 </head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/">Zürich</a></div></div><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/stundenplan/">Stundenplan</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/team/">Team</a></div>
-<a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
+<a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <span class="dd citydd"><a class="ddt citylabel" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><span class="ddm"><a href="/zurich/">Zürich</a></span></span><button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
 <div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/stundenplan/">Stundenplan</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/team/">Team</a><div class="msep"></div><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
-<header class="pagehero kidshero"><div class="kick rev">IMPACT Winterthur · Kindertraining</div><h1 class="rev">Wir machen <span class="accent">Kinder stark.</span></h1><p class="kidsintro rev">Spassiges, strukturiertes Kampfsporttraining, das Selbstvertrauen, Koordination und wichtige Lebenskompetenzen für Kinder im Alter von 6 bis 14 Jahren aufbaut – hier bei IMPACT in Winterthur.</p><a class="cta rev" style="margin:34px var(--mx) 0" href="/probetraining/?loc=winterthur&dis=Little%20Ninjas">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></header>
-<section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Kindertraining <span class="accent">Kurse.</span></h2></div><div class="kidsgrid"><a class="kidcard rev" href="/probetraining/?loc=winterthur&dis=Little%20Ninjas"><img loading="lazy" src="/assets/kids-10-14.png" alt="Little Ninjas (10–14) – IMPACT Winterthur"><div class="kb"><div class="age">Alter 10–14</div><h3>Little Ninjas (10–14)</h3><p>Ein energiegeladenes Kampfsportprogramm mit Fokus auf Kraft, Fitness und Selbstvertrauen. Kinder lernen praktische Selbstverteidigung, Disziplin und mentale Stärke und entwickeln gleichzeitig Führungsqualitäten und Teamfähigkeit.</p><span class="go">Gratis Probetraining &rarr;</span></div></a><a class="kidcard rev" href="/probetraining/?loc=winterthur&dis=Little%20Ninjas"><img loading="lazy" src="/assets/kids-6-9.png" alt="Little Ninjas (6–9) – IMPACT Winterthur"><div class="kb"><div class="age">Alter 6–9</div><h3>Little Ninjas (6–9)</h3><p>Ein unterhaltsamer, spielerischer Kampfsportkurs, der Selbstvertrauen, Koordination und Konzentration aufbaut. Kinder bleiben aktiv und lernen dabei Respekt, Teamarbeit und Selbstdisziplin in einer sicheren, ermutigenden Umgebung.</p><span class="go">Gratis Probetraining &rarr;</span></div></a></div></section><section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Warum <span class="accent">IMPACT.</span></h2></div><div class="kidwhy"><div class="wc rev"><h4>Selbstvertrauen</h4><p>Kinder wachsen über sich hinaus, lernen mit Erfolgen und Rückschlägen umzugehen und treten selbstbewusster auf.</p></div><div class="wc rev"><h4>Respekt & Disziplin</h4><p>Feste Rituale, klare Regeln und Teamarbeit vermitteln Respekt, Fokus und Selbstdisziplin – auf der Matte und im Alltag.</p></div><div class="wc rev"><h4>Fitness & Koordination</h4><p>Spielerische Bewegung baut Kraft, Beweglichkeit und Koordination auf und hält die Kinder aktiv und gesund.</p></div></div><div class="cardlist" style="margin-top:44px"><a class="cardrow rev" href="/winterthur/stundenplan/"><div><h3>Stundenplan Winterthur</h3><small>Alle Little-Ninjas-Zeiten auf einen Blick.</small></div><div class="arr">&rarr;</div></a></div></section>
-<section class="final deep"><h2 class="rev">Bereit, dein Kind <span class="accent">stark zu machen?</span></h2><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></section>
-<div class="floatcta"><a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
+<header class="pagehero kidshero"><div class="kick rev">IMPACT Winterthur · Kindertraining</div><h1 class="rev">Wir machen <span class="accent">Kinder stark.</span></h1><p class="kidsintro rev">Spassiges, strukturiertes Kampfsporttraining, das Selbstvertrauen, Koordination und wichtige Lebenskompetenzen für Kinder im Alter von 6 bis 14 Jahren aufbaut – hier bei IMPACT in Winterthur.</p><a class="cta rev" style="margin:34px var(--mx) 0" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></header>
+<section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Kindertraining <span class="accent">Kurse.</span></h2></div><div class="kidsgrid"><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-10-14.png" alt="Little Ninjas (10–14) – IMPACT Winterthur"><div class="kb"><div class="age">Alter 10–14</div><h3>Little Ninjas (10–14)</h3><p>Ein energiegeladenes Kampfsportprogramm mit Fokus auf Kraft, Fitness und Selbstvertrauen. Kinder lernen praktische Selbstverteidigung, Disziplin und mentale Stärke und entwickeln gleichzeitig Führungsqualitäten und Teamfähigkeit.</p><span class="go">Gratis Probetraining &rarr;</span></div></a><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-6-9.png" alt="Little Ninjas (6–9) – IMPACT Winterthur"><div class="kb"><div class="age">Alter 6–9</div><h3>Little Ninjas (6–9)</h3><p>Ein unterhaltsamer, spielerischer Kampfsportkurs, der Selbstvertrauen, Koordination und Konzentration aufbaut. Kinder bleiben aktiv und lernen dabei Respekt, Teamarbeit und Selbstdisziplin in einer sicheren, ermutigenden Umgebung.</p><span class="go">Gratis Probetraining &rarr;</span></div></a></div></section><section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Warum <span class="accent">IMPACT.</span></h2></div><div class="kidwhy"><div class="wc rev"><h4>Selbstvertrauen</h4><p>Kinder wachsen über sich hinaus, lernen mit Erfolgen und Rückschlägen umzugehen und treten selbstbewusster auf.</p></div><div class="wc rev"><h4>Respekt & Disziplin</h4><p>Feste Rituale, klare Regeln und Teamarbeit vermitteln Respekt, Fokus und Selbstdisziplin – auf der Matte und im Alltag.</p></div><div class="wc rev"><h4>Fitness & Koordination</h4><p>Spielerische Bewegung baut Kraft, Beweglichkeit und Koordination auf und hält die Kinder aktiv und gesund.</p></div></div><div class="cardlist" style="margin-top:44px"><a class="cardrow rev" href="/winterthur/stundenplan/"><div><h3>Stundenplan Winterthur</h3><small>Alle Little-Ninjas-Zeiten auf einen Blick.</small></div><div class="arr">&rarr;</div></a></div></section>
+<section class="formsec" id="anmelden">
+<div class="formgrid">
+<div class="left">
+<div class="idx rev">Terminvereinbarung</div>
+<h2 class="rev">Sichere deinem Kind das <span class="accent">gratis</span> Probetraining</h2>
+<p>Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam den Einstieg für dein Kind. Probetraining gratis, Leihausrüstung inklusive.</p>
+</div>
+<form id="leadform" novalidate>
+<div><label for="floc">Wo möchte dein Kind trainieren? *</label><select id="floc" name="location" required>
+<option value="Zürich">Zürich</option>
+<option value="Winterthur" selected>Winterthur</option>
+</select></div>
+<div><label for="fdis">Interesse: *</label><select id="fdis" name="discipline" required>
+<option value="Little Ninjas" selected>Little Ninjas – Kids Training</option>
+<option value="MMA">MMA</option>
+<option value="Thai-Boxen / Muay Thai">Thai-Boxen / Muay Thai</option>
+<option value="Brazilian Jiu-jitsu / BJJ">Brazilian Jiu-jitsu / BJJ</option>
+<option value="Fitnessboxen / Kickboxen">Fitnessboxen / Kickboxen</option>
+<option value="Boxen">Boxen</option>
+<option value="Street Defense">Street Defense</option>
+<option value="Ringen">Ringen</option>
+<option value="Personal Training">Personal Training</option>
+</select></div>
+<div id="kidwrap"><div class="namerow"><div><label for="fkidname">Vorname deines Kindes *</label><input id="fkidname" name="kid_name" type="text" required></div><div><label for="fkid">Alter deines Kindes *</label><select id="fkid" name="kid_age" required>
+<option value="">Alter wählen</option>
+<option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option>
+</select></div></div></div>
+<div class="namerow"><div><label for="fname">Vorname Elternteil *</label><input id="fname" name="firstname" type="text" autocomplete="given-name" required></div><div><label for="lname">Nachname *</label><input id="lname" name="lastname" type="text" autocomplete="family-name" required></div></div>
+<div><label for="phone">Telefon *</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
+<div><label for="email">E-Mail *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+<button type="button" class="msgtoggle">+ Nachricht hinzufügen</button><div class="msgwrap"><div><label for="fmsg">Nachricht</label><input id="fmsg" name="message" type="text" placeholder="Optional – z.B. wenn Geschwister zusammen kommen"></div></div>
+<input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
+<button class="cta" type="submit">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
+<div class="form-note">Gratis und unverbindlich. Wir melden uns telefonisch.</div>
+</form>
+<div id="formsuccess" style="display:none">
+<h2>Anfrage erhalten.</h2>
+<p style="color:var(--grey);font-size:17px;margin-top:14px;max-width:420px">Wir rufen dich an und finden gemeinsam den Einstieg für dein Kind. Bis bald auf der Matte.</p>
+<div id="testnote" class="form-note" style="margin-top:12px">Testmodus – Formular noch nicht verbunden</div>
+</div>
+</div>
+</section>
+
+<section class="final deep"><h2 class="rev">Bereit, dein Kind <span class="accent">stark zu machen?</span></h2><a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></section>
+<div class="floatcta"><a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div>
 <footer><div class="fgrid f4">
 <div class="fcol">
 <ul>
@@ -280,4 +345,49 @@ f.addEventListener('submit',function(e){e.preventDefault();
 var em=f.querySelector('input[name=email]').value;
 location.href='mailto:support@impact-martialarts.com?subject=Newsletter-Anmeldung&body='+encodeURIComponent('Bitte in den Newsletter aufnehmen: '+em);
 });})();/*nl*/</script>
+<script>
+(function(){
+try{
+var p=new URLSearchParams(location.search);
+var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc'};
+Object.keys(m).forEach(function(k){var v=p.get(k);if(v){var el=document.getElementById(m[k]);if(el)el.value=v;try{sessionStorage.setItem('imp_'+k,v)}catch(e){}}else{try{var s=sessionStorage.getItem('imp_'+k);if(s){var el2=document.getElementById(m[k]);if(el2)el2.value=s}}catch(e){}}});
+var lp=document.getElementById('t_lp');if(lp)lp.value=location.href.split('?')[0];
+var rf=document.getElementById('t_rf');if(rf)rf.value=document.referrer||'';
+}catch(e){}
+var dis=document.getElementById('fdis'),kw=document.getElementById('kidwrap');
+function kidToggle(){var ln=dis.value==='Little Ninjas';kw.style.display=ln?'':'none';
+kw.querySelectorAll('input,select').forEach(function(el){if(ln){el.setAttribute('required','')}else{el.removeAttribute('required')}});}
+dis.addEventListener('change',kidToggle);kidToggle();
+document.querySelectorAll('.msgtoggle').forEach(function(t){t.addEventListener('click',function(){t.nextElementSibling.classList.add('open');t.remove();});});
+document.getElementById('leadform').addEventListener('submit',function(ev){
+ev.preventDefault();
+var f=ev.target;
+var bad=null;
+f.querySelectorAll('.errfield').forEach(function(e){e.classList.remove('errfield')});
+f.querySelectorAll('[required]').forEach(function(el){
+if(bad)return;
+var empty=!el.value.trim();
+var invalid=empty||(el.type==='email'&&!el.checkValidity());
+if(invalid)bad=el;
+});
+if(bad){
+bad.classList.add('errfield');
+bad.scrollIntoView({behavior:'smooth',block:'center'});
+setTimeout(function(){bad.focus({preventScroll:true})},450);
+return;
+}
+var payload={};new FormData(f).forEach(function(v,k){payload[k]=v});
+payload.page=location.href;
+var btn=f.querySelector('button[type=submit]');btn.disabled=true;btn.style.opacity=.6;
+fetch('/api/lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+.then(function(r){if(!r.ok)throw 0;
+window.dataLayer=window.dataLayer||[];
+window.dataLayer.push({event:'generate_lead',lead_location:payload.location,lead_discipline:payload.discipline});
+if(typeof gtag==='function'){gtag('event','generate_lead',{lead_location:payload.location,lead_discipline:payload.discipline})}
+if(typeof fbq==='function'){fbq('track','Lead')}
+setTimeout(function(){location.href='/probetraining/danke/'},400);
+})
+.catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Senden fehlgeschlagen. Bitte versuch es nochmal oder ruf uns an.');});
+});
+})();/*kidsform*/</script>
 </body></html>
