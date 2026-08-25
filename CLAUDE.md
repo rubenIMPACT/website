@@ -22,7 +22,7 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 ## Offene Punkte
 1. exercise.com: echten Stundenplan-Feed erfragen (aktuell nur Buchungs-Feed; darum Live-Merge statt Voll-Live).
 2. Namen der 3 Winterthur-Google-Rezensionen (aktuell "Google-Rezension · Winterthur").
-3. 5 Trainer-Erfolge (Laszlo, Natassja, Dario, Florian, Quentz) für Trainer-Grid. VOR Webflow-Kündigung: restliche CDN-Bilder spiegeln (22 URLs auf 11 Seiten, Stand 23.08.) via tools/mirror_assets.py.
+3. 5 Trainer-Erfolge (Laszlo, Natassja, Dario, Florian, Quentz) für Trainer-Grid. (Webflow-CDN: seit 23.08. sind ALLE Bilder nach assets/wf gespiegelt, 0 CDN-Referenzen – Site ist bildseitig Webflow-unabhängig. Nur Team-Karten-LINKS zeigen noch auf Live-Webflow-Trainerprofile.)
 4. Newsletter-Zielsystem (Make/Mailtool/exercise.com?).
 5. 14 Kursseiten inhaltlich ausbauen nach MT/BJJ-Vorbild – wartet auf Material von Ruben (Coach+Satz, 3-4 Fotos, 2-3 Sätze je Disziplin+Standort).
 6. Entscheid Ruben: "Self Defense Women" (ZH Mi 16:30) im Stundenplan lassen? Sonntag ZH "MMA Wrestling" (Zeit unbekannt) weggelassen.
