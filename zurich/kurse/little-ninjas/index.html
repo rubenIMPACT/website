@@ -275,16 +275,27 @@ body:after{opacity:.05}
 .final h2 .accent{color:var(--gold)}
 footer,.fbottom{background:#0d0c0a}
 footer{margin-top:0;border-top:none}
+
+.soundbtn{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:82;background:rgba(0,0,0,.7);border:2px solid var(--gold);color:var(--gold);border-radius:99px;width:54px;height:54px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+@media(min-width:900px){.soundbtn{bottom:22px;right:22px}}
+.soundbtn.hid{opacity:0;pointer-events:none}
+.soundbtn svg{display:none}
+.soundbtn .ic-off{display:block}
+.soundbtn.sndon .ic-off{display:none}
+.soundbtn.sndon .ic-on{display:block}
 </style><script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 <style>.admode .navwrap,.admode .floatcta{display:none}</style>
 </head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
-<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/">Winterthur</a></div></div><a href="/zurich/kurse/">Kurse</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/team/">Team</a></div>
+<div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/kurse/little-ninjas/">Winterthur</a></div></div><a href="/zurich/kurse/">Kurse</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/team/">Team</a></div>
 <a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
-<span class="dd citydd"><a class="ddt citylabel" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><span class="ddm"><a href="/winterthur/">Winterthur</a></span></span><button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
+<span class="dd citydd"><a class="ddt citylabel" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><span class="ddm"><a href="/winterthur/kurse/little-ninjas/">Winterthur</a></span></span><button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
 <div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/kurse/">Kurse</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/team/">Team</a><div class="msep"></div><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a><a class="sec" href="/en/">English</a></div>
-<header class="pagehero kidshero"><div class="kidsgrid2"><div><div class="kick rev">IMPACT Zürich · Kindertraining</div><h1 class="rev">Wir machen <span class="accent">Kinder stark.</span></h1><p class="kidsintro rev">Spassiges, strukturiertes Kampfsporttraining, das Selbstvertrauen, Koordination und wichtige Lebenskompetenzen für Kinder im Alter von 6 bis 14 Jahren aufbaut – hier bei IMPACT in Zürich.</p><a class="cta rev" style="margin:34px var(--mx) 0" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div><div class="kidvideo rev"><video autoplay muted loop playsinline preload="metadata" poster="/assets/kids-trailer-poster.jpg"><source src="/assets/kids-trailer.mp4" type="video/mp4"></video></div></div></header>
+<header class="pagehero kidshero"><div class="kidsgrid2"><div><div class="kick rev">IMPACT Zürich · Kindertraining</div><h1 class="rev">Wir machen <span class="accent">Kinder stark.</span></h1><p class="kidsintro rev">Spassiges, strukturiertes Kampfsporttraining, das Selbstvertrauen, Koordination und wichtige Lebenskompetenzen für Kinder im Alter von 6 bis 14 Jahren aufbaut – hier bei IMPACT in Zürich.</p><a class="cta rev" style="margin:34px var(--mx) 0" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div><div class="kidvideo rev"><video id="herovid" autoplay muted loop playsinline preload="metadata" poster="/assets/kids-trailer-poster.jpg"><source src="/assets/kids-trailer.mp4" type="video/mp4"></video></div><button class="soundbtn" id="soundbtn" aria-label="Ton an">
+<svg class="ic-off" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
+<svg class="ic-on" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>
+</button></div></header>
 <section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Kindertraining <span class="accent">Kurse.</span></h2></div><div class="kidsgrid"><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-10-14.png" alt="Little Ninjas (10–14) – IMPACT Zürich"><div class="kb"><div class="age">Alter 10–14</div><h3>Little Ninjas (10–14)</h3><p>Ein energiegeladenes Kampfsportprogramm mit Fokus auf Kraft, Fitness und Selbstvertrauen. Kinder lernen praktische Selbstverteidigung, Disziplin und mentale Stärke und entwickeln gleichzeitig Führungsqualitäten und Teamfähigkeit.</p><span class="go">Gratis Probetraining &rarr;</span></div></a><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-6-9.png" alt="Little Ninjas (6–9) – IMPACT Zürich"><div class="kb"><div class="age">Alter 6–9</div><h3>Little Ninjas (6–9)</h3><p>Ein unterhaltsamer, spielerischer Kampfsportkurs, der Selbstvertrauen, Koordination und Konzentration aufbaut. Kinder bleiben aktiv und lernen dabei Respekt, Teamarbeit und Selbstdisziplin in einer sicheren, ermutigenden Umgebung.</p><span class="go">Gratis Probetraining &rarr;</span></div></a></div></section><section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Warum <span class="accent">IMPACT.</span></h2></div><div class="kidwhy"><div class="wc rev"><h4>Selbstvertrauen</h4><p>Kinder wachsen über sich hinaus, lernen mit Erfolgen und Rückschlägen umzugehen und treten selbstbewusster auf.</p></div><div class="wc rev"><h4>Respekt & Disziplin</h4><p>Feste Rituale, klare Regeln und Teamarbeit vermitteln Respekt, Fokus und Selbstdisziplin – auf der Matte und im Alltag.</p></div><div class="wc rev"><h4>Fitness & Koordination</h4><p>Spielerische Bewegung baut Kraft, Beweglichkeit und Koordination auf und hält die Kinder aktiv und gesund.</p></div></div><div class="cardlist" style="margin-top:44px"><a class="cardrow rev" href="/zurich/stundenplan/"><div><h3>Stundenplan Zürich</h3><small>Alle Little-Ninjas-Zeiten auf einen Blick.</small></div><div class="arr">&rarr;</div></a></div></section>
 <section class="formsec" id="anmelden">
 <div class="formgrid">
@@ -439,4 +450,17 @@ setTimeout(function(){location.href='/probetraining/danke/'},400);
 .catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Senden fehlgeschlagen. Bitte versuch es nochmal oder ruf uns an.');});
 });
 })();/*kidsform*/</script>
+<script>
+(function(){var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn'),hero=document.querySelector('.kidvideo');
+if(!hv||!sb||!hero)return;
+sb.addEventListener('click',function(){
+  if(hv.muted){hv.muted=false;sb.classList.add('sndon');var p=hv.play();if(p&&p.catch)p.catch(function(){});}
+  else{hv.muted=true;sb.classList.remove('sndon');}
+});
+var io=new IntersectionObserver(function(es){es.forEach(function(e){
+  sb.classList.toggle('hid',!e.isIntersecting);
+  if(!e.isIntersecting&&!hv.muted){hv.muted=true;sb.classList.remove('sndon');}
+})},{threshold:.25});
+io.observe(hero);
+})();/*kidsound*/</script>
 </body></html>
