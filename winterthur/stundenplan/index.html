@@ -167,7 +167,7 @@ section.deep{background:#12100b}
 .fbottom a{color:var(--grey)}
 
 /* stundenplan */
-.sphead{padding:150px var(--mx) 10px}
+.sphead{padding:140px var(--mx) 0}
 .daytabs{display:flex;gap:8px;flex-wrap:wrap;padding:26px var(--mx) 8px;position:sticky;top:64px;z-index:40;background:var(--black)}
 .daytabs button{background:transparent;border:1px solid var(--hair);color:var(--grey);padding:10px 16px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12.5px;cursor:pointer}
 .daytabs button.on{border-color:var(--gold);color:var(--gold)}
@@ -185,22 +185,32 @@ section.deep{background:#12100b}
 .spnote{padding:6px var(--mx) 60px;color:var(--grey);font-size:14px}
 
 /* zeitraster: eine Zeitachse links, Tage als Spalten */
-.spgrid{display:grid;gap:8px 16px;padding:0 var(--mx);align-items:stretch;--tcol:46px;grid-template-rows:auto;grid-auto-rows:1fr}
-.spgrid .tt{color:var(--gold);font-weight:800;font-size:15px;padding-top:12px;white-space:nowrap}
+.spgrid{display:grid;gap:6px 12px;padding:0 var(--mx);align-items:stretch;--tcol:46px;grid-template-rows:auto;grid-auto-rows:1fr}
+.spgrid .tt{color:var(--gold);font-weight:800;font-size:14px;padding-top:9px;white-space:nowrap}
 .spgrid .dh .dn{font-weight:800;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;margin:6px 0 10px;color:var(--white)}
 .spgrid .dh .dn i{font-style:normal;color:var(--grey);font-weight:400;font-size:12px;margin-left:8px}
 .spgrid .dh .mh{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .spgrid .dh .mh b{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
 .spgrid .dc{display:grid;gap:8px;align-content:stretch}
 .spgrid .dc.m2{grid-template-columns:1fr 1fr}
-.sess{display:block;border:1px solid var(--hair);padding:11px 12px;background:rgba(255,255,255,.02);transition:border-color .2s}
+.sess{display:block;border:1px solid var(--hair);padding:8px 10px;background:rgba(255,255,255,.02);transition:border-color .2s}
 .sess:hover{border-color:var(--gold)}
-.sess .n{font-weight:800;font-size:14px;line-height:1.25;display:block}
-.sess .lv{color:var(--grey);font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;display:block;margin-top:3px}
-.sess .who{color:var(--gold);font-size:11.5px;display:block;margin-top:5px}
+.sess .n{font-weight:800;font-size:13px;line-height:1.2;display:block}
+.sess .lv{color:var(--grey);font-size:10px;text-transform:uppercase;letter-spacing:.6px;display:block;margin-top:2px}
+.sess .who{color:var(--gold);font-size:10.5px;display:block;margin-top:3px}
 .slot.empty{border:1px dashed rgba(255,255,255,.06)}
 @media(max-width:999px){.spgrid{gap:6px 10px}}
 @media(max-width:559px){.spgrid{--tcol:40px;gap:6px 8px}.spgrid .tt{font-size:13px}.sess{padding:9px 9px}.sess .n{font-size:12.5px}.spgrid .dh .dn{font-size:13px}}
+@media(min-width:1000px){
+.spgrid{gap:5px 10px}
+.sess{padding:6px 9px}
+.sess .n{font-size:12.5px;line-height:1.15}
+.sess .lv{font-size:9px;letter-spacing:.4px;margin-top:1px}
+.sess .who{font-size:10px;margin-top:2px}
+.spgrid .tt{font-size:13px;padding-top:7px}
+.spgrid .dh .dn{font-size:13px;margin:4px 0 6px}
+.spgrid .dh .mh b{font-size:10px}
+}
 .daytabs.hidden{display:none}
 .spnote{padding:26px var(--mx) 60px;color:var(--white);font-size:clamp(17px,2vw,21px);font-weight:500}
 
@@ -243,18 +253,18 @@ section.deep{background:#12100b}
 <li><a href="/zurich/">Zürich</a></li>
 <li><a href="/winterthur/">Winterthur</a></li>
 <li><a href="/ueber-uns/">Über uns</a></li>
-<li><a href="https://www.impact-martialarts.com/de/seminars" target="_blank" rel="noopener">Seminare</a></li>
+<li><a href="/seminare/">Seminare</a></li>
 <li><a href="/karriere/">Karriere</a></li>
 <li><a href="/articles/">Artikel &amp; News</a></li>
 </ul>
 </div>
 <div class="fcol">
 <ul>
-<li><a href="https://www.impact-martialarts.com/gr/kontakt" target="_blank" rel="noopener">Kontakt</a></li>
-<li><a href="https://www.impact-martialarts.com/gr/faq" target="_blank" rel="noopener">FAQ</a></li>
-<li><a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a></li>
-<li><a href="https://www.impact-martialarts.com/agb-kidstraining" target="_blank" rel="noopener">AGB für Kindertraining</a></li>
-<li><a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutzerklärung</a></li>
+<li><a href="/kontakt/">Kontakt</a></li>
+<li><a href="/faq/">FAQ</a></li>
+<li><a href="/agb/">AGB</a></li>
+<li><a href="/agb-kindertraining/">AGB für Kindertraining</a></li>
+<li><a href="/datenschutz/">Datenschutzerklärung</a></li>
 </ul>
 </div>
 <div class="fcol">
@@ -271,7 +281,7 @@ section.deep{background:#12100b}
 <div class="fsocial"><a href="https://www.instagram.com/impactmartialarts_ch/" target="_blank" rel="noopener" aria-label="Instagram"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></div>
 </div>
 </div>
-<div class="fbottom">© IMPACT Martial Arts · <a href="https://www.impact-martialarts.com/agb" target="_blank" rel="noopener">AGB</a> · <a href="https://www.impact-martialarts.com/datenschutzerklarung" target="_blank" rel="noopener">Datenschutz</a></div>
+<div class="fbottom">© IMPACT Martial Arts · <a href="/agb/">AGB</a> · <a href="/datenschutz/">Datenschutz</a></div>
 </footer>
 <script>
 (function(){

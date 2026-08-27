@@ -22,12 +22,12 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 ## Offene Punkte
 1. exercise.com: echten Stundenplan-Feed erfragen (aktuell nur Buchungs-Feed; darum Live-Merge statt Voll-Live).
 2. Namen der 3 Winterthur-Google-Rezensionen (aktuell "Google-Rezension · Winterthur").
-3. 5 Trainer-Erfolge (Laszlo, Natassja, Dario, Florian, Quentz) für Trainer-Grid. (Webflow-CDN: seit 23.08. sind ALLE Bilder nach assets/wf gespiegelt, 0 CDN-Referenzen – Site ist bildseitig Webflow-unabhängig. Nur Team-Karten-LINKS zeigen noch auf Live-Webflow-Trainerprofile.)
+3. (erledigt 27.08.) Trainer-Highlights ergänzt; Trainer-Karten sind NICHT mehr verlinkt (alte Webflow-Profil-Links entfernt; Trainer-Einzelseiten weiterhin nicht migriert). Legal-Seiten lokal migriert: /agb/, /agb-kindertraining/, /datenschutz/, /en/terms/, /en/privacy/. Verbleibende Alt-Links: 5 Karriere-Stellen + 6 Blogposts (Migration offen).
 4. Newsletter-Zielsystem (Make/Mailtool/exercise.com?).
 5. Kursseiten: Fotos seit 23.08. je Disziplin korrekt zugeordnet (Shooting 20.08. für MMA/Boxen/Ringen unter assets/kurse/, FKB/Street-Defense/PT nur je 1 Thumbnail – Shooting-Fotos fehlen). Noch offen für volle MT/BJJ-Parität: Coach-Sektion je Disziplin+Stadt (braucht von Ruben: welcher Coach pro Disziplin/Stadt + 1-2 Sätze) und ggf. weitere Fotos.
 6. Entscheid Ruben: "Self Defense Women" (ZH Mi 16:30) im Stundenplan lassen? Sonntag ZH "MMA Wrestling" (Zeit unbekannt) weggelassen.
 7. SEO-Titel + Schema.org NACH Keyword-Daten (Regel: Daten vor Copy).
-8. Shop, Blog, EN-Seiten, Trainerprofile: Migration ausstehend. Cutover = DNS-Flip am Ende.
+8. Shop, Blog(6 Post-Links extern), EN-Seiten, Trainerprofile, Karriere-Stellen(5 extern): Migration ausstehend. Cutover = DNS-Flip am Ende. Über-uns seit 27.08. neu (Standards+Story, /assets/ueberuns-*).
 9. GitHub-PAT läuft ~30.08. ab – Ruben erneuern lassen.
 10. Visuelle Gesamtabnahme aller Seiten durch Ruben.
 
