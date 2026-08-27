@@ -528,7 +528,7 @@ targets.forEach(function(t){io.observe(t)});
 <script>
 (function(){var hv=document.querySelector('.vhero video'),sb=document.getElementById('soundbtn'),hero=document.querySelector('.vhero');
 if(!hv||!sb||!hero)return;
-function fmt(){if(hv.videoWidth&&hv.videoHeight&&hv.videoHeight>hv.videoWidth){hero.classList.add('vport')}else{hero.classList.add('vland')}}
+function fmt(){if(hv.videoWidth&&hv.videoHeight&&hv.videoHeight>=hv.videoWidth){hero.classList.add('vport')}else{hero.classList.add('vland')}}
 if(hv.readyState>=1)fmt();else hv.addEventListener('loadedmetadata',fmt);
 function allowCinema(){var mob=window.innerWidth<900;return mob||hero.classList.contains('vland')}
 sb.addEventListener('click',function(){
