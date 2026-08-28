@@ -13,3 +13,11 @@
 /zurich/kurse/selbstverteidigung-fuer-frauen/ /zurich/kurse/street-defense/ 301
 /en/winterthur/classes/self-defense-for-women/ /en/winterthur/classes/street-defense/ 301
 /en/zurich/classes/self-defense-for-women/ /en/zurich/classes/street-defense/ 301
+/career/bjj-coach /karriere/bjj-coach/ 301
+/career/head-coach /karriere/head-coach/ 301
+/career/mma-coach /karriere/mma-coach/ 301
+/career/muay-thai-boxing-coach /karriere/muay-thai-boxing-coach/ 301
+/career/sales /karriere/sales/ 301
+/career /karriere/ 301
+/blog/:slug /articles/:slug/ 301
+/blog /articles/ 301
