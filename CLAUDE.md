@@ -24,7 +24,7 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 2. Namen der 3 Winterthur-Google-Rezensionen (aktuell "Google-Rezension · Winterthur").
 3. (erledigt 27.08.) Trainer-Highlights ergänzt; Trainer-Karten sind NICHT mehr verlinkt (alte Webflow-Profil-Links entfernt; Trainer-Einzelseiten weiterhin nicht migriert). Legal-Seiten lokal migriert: /agb/, /agb-kindertraining/, /datenschutz/, /en/terms/, /en/privacy/. Verbleibende Alt-Links: 5 Karriere-Stellen + 6 Blogposts (Migration offen).
 4. Newsletter-Zielsystem (Make/Mailtool/exercise.com?).
-5. Kursseiten: Fotos seit 23.08. je Disziplin korrekt zugeordnet (Shooting 20.08. für MMA/Boxen/Ringen unter assets/kurse/, FKB/Street-Defense/PT nur je 1 Thumbnail – Shooting-Fotos fehlen). Noch offen für volle MT/BJJ-Parität: Coach-Sektion je Disziplin+Stadt (braucht von Ruben: welcher Coach pro Disziplin/Stadt + 1-2 Sätze) und ggf. weitere Fotos.
+5. Kursseiten: Fotos seit 23.08. je Disziplin korrekt zugeordnet (Shooting 20.08. für MMA/Boxen/Ringen unter assets/kurse/, FKB/Street-Defense/PT nur je 1 Thumbnail – Shooting-Fotos fehlen). Coach-Sektionen (duosec im MT-Stil) seit 31.08. auf allen 12 Kursseiten, Zuordnung 1:1 von der Original-Website je Standort (WT Street Defense: wie ZH = Sam, Original hat keine WT-Seite). Bios/Summaries aus Webflow-CMS.
 6. Entscheid Ruben: "Self Defense Women" (ZH Mi 16:30) im Stundenplan lassen? Sonntag ZH "MMA Wrestling" (Zeit unbekannt) weggelassen.
 7. SEO-Titel + Schema.org NACH Keyword-Daten (Regel: Daten vor Copy).
 8. Shop, Blog(6 Post-Links extern), EN-Seiten, Trainerprofile, Karriere-Stellen(5 extern): Migration ausstehend. Cutover = DNS-Flip am Ende. Über-uns seit 27.08. neu (Standards+Story, /assets/ueberuns-*).
