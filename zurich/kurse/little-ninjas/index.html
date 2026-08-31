@@ -117,9 +117,9 @@ section.deep{background:#12100b}
   .navwrap .logo img{height:26px}
   .navlinks{margin-left:auto}
   .navlinks a,.ddt{font-size:12.5px;letter-spacing:1.6px}
-  .floatcta{position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:80}
+  .floatcta{position:fixed;left:0;right:0;bottom:0;z-index:80;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,9,8,.94);border-top:1px solid rgba(255,255,255,.12);transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+  .floatcta.on{transform:none}
   .floatcta .cta{display:flex;justify-content:center;width:100%}
-  body{padding-bottom:90px}
 }
 @media(min-width:900px){.floatcta{display:none}}
 .dd.open .ddm{display:block}
@@ -243,6 +243,18 @@ body:after{opacity:.05}
 .kidsintro{color:#5b564c}
 .kidvideo{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 18px 44px rgba(23,20,16,.18);aspect-ratio:9/16;max-width:400px;justify-self:center;width:100%}
 .kidvideo video{width:100%;height:100%;object-fit:cover;display:block}
+@media(max-width:899px){
+.kidshero{position:relative;min-height:100svh;display:flex;align-items:flex-end;overflow:hidden;padding:150px var(--mx) 46px}
+.kidshero .kidsgrid2{display:block;width:100%}
+.kidvideo{position:absolute;inset:0;border-radius:0;max-width:none;aspect-ratio:auto;box-shadow:none;z-index:0;justify-self:auto}
+.kidvideo:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.18) 40%,rgba(0,0,0,.86));transition:opacity .45s}
+.khtx{position:relative;z-index:2;transition:opacity .45s}
+.kidshero h1{color:#fff}
+.kidshero .kick{color:var(--gold)}
+.kidsintro{color:#e8e4da}
+.kidshero.cinema .khtx{opacity:0;pointer-events:none}
+.kidshero.cinema .kidvideo:after{opacity:.25}
+}
 .chaphead h2{color:#171410}
 .chaphead h2 .accent{color:#c9a50e}
 .chapbolt path{stroke:#c9a50e}
@@ -302,7 +314,7 @@ footer{margin-top:0;border-top:none}
 <a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <span class="dd citydd"><a class="ddt citylabel" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><span class="ddm"><a href="/winterthur/kurse/little-ninjas/">Winterthur</a></span></span><button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
 <div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/zurich/kurse/">Kurse</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/team/">Team</a><div class="msep"></div><a class="sec" href="/ueber-uns/">Über uns</a><a class="sec" href="/karriere/">Karriere</a><a class="sec" href="/articles/">Blog</a></div>
-<header class="pagehero kidshero"><div class="kidsgrid2"><div><img class="ninjalogo rev" src="/assets/little-ninjas-logo.png" alt="Little Ninjas – Kids Training bei IMPACT Martial Arts">
+<header class="pagehero kidshero"><div class="kidsgrid2"><div class="khtx"><img class="ninjalogo rev" src="/assets/little-ninjas-logo.png" alt="Little Ninjas – Kids Training bei IMPACT Martial Arts">
 <div class="kick rev">IMPACT Zürich · Kindertraining</div><h1 class="rev">Wir machen <span class="accent">Kinder stark.</span></h1><p class="kidsintro rev">Spassiges, strukturiertes Kampfsporttraining, das Selbstvertrauen, Koordination und wichtige Lebenskompetenzen für Kinder im Alter von 6 bis 14 Jahren aufbaut – hier bei IMPACT in Zürich.</p><a class="cta rev" style="margin:34px var(--mx) 0" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a></div><div class="kidvideo rev"><video id="herovid" autoplay muted loop playsinline preload="metadata" poster="/assets/kids-trailer3-poster.jpg"><source src="/assets/kids-trailer3.mp4" type="video/mp4"></video></div><button class="soundbtn" id="soundbtn" aria-label="Ton an">
 <svg class="ic-off" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
 <svg class="ic-on" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>
@@ -462,16 +474,26 @@ setTimeout(function(){location.href='/probetraining/danke/'},400);
 });
 })();/*kidsform*/</script>
 <script>
-(function(){var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn'),hero=document.querySelector('.kidvideo');
+(function(){var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn'),hero=document.querySelector('.kidvideo'),hsec=document.querySelector('.kidshero');
 if(!hv||!sb||!hero)return;
+function setCinema(on){var mob=window.innerWidth<900;hsec.classList.toggle('cinema',on&&mob)}
 sb.addEventListener('click',function(){
-  if(hv.muted){hv.muted=false;sb.classList.add('sndon');var p=hv.play();if(p&&p.catch)p.catch(function(){});}
-  else{hv.muted=true;sb.classList.remove('sndon');}
+  if(hv.muted){hv.muted=false;sb.classList.add('sndon');setCinema(true);var p=hv.play();if(p&&p.catch)p.catch(function(){});}
+  else{hv.muted=true;sb.classList.remove('sndon');setCinema(false);}
 });
 var io=new IntersectionObserver(function(es){es.forEach(function(e){
   sb.classList.toggle('hid',!e.isIntersecting);
-  if(!e.isIntersecting&&!hv.muted){hv.muted=true;sb.classList.remove('sndon');}
+  if(!e.isIntersecting&&!hv.muted){hv.muted=true;sb.classList.remove('sndon');setCinema(false);}
 })},{threshold:.25});
 io.observe(hero);
+var fc=document.querySelector('.floatcta'),formsec=document.getElementById('anmelden');
+if(fc&&hsec){var ticking=false;
+function upd(){ticking=false;
+var hb=hsec.getBoundingClientRect().bottom;
+var overForm=false;
+if(formsec){var fr=formsec.getBoundingClientRect();overForm=fr.top<window.innerHeight&&fr.bottom>0}
+if(hb<0&&!overForm){fc.classList.add('on')}else{fc.classList.remove('on')}}
+window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd)}},{passive:true});
+upd();}
 })();/*kidsound*/</script>
 </body></html>
