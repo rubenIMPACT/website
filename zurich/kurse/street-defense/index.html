@@ -67,6 +67,12 @@ nav{gap:14px}
 .hero .sub{font-size:clamp(16px,2.2vw,20px);color:#ddd;max-width:520px;margin:16px 0 10px}
 .hero .cred{font-size:14px;color:var(--gold);font-weight:500;margin-bottom:26px}
 .hero .cred span{color:var(--grey);font-weight:300}
+@media(max-width:1099px){
+.hero{min-height:0;justify-content:flex-start}
+.hero-media{position:relative;inset:auto;order:2;width:100%;aspect-ratio:16/9}
+.hero-ovl{display:none}
+.hero-content{order:1;padding:140px var(--mx) 28px}
+}
 @media(min-width:1100px){
 .hero{min-height:94vh}
 .hero-content{max-width:860px}
@@ -1020,8 +1026,9 @@ var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn')
 var heroEl=document.querySelector('.hero');
 function cineEls(){return document.querySelectorAll('.hero .kicker,.hero h1,.hero .sub,.hero .cred')}
 function setCinema(on){
-heroEl.classList.toggle('cinema',on);
-var mob=true;
+var desk=window.innerWidth>=1100;
+heroEl.classList.toggle('cinema',on&&desk);
+var mob=desk;
 cineEls().forEach(function(el){el.style.transition='opacity .45s';el.style.opacity=(on&&mob)?'0':'';el.style.pointerEvents=(on&&mob)?'none':''});
 var ov=document.querySelector('.hero-ovl');if(ov){ov.style.transition='opacity .45s';ov.style.opacity=(on&&mob)?'.25':''}
 }

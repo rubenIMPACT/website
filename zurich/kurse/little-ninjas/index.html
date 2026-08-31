@@ -204,6 +204,10 @@ section.deep{background:#12100b}
 .kidwhy .wc{background:var(--black);padding:26px 24px}
 .kidwhy .wc h4{font-size:16px;letter-spacing:.5px;margin-bottom:8px}
 .kidwhy .wc p{color:var(--grey);font-size:14px;line-height:1.55}
+.kidwhy .wc p{opacity:0;transform:translateY(14px);transition:opacity .6s ease .25s,transform .6s ease .25s}
+.kidwhy .wc.vis p{opacity:1;transform:none}
+.kidwhy .wc:nth-child(2) p{transition-delay:.45s,.45s}
+.kidwhy .wc:nth-child(3) p{transition-delay:.65s,.65s}
 
 /* kids formular */
 .formsec{background:#0d0c0a;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:84px 0;margin-top:90px}
@@ -259,6 +263,13 @@ body:after{opacity:.05}
 .chaphead h2 .accent{color:#c9a50e}
 .chapbolt path{stroke:#c9a50e}
 .kidcard{background:#fff;border:none;border-radius:14px;box-shadow:0 12px 30px rgba(23,20,16,.10)}
+.kidsched{margin-top:34px;display:grid;gap:14px}
+@media(min-width:760px){.kidsched{grid-template-columns:repeat(2,1fr)}}
+.ksrow{background:#fff;border-radius:12px;padding:18px 20px;display:flex;align-items:center;gap:18px;box-shadow:0 10px 26px rgba(23,20,16,.09)}
+.ksrow .kd{font-weight:800;color:#171410;min-width:92px}
+.ksrow .kt{color:#a8890a;font-weight:800;white-space:nowrap}
+.ksrow .kn{color:#171410;font-weight:700}
+.ksrow small{color:#5b564c;display:block;margin-top:3px}
 .kidcard .kb h3{color:#171410}
 .kidcard .kb .age{color:#a8890a}
 .kidcard .kb p{color:#5b564c}
@@ -319,7 +330,7 @@ footer{margin-top:0;border-top:none}
 <svg class="ic-off" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
 <svg class="ic-on" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>
 </button></div></header>
-<section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Kindertraining <span class="accent">Kurse.</span></h2></div><div class="kidsgrid"><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-10-14.png" alt="Little Ninjas (10–14) – IMPACT Zürich"><div class="kb"><div class="age">Alter 10–14</div><h3>Little Ninjas (10–14)</h3><p>Ein energiegeladenes Kampfsportprogramm mit Fokus auf Kraft, Fitness und Selbstvertrauen. Kinder lernen praktische Selbstverteidigung, Disziplin und mentale Stärke und entwickeln gleichzeitig Führungsqualitäten und Teamfähigkeit.</p><span class="go">Gratis Probetraining &rarr;</span></div></a><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-6-9.png" alt="Little Ninjas (6–9) – IMPACT Zürich"><div class="kb"><div class="age">Alter 6–9</div><h3>Little Ninjas (6–9)</h3><p>Ein unterhaltsamer, spielerischer Kampfsportkurs, der Selbstvertrauen, Koordination und Konzentration aufbaut. Kinder bleiben aktiv und lernen dabei Respekt, Teamarbeit und Selbstdisziplin in einer sicheren, ermutigenden Umgebung.</p><span class="go">Gratis Probetraining &rarr;</span></div></a></div></section><section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Warum <span class="accent">IMPACT.</span></h2></div><div class="kidwhy"><div class="wc rev"><h4>Selbstvertrauen</h4><p>Kinder wachsen über sich hinaus, lernen mit Erfolgen und Rückschlägen umzugehen und treten selbstbewusster auf.</p></div><div class="wc rev"><h4>Respekt & Disziplin</h4><p>Feste Rituale, klare Regeln und Teamarbeit vermitteln Respekt, Fokus und Selbstdisziplin – auf der Matte und im Alltag.</p></div><div class="wc rev"><h4>Fitness & Koordination</h4><p>Spielerische Bewegung baut Kraft, Beweglichkeit und Koordination auf und hält die Kinder aktiv und gesund.</p></div></div><div class="cardlist" style="margin-top:44px"><a class="cardrow rev" href="/zurich/stundenplan/"><div><h3>Stundenplan Zürich</h3><small>Alle Little-Ninjas-Zeiten auf einen Blick.</small></div><div class="arr">&rarr;</div></a></div></section>
+<section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Kindertraining <span class="accent">Kurse.</span></h2></div><div class="kidsgrid"><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-6-9.png" alt="Little Ninjas (6–9) – IMPACT Zürich"><div class="kb"><div class="age">Alter 6–9</div><h3>Little Ninjas (6–9)</h3><p>Ein unterhaltsamer, spielerischer Kampfsportkurs, der Selbstvertrauen, Koordination und Konzentration aufbaut. Kinder bleiben aktiv und lernen dabei Respekt, Teamarbeit und Selbstdisziplin in einer sicheren, ermutigenden Umgebung.</p><span class="go">Gratis Probetraining &rarr;</span></div></a><a class="kidcard rev" href="#anmelden"><img loading="lazy" src="/assets/kids-10-14.png" alt="Little Ninjas (10–14) – IMPACT Zürich"><div class="kb"><div class="age">Alter 10–14</div><h3>Little Ninjas (10–14)</h3><p>Ein energiegeladenes Kampfsportprogramm mit Fokus auf Kraft, Fitness und Selbstvertrauen. Kinder lernen praktische Selbstverteidigung, Disziplin und mentale Stärke und entwickeln gleichzeitig Führungsqualitäten und Teamfähigkeit.</p><span class="go">Gratis Probetraining &rarr;</span></div></a></div></section><section class="chapter"><div class="chaphead"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Warum <span class="accent">IMPACT.</span></h2></div><div class="kidwhy"><div class="wc rev"><h4>Selbstvertrauen</h4><p>Kinder wachsen über sich hinaus, lernen mit Erfolgen und Rückschlägen umzugehen und treten selbstbewusster auf.</p></div><div class="wc rev"><h4>Respekt & Disziplin</h4><p>Feste Rituale, klare Regeln und Teamarbeit vermitteln Respekt, Fokus und Selbstdisziplin – auf der Matte und im Alltag.</p></div><div class="wc rev"><h4>Fitness & Koordination</h4><p>Spielerische Bewegung baut Kraft, Beweglichkeit und Koordination auf und hält die Kinder aktiv und gesund.</p></div></div><div class="chaphead" style="margin-top:74px"><svg class="chapbolt" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg><h2 class="rev">Little Ninjas <span class="accent">Zeiten.</span></h2></div><div class="kidsched" id="kidsched"></div><script id="lndata" type="application/json">[{"wd": "Mo", "t": "15:30", "n": "Little Ninjas (6–9)", "lv": "45 Min", "who": "Laszlo Simo"}, {"wd": "Di", "t": "17:40", "n": "Little Ninjas (10–14)", "lv": "60 Min", "who": "João de Oliveira"}, {"wd": "Mi", "t": "15:30", "n": "Little Ninjas (6–9)", "lv": "45 Min", "who": "Laszlo Simo"}, {"wd": "Mi", "t": "16:30", "n": "Little Ninjas (10–14)", "lv": "60 Min", "who": "Laszlo Simo"}]</script></section>
 <section class="formsec" id="anmelden">
 <div class="formgrid">
 <div class="left">
@@ -473,6 +484,32 @@ setTimeout(function(){location.href='/probetraining/danke/'},400);
 .catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Senden fehlgeschlagen. Bitte versuch es nochmal oder ruf uns an.');});
 });
 })();/*kidsform*/</script>
+<script>
+(function(){var box=document.getElementById('kidsched'),el=document.getElementById('lndata');
+if(!box||!el)return;
+var LOC='zurich';
+var data=JSON.parse(el.textContent);
+var WDN={Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
+function render(){box.innerHTML=data.map(function(e){return '<div class="ksrow"><div class="kd">'+WDN[e.wd]+'<div class="kt">'+e.t+'</div></div><div><div class="kn">'+e.n+'</div><small>'+e.lv+' · '+e.who+'</small></div></div>'}).join('')}
+render();
+function ageKey(n){var m=(n||'').match(/\d+/);return m?m[0]:''}
+fetch('/api/schedule?loc='+LOC).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+if(!j.days)return;
+var W=['So','Mo','Di','Mi','Do','Fr','Sa'],seen={};
+j.days.forEach(function(d){
+var wd=W[new Date(d.date+'T12:00:00').getDay()];
+if(seen[wd])return;seen[wd]=1;
+(d.sessions||[]).forEach(function(sn){
+if(sn.slug!=='little-ninjas')return;
+var hit=null,i;
+for(i=0;i<data.length;i++){if(data[i].wd===wd&&data[i].t===sn.time&&!data[i]._m){hit=data[i];break}}
+if(!hit){for(i=0;i<data.length;i++){if(data[i].wd===wd&&!data[i]._m&&ageKey(data[i].n)===ageKey(sn.name)){hit=data[i];hit.t=sn.time;break}}}
+if(hit){hit._m=1;if(sn.coach)hit.who=sn.coach}
+});
+});
+render();
+}).catch(function(){});
+})();/*kidsched*/</script>
 <script>
 (function(){var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn'),hero=document.querySelector('.kidvideo'),hsec=document.querySelector('.kidshero');
 if(!hv||!sb||!hero)return;

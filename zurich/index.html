@@ -88,6 +88,12 @@ section.deep{background:#12100b}
 .vhero h1{font-size:clamp(42px,7.2vw,92px)}
 .vhero .lead{margin:18px 0 26px;font-size:clamp(16px,2vw,20px);color:#ddd;max-width:520px}
 .vhero .kick{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:14px}
+@media(max-width:899px){
+.vhero{min-height:0;flex-direction:column;align-items:stretch}
+.vhero video{position:relative;inset:auto;width:100%;height:auto;aspect-ratio:16/9;order:2}
+.vhero:before{display:none}
+.vhero .inner{order:1;padding:130px var(--mx) 26px}
+}
 .gbadge{display:inline-flex;align-items:center;gap:8px;margin-left:18px;font-size:13.5px;color:var(--grey);border-bottom:1px solid var(--hair);padding-bottom:2px;vertical-align:middle}
 .gbadge b{color:var(--gold);font-weight:800}
 .gbadge:hover{color:var(--white);border-color:var(--grey)}
@@ -557,7 +563,7 @@ targets.forEach(function(t){io.observe(t)});
 if(!hv||!sb||!hero)return;
 function fmt(){if(hv.videoWidth&&hv.videoHeight&&hv.videoHeight>hv.videoWidth){hero.classList.add('vport')}else{hero.classList.add('vland')}}
 if(hv.readyState>=1)fmt();else hv.addEventListener('loadedmetadata',fmt);
-function allowCinema(){var mob=window.innerWidth<900;return mob||hero.classList.contains('vland')}
+function allowCinema(){return window.innerWidth>=900}
 sb.addEventListener('click',function(){
   if(hv.muted){hv.muted=false;sb.classList.add('sndon');if(allowCinema())hero.classList.add('cinema');var p=hv.play();if(p&&p.catch)p.catch(function(){});}
   else{hv.muted=true;sb.classList.remove('sndon');hero.classList.remove('cinema');}
