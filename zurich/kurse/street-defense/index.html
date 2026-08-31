@@ -490,7 +490,7 @@ h2.vis .rwR{animation:rollR .8s cubic-bezier(.3,1.15,.3,1) forwards;animation-de
 #ablauf:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.95) 0%,rgba(0,0,0,.9) 45%,rgba(0,0,0,.62) 75%,rgba(0,0,0,.4) 100%),linear-gradient(180deg,#000,transparent 16%,transparent 84%,#000)}
 #ablauf>*{position:relative;z-index:2}
 .faq{position:relative;overflow:hidden;padding-bottom:70px}
-.faq:before{content:"";position:absolute;inset:0;background:url('/assets/kurse/sd-1350.jpg') 70% 20%/cover no-repeat;filter:saturate(.85)}
+.faq:before{content:"";position:absolute;inset:0;background:#050505 url('/assets/kurse/sd-faq-wide.jpg') right center/auto 100% no-repeat;filter:saturate(.85)}
 .faq:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.95) 0%,rgba(0,0,0,.9) 42%,rgba(0,0,0,.55) 72%,rgba(0,0,0,.3) 100%),linear-gradient(180deg,#000,transparent 16%,transparent 84%,#000)}
 .faq>*{position:relative;z-index:2}
 .faq details{border:none}
@@ -801,9 +801,14 @@ nav .logo img{height:32px}
 
 <header class="hero">
 <div class="hero-media">
-<img src="/assets/kurse/sd-1350.jpg" alt="Street Defense bei IMPACT Zürich" style="width:100%;height:100%;object-fit:cover">
+<video id="herovid" autoplay muted loop playsinline preload="metadata" poster="/assets/sd-hero-poster.jpg" style="width:100%;height:100%;object-fit:cover"><source src="/assets/sd-hero.mp4" type="video/mp4"></video>
 </div>
 <div class="hero-ovl"></div>
+<button class="soundbtn" id="soundbtn" aria-label="Ton an">
+<svg class="ic-off" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
+<svg class="ic-on" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9.5 9.5 0 0 1 0 13"/></svg>
+</button>
+
 <div class="hero-content">
 <a class="kicker" href="https://maps.app.goo.gl/LKEFnT2AsnPj5VGd7" target="_blank" rel="noopener">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.1-7-11a7 7 0 1 1 14 0c0 5.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
