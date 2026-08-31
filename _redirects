@@ -19,7 +19,13 @@
 /career/muay-thai-boxing-coach /karriere/muay-thai-boxing-coach/ 301
 /career/sales /karriere/sales/ 301
 /career /karriere/ 301
-/blog/:slug /articles/:slug/ 301
+/blog/are-martial-arts-for-me /articles/are-martial-arts-for-me/ 301
+/blog/female-success-stories-the-first-step-is-always-the-hardest /articles/female-success-stories-the-first-step-is-always-the-hardest/ 301
+/blog/july-highlights---the-journey-was-worth-every-step /articles/july-highlights---the-journey-was-worth-every-step/ 301
+/blog/socializing-after-the-mats /articles/socializing-after-the-mats/ 301
+/blog/winterthur-combat-sports-boom-mma-and-muay-thai-at-impact-martial-arts /articles/winterthur-combat-sports-boom-mma-and-muay-thai-at-impact-martial-arts/ 301
+/blog/zero-ego-100-heart-impact-community-open-mat-recap /articles/zero-ego-100-heart-impact-community-open-mat-recap/ 301
+/blog/* /articles/ 301
 /blog /articles/ 301
 
 /tools/* / 302
@@ -31,3 +37,64 @@
 /en / 302
 /events/ / 302
 /seminare/ / 302
+
+# ===== Cutover: alte Webflow-URLs -> neue Struktur (aktiv ab DNS-Flip, harmlos vorher) =====
+/home / 301
+# DE-Seiten (alt: /gr/... und /de/...)
+/gr/probetraining /probetraining/ 301
+/gr/uber-uns /ueber-uns/ 301
+/gr/faq /faq/ 301
+/gr/kontakt /kontakt/ 301
+/gr/gr---blog /articles/ 301
+/de/zurich/kurse /zurich/kurse/ 301
+/de/winterthur/kurse /winterthur/kurse/ 301
+/de/zurich/coaches /zurich/team/ 301
+/de/winterthur/coaches /winterthur/team/ 301
+/de/zurich/kids-training /zurich/kurse/little-ninjas/ 301
+/de/winterthur/kids-training /winterthur/kurse/little-ninjas/ 301
+/de/zurich/stundenplan /zurich/stundenplan/ 301
+/de/winterthur/stundenplan /winterthur/stundenplan/ 301
+/de/zurich /zurich/ 301
+/de/winterthur /winterthur/ 301
+/de/seminars / 301
+# EN-Seiten (alt: an der Wurzel)
+/about /ueber-uns/ 301
+/contact /kontakt/ 301
+/trial-session /probetraining/ 301
+/career /karriere/ 301
+# Kursseiten (alle 21 CMS-Slugs)
+/kurse/thai-boxen-muay-thai /zurich/kurse/muay-thai/ 301
+/kurse/fitness-boxen-kickboxen /zurich/kurse/fitness-kickboxen/ 301
+/kurse/selbstverteidigung /zurich/kurse/street-defense/ 301
+/kurse/selbstverteidigung-fur-frauen /zurich/kurse/street-defense/ 301
+/kurse/winterthur-thai-boxen-muay-thai /winterthur/kurse/muay-thai/ 301
+/kurse/winterthur-fitness-kickboxen /winterthur/kurse/fitness-kickboxen/ 301
+/kurse/winterthur-selbstverteidigung-fur-frauen /winterthur/kurse/street-defense/ 301
+/kurse/winterthur-bjj /winterthur/kurse/bjj/ 301
+/kurse/winterthur-boxen /winterthur/kurse/boxen/ 301
+/kurse/winterthur-mma /winterthur/kurse/mma/ 301
+/kurse/winterthur-ringen /winterthur/kurse/ringen/ 301
+/kurse/winterthur-personal-training /winterthur/kurse/personal-training/ 301
+/kurse/winterthur-little-ninjas /winterthur/kurse/little-ninjas/ 301
+/kurse/winterthur-street-defense /winterthur/kurse/street-defense/ 301
+/kurse/:slug /zurich/kurse/:slug/ 301
+# Team-Profile -> Team-Seiten
+/de-team/bogdan-cristea /winterthur/team/ 301
+/de-team/joao-wt /winterthur/team/ 301
+/de-team/sergei-wt /winterthur/team/ 301
+/de-team/laszlo-simo-wt /winterthur/team/ 301
+/de-team/sam-wt /winterthur/team/ 301
+/de-team/ruben-crawford-wt /winterthur/team/ 301
+/de-team/* /zurich/team/ 301
+/en-team/* /zurich/team/ 301
+# Little Ninjas Alterssplits
+/littleninjas/6-9-de-winterthur /winterthur/kurse/little-ninjas/ 301
+/littleninjas/10-14-de-winterthur /winterthur/kurse/little-ninjas/ 301
+/littleninjas/* /zurich/kurse/little-ninjas/ 301
+# Legal (alte Pfade)
+/datenschutzerklarung /datenschutz/ 301
+/agb-kidstraining /agb-kindertraining/ 301
+# Catchalls (nach den spezifischen Regeln)
+/gr/* / 301
+/de/* / 301
+# OFFEN (Entscheid Ruben): /shop, /gear, /login -> Ziel klaeren vor Cutover
