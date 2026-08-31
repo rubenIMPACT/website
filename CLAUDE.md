@@ -26,7 +26,7 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 4. Newsletter-Zielsystem (Make/Mailtool/exercise.com?).
 5. Kursseiten: Fotos seit 23.08. je Disziplin korrekt zugeordnet (Shooting 20.08. für MMA/Boxen/Ringen unter assets/kurse/, FKB/Street-Defense/PT nur je 1 Thumbnail – Shooting-Fotos fehlen). Coach-Sektionen (duosec im MT-Stil) seit 31.08. auf allen 12 Kursseiten, Zuordnung 1:1 von der Original-Website je Standort (WT Street Defense: wie ZH = Sam, Original hat keine WT-Seite). Bios/Summaries aus Webflow-CMS.
 6. Entscheid Ruben: "Self Defense Women" (ZH Mi 16:30) im Stundenplan lassen? Sonntag ZH "MMA Wrestling" (Zeit unbekannt) weggelassen.
-7. SEO-Titel + Schema.org NACH Keyword-Daten (Regel: Daten vor Copy).
+7. SEO: Titles/Descriptions seit 31.08. datenbasiert (12 Monate GSC-Export, Analyse-Daten unter /private/tmp .../scratchpad/gsc bzw. Zip in Downloads; Kernbefunde: 'mma zuerich' #1, Muay Thai>Thaiboxen 5:1, FKB auf 'Kickboxen' optimiert, Street Defense mit Krav-Maga-Begriff - Wording von Ruben noch absegnen lassen). Schema.org: SportsActivityLocation auf Home+Stadtseiten; NOCH OFFEN: FAQ-/Course-Schema, beim Launch noindex entfernen + Sitemap einreichen.
 8. Shop, Blog(6 Post-Links extern), EN-Seiten, Trainerprofile, Karriere-Stellen(5 extern): Migration ausstehend. Cutover = DNS-Flip am Ende. Über-uns seit 27.08. neu (Standards+Story, /assets/ueberuns-*).
 9. GitHub-PAT läuft ~30.08. ab – Ruben erneuern lassen.
 10. Visuelle Gesamtabnahme aller Seiten durch Ruben.
