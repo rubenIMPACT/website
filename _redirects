@@ -8,7 +8,7 @@
 /muaythaiprobetraining/* /winterthur/kurse/muay-thai/ 301
 /bjjtrial/* /trial/bjj/ 301
 /muaythaitrial/* /trial/muay-thai/ 301
-/bjj-winterthur.html /probetraining/bjj/ 301
+/bjj-winterthur.html /winterthur/kurse/bjj/ 301
 /winterthur/kurse/selbstverteidigung-fuer-frauen/ /winterthur/kurse/street-defense/ 301
 /zurich/kurse/selbstverteidigung-fuer-frauen/ /zurich/kurse/street-defense/ 301
 /en/winterthur/classes/self-defense-for-women/ /en/winterthur/classes/street-defense/ 301
@@ -21,3 +21,13 @@
 /career /karriere/ 301
 /blog/:slug /articles/:slug/ 301
 /blog /articles/ 301
+
+/tools/* / 302
+/blog/ /articles/ 301
+/blog /articles/ 301
+/trial/ /probetraining/ 302
+/trial /probetraining/ 302
+/en/ / 302
+/en / 302
+/events/ / 302
+/seminare/ / 302
