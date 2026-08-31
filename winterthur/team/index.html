@@ -217,6 +217,11 @@ section.deep{background:#12100b}
 .trbox p{color:var(--grey);font-size:15px;line-height:1.65;margin-top:14px}
 .trclose{position:sticky;top:0;float:right;margin:8px 10px 0 0;background:rgba(13,12,10,.8);border:1px solid var(--hair);border-radius:99px;width:38px;height:38px;color:var(--gold);font-size:22px;cursor:pointer;z-index:3;line-height:1}
 body.trlock{overflow:hidden}
+
+/* iOS: Bereich ueber dem fixierten Header abdecken (Statusleiste/Safe-Area) */
+@media(max-width:899px){
+.navwrap:before{content:"";position:absolute;left:0;right:0;bottom:100%;height:150px;background:#0a0908}
+}
 </style><link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 </head><body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="tsep"></span><a href="/" class="lang on">DE</a><a href="/en/" class="lang">EN</a></div>

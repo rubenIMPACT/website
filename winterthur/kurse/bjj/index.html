@@ -530,6 +530,11 @@ nav .logo img{height:32px}
 .citydd.open .ddm{display:block}
 }
 @media(max-width:899px){#ablauf:before{background:url('/assets/kurse/dsc01846.jpg') center 20%/cover no-repeat!important}}
+
+/* iOS: Bereich ueber dem fixierten Header abdecken (Statusleiste/Safe-Area) */
+@media(max-width:899px){
+.navwrap:before{content:"";position:absolute;left:0;right:0;bottom:100%;height:150px;background:#0a0908}
+}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
