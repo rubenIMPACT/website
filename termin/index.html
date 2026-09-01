@@ -37,12 +37,16 @@ main{flex:1}
 .steps div{display:flex;gap:12px;align-items:baseline;color:var(--grey);font-size:15px}
 .steps b{color:var(--gold);font-weight:800;font-size:13px;letter-spacing:2px;flex:none}
 .steps span{color:var(--white);font-weight:500}
+.gcard{margin-top:32px;display:flex;gap:16px;align-items:center;max-width:440px;border:1px solid var(--hair);border-radius:6px;padding:16px 18px}
+.gcard img{width:72px;height:72px;border-radius:50%;object-fit:cover;flex:none}
+.gcard b{display:block;font-weight:800;text-transform:uppercase;letter-spacing:.5px;font-size:15px}
+.gcard i{display:block;font-style:normal;color:var(--gold);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:800;margin:2px 0 6px}
+.gcard p{color:var(--grey);font-size:14px;margin:0;line-height:1.45}
 .calwrap{width:100%}
-.calendly-inline-widget{min-width:300px;height:760px;border:1px solid #2a261e;border-radius:6px;overflow:hidden;background:var(--black)}
-@media(max-width:640px){.calendly-inline-widget{height:900px;border:none;border-radius:0}}
+.bookframe{width:100%;height:760px;border:1px solid #2a261e;border-radius:6px;background:#fff;display:block}
+@media(max-width:640px){.bookframe{height:640px}}
 .calnote{font-size:12.5px;color:#6e6a5f;margin-top:10px}
-.calfallback{border:1px solid #2a261e;border-radius:6px;padding:28px;color:var(--grey);font-size:16px}
-.calfallback a{color:var(--gold);font-weight:500}
+.calnote a{color:var(--grey);text-decoration:underline}
 .fbottom{border-top:1px solid var(--hair);padding:18px var(--mx) 26px;color:var(--grey);font-size:12.5px}
 .fbottom a{color:var(--grey)}
 .fbottom a:hover{color:var(--gold)}
@@ -65,10 +69,18 @@ nav:before{content:"";position:absolute;left:0;right:0;bottom:100%;height:150px;
 <div><b>02</b><span>Telefon oder Google Meet, du entscheidest</span></div>
 <div><b>03</b><span>Anmeldung direkt im Gespräch abschliessen</span></div>
 </div>
+<div class="gcard">
+<img src="/assets/wf/b37d63dc-gioele-l.jpg" alt="Gioele Perretta" loading="lazy">
+<div>
+<b>Gioele Perretta</b>
+<i>Dein Ansprechpartner</i>
+<p>Gioele steht selbst mit grosser Leidenschaft bei IMPACT auf der Matte und begleitet dich Schritt für Schritt bis zur fertigen Anmeldung.</p>
+</div>
+</div>
 </div>
 <div class="calwrap">
-<div id="calslot"></div>
-<div class="calnote">Terminbuchung über Calendly. Mit dem Laden des Kalenders gelten die <a href="https://calendly.com/privacy" target="_blank" rel="noopener" style="color:var(--grey);text-decoration:underline">Datenschutzbestimmungen von Calendly</a>.</div>
+<iframe class="bookframe" src="https://app.impact-martialarts.com/a/booking/?serviceId=38595&amp;staffId=3102737&amp;embedded=true&amp;iframe=true&amp;web_embed=true" title="Anmeldegespräch buchen" loading="lazy"></iframe>
+<div class="calnote">Kalender lädt nicht? <a href="https://app.impact-martialarts.com/a/booking/?serviceId=38595&amp;staffId=3102737" target="_blank" rel="noopener">Termin in neuem Tab buchen</a>.</div>
 </div>
 </div>
 </section>
@@ -78,28 +90,6 @@ nav:before{content:"";position:absolute;left:0;right:0;bottom:100%;height:150px;
 (function(){
 var nv=document.getElementById('nav');
 window.addEventListener('scroll',function(){nv.classList.toggle('scrolled',window.scrollY>40)},{passive:true});
-/* Calendly-Link von Gioele, wird nach Account-Setup eingetragen */
-var CALENDLY_URL='';
-var slot=document.getElementById('calslot');
-if(CALENDLY_URL){
-var d=document.createElement('div');
-d.className='calendly-inline-widget';
-d.setAttribute('data-url',CALENDLY_URL+'?hide_gdpr_banner=1&background_color=000000&text_color=ffffff&primary_color=e2c210');
-slot.appendChild(d);
-var s=document.createElement('script');
-s.src='https://assets.calendly.com/assets/external/widget.js';
-s.async=true;
-document.body.appendChild(s);
-/* Buchung als Conversion tracken */
-window.addEventListener('message',function(e){
-if(e.origin==='https://calendly.com'&&e.data&&e.data.event==='calendly.event_scheduled'){
-window.dataLayer=window.dataLayer||[];
-window.dataLayer.push({event:'book_signup_call'});
-}
-});
-}else{
-slot.innerHTML='<div class="calfallback">Die Online-Terminbuchung wird gerade eingerichtet. Melde dich in der Zwischenzeit über unsere <a href="/kontakt/">Kontaktseite</a>, wir kümmern uns persönlich um dich.</div>';
-}
 })();
 </script>
 </body></html>
