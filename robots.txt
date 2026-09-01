@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /termin/
+Disallow: /en/booking/
+
+Sitemap: https://www.impact-martialarts.com/sitemap.xml

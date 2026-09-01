@@ -96,9 +96,18 @@
 /littleninjas/10-14-de-winterthur /winterthur/kurse/little-ninjas/ 301
 /littleninjas/* /zurich/kurse/little-ninjas/ 301
 # Legal (alte Pfade)
+/terms-and-conditions /agb/ 301
+/gtc-kidstraining /agb-kindertraining/ 301
+/privacy-policy /datenschutz/ 301
 /datenschutzerklarung /datenschutz/ 301
 /agb-kidstraining /agb-kindertraining/ 301
 # Catchalls (nach den spezifischen Regeln)
 /gr/* / 301
 /de/* / 301
-# OFFEN (Entscheid Ruben): /shop, /gear, /login -> Ziel klaeren vor Cutover
+# Interim (bis Shop-Entscheid): nichts laeuft ins Leere, 302 = jederzeit aenderbar
+/shop / 302
+/shop/* / 302
+/gear / 302
+/gear/* / 302
+/login / 302
+/log-in / 302
