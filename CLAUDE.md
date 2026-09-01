@@ -1,6 +1,6 @@
 # IMPACT Website – Projektkontext
 
-Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudflare Pages -> start.impact-martialarts.com (~60s Lag). Alle Seiten noindex bis Launch. Sprache: Deutsch (CH-Schreibweise, kein ß, KEINE Em-Dashes/Gedankenstriche im Text).
+Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudflare Pages -> start.impact-martialarts.com (~60s Lag). LAUNCH-ZUSTAND (01.09.): noindex ueberall ENTFERNT (ausser /termin/, /en/booking/, /probetraining/danke/, /en/trial/thanks/), Canonicals auf www.impact-martialarts.com, sitemap.xml (80 URLs, hreflang) + robots.txt + 404.html live, /shop|/gear|/login interim 302 auf /. Verbleibend fuer Cutover: Custom Domain www+apex in Cloudflare Pages anlegen + DNS-Flip (Ruben), danach Sitemap in GSC einreichen, Webflow erst danach kuendigen (Shop-Entscheid offen). Sprache: Deutsch (CH-Schreibweise, kein ß, KEINE Em-Dashes/Gedankenstriche im Text).
 
 ## Regeln (verbindlich)
 - Vor JEDEM Push: Playwright-Rendercheck (mobil 390px + Desktop 1280px) + HTML-Parse + Div-Balance (Anzahl `<div` == `</div>`) + JS-Syntax (`new Function` je `<script>`). Rot = kein Push.
