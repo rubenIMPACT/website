@@ -69,7 +69,7 @@ nav{gap:14px}
 .hero .cred span{color:var(--grey);font-weight:300}
 @media(min-width:1100px){
 .hero{flex-direction:row;align-items:stretch;min-height:94vh}
-.hero-media{position:relative;order:2;width:36%;flex:none}
+.hero-media{position:relative;order:2;flex:none;align-self:center;width:auto;height:calc(94vh - 190px);max-height:500px;aspect-ratio:1/1;margin:100px 56px 44px 24px;border-radius:14px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.5)}
 .hero-ovl{display:none}
 .hero-content{order:1;align-self:center;padding:120px 40px 80px var(--mx);min-width:0}
 .hero h1{font-size:clamp(44px,6.2vw,104px)}
@@ -784,10 +784,10 @@ nav .logo img{height:32px}
 </style>
 <script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Ist es schwer zu lernen?", "acceptedAnswer": {"@type": "Answer", "text": "Die Unterrichtsstunden sind für jeden geeignet, und der Inhalt kann von jedem erlernt werden."}}, {"@type": "Question", "name": "Muss ich kämpfen?", "acceptedAnswer": {"@type": "Answer", "text": "Nein. Die Fitness-Kickbox-Lektionen konzentrieren sich auf deine Fitness und nicht aufs Kämpfen. Wir machen kein Sparring und treffen nur die Pratzen."}}, {"@type": "Question", "name": "Passe ich dazu?", "acceptedAnswer": {"@type": "Answer", "text": "Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen. Jeder passt hier rein."}}, {"@type": "Question", "name": "Wie melde ich mich an?", "acceptedAnswer": {"@type": "Answer", "text": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an."}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Ist es schwer zu lernen?", "acceptedAnswer": {"@type": "Answer", "text": "Die Unterrichtsstunden sind für jeden geeignet, und der Inhalt kann von jedem erlernt werden."}}, {"@type": "Question", "name": "Muss ich kämpfen?", "acceptedAnswer": {"@type": "Answer", "text": "Nein. Die Fitness-Kickbox-Lektionen konzentrieren sich auf deine Fitness und nicht aufs Kämpfen. Wir machen kein Sparring und treffen nur die Pratzen."}}, {"@type": "Question", "name": "Passe ich dazu?", "acceptedAnswer": {"@type": "Answer", "text": "Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen. Jeder passt hier rein."}}, {"@type": "Question", "name": "Wie melde ich mich an?", "acceptedAnswer": {"@type": "Answer", "text": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an."}}, {"@type": "Question", "name": "Wo findet das Training statt?", "acceptedAnswer": {"@type": "Answer", "text": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns."}}]}</script>
 </head>
 <body>
-<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a></div>
+<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><a href="/en/">English</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/zurich/">Zürich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/winterthur/kurse/fitness-kickboxen/">Winterthur</a></div></div><a href="/zurich/kurse/">Kurse</a><a href="/zurich/stundenplan/">Stundenplan</a><a href="/zurich/kurse/little-ninjas/">Kids</a><a href="/zurich/team/">Team</a></div>
 <a class="cta" href="#anmelden">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
@@ -830,8 +830,8 @@ Walchestrasse 15, Zürich
 <section class="chapter" id="beweis">
 <div class="chaphead">
 <svg class="chapbolt bolt bolt-draw" viewBox="30 12 40 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg>
-<div class="idx rev">REVIEWS</div>
-<h2 class="rev">Members über <span class="accent">uns.</span></h2>
+<div class="idx rev">MEMBERS</div>
+<h2 class="rev">Reviews<span class="accent">.</span></h2>
 </div>
 <div class="hairpair rev"></div>
 <div class="statband">
@@ -944,7 +944,7 @@ Walchestrasse 15, Zürich
 <h2 class="rev">Keine <span class="accent">Ausreden.</span></h2>
 </div>
 <div class="hairpair rev"></div>
-<details><summary>Ist es schwer zu lernen?</summary><p>Die Unterrichtsstunden sind für jeden geeignet, und der Inhalt kann von jedem erlernt werden.</p></details><details><summary>Muss ich kämpfen?</summary><p>Nein. Die Fitness-Kickbox-Lektionen konzentrieren sich auf deine Fitness und nicht aufs Kämpfen. Wir machen kein Sparring und treffen nur die Pratzen.</p></details><details><summary>Passe ich dazu?</summary><p>Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen. Jeder passt hier rein.</p></details><details><summary>Wie melde ich mich an?</summary><p>Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an.</p></details>
+<details><summary>Ist es schwer zu lernen?</summary><p>Die Unterrichtsstunden sind für jeden geeignet, und der Inhalt kann von jedem erlernt werden.</p></details><details><summary>Muss ich kämpfen?</summary><p>Nein. Die Fitness-Kickbox-Lektionen konzentrieren sich auf deine Fitness und nicht aufs Kämpfen. Wir machen kein Sparring und treffen nur die Pratzen.</p></details><details><summary>Passe ich dazu?</summary><p>Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen. Jeder passt hier rein.</p></details><details><summary>Wie melde ich mich an?</summary><p>Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an.</p></details><details><summary>Wo findet das Training statt?</summary><p>An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.</p></details>
 </section>
 
 

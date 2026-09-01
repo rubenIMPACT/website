@@ -239,7 +239,7 @@ section.deep{background:#12100b}
 }
 </style><link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 </head><body>
-<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a></div>
+<div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><a href="/en/">English</a></div>
 <nav><a class="logo" href="/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/winterthur/">Winterthur <span class="caret">&#9662;</span></a><div class="ddm"><a href="/zurich/stundenplan/">Zürich</a></div></div><a href="/winterthur/kurse/">Kurse</a><a href="/winterthur/stundenplan/">Stundenplan</a><a href="/winterthur/kurse/little-ninjas/">Kids</a><a href="/winterthur/team/">Team</a></div>
 <a class="cta" href="/probetraining/">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
@@ -321,7 +321,7 @@ var DN={'Mo':'Montag','Di':'Dienstag','Mi':'Mittwoch','Do':'Donnerstag','Fr':'Fr
 var grid=document.getElementById('spgrid'),tabs=document.querySelector('.daytabs');
 var days=JSON.parse(document.getElementById('spdata').textContent).days;
 var cur=0;
-function per(){var w=window.innerWidth;if(MATS===2)return w>=1000?3:1;return w>=1000?Math.max(1,days.length):2}
+function per(){var w=window.innerWidth;if(MATS===2)return w>=1000?3:1;return w>=1000?3:2}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function card(s){if(!s)return '<span class="slot empty"></span>';
  return '<a class="sess slot" href="'+esc(s.href)+'"><span class="n">'+esc(s.n)+'</span><span class="lv">'+esc(s.lv)+'</span><span class="who">'+esc(s.who)+'</span></a>';}
