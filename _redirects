@@ -39,8 +39,6 @@
 /blog /articles/ 301
 /trial/ /probetraining/ 302
 /trial /probetraining/ 302
-/en/ / 302
-/en / 302
 /events/ / 302
 /seminare/ / 302
 
@@ -64,9 +62,9 @@
 /de/winterthur /winterthur/ 301
 /de/seminars / 301
 # EN-Seiten (alt: an der Wurzel)
-/about /ueber-uns/ 301
-/contact /kontakt/ 301
-/trial-session /probetraining/ 301
+/about /en/about/ 301
+/contact /en/contact/ 301
+/trial-session /en/trial/ 301
 /career /karriere/ 301
 # Kursseiten (alle 21 CMS-Slugs)
 /kurse/thai-boxen-muay-thai /zurich/kurse/muay-thai/ 301
@@ -92,7 +90,7 @@
 /de-team/sam-wt /winterthur/team/ 301
 /de-team/ruben-crawford-wt /winterthur/team/ 301
 /de-team/* /zurich/team/ 301
-/en-team/* /zurich/team/ 301
+/en-team/* /en/zurich/team/ 301
 # Little Ninjas Alterssplits
 /littleninjas/6-9-de-winterthur /winterthur/kurse/little-ninjas/ 301
 /littleninjas/10-14-de-winterthur /winterthur/kurse/little-ninjas/ 301
