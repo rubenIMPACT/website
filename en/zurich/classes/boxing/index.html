@@ -45,7 +45,8 @@ nav{position:absolute;top:0;left:0;right:0;z-index:60;display:flex;justify-conte
 nav .logo img{height:34px;filter:none}
 nav .cta{padding:10px 18px;font-size:13px}
 nav{gap:14px}
-.langtog{margin-left:auto;display:flex;gap:8px;font-size:13px;letter-spacing:1px;color:#6e6a5f;align-items:center}
+.mobmenu .langtog{margin-left:0;font-size:18px;margin-top:14px}
+.langtog{margin-left:auto;display:inline-flex;gap:5px;font-size:13px;letter-spacing:1px;align-items:center;color:inherit}.langtog .lt-on{font-weight:800;color:#fff;opacity:1}.langtog .lt-sep{opacity:.4}.langtog a{font-weight:400;opacity:.6;color:inherit;text-decoration:none}.langtog a:hover{opacity:1}
 .langtog a{color:#6e6a5f;font-weight:500}
 .langtog a.on{color:var(--gold)}
 .langtog a:hover{color:var(--white)}
@@ -70,7 +71,7 @@ nav{gap:14px}
 .hero .cred span{color:var(--grey);font-weight:300}
 @media(min-width:1100px){
 .hero{flex-direction:row;align-items:stretch;min-height:94vh}
-.hero-media{position:relative;order:2;width:36%;flex:none}
+.hero-media{position:relative;order:2;flex:none;align-self:center;width:auto;height:calc(94vh - 190px);max-height:660px;aspect-ratio:3/4;margin:100px 56px 44px 24px;border-radius:14px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.5)}
 .hero-ovl{display:none}
 .hero-content{order:1;align-self:center;padding:120px 40px 80px var(--mx);min-width:0}
 .hero h1{font-size:clamp(44px,6.2vw,104px)}
@@ -788,12 +789,12 @@ nav .logo img{height:32px}
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is boxing hard to learn?", "acceptedAnswer": {"@type": "Answer", "text": "The boxing classes are a little more advanced, but suitable for anyone reasonably athletic. Everyone can learn the content."}}, {"@type": "Question", "name": "Do I have to spar?", "acceptedAnswer": {"@type": "Answer", "text": "No. Sparring is optional and strictly controlled – there are no hard shots to the head. We take great care not to hurt each other."}}, {"@type": "Question", "name": "Passe ich dazu?", "acceptedAnswer": {"@type": "Answer", "text": "We're proud of a great community of very different people that welcomes everyone. You'll fit right in!"}}, {"@type": "Question", "name": "How do I sign up?", "acceptedAnswer": {"@type": "Answer", "text": "Just sign up via the form. Your first session is free – we'll give you a quick call beforehand."}}, {"@type": "Question", "name": "Where does training take place?", "acceptedAnswer": {"@type": "Answer", "text": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school."}}]}</script>
 </head>
 <body>
-<div class="navwrap" id="navwrap"><div class="topbar"><a href="/en/about/">About us</a><a href="/karriere/">Careers</a><a href="/articles/">Blog</a><a href="/zurich/kurse/boxen/">Deutsch</a></div>
+<div class="navwrap" id="navwrap"><div class="topbar"><a href="/en/about/">About us</a><a href="/karriere/">Careers</a><a href="/articles/">Blog</a><span class="langtog"><a href="/zurich/kurse/boxen/">DE</a><span class="lt-sep">/</span><span class="lt-on">EN</span></span></div>
 <nav><a class="logo" href="/en/"><img src="/assets/wf/9ef3c5e1-652a61bd13ed5242e0d0baff-IMPACT-Martial-Arts-Logo-neg-gold-web.png" alt="IMPACT Martial Arts"></a>
 <div class="navlinks"><div class="dd"><a class="ddt on" href="/en/zurich/">Zurich <span class="caret">&#9662;</span></a><div class="ddm"><a href="/en/winterthur/classes/boxing/">Winterthur</a></div></div><a href="/en/zurich/classes/">Classes</a><a href="/en/zurich/schedule/">Schedule</a><a href="/en/zurich/classes/little-ninjas/">Kids</a><a href="/en/zurich/team/">Team</a></div>
 <a class="cta" href="#anmelden">Free Trial Class<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></a>
 <span class="dd citydd"><a class="ddt citylabel" href="/en/zurich/">Zurich <span class="caret">&#9662;</span></a><span class="ddm"><a href="/en/winterthur/classes/boxing/">Winterthur</a></span></span><button class="burger" id="burger" aria-label="Menu">&#9776;</button></nav></div>
-<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/en/zurich/classes/">Classes</a><a href="/en/zurich/schedule/">Schedule</a><a href="/en/zurich/classes/little-ninjas/">Kids</a><a href="/en/zurich/team/">Team</a><div class="msep"></div><a class="sec" href="/en/about/">About us</a><a class="sec" href="/karriere/">Careers</a><a class="sec" href="/articles/">Blog</a></div>
+<div class="mobmenu" id="mobmenu"><button class="close" aria-label="Schliessen">&times;</button><a href="/en/zurich/classes/">Classes</a><a href="/en/zurich/schedule/">Schedule</a><a href="/en/zurich/classes/little-ninjas/">Kids</a><a href="/en/zurich/team/">Team</a><div class="msep"></div><a class="sec" href="/en/about/">About us</a><a class="sec" href="/karriere/">Careers</a><a class="sec" href="/articles/">Blog</a><span class="langtog mobtog"><a href="/zurich/kurse/boxen/">DE</a><span class="lt-sep">/</span><span class="lt-on">EN</span></span></div>
 
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W6SM24HX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
