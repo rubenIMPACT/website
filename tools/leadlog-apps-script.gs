@@ -376,20 +376,13 @@ function buildPlanAnalyse(ss) {
 // ---------------------------------------------------------------- Klassenanalyse (Weg 2, 02.09.2026)
 // Der Skill impact-class-analysis (Cowork, eingeloggter Browser) holt die exercise.com-Reports, baut mit
 // tools/klassenanalyse/build_import.py eine JSON-Datei und legt sie im Drive-Ordner "Klassenanalyse-Import" ab.
-// importKlassenanalyse() (stuendlicher Trigger, siehe installTriggers) nimmt die neueste Datei und baut den Tab
-// "Klassenanalyse" neu: Kopf, Standort-Summen, Monatsverlauf (aus KlassenHistorie) und die Slot-Tabelle mit den
-// Kennzahlen des Skills (Auslastung, Oe pro Klasse, Oe dieser Uhrzeit, Verhaeltnis, Bewertung). Spalte "Aktion" bleibt erhalten.
+// importKlassenanalyse() nimmt die neueste Datei und baut den Tab "Klassenanalyse" neu (Kopf, Standort-Summen,
+// Monatsverlauf aus KlassenHistorie, Slot-Tabelle mit Auslastung, Oe pro Klasse, Oe dieser Uhrzeit, Verhaeltnis, Bewertung).
+// Spalte "Aktion" bleibt erhalten. Manuell im Editor ausfuehren oder per Zeit-Trigger (Trigger-Menue, stuendlich).
 var KA_FOLDER = 'Klassenanalyse-Import';
 var KA_SHEET = 'Klassenanalyse';
 var KA_HIST = 'KlassenHistorie';
 var KA_HEAD = ['Standort', 'Segment', 'Klasse', 'Tag', 'Zeit', 'Tagtyp', 'Termine', 'Besuche', 'Ø pro Klasse', 'Ø dieser Uhrzeit', 'Verhältnis zur Uhrzeit', 'Plätze', 'Auslastung', 'Unique Users', 'Buchungen', 'Besuche je Teilnehmer', 'Trainer', 'Bewertung', 'Aktion'];
-
-function installTriggers() {
-  var ts = ScriptApp.getProjectTriggers();
-  for (var i = 0; i < ts.length; i++) if (ts[i].getHandlerFunction() === 'importKlassenanalyse') ScriptApp.deleteTrigger(ts[i]);
-  ScriptApp.newTrigger('importKlassenanalyse').timeBased().everyHours(1).create();
-  Logger.log('Trigger installiert: importKlassenanalyse stuendlich');
-}
 
 function latestImportFile() {
   var it = DriveApp.getFoldersByName(KA_FOLDER);
@@ -416,6 +409,7 @@ function importKlassenanalyse(force) {
   props.setProperty('KA_LAST', stamp);
   Logger.log('Klassenanalyse importiert: ' + f.getName() + ' (' + (data.rows || []).length + ' Klassen)');
 }
+function importKlassenanalyseForce() { importKlassenanalyse(true); }
 
 function updateKlassenHistorie(ss, data) {
   var sh = getOrCreate(ss, KA_HIST);
