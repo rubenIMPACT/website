@@ -21,9 +21,20 @@ export async function onRequestPost(context) {
     if (!data.reason && !data.suggestions && !data.satisfaction) return j({ error: "empty" }, 400);
   }
   if (!env.LEADLOG_URL || !env.LEADLOG_TOKEN) return j({ error: "config" }, 500);
+  // Apps Script fuehrt doPost beim POST aus und antwortet mit 302 (Redirect auf die Ergebnisseite).
+  // Der Redirect wird bewusst NICHT verfolgt: 302 = Script hat gelaufen, der zweite Hop ist langsam/unzuverlaessig.
+  const body = JSON.stringify({ token: env.LEADLOG_TOKEN, kind, data });
+  const send = async () => { const r = await fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "manual" }); return r.status; };
   try {
-    const r = await fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: env.LEADLOG_TOKEN, kind, data }), redirect: "follow" });
-    const t = await r.text(); let ok = false; try { ok = JSON.parse(t).ok === true; } catch {}
-    return j({ ok }, ok ? 200 : 502);
-  } catch (e) { return j({ error: "log" }, 502); }
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 12000);
+    let status = 0;
+    try { const r = await fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "manual", signal: ctl.signal }); status = r.status; } finally { clearTimeout(timer); }
+    if (status === 302 || status === 200) return j({ ok: true });
+    // Einmal nachlegen, ohne den Nutzer warten zu lassen
+    context.waitUntil(send().catch(() => {}));
+    return j({ ok: false, up: status }, 502);
+  } catch (e) {
+    context.waitUntil(send().catch(() => {}));
+    return j({ ok: false, error: "timeout" }, 502);
+  }
 }
