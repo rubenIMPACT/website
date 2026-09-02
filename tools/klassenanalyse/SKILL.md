@@ -1,0 +1,140 @@
+---
+name: impact-class-analysis
+description: Monatliche Klassenanalyse fuer IMPACT Zuerich und Winterthur aus den exercise.com-Reports "Popular Services" und "Itemized Recurring Sessions", direkt ins Google Sheet "IMPACT Website Leads Log" (Tab Klassenanalyse). Nutze diesen Skill immer, wenn Ruben Klassen, Stundenplan, Kursauslastung, Besucherzahlen, Slots, Kurszeiten oder einzelne Kurse (Little Ninjas, Self Defense for Women, Competition, Open Mat, Muay Thai, BJJ) bewerten, vergleichen, aufraeumen, streichen, verlegen oder ausbauen will, auch wenn er den Report nicht namentlich nennt, und bei Fragen wie "welche Klassen laufen schlecht", "sollen wir X streichen", "wann sollen wir Y anbieten", "Klassenanalyse", "Auslastung".
+---
+
+# IMPACT Klassenanalyse (Weg 2: Browser-Session -> Sheet)
+
+Beantwortet die Frage "welche Klassen tragen sich, welche nicht, und liegt es am Kurs oder an der Uhrzeit".
+Seit 02.09.2026 landet das Ergebnis nicht mehr in einer Excel-Datei, sondern im Tab **Klassenanalyse** des
+Google Sheets "IMPACT Website Leads Log" (ID 1nlA8MOSqYFwj-rI0SYRFh06-VmMTdoUPYEsHf3zwtlE). Dort entsteht
+ueber die Monate ein Verlauf (Tab KlassenHistorie, versteckt). Ruben will monatlich die Zahlen des Vormonats.
+
+Die Analyse ist nur so gut wie die Bereinigung davor. Die Datenfallen unten (Schedule-Fragmente, Samstags-
+Rotation, Gratisklassen, Kids vs. Erwachsene) sind im Ablauf eingebaut, nicht optional.
+
+## Voraussetzungen
+
+- Cowork-Session mit Chrome-MCP, ein Tab auf `app.impact-martialarts.com` ist eingeloggt (Ruben).
+- Google-Drive-Connector (zum Hochladen der Import-Datei).
+- Die Scripts liegen im Website-Repo unter `tools/klassenanalyse/` und als Kopie in `scripts/` dieses Skills.
+
+## Ablauf (ca. 10 Minuten)
+
+**0. Fenster bestimmen.** Standard: der letzte volle Kalendermonat (am 1. Oktober also 01.09. bis 30.09.).
+Wenn Ruben ein anderes Fenster nennt, das nehmen. Format YYYY-MM-DD.
+
+**1. Reports per API neu generieren.** In einem exercise.com-Tab mit `javascript_tool` zuerst den Inhalt von
+`scripts/fetch_reports.js` ausfuehren (definiert `KA`), dann:
+
+```js
+window.__ka = KA('2026-08-01', '2026-08-31'); await __ka.refreshOne('recurring')   // Recurring Sessions
+```
+
+Popular Services teilt sich EINEN Server-Cache, darum Zuerich und Winterthur nacheinander:
+
+```js
+await __ka.refreshOne('Zurich');  await __ka.poll('Zurich')      // wiederholen bis 'done', dann
+await __ka.refreshOne('Winterthur'); await __ka.poll('Winterthur') // wiederholen bis 'done'
+await __ka.poll('recurring')                                        // bis 'done'
+```
+
+Jeder Aufruf muss unter 45 Sekunden bleiben (Tool-Limit), deshalb kein Warten in einer Schleife im selben Aufruf.
+Ein Poll gilt als fertig, wenn `refreshing` leer ist UND der Filtertext das Startdatum und (bei Popular) den
+Standort enthaelt. Ohne diesen Check liest man die alte Generierung.
+
+**2. Daten aus dem Tab holen.** `javascript_tool` kuerzt Rueckgaben auf rund 1000 Zeichen. Der Weg, der
+funktioniert: das JSON in die Seite schreiben und mit `get_page_text` auslesen (bis ~50 KB in einem Stueck):
+
+```js
+const j = JSON.stringify(__ka.collect());
+document.body.innerHTML = ''; const p = document.createElement('pre'); p.textContent = 'KA_JSON_BEGIN' + j + 'KA_JSON_END'; document.body.appendChild(p); j.length
+```
+
+Dann `get_page_text`, den Text zwischen den Markern als `reports.json` speichern. Danach die Seite neu laden
+(navigate), damit der exercise.com-Tab wieder normal aussieht.
+
+**3. Import-Datei bauen.**
+
+```bash
+python scripts/build_import.py reports.json -o klassenanalyse-2026-08.json
+```
+
+Das Script fasst Schedule-Fragmente auf Standort + Kurs + Wochentag + Startzeit zusammen, nimmt Termine, Besuche,
+Plaetze aus Popular Services (nur "(Class)"-Zeilen), Unique Users, Buchungen, Trainer aus Recurring Sessions,
+und meldet Auslastung je Standort. Pruefe die Ausgabe: Zuerich lag im Sommer 2026 bei rund 32 Prozent,
+Winterthur bei rund 25 Prozent. Weicht das um mehr als 10 Punkte ab, stimmt etwas mit dem Fenster oder dem
+Standortfilter nicht.
+
+**4. Hochladen.** Mit dem Drive-Connector (`create_file`) die JSON-Datei in den Ordner **Klassenanalyse-Import**
+(ID 1PY7xvkRQlo19r9ARp6_95-MG3bIi1lPI) legen: `contentMimeType: application/json`,
+`disableConversionToGoogleType: true`, Dateiname `klassenanalyse-YYYY-MM.json`.
+
+**5. Import ausloesen.** Das Apps-Script "IMPACT Website Lead Log" (Funktion `importKlassenanalyse`) liest die
+neueste Datei aus dem Ordner und baut den Tab neu. Es laeuft per Zeit-Trigger (stuendlich, im Trigger-Menue
+des Scripts angelegt) oder sofort: im Script-Editor die Funktion `importKlassenanalyseForce` ausfuehren.
+Spalte "Aktion" im Tab bleibt beim Neuaufbau erhalten (Schluessel Standort + Klasse + Tag + Zeit).
+
+**6. Schriftlich auswerten** (Struktur unten) und Ruben den Link auf den Tab geben. Keine Excel-Datei mehr.
+
+## Die Kennzahlen (unveraendert)
+
+**Auslastung** = Besuche / Plaetze. Hauptzahl, braucht keine Bezugsgroesse. Beobachtete Verteilung: Median
+rund 28 Prozent, unteres Viertel unter 16, bestes Viertel ueber 36.
+
+**Oe pro Klasse** daneben, weil Auslastung allein die Raumgroesse versteckt.
+
+**Oe dieser Uhrzeit** und das **Verhaeltnis** beantworten, ob es am Kurs oder an der Uhrzeit liegt (Vergleich
+ueber alle Werktage zusammen, Samstag getrennt). Innerhalb einer Uhrzeit unterscheiden sich Wochentage teils um
+Faktor 3 bis 5; bei einer schwachen Klasse immer die gleiche Uhrzeit an anderen Tagen anschauen.
+
+**Besuche je Teilnehmer** = Buchungen / Unique Users (beide aus dem Recurring-Report). Niedrig = viele
+probieren, bleiben nicht. Hoch = fester Stamm, den eine Schliessung real kostet.
+
+**Bewertung** im Sheet: unter 5 Termine "zu wenig Termine", unter 10 Prozent "tot", unter 16 "schliessen
+pruefen", unter 28 "schwach", ueber 45 "Kapazitaet pruefen".
+
+## Datenfallen
+
+- **Schedule-Fragmente**: jede Stundenplan-Aenderung legt eine neue Serie an; zusammengefasst wird auf Standort,
+  Kurs, Wochentag, Startzeit (macht build_import.py).
+- **Samstags-Rotation**: zwei Trainer im Wechsel = zwei Serien. Popular Services zaehlt pro Serie nur die
+  tatsaechlich gelaufenen Termine, die Summe stimmt also. Der Recurring-Report verdoppelt Sessions; darum nie
+  Total Sessions als Nenner.
+- **Gratisklassen** (Open Mat) sind aus allen Vergleichen ausgeschlossen, stehen aber in der Tabelle.
+- **Kids gegen Erwachsene** getrennt lesen. Ferienmonate (Kanton Zuerich) verzerren Kids nach unten; das in der
+  Auswertung nennen.
+- **Nicht-Klassen** (Anmeldegespraech, Personal Training, Workshops, Sparring) werden ausgefiltert.
+- **Unique Users** sind Koepfe, nicht Besuche. Nicht ueber Klassen summieren.
+
+## Was Zahlen allein nicht entscheiden
+
+Widersprich Ruben, wenn eine dieser Situationen vorliegt. Er will das explizit.
+
+- **Competition-Klassen** nicht nach Oe bewerten, sie tragen Positionierung und Kaderaufbau. Frag, wie viele der
+  Teilnehmer tatsaechlich kaempfen.
+- **Reichweite von Bindung trennen**: viele Unique Users bei niedrigem Oe = Nachfrage ohne Format, also
+  Retentionsproblem, nicht Nachfrageproblem.
+- **Wer muss umziehen**: vor jeder Schliessungsempfehlung sagen, wie viele Personen betroffen sind und ob es eine
+  Alternative im Plan gibt.
+- **Ein toter Slot ist kein totes Produkt**: laeuft dieselbe Uhrzeit an einem anderen Tag, ist Verlegen die
+  Antwort, nicht Streichen.
+
+## Aufbau der schriftlichen Auswertung
+
+Kurz, Substanz vor Vollstaendigkeit, kein Fliesstext um Zahlen herum.
+
+1. Datenbasis in zwei Zeilen: Fenster, Anzahl Slots, Auslastung je Standort, Vergleich zum Vormonat (steht im Tab).
+2. Vorgenommene Korrekturen, falls noetig.
+3. Befunde nach Groesse des Hebels sortiert.
+4. Antwort auf jede konkrete Hypothese von Ruben, auch wenn die Daten sie widerlegen.
+5. Was die Daten nicht hergeben.
+
+Bewaehrte Analysewinkel: Striking gegen Grappling in derselben Uhrzeit, gleicher Kurs mit gleichem Trainer an
+zwei Wochentagen, Werktag gegen Samstag im selben Slot, Anteil der Slots unter 16 Prozent gemessen am Anteil
+der Besuche, den sie liefern.
+
+## Details
+
+`references/method.md` erklaert die Spaltensemantik der Reports und die Datenfallen im Detail (weiterhin gueltig;
+der Text-Dump-Weg dort ist nur noch Fallback, wenn die JSON-API einmal nicht antwortet).
