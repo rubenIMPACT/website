@@ -50,42 +50,51 @@ async function dupUpdate(env, auth, p, clean) {
     } catch (e) { trace.push("lookup-exc"); }
   }
   if (!found) return { done: false, detail: "kein Client gefunden: " + trace.join(", ") };
-  // Bestehende Message/Tags erhalten
-  let oldMsg = "";
-  try {
-    const pf = found.profile_fields || found.custom_fields || [];
-    const m = pf.find((f) => f && (f.id === "Message" || f.name === "Message"));
-    oldMsg = m ? String(m.value || "") : "";
-  } catch {}
+  // Standort + Profilfelder haengen am User-Objekt (nicht am Client): GET /api/v4/users/{user_id}
+  const uid = found.user_id || found.client_id || (found.user && found.user.id) || null;
+  let user = null;
+  if (uid) {
+    try { const r = await fetch(API + "/api/v4/users/" + uid, { headers: H }); if (r.ok) user = await r.json(); else trace.push("user GET " + r.status); } catch { trace.push("user-exc"); }
+  }
+  const oldPf = (user && Array.isArray(user.profile_fields)) ? user.profile_fields.filter((f) => f && f.label).map((f) => ({ label: f.label, value: f.value == null ? "" : String(f.value) })) : [];
+  const getPf = (l) => { const f = oldPf.find((x) => x.label === l); return f ? f.value : ""; };
+  const oldMsg = getPf("Message");
   let oldTags = [];
-  try { oldTags = Array.isArray(found.tag_list) ? found.tag_list : String(found.tag_list || found.tags || "").split(/,\s*/).filter(Boolean); } catch {}
+  try {
+    const raw = found.tags != null ? found.tags : found.tag_list;
+    oldTags = Array.isArray(raw) ? raw.map(String) : String(raw || "").split(/,\s*/).filter(Boolean);
+  } catch {}
   const note = "ERNEUTE ANFRAGE " + stamp + ": " + [clean(p.discipline), clean(p.location), p.kid_name ? "Kind " + clean(p.kid_name) + (p.kid_age ? " (" + clean(p.kid_age) + ")" : "") : "", p.message ? clean(p.message) : "", "Seite " + clean(p.page)].filter(Boolean).join(" | ");
   const tags = Array.from(new Set(oldTags.concat([clean(p.discipline), clean(p.location), "repeat-lead-" + stamp]).filter(Boolean)));
-  // Bisheriger Standort: aus Client-Feldern oder aus den Tags der Erstanfrage
+  // Bisheriger Standort: location_id des Users, sonst aus den Tags der Erstanfrage
   let oldLoc = "";
-  try {
-    const lid = String(found.location_id || (found.location && (found.location.id || found.location.name)) || "");
-    if (lid === "2508") oldLoc = "Zürich"; else if (lid === "2222") oldLoc = "Winterthur"; else if (/z(u|ü)rich/i.test(lid)) oldLoc = "Zürich"; else if (/winterthur/i.test(lid)) oldLoc = "Winterthur";
-    if (!oldLoc) { const hasZ = oldTags.some((t) => /z(u|ü)rich/i.test(t)), hasW = oldTags.some((t) => /winterthur/i.test(t)); if (hasZ && !hasW) oldLoc = "Zürich"; else if (hasW && !hasZ) oldLoc = "Winterthur"; }
-  } catch {}
+  const lid = String((user && user.location_id) || "");
+  if (lid === "2508") oldLoc = "Zürich"; else if (lid === "2222") oldLoc = "Winterthur";
+  if (!oldLoc) { const hasZ = oldTags.some((t) => /z(u|ü)rich/i.test(t)), hasW = oldTags.some((t) => /winterthur/i.test(t)); if (hasZ && !hasW) oldLoc = "Zürich"; else if (hasW && !hasZ) oldLoc = "Winterthur"; }
   const newLoc = /winterthur/i.test(String(p.location || "")) ? "Winterthur" : "Zürich";
   const locChanged = !!oldLoc && oldLoc !== newLoc;
-  const pf = [
-    { id: "Message", name: "Message", value: (oldMsg ? oldMsg + " || " : "") + note + (locChanged ? " | STANDORTWECHSEL " + oldLoc + " -> " + newLoc : "") },
-    { id: "Interested in", name: "Interested in", value: clean(p.discipline) },
-    { id: "phone_number", name: "Phone Number", value: clean(p.phone) } ];
-  if (locChanged) pf.push({ id: "location_id", name: "Location", value: newLoc === "Winterthur" ? "2222" : "2508" });
-  const body = { client: { tag_list: tags.join(",\n"), profile_fields: pf } };
-  for (const m of ["PUT", "PATCH"]) {
+  const lc = locChanged ? oldLoc + " -> " + newLoc : "";
+  // Profilfelder: Liste wird vom API komplett ersetzt, darum bestehende Felder mitschicken
+  const newPf = oldPf.map((f) => ({ label: f.label, value: f.value }));
+  const setPf = (l, v) => { const f = newPf.find((x) => x.label === l); if (f) f.value = v; else newPf.push({ label: l, value: v }); };
+  setPf("Message", (oldMsg ? oldMsg + " || " : "") + note + (locChanged ? " | STANDORTWECHSEL " + lc : ""));
+  if (clean(p.discipline)) setPf("Interested in", clean(p.discipline));
+  const ub = { profile_fields: newPf };
+  if (clean(p.phone)) ub.phone_number = clean(p.phone);
+  if (locChanged) ub.location_id = newLoc === "Winterthur" ? 2222 : 2508;
+  let tagsOk = false, userOk = false;
+  try {
+    const r = await fetch(API + "/api/v2/clients/" + found.id, { method: "PUT", headers: H, body: JSON.stringify({ client: { tag_list: tags.join(",\n") } }) });
+    tagsOk = r.ok; trace.push("tags PUT " + r.status);
+  } catch { trace.push("tags-exc"); }
+  if (uid) {
     try {
-      const r = await fetch(API + "/api/v2/clients/" + found.id, { method: m, headers: H, body: JSON.stringify(body) });
-      const t = await r.text();
-      if (r.ok) return { done: true, locchange: locChanged ? oldLoc + " -> " + newLoc : "", detail: "Client " + found.id + " ergaenzt (" + m + " " + r.status + ")" + (locChanged ? ", Standort " + oldLoc + " -> " + newLoc : "") };
-      trace.push(m + " " + r.status + " " + t.slice(0, 80));
-      if (r.status !== 404 && r.status !== 405) break;
-    } catch (e) { trace.push(m + "-exc"); }
+      const r = await fetch(API + "/api/v4/users/" + uid, { method: "PUT", headers: H, body: JSON.stringify({ user: ub }) });
+      userOk = r.ok; trace.push("user PUT " + r.status + (r.ok ? "" : " " + (await r.text()).slice(0, 80)));
+    } catch { trace.push("user-put-exc"); }
   }
-  return { done: false, locchange: locChanged ? oldLoc + " -> " + newLoc : "", detail: "Client " + found.id + " gefunden, Update fehlgeschlagen: " + trace.join(", ") };
+  const done = userOk && tagsOk;
+  return { done, locchange: lc, detail: "Client " + found.id + (done ? " ergaenzt" : " gefunden, Update unvollstaendig") + " (" + trace.slice(-3).join(", ") + ")" + (locChanged ? ", Standort " + lc : "") };
 }
 
 export async function onRequestPost(context) {
