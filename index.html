@@ -340,8 +340,8 @@ section.deep{background:#12100b}
 .trmodal .trbg{position:absolute;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(4px)}
 .trbox{position:relative;background:#0d0c0a;border:1px solid var(--hair);max-width:880px;width:100%;max-height:88vh;overflow:auto;display:grid;z-index:2}
 @media(min-width:760px){.trbox{grid-template-columns:320px 1fr}}
-.trbox .trimg{width:100%;height:100%;object-fit:cover;object-position:top}
-@media(max-width:759px){.trbox .trimg{max-height:280px}}
+.trbox .trimg{width:100%;height:auto;object-fit:contain;object-position:top;align-self:start}
+@media(max-width:759px){.trbox .trimg{max-height:none}}
 .trbox .tb{padding:26px 28px 32px}
 .trbox h3{font-size:clamp(24px,3vw,34px);line-height:1.02}
 .trbox .role{color:var(--grey);font-size:12px;letter-spacing:1.8px;text-transform:uppercase;font-weight:600;margin-top:8px}
