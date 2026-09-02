@@ -1,10 +1,11 @@
-// IMPACT Website Lead Log - Google Apps Script (Webapp) - Version 5 (02.09.2026)
+// IMPACT Website Lead Log - Google Apps Script (Webapp) - Version 6 (02.09.2026)
 // Projekt "IMPACT Website Lead Log" in script.google.com (ruben@impact-martialarts.com)
 // Kopie dieses Codes ohne Token liegt im Website-Repo unter tools/leadlog-apps-script.gs.
 //
 // Aufgaben:
 //  1. doPost: Leads (vom Cloudflare-Endpunkt /api/lead) ins Tab "Leads" schreiben + Mail-Routing
 //  2. doPost: Trainingsplaene (vom Endpunkt /api/plan) ins Tab "Trainingsplan" schreiben + Mail bei bekanntem Lead
+//  2b. doPost: Formulare ohne CRM (kind=event / cancellation vom Endpunkt /api/form) in die Tabs "Events" / "Kündigungen" (logForm, aus v5 des Events-Chats uebernommen)
 //  3. setupAnalyse(): Tabs "Analyse", "Trainingsplan-Analyse", "Historie", "Daten", "PlanDaten" anlegen/erneuern (einmalig manuell ausfuehren)
 //  4. repairPhones(): alte "#ERROR!"-Telefonzellen reparieren (einmalig manuell ausfuehren)
 //
@@ -32,6 +33,7 @@ function doPost(e) {
     if (p.token !== TOKEN) return out({ error: 'unauthorized' });
     var ss = SpreadsheetApp.openById(SHEET_ID);
     try { if (ss.getSpreadsheetTimeZone() !== TZ) ss.setSpreadsheetTimeZone(TZ); } catch (tz) {}
+    if (p.kind === 'event' || p.kind === 'cancellation') return out(logForm(ss, p));
     if (p.type === 'plan') return out(logPlan(ss, p));
     return out(logLead(ss, p));
   } catch (err) {
@@ -127,6 +129,21 @@ function logPlan(ss, p) {
     }).join('<br>');
     MailApp.sendEmail({ to: to, subject: subject, body: lines.join('\n'), htmlBody: html });
   }
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- Formulare ohne CRM (Events, Kuendigungs-Feedback) - Spalten 1:1 wie v5 (02.09. 17:32)
+function logForm(ss, p) {
+  var d = p.data || {};
+  var isEv = p.kind === 'event';
+  var name = isEv ? 'Events' : 'Kündigungen';
+  var head = isEv ? ['Zeitpunkt', 'Event', 'Datum', 'Standort', 'Name', 'E-Mail', 'Telefon', 'Freunde', 'Sprache', 'Seite']
+                  : ['Zeitpunkt', 'Anonym', 'Vorname', 'Nachname', 'Grund', 'Erwartungen nicht erfüllt', 'Details Erwartungen', 'Zufriedenheit Trainer', 'Details Trainer', 'Pause/Timing', 'Details Timing', 'Preis Einfluss', 'Preis zum Bleiben', 'Preis maximal', 'Verbesserungen', 'Wiedereinstieg', 'Details Wiedereinstieg', 'Sprache'];
+  var sh = ss.getSheetByName(name); if (!sh) { sh = ss.insertSheet(name); }
+  if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); }
+  var row = isEv ? [new Date(), s(d.event_title), s(d.event_date), s(d.location), asText(d.name), asText(d.email), asText(d.phone), s(d.friends), s(d.lang), s(d.page)]
+                 : [new Date(), d.anonymous ? 'Ja' : 'Nein', asText(d.first_name), asText(d.last_name), asText(d.reason), s(d.expectations), asText(d.expectations_text), s(d.satisfaction), asText(d.satisfaction_text), s(d.timing), asText(d.timing_text), s(d.price), s(d.price_stay), s(d.price_max), asText(d.suggestions), s(d.rejoin), asText(d.rejoin_text), s(d.lang)];
+  sh.appendRow(row);
   return { ok: true };
 }
 
