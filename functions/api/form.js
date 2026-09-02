@@ -22,19 +22,12 @@ export async function onRequestPost(context) {
   }
   if (!env.LEADLOG_URL || !env.LEADLOG_TOKEN) return j({ error: "config" }, 500);
   // Apps Script fuehrt doPost beim POST aus und antwortet mit 302 (Redirect auf die Ergebnisseite).
-  // Der Redirect wird bewusst NICHT verfolgt: 302 = Script hat gelaufen, der zweite Hop ist langsam/unzuverlaessig.
+  // Der Redirect wird NICHT verfolgt: 302 = Script hat gelaufen. Google antwortet manchmal erst nach >10s,
+  // die Zeile ist dann trotzdem geschrieben. Darum: nach 9s optimistisch "ok" melden, Request laeuft im Hintergrund weiter.
   const body = JSON.stringify({ token: env.LEADLOG_TOKEN, kind, data });
-  const send = async () => { const r = await fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "manual" }); return r.status; };
-  try {
-    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 12000);
-    let status = 0;
-    try { const r = await fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "manual", signal: ctl.signal }); status = r.status; } finally { clearTimeout(timer); }
-    if (status === 302 || status === 200) return j({ ok: true });
-    // Einmal nachlegen, ohne den Nutzer warten zu lassen
-    context.waitUntil(send().catch(() => {}));
-    return j({ ok: false, up: status }, 502);
-  } catch (e) {
-    context.waitUntil(send().catch(() => {}));
-    return j({ ok: false, error: "timeout" }, 502);
-  }
+  const req = fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "manual" }).then((r) => r.status).catch(() => -1);
+  context.waitUntil(req);
+  const status = await Promise.race([req, new Promise((res) => setTimeout(() => res("timeout"), 9000))]);
+  if (status === "timeout" || status === 302 || status === 200) return j({ ok: true });
+  return j({ ok: false, up: status }, 502);
 }
