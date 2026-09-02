@@ -244,7 +244,7 @@ section.deep{background:#12100b}
 .dd.open .ddm{display:block}
 @media(max-width:899px){.navlinks{display:flex}.burger{display:none}}
 
-.trgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;background:var(--hair);margin-top:34px}
+.trgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(14px,2.4vw,28px);background:transparent;margin-top:34px}
 @media(min-width:700px){.trgrid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1100px){.trgrid{grid-template-columns:repeat(5,1fr)}}
 
@@ -334,7 +334,7 @@ section.deep{background:#12100b}
 
 /* trainer-bio overlay */
 .trcard{cursor:pointer}
-.trcard .tm:after{content:"Mehr erfahren +";display:block;margin-top:8px;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);font-weight:600}
+.trcard .tm:after{content:"Learn more +";display:block;margin-top:8px;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);font-weight:600}
 .trmodal{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:18px}
 .trmodal.open{display:flex}
 .trmodal .trbg{position:absolute;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(4px)}
@@ -368,6 +368,7 @@ body.trlock{overflow:hidden}
 .mobmenu .msep{height:1px;background:var(--hair);margin:14px 0}
 </style>
 <style>/*solidnav*/@media(max-width:899px){.navwrap nav{background:#0a0908!important}}</style>
+<style>/*ddpos*/@media(max-width:899px){.navwrap .navlinks{margin-left:auto}.navwrap .navlinks .ddt{color:var(--gold);font-weight:600;letter-spacing:2px;font-size:13.5px;padding:10px 0}.navwrap .navlinks .ddm{right:0;left:auto;min-width:160px}.navwrap .navlinks+.burger{margin-left:6px!important}}</style>
 </head>
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/en/about/">About us</a><a href="/karriere/">Careers</a><a href="/articles/">Blog</a><span class="langtog"><a href="/">DE</a><span class="lt-sep">/</span><span class="lt-on">EN</span></span></div>

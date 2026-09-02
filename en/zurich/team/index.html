@@ -176,7 +176,7 @@ section.deep{background:#12100b}
 .ddm a:hover{color:var(--gold)}
 
 /* trainer grid */
-.trgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;background:var(--hair);margin:44px var(--mx) 0}
+.trgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(14px,2.4vw,28px);background:transparent;margin:44px var(--mx) 0}
 @media(min-width:700px){.trgrid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1100px){.trgrid{grid-template-columns:repeat(4,1fr)}}
 .trcard{display:flex;flex-direction:column;background:var(--black);overflow:hidden}
@@ -204,7 +204,7 @@ section.deep{background:#12100b}
 
 /* trainer-bio overlay */
 .trcard{cursor:pointer}
-.trcard .tm:after{content:"Mehr erfahren +";display:block;margin-top:8px;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);font-weight:600}
+.trcard .tm:after{content:"Learn more +";display:block;margin-top:8px;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);font-weight:600}
 .trmodal{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:18px}
 .trmodal.open{display:flex}
 .trmodal .trbg{position:absolute;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(4px)}
