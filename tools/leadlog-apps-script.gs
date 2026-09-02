@@ -177,7 +177,7 @@ function setupAnalyse() {
   // Klassenanalyse-Tab (wird vom Skill impact-class-analysis befuellt)
   var ka = ss.getSheetByName('Klassenanalyse');
   if (!ka) { ka = ss.insertSheet('Klassenanalyse'); ka.getRange('A1').setValue('Klassenanalyse: wird monatlich vom Skill impact-class-analysis aus den exercise.com-Reports befuellt (Popular Services + Itemized Recurring Sessions).').setFontColor('#666666'); }
-  var order = ['Analyse', 'Leads', 'Klassenanalyse', 'Events', 'Kündigungen', 'Trainingsplan', 'Trainingsplan-Analyse', 'Historie', 'Daten', 'PlanDaten'];
+  var order = ['Analyse', 'Leads', 'Klassenanalyse', 'Events', 'Kündigungen', 'Trainingsplan', 'Trainingsplan-Analyse', 'Historie', 'Daten', 'PlanDaten', 'KlassenHistorie'];
   var pos = 1;
   for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
   ss.setActiveSheet(ss.getSheetByName('Analyse'));
@@ -371,4 +371,166 @@ function buildPlanAnalyse(ss) {
     .setPosition(4, 7, 0, 0).setOption('title', 'Kampfkunst (gesamt)').setOption('legend', { position: 'none' }).setOption('width', 520).setOption('height', 300).build());
   sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).addRange(sh.getRange(zi[4] + 1, 1, zi[2].length, 2))
     .setPosition(20, 7, 0, 0).setOption('title', 'Ziel (gesamt)').setOption('legend', { position: 'none' }).setOption('width', 520).setOption('height', 260).build());
+}
+
+// ---------------------------------------------------------------- Klassenanalyse (Weg 2, 02.09.2026)
+// Der Skill impact-class-analysis (Cowork, eingeloggter Browser) holt die exercise.com-Reports, baut mit
+// tools/klassenanalyse/build_import.py eine JSON-Datei und legt sie im Drive-Ordner "Klassenanalyse-Import" ab.
+// importKlassenanalyse() (stuendlicher Trigger, siehe installTriggers) nimmt die neueste Datei und baut den Tab
+// "Klassenanalyse" neu: Kopf, Standort-Summen, Monatsverlauf (aus KlassenHistorie) und die Slot-Tabelle mit den
+// Kennzahlen des Skills (Auslastung, Oe pro Klasse, Oe dieser Uhrzeit, Verhaeltnis, Bewertung). Spalte "Aktion" bleibt erhalten.
+var KA_FOLDER = 'Klassenanalyse-Import';
+var KA_SHEET = 'Klassenanalyse';
+var KA_HIST = 'KlassenHistorie';
+var KA_HEAD = ['Standort', 'Segment', 'Klasse', 'Tag', 'Zeit', 'Tagtyp', 'Termine', 'Besuche', 'Ø pro Klasse', 'Ø dieser Uhrzeit', 'Verhältnis zur Uhrzeit', 'Plätze', 'Auslastung', 'Unique Users', 'Buchungen', 'Besuche je Teilnehmer', 'Trainer', 'Bewertung', 'Aktion'];
+
+function installTriggers() {
+  var ts = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < ts.length; i++) if (ts[i].getHandlerFunction() === 'importKlassenanalyse') ScriptApp.deleteTrigger(ts[i]);
+  ScriptApp.newTrigger('importKlassenanalyse').timeBased().everyHours(1).create();
+  Logger.log('Trigger installiert: importKlassenanalyse stuendlich');
+}
+
+function latestImportFile() {
+  var it = DriveApp.getFoldersByName(KA_FOLDER);
+  if (!it.hasNext()) return null;
+  var files = it.next().getFiles(), best = null;
+  while (files.hasNext()) {
+    var f = files.next();
+    if (!/\.json$/i.test(f.getName())) continue;
+    if (!best || f.getLastUpdated().getTime() > best.getLastUpdated().getTime()) best = f;
+  }
+  return best;
+}
+
+function importKlassenanalyse(force) {
+  var f = latestImportFile();
+  if (!f) { Logger.log('Kein Import-File'); return; }
+  var props = PropertiesService.getScriptProperties();
+  var stamp = f.getId() + '@' + f.getLastUpdated().getTime();
+  if (!force && props.getProperty('KA_LAST') === stamp) { Logger.log('Import unveraendert: ' + f.getName()); return; }
+  var data = JSON.parse(f.getBlob().getDataAsString('UTF-8'));
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  updateKlassenHistorie(ss, data);
+  buildKlassenanalyse(ss, data, f.getName());
+  props.setProperty('KA_LAST', stamp);
+  Logger.log('Klassenanalyse importiert: ' + f.getName() + ' (' + (data.rows || []).length + ' Klassen)');
+}
+
+function updateKlassenHistorie(ss, data) {
+  var sh = getOrCreate(ss, KA_HIST);
+  if (sh.getLastRow() === 0) { sh.appendRow(['Monat', 'Standort', 'Klassen', 'Termine', 'Besuche', 'Plätze', 'Auslastung', 'Fenster']); sh.setFrozenRows(1); sh.hideSheet(); }
+  var win = data.window || {}, month = new Date((win.start || '2026-01-01') + 'T00:00:00'), mkey = Utilities.formatDate(month, TZ, 'yyyy-MM');
+  var vals = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), 8).getValues();
+  var sum = data.summary || {};
+  for (var loc in sum) {
+    var s = sum[loc], row = [new Date(month.getFullYear(), month.getMonth(), 1), loc, s.classes, s.events, s.attended, s.capacity, s.capacity ? s.attended / s.capacity : '', (win.start || '') + ' bis ' + (win.end || '')];
+    var found = -1;
+    for (var i = 0; i < vals.length; i++) {
+      if (vals[i][1] === loc && vals[i][0] instanceof Date && Utilities.formatDate(vals[i][0], TZ, 'yyyy-MM') === mkey) { found = i; break; }
+    }
+    if (found >= 0) sh.getRange(found + 2, 1, 1, 8).setValues([row]); else sh.appendRow(row);
+  }
+  sh.getRange('A2:A').setNumberFormat('mmm yyyy'); sh.getRange('G2:G').setNumberFormat('0%');
+}
+
+function buildKlassenanalyse(ss, data, fileName) {
+  var sh = getOrCreate(ss, KA_SHEET);
+  // Bisherige Aktionen sichern (Schluessel: Standort|Klasse|Tag|Zeit)
+  var actions = {};
+  var lr = sh.getLastRow();
+  if (lr > 0) {
+    var all = sh.getRange(1, 1, lr, KA_HEAD.length).getValues();
+    for (var i = 0; i < all.length; i++) {
+      if (all[i][0] && all[i][2] && all[i][3] && all[i][18] && all[i][0] !== 'Standort') actions[[all[i][0], all[i][2], all[i][3], all[i][4]].join('|')] = all[i][18];
+    }
+  }
+  clearSheet(sh);
+  var rows = data.rows || [], win = data.window || {};
+  var fmt = function (d) { var p = String(d || '').split('-'); return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : d; };
+  var tot = { cls: 0, ev: 0, att: 0 };
+  for (var r0 = 0; r0 < rows.length; r0++) { tot.cls++; tot.ev += rows[r0].events; tot.att += rows[r0].attended; }
+  sh.getRange('A1').setValue('IMPACT Klassenanalyse ' + fmt(win.start) + ' bis ' + fmt(win.end)).setFontSize(16).setFontWeight('bold');
+  sh.getRange('A2').setValue(tot.cls + ' Klassen, ' + tot.ev + ' durchgeführte Termine, ' + tot.att + ' Besuche. Importiert ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm') + ' aus ' + fileName + ' (exercise.com Popular Services + Itemized Recurring Sessions).').setFontColor('#666666');
+
+  // ---- Standort-Summen mit Vergleich zum Vormonat (aus KlassenHistorie)
+  var hist = ss.getSheetByName(KA_HIST);
+  var hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 7).getValues() : [];
+  var month = new Date((win.start || '2026-01-01') + 'T00:00:00');
+  var prevKey = Utilities.formatDate(new Date(month.getFullYear(), month.getMonth() - 1, 1), TZ, 'yyyy-MM');
+  var prevUtil = {};
+  for (var h = 0; h < hv.length; h++) if (hv[h][0] instanceof Date && Utilities.formatDate(hv[h][0], TZ, 'yyyy-MM') === prevKey) prevUtil[hv[h][1]] = hv[h][6];
+  sh.getRange(4, 1, 1, 7).setValues([['Standort', 'Klassen', 'Termine', 'Besuche', 'Plätze', 'Auslastung', 'Δ% zum Vormonat']]).setFontWeight('bold').setBackground('#f3f3f3');
+  var sum = data.summary || {}, locs = Object.keys(sum).sort(), r = 5;
+  for (var l = 0; l < locs.length; l++) {
+    var s = sum[locs[l]], util = s.capacity ? s.attended / s.capacity : '';
+    var d = (util !== '' && prevUtil[locs[l]]) ? (util - prevUtil[locs[l]]) / prevUtil[locs[l]] : '';
+    sh.getRange(r, 1, 1, 7).setValues([[locs[l], s.classes, s.events, s.attended, s.capacity, util, d]]);
+    sh.getRange(r, 6).setNumberFormat('0%'); sh.getRange(r, 7).setNumberFormat('+0.0%;-0.0%');
+    r++;
+  }
+
+  // ---- Monatsverlauf (letzte 12 Monate je Standort) aus KlassenHistorie
+  var vr = r + 1;
+  sh.getRange(vr, 1).setValue('Monatsverlauf Auslastung (aus allen Importen)').setFontWeight('bold').setFontSize(12);
+  sh.getRange(vr + 1, 1, 1, 5).setValues([['Monat', 'Zurich Auslastung', 'Winterthur Auslastung', 'Zurich Besuche', 'Winterthur Besuche']]).setFontWeight('bold').setBackground('#f3f3f3');
+  var byMonth = {};
+  for (var h2 = 0; h2 < hv.length; h2++) {
+    if (!(hv[h2][0] instanceof Date)) continue;
+    var k = Utilities.formatDate(hv[h2][0], TZ, 'yyyy-MM');
+    byMonth[k] = byMonth[k] || { d: hv[h2][0] };
+    byMonth[k][hv[h2][1]] = { util: hv[h2][6], att: hv[h2][4] };
+  }
+  var keys = Object.keys(byMonth).sort().slice(-12), vrow = vr + 2;
+  for (var m = 0; m < keys.length; m++) {
+    var b = byMonth[keys[m]], z = b.Zurich || {}, w = b.Winterthur || {};
+    sh.getRange(vrow + m, 1, 1, 5).setValues([[b.d, z.util === undefined ? '' : z.util, w.util === undefined ? '' : w.util, z.att === undefined ? '' : z.att, w.att === undefined ? '' : w.att]]);
+  }
+  if (keys.length) {
+    sh.getRange(vrow, 1, keys.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(vrow, 2, keys.length, 2).setNumberFormat('0%');
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1)
+      .addRange(sh.getRange(vr + 1, 1, keys.length + 1, 3)).setPosition(4, 9, 0, 0)
+      .setOption('title', 'Auslastung pro Monat').setOption('colors', ['#e2c210', '#1a73e8']).setOption('width', 620).setOption('height', 280)
+      .setOption('legend', { position: 'bottom' }).setOption('vAxis', { format: 'percent', minValue: 0 }).build());
+  }
+
+  // ---- Slot-Tabelle
+  var HR = Math.max(vrow + keys.length + 2, 20), D0 = HR + 1, last = D0 + rows.length - 1;
+  sh.getRange(HR - 1, 1).setValue('Klassen nach Standort, Wochentag und Uhrzeit (liest sich wie der Stundenplan; Rangliste per Filter)').setFontWeight('bold').setFontSize(12);
+  sh.getRange(HR, 1, 1, KA_HEAD.length).setValues([KA_HEAD]).setFontWeight('bold').setBackground('#1F3864').setFontColor('#ffffff').setWrap(true);
+  if (!rows.length) return;
+  var statics = [], formulas = [];
+  var NG = '$B$' + D0 + ':$B$' + last + ',"<>Gratis"';
+  for (var i2 = 0; i2 < rows.length; i2++) {
+    var x = rows[i2], rr = D0 + i2, free = x.segment === 'Gratis';
+    statics.push([x.location, x.segment, x.service, x.days, x.start, x.daytype, x.events, x.attended, '', '', '', x.capacity, '', x.uniq, x.rec_visits, '', x.staff, '', actions[[x.location, x.service, x.days, x.start].join('|')] || '']);
+    var b = '$A$' + D0 + ':$A$' + last + ',$A' + rr + ',$E$' + D0 + ':$E$' + last + ',$E' + rr + ',$F$' + D0 + ':$F$' + last + ',$F' + rr + ',' + NG;
+    formulas.push({
+      I: '=IF(G' + rr + '=0,"",H' + rr + '/G' + rr + ')',
+      J: free ? 'n/a' : '=IFERROR(SUMIFS($H$' + D0 + ':$H$' + last + ',' + b + ')/SUMIFS($G$' + D0 + ':$G$' + last + ',' + b + '),"")',
+      K: free ? 'n/a' : '=IFERROR(I' + rr + '/J' + rr + ',"")',
+      M: '=IFERROR(H' + rr + '/L' + rr + ',"")',
+      P: '=IFERROR(O' + rr + '/N' + rr + ',"")',
+      R: free ? 'gratis, kein Massstab' : '=IF(G' + rr + '<5,"zu wenig Termine",IF(M' + rr + '<0.1,"tot",IF(M' + rr + '<0.16,"schliessen prüfen",IF(M' + rr + '<0.28,"schwach",IF(M' + rr + '>0.45,"Kapazität prüfen","ok")))))',
+    });
+  }
+  sh.getRange(D0, 1, rows.length, KA_HEAD.length).setValues(statics);
+  var cols = { I: 9, J: 10, K: 11, M: 13, P: 16, R: 18 };
+  for (var c in cols) sh.getRange(D0, cols[c], rows.length, 1).setFormulas(formulas.map(function (f) { return [f[c]]; }));
+  sh.getRange(D0, 9, rows.length, 2).setNumberFormat('0.0'); sh.getRange(D0, 11, rows.length, 1).setNumberFormat('0.00');
+  sh.getRange(D0, 13, rows.length, 1).setNumberFormat('0%'); sh.getRange(D0, 16, rows.length, 1).setNumberFormat('0.0');
+  var mr = sh.getRange(D0, 13, rows.length, 1);
+  sh.setConditionalFormatRules([
+    SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.16).setBackground('#F8CBAD').setRanges([mr]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.45).setBackground('#C6E0B4').setRanges([mr]).build(),
+  ]);
+  sh.hideColumns(6); sh.hideColumns(12);
+  sh.setFrozenRows(HR); sh.setColumnWidth(3, 200); sh.setColumnWidth(17, 220); sh.setColumnWidth(19, 260);
+  var notes = [
+    'Termine, Besuche und Plätze aus "Popular Services" (Events zählt nur durchgeführte Termine; Ferien, Ausfälle, Trainer-Rotation sind damit erledigt). Unique Users, Buchungen, Trainer aus "Itemized Recurring Sessions", verbunden über Standort, Kurs, Wochentag, Startzeit.',
+    'Auslastung = Besuche / Plätze (Hauptkennzahl). Ø dieser Uhrzeit = Schnitt aller Klassen zur selben Uhrzeit, am selben Standort, gleicher Tagtyp (Werktag/Samstag). Verhältnis < 1 = schwächer als die Nachbarklassen zur selben Zeit.',
+    'Besuche je Teilnehmer = Buchungen / Unique Users (beide aus dem Recurring-Report, enthalten No-Shows). Gratisklassen (Open Mat) sind aus Vergleichen ausgeschlossen. Spalte "Aktion" ist manuell und bleibt beim nächsten Import erhalten.',
+    'Bewertung: < 5 Termine = zu wenig Termine; < 10% tot; < 16% schliessen prüfen; < 28% schwach; > 45% Kapazität prüfen. Competition-Klassen nicht nach Ø bewerten (Kaderaufbau), Kids in Ferienmonaten nach unten verzerrt.',
+  ];
+  for (var n = 0; n < notes.length; n++) sh.getRange(last + 2 + n, 1).setValue(notes[n]).setFontStyle('italic').setFontColor('#666666');
 }
