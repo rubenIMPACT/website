@@ -170,8 +170,16 @@ function setupAnalyse() {
   buildPlanDaten(ss);
   buildAnalyse(ss);
   buildPlanAnalyse(ss);
-  var order = ['Analyse', 'Trainingsplan-Analyse', 'Leads', 'Trainingsplan', 'Historie', 'Daten', 'PlanDaten'];
-  for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(i + 1); } }
+  // Leads: gclid, fbclid, Referrer, Technik, Ausschluss ausblenden (Entscheid Ruben 02.09.2026), Details bleibt sichtbar
+  var ls = leadsSheet(ss);
+  ls.hideColumns(15, 3); // O, P, Q
+  ls.hideColumns(19, 2); // S, T
+  // Klassenanalyse-Tab (wird vom Skill impact-class-analysis befuellt)
+  var ka = ss.getSheetByName('Klassenanalyse');
+  if (!ka) { ka = ss.insertSheet('Klassenanalyse'); ka.getRange('A1').setValue('Klassenanalyse: wird monatlich vom Skill impact-class-analysis aus den exercise.com-Reports befuellt (Popular Services + Itemized Recurring Sessions).').setFontColor('#666666'); }
+  var order = ['Analyse', 'Leads', 'Klassenanalyse', 'Events', 'Kündigungen', 'Trainingsplan', 'Trainingsplan-Analyse', 'Historie', 'Daten', 'PlanDaten'];
+  var pos = 1;
+  for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
   ss.setActiveSheet(ss.getSheetByName('Analyse'));
 }
 function getOrCreate(ss, name) { return ss.getSheetByName(name) || ss.insertSheet(name); }
@@ -214,17 +222,20 @@ function buildDaten(ss) {
   sh.getRange(1, 1, 1, 9).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
 }
 
-// PlanDaten: Hilfsspalten pro Trainingsplan-Zeile (Datum, Monat, Letzte Version pro Sitzung, Zaehlt)
+// PlanDaten: Hilfsspalten pro Trainingsplan-Zeile. Alle Spalten, die die Auswertung zaehlt, liegen HIER,
+// weil COUNTIFS nur gleich grosse Bereiche kombinieren kann und zwei Tabs nie garantiert gleich lang sind.
 function buildPlanDaten(ss) {
   var sh = getOrCreate(ss, 'PlanDaten'); clearSheet(sh);
-  sh.appendRow(['Datum', 'Monat', 'Letzte', 'Zählt']);
+  sh.appendRow(['Datum', 'Monat', 'Letzte', 'Zählt', 'Standort', 'Ziel', 'Kampfkunst', 'Level', 'Tage/Woche', 'Zeitfenster', 'Nebensport', 'Nebensport/Woche', 'Lead-ID']);
   var A = 'Trainingsplan!A2:A', blank = 'IF(' + A + '="","",';
   sh.getRange('A2').setFormula('=ARRAYFORMULA(' + blank + 'INT(' + A + ')))');
   sh.getRange('B2').setFormula('=ARRAYFORMULA(' + blank + 'DATE(YEAR(' + A + '),MONTH(' + A + '),1)))');
   sh.getRange('C2').setFormula('=ARRAYFORMULA(' + blank + 'IF(COUNTIFS(Trainingsplan!B2:B,Trainingsplan!B2:B&"",Trainingsplan!A2:A,">"&Trainingsplan!A2:A)=0,1,0)))');
   sh.getRange('D2').setFormula('=ARRAYFORMULA(' + blank + 'IF((C2:C=1)*(LOWER(Trainingsplan!C2:C&"")<>"share")*(NOT(REGEXMATCH(LOWER(Trainingsplan!Q2:Q&""),"^test"))),1,0)))');
+  var copy = { E: 'D', F: 'E', G: 'F', H: 'G', I: 'H', J: 'I', K: 'J', L: 'K', M: 'P' }; // Ziel <- Quelle (Trainingsplan)
+  for (var c in copy) sh.getRange(c + '2').setFormula('=ARRAYFORMULA(' + blank + 'Trainingsplan!' + copy[c] + '2:' + copy[c] + '&""))');
   sh.getRange('A2:B').setNumberFormat('dd.mm.yyyy');
-  sh.getRange(1, 1, 1, 4).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
+  sh.getRange(1, 1, 1, 13).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
 }
 
 // Analyse: Kennzahlen, Wochen- und Monatstabelle, Diagramme
@@ -326,26 +337,25 @@ function buildPlanAnalyse(ss) {
   sh.getRange(r + 1, 3).setFormula('=COUNTIFS(' + base + ',PlanDaten!$B:$B,' + cur + ')');
   sh.getRange(r + 1, 4).setFormula('=COUNTIFS(' + base + ',PlanDaten!$B:$B,' + prev + ')');
   sh.getRange(r + 2, 1).setValue('davon mit bekanntem Lead (nach Probetraining-Anfrage)');
-  sh.getRange(r + 2, 2).setFormula('=COUNTIFS(' + base + ',Trainingsplan!$P:$P,"<>")');
-  sh.getRange(r + 2, 3).setFormula('=COUNTIFS(' + base + ',Trainingsplan!$P:$P,"<>",PlanDaten!$B:$B,' + cur + ')');
-  sh.getRange(r + 2, 4).setFormula('=COUNTIFS(' + base + ',Trainingsplan!$P:$P,"<>",PlanDaten!$B:$B,' + prev + ')');
+  sh.getRange(r + 2, 2).setFormula('=COUNTIFS(' + base + ',PlanDaten!$M:$M,"<>")');
+  sh.getRange(r + 2, 3).setFormula('=COUNTIFS(' + base + ',PlanDaten!$M:$M,"<>",PlanDaten!$B:$B,' + cur + ')');
+  sh.getRange(r + 2, 4).setFormula('=COUNTIFS(' + base + ',PlanDaten!$M:$M,"<>",PlanDaten!$B:$B,' + prev + ')');
   r += 4;
   var dims = [
-    ['Standort', 'D', ['Zürich', 'Winterthur'], false],
-    ['Ziel', 'E', ['Kampfkunst lernen', 'Fit werden', 'Selbstverteidigung', 'Wettkampf'], false],
-    ['Kampfkunst (Mehrfachauswahl möglich)', 'F', ['MMA', 'Muay Thai', 'Boxen', 'BJJ', 'Ringen', 'Fitness Kickboxen', 'Unsicher'], true],
-    ['Level', 'G', ['Anfänger', 'Fortgeschritten', 'Erfahren'], false],
-    ['Tage pro Woche', 'H', ['1', '2', '3', '4', '5', '6'], false],
-    ['Zeitfenster (Mehrfachauswahl möglich)', 'I', ['Morgen', 'Mittag', 'Abend'], true],
-    ['Nebensport', 'J', ['Nichts', 'Laufen/Cardio', 'Kraft', 'Andere Sportart'], false],
-    ['Nebensport pro Woche', 'K', ['1x', '2x', '3+x'], false]
+    ['Standort', 'E', ['Zürich', 'Winterthur'], false],
+    ['Ziel', 'F', ['Kampfkunst lernen', 'Fit werden', 'Selbstverteidigung', 'Wettkampf'], false],
+    ['Kampfkunst (Mehrfachauswahl möglich)', 'G', ['MMA', 'Muay Thai', 'Boxen', 'BJJ', 'Ringen', 'Fitness Kickboxen', 'Unsicher'], true],
+    ['Level', 'H', ['Anfänger', 'Fortgeschritten', 'Erfahren'], false],
+    ['Tage pro Woche', 'I', ['1', '2', '3', '4', '5', '6'], false],
+    ['Zeitfenster (Mehrfachauswahl möglich)', 'J', ['Morgen', 'Mittag', 'Abend'], true],
+    ['Nebensport', 'K', ['Nichts', 'Laufen/Cardio', 'Kraft', 'Andere Sportart'], false],
+    ['Nebensport pro Woche', 'L', ['1x', '2x', '3+x'], false]
   ];
   for (var i = 0; i < dims.length; i++) {
-    var d = dims[i], col = 'Trainingsplan!$' + d[1] + ':$' + d[1];
+    var d = dims[i], col = 'PlanDaten!$' + d[1] + ':$' + d[1];
     sh.getRange(r, 1, 1, 4).setValues([[d[0], 'Gesamt', 'Dieser Monat', 'Letzter Monat']]).setFontWeight('bold').setBackground('#f3f3f3');
     for (var v = 0; v < d[2].length; v++) {
       var rr = r + 1 + v, crit = d[3] ? '"*' + d[2][v] + '*"' : '"' + d[2][v] + '"';
-      if (d[1] === 'H') crit = d[2][v];
       sh.getRange(rr, 1).setValue(d[2][v]);
       sh.getRange(rr, 2).setFormula('=COUNTIFS(' + base + ',' + col + ',' + crit + ')');
       sh.getRange(rr, 3).setFormula('=COUNTIFS(' + base + ',' + col + ',' + crit + ',PlanDaten!$B:$B,' + cur + ')');
