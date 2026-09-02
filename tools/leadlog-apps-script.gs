@@ -260,7 +260,7 @@ function buildAnalyse(ss) {
     sh.getRange(r, 4).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$D:$D,"Zürich",Daten!$G:$G,1)');
     sh.getRange(r, 5).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$D:$D,"Winterthur",Daten!$G:$G,1)');
     sh.getRange(r, 6).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$G:$G,1)');
-    sh.getRange(r, 7).setFormula(i === 0 ? '=""' : '=IF(OR(F' + (r - 1) + '="",F' + (r - 1) + '=0),"",(F' + r + '-F' + (r - 1) + ')/F' + (r - 1) + ')');
+    sh.getRange(r, 7).setFormula(i === 0 ? '=""' : '=IF(C' + r + '="läuft noch","",IF(OR(F' + (r - 1) + '="",F' + (r - 1) + '=0),"",(F' + r + '-F' + (r - 1) + ')/F' + (r - 1) + '))');
     sh.getRange(r, 8).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$H:$H,1)');
     for (var k = 0; k < INTERESTS.length; k++) sh.getRange(r, 9 + k).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$E:$E,"' + INTERESTS[k] + '",Daten!$G:$G,1)');
   }
@@ -280,7 +280,7 @@ function buildAnalyse(ss) {
     sh.getRange(r2, 3).setFormula('=IF(' + h + ',IFERROR(VLOOKUP(A' + r2 + ',Historie!$A:$C,2,FALSE),""),COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$D:$D,"Zürich",Daten!$G:$G,1))');
     sh.getRange(r2, 4).setFormula('=IF(' + h + ',IFERROR(VLOOKUP(A' + r2 + ',Historie!$A:$C,3,FALSE),""),COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$D:$D,"Winterthur",Daten!$G:$G,1))');
     sh.getRange(r2, 5).setFormula('=IF(AND(C' + r2 + '="",D' + r2 + '=""),"",N(C' + r2 + ')+N(D' + r2 + '))');
-    sh.getRange(r2, 6).setFormula(j === 0 ? '=""' : '=IF(OR(E' + (r2 - 1) + '="",E' + (r2 - 1) + '=0,E' + r2 + '=""),"",(E' + r2 + '-E' + (r2 - 1) + ')/E' + (r2 - 1) + ')');
+    sh.getRange(r2, 6).setFormula(j === 0 ? '=""' : '=IF(B' + r2 + '="läuft noch","",IF(OR(E' + (r2 - 1) + '="",E' + (r2 - 1) + '=0,E' + r2 + '=""),"",(E' + r2 + '-E' + (r2 - 1) + ')/E' + (r2 - 1) + '))');
     sh.getRange(r2, 7).setFormula('=IF(' + h + ',"",COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$H:$H,1))');
     for (var k2 = 0; k2 < INTERESTS.length; k2++) sh.getRange(r2, 8 + k2).setFormula('=IF(' + h + ',"",COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$E:$E,"' + INTERESTS[k2] + '",Daten!$G:$G,1))');
   }
