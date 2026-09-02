@@ -17,9 +17,9 @@ async function fetchRetry(url, opts, tries) {
 }
 
 // Lead-Log (Google Sheet via Apps-Script-Webapp) - nie blockierend, nie UX-relevant
-function logLead(context, env, status, data, detail, alert) {
+function logLead(context, env, status, data, detail, alert, extra) {
   if (!env.LEADLOG_URL || !env.LEADLOG_TOKEN) return;
-  const body = JSON.stringify({ token: env.LEADLOG_TOKEN, status, detail: String(detail || "").slice(0, 400), alert: !!alert, data });
+  const body = JSON.stringify(Object.assign({ token: env.LEADLOG_TOKEN, status, detail: String(detail || "").slice(0, 400), alert: !!alert, data }, extra || {}));
   const pr = fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "follow" }).catch(() => {});
   try { context.waitUntil(pr); } catch { /* ausserhalb Pages-Kontext */ }
 }
@@ -61,20 +61,31 @@ async function dupUpdate(env, auth, p, clean) {
   try { oldTags = Array.isArray(found.tag_list) ? found.tag_list : String(found.tag_list || found.tags || "").split(/,\s*/).filter(Boolean); } catch {}
   const note = "ERNEUTE ANFRAGE " + stamp + ": " + [clean(p.discipline), clean(p.location), p.kid_name ? "Kind " + clean(p.kid_name) + (p.kid_age ? " (" + clean(p.kid_age) + ")" : "") : "", p.message ? clean(p.message) : "", "Seite " + clean(p.page)].filter(Boolean).join(" | ");
   const tags = Array.from(new Set(oldTags.concat([clean(p.discipline), clean(p.location), "repeat-lead-" + stamp]).filter(Boolean)));
-  const body = { client: { tag_list: tags.join(",\n"), profile_fields: [
-    { id: "Message", name: "Message", value: (oldMsg ? oldMsg + " || " : "") + note },
+  // Bisheriger Standort: aus Client-Feldern oder aus den Tags der Erstanfrage
+  let oldLoc = "";
+  try {
+    const lid = String(found.location_id || (found.location && (found.location.id || found.location.name)) || "");
+    if (lid === "2508") oldLoc = "Zürich"; else if (lid === "2222") oldLoc = "Winterthur"; else if (/z(u|ü)rich/i.test(lid)) oldLoc = "Zürich"; else if (/winterthur/i.test(lid)) oldLoc = "Winterthur";
+    if (!oldLoc) { const hasZ = oldTags.some((t) => /z(u|ü)rich/i.test(t)), hasW = oldTags.some((t) => /winterthur/i.test(t)); if (hasZ && !hasW) oldLoc = "Zürich"; else if (hasW && !hasZ) oldLoc = "Winterthur"; }
+  } catch {}
+  const newLoc = /winterthur/i.test(String(p.location || "")) ? "Winterthur" : "Zürich";
+  const locChanged = !!oldLoc && oldLoc !== newLoc;
+  const pf = [
+    { id: "Message", name: "Message", value: (oldMsg ? oldMsg + " || " : "") + note + (locChanged ? " | STANDORTWECHSEL " + oldLoc + " -> " + newLoc : "") },
     { id: "Interested in", name: "Interested in", value: clean(p.discipline) },
-    { id: "phone_number", name: "Phone Number", value: clean(p.phone) } ] } };
+    { id: "phone_number", name: "Phone Number", value: clean(p.phone) } ];
+  if (locChanged) pf.push({ id: "location_id", name: "Location", value: newLoc === "Winterthur" ? "2222" : "2508" });
+  const body = { client: { tag_list: tags.join(",\n"), profile_fields: pf } };
   for (const m of ["PUT", "PATCH"]) {
     try {
       const r = await fetch(API + "/api/v2/clients/" + found.id, { method: m, headers: H, body: JSON.stringify(body) });
       const t = await r.text();
-      if (r.ok) return { done: true, detail: "Client " + found.id + " ergaenzt (" + m + " " + r.status + ")" };
+      if (r.ok) return { done: true, locchange: locChanged ? oldLoc + " -> " + newLoc : "", detail: "Client " + found.id + " ergaenzt (" + m + " " + r.status + ")" + (locChanged ? ", Standort " + oldLoc + " -> " + newLoc : "") };
       trace.push(m + " " + r.status + " " + t.slice(0, 80));
       if (r.status !== 404 && r.status !== 405) break;
     } catch (e) { trace.push(m + "-exc"); }
   }
-  return { done: false, detail: "Client " + found.id + " gefunden, Update fehlgeschlagen: " + trace.join(", ") };
+  return { done: false, locchange: locChanged ? oldLoc + " -> " + newLoc : "", detail: "Client " + found.id + " gefunden, Update fehlgeschlagen: " + trace.join(", ") };
 }
 
 export async function onRequestPost(context) {
@@ -135,7 +146,7 @@ export async function onRequestPost(context) {
       let addTxt = ""; try { addTxt = (await add.text()).slice(0, 120); } catch {}
       const du = await dupUpdate(env, auth, p, clean);
       // Jede erneute Anfrage -> Mail an den Studio Manager des Standorts (Routing im Apps-Script)
-      logLead(context, env, du.done ? "dublette_ergaenzt" : "dublette_NICHT_ergaenzt", p, "add " + add.status + " " + addTxt + " -> " + du.detail, true);
+      logLead(context, env, du.done ? "dublette_ergaenzt" : "dublette_NICHT_ergaenzt", p, "add " + add.status + " " + addTxt + " -> " + du.detail, true, { locchange: du.locchange || "" });
       return j({ ok: true, dup: true, updated: du.done, up: add.status });
     }
     let addErr = ""; try { addErr = (await add.text()).slice(0, 120); } catch {}
