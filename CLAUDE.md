@@ -67,3 +67,11 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 - **TikTok-Pixel** D8ON10BC77UDGOQMBTHG (`/*tiktok*/` im Head aller Seiten), `ttq.track('SubmitForm')` auf /probetraining/danke/ und /en/trial/thanks/. Der Events-API-Token von Michelle ist NICHT im Code (serverseitig, nicht noetig).
 - **Header Desktop** (`/*hdr2*/`): Topbar-Links rechts neben DE/EN, Logo 40px, Abstand Nav-Links zum CTA.
 - **Home**: Zürich-Standortkarte mit Foto mit Leuten (`assets/zuerich-standort-team.jpg`, aus IMPACT-Website-41), Google-Badge steht auf Desktop unter dem Hero-Button.
+
+## Stand 02.09.2026 (spaet): Events, Kuendigungs-Feedback, Dubletten-Suche
+- **Events** `/events/` + `/en/events/`: Inhalt kommt aus `data/events.json` (Liste; Felder id/date/time/time_en/location/address/image + de/en Texte). Seite zeigt nur Events mit Datum >= heute, sonst Hinweis. Neues Event = Eintrag in events.json, kein HTML anfassen. Anmeldung -> `POST /api/form` (kind=event) -> Apps Script `logForm` -> Sheet-Tab "Events". Keine Mail, kein CRM. TikTok SubmitForm + dataLayer `event_signup` bei Erfolg.
+- **Kuendigungs-Feedback** `/kuendigung/` + `/en/cancellation/` (noindex): 8-Schritt-Umfrage wie die alte Webflow-Seite, anonym moeglich -> `POST /api/form` (kind=cancellation) -> Tab "Kündigungen". Keine Mail. Redirect `/cancellation` -> `/en/cancellation/`.
+- **`functions/api/form.js`**: Honeypot `hp`, Validierung, POST an LEADLOG_URL mit `redirect:"manual"` (302 von Apps Script = ausgefuehrt; den Redirect zu folgen war langsam/502). Nach 9s optimistisch ok, kein Nachlegen (sonst Dubletten). Apps Script v5 (deployed 02.09. 17:32) hat `logForm(ss,p)` fuer kind event/cancellation.
+- **Sheet** ist mit abdi@ und bogdan@ (Writer) geteilt, alle Tabs.
+- **Dubletten-Suche gefixt**: exercise.com ignoriert `email=`/`search=` und liefert nur Seite 1 (25 von 4300 Clients). Richtige Suche: `q[client_search]=<email>&per=25` (v2/v3/v4). Vorher wurden echte Wiederholungs-Anfragen (5 Stueck am 02.09.) als "dublette_NICHT_ergaenzt" gemeldet; die Alerts gingen an Abdi zum manuellen Nachtragen.
+- Generatoren im Scratchpad: `build_forms.py` (Events/Kuendigung), `rebuild_kontakt_faq.py`, `build_about.py`. Testeintraege in den Tabs "Events"/"Kündigungen" (Testlead ..., TEST ...) koennen geloescht werden.
