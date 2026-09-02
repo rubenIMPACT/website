@@ -519,7 +519,7 @@ function buildKlassenanalyse(ss, data, fileName) {
     SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.45).setBackground('#C6E0B4').setRanges([mr]).build(),
   ]);
   sh.hideColumns(6); sh.hideColumns(12);
-  sh.setFrozenRows(HR); sh.setColumnWidth(3, 200); sh.setColumnWidth(17, 220); sh.setColumnWidth(19, 260);
+  sh.setFrozenRows(0); sh.setColumnWidth(3, 200); sh.setColumnWidth(17, 220); sh.setColumnWidth(19, 260);
   var notes = [
     'Termine, Besuche und Plätze aus "Popular Services" (Events zählt nur durchgeführte Termine; Ferien, Ausfälle, Trainer-Rotation sind damit erledigt). Unique Users, Buchungen, Trainer aus "Itemized Recurring Sessions", verbunden über Standort, Kurs, Wochentag, Startzeit.',
     'Auslastung = Besuche / Plätze (Hauptkennzahl). Ø dieser Uhrzeit = Schnitt aller Klassen zur selben Uhrzeit, am selben Standort, gleicher Tagtyp (Werktag/Samstag). Verhältnis < 1 = schwächer als die Nachbarklassen zur selben Zeit.',
