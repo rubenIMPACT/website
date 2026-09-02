@@ -241,6 +241,13 @@ const SERVICE={z:{n:"Abdi",full:"Abdi Elshahaibi",studio:"Zürich",wa:"417729110
 const PKG=["IMPACT BASIC","IMPACT CORE","IMPACT ADVANCED","IMPACT LIMITLESS"];
 const FULL=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],ORD=[1,2,3,4,5,6,0];
 let S={loc:null,goal:null,art:null,arts:[],level:null,freq:null,win:new Set(),otype:null,ofreq:null};
+/* Auto-Meldung an /api/plan: Sitzung, Lead-Kennung (von der Danke-Seite), Quelle */
+const LID=(new URLSearchParams(location.search).get('lid')||'').slice(0,40);
+const SRC=LID?'danke':((new URLSearchParams(location.search).get('s')==='1')?'share':'direct');
+let SID='';try{SID=sessionStorage.getItem('tp_sid')||'';if(!SID){SID=Math.random().toString(36).slice(2,10)+Date.now().toString(36);sessionStorage.setItem('tp_sid',SID);}}catch(_){SID=Math.random().toString(36).slice(2,10)+Date.now().toString(36);}
+function sendPlan(mat,total,pkg,share){const body=JSON.stringify({sid:SID,lid:LID,src:SRC,loc:S.loc,goal:S.goal,arts:S.arts||[],level:S.level,freq:S.freq,win:[...(S.win||[])],otype:S.otype,ofreq:S.ofreq,sessions:total,pkg:pkg,share:share,page:location.pathname,
+ plan:mat.map(m=>({d:m.d,s:m.s,disc:(NAME[m.disc]||m.disc),lv:m.lv,coach:((COACH[m.coach]||{}).n||m.coach||'')}))});
+ try{fetch('/api/plan',{method:'POST',headers:{'Content-Type':'application/json'},body:body,keepalive:true}).catch(()=>{});}catch(_){}}
 function sel(id,key,multi){document.getElementById(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const v=b.dataset.v;
  if(multi){S[key].has(v)?S[key].delete(v):S[key].add(v);b.setAttribute('aria-pressed',S[key].has(v));}
  else{S[key]=v;[...document.querySelectorAll('#'+id+' .choice')].forEach(x=>x.setAttribute('aria-pressed',x===b));}
@@ -389,9 +396,10 @@ function render(){
  const cc=_cc,hl=headline(),eye=hl[0],h1=hl[1];
  const svc=SERVICE[S.loc]||SERVICE.z;
  const _days=[...new Set(mat.map(m=>FULL[m.d]))].join('/');
- const _share='https://www.impact-martialarts.com/training-plan?'+shareParams().toString();
- try{history.replaceState(null,'','?'+shareParams().toString());}catch(_){}
+ const _share='https://www.impact-martialarts.com/training-plan?'+shareParams().toString()+'&s=1';
+ try{history.replaceState(null,'','?'+shareParams().toString()+(LID?'&lid='+encodeURIComponent(LID):''));}catch(_){}
  track('tp_plan_built',{tp_goal:S.goal,tp_arts:(S.arts||[]).join('/'),tp_level:S.level,tp_loc:S.loc,tp_freq:S.freq,tp_sessions:total,tp_pkg:pkg});
+ try{sendPlan(mat,total,pkg,_share);}catch(_){}
  const _summary=encodeURIComponent('Hi '+svc.n+'! Here\u2019s the IMPACT plan I built: '+h1+' at '+svc.studio+', '+total+' session'+(total===1?'':'s')+'/week ('+pkg+'). Days: '+_days+'. My plan: '+_share+' \u2014 can we talk about getting started?');
  const founder=`<div class="founder"><img class="fimg" src="${AV.rubenfight}"><div class="fnote"><div class="fname">Ruben Crawford</div><p>Everything in this plan comes from 20 years of pro MMA among the world's best camps — Bellator, former No. 1 in Germany, years in Conor McGregor's pro team. The recommendations you're getting are built on that experience.</p><a class="fwa" href="https://wa.me/41772815839" target="_blank" rel="noopener">Questions or feedback? Write me right here →</a></div></div>`;
  const _hasDbl=Object.values(mat.reduce((a,m)=>{a[m.d]=(a[m.d]||0)+1;return a;},{})).some(n=>n>1);const resume=buildResume(_hasDbl);

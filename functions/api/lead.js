@@ -1,5 +1,6 @@
 // Lead endpoint: Start-LP form -> exercise.com (logic from UCONIC Make blueprint)
 // Secrets in Cloudflare env: EXERCISE_EMAIL, EXERCISE_PASSWORD, EXERCISE_ORG_TOKEN, LEADLOG_URL, LEADLOG_TOKEN (Google-Sheet-Log)
+// Antwort enthaelt "lid" (signierte Client-ID) -> Danke-Seite -> Trainingsplan-Tool -> /api/plan (CRM-Notiz + Sheet)
 const LOCATION_IDS = { "Winterthur": "2222", "Zürich": "2508", "Zurich": "2508" };
 const API = "https://app.impact-martialarts.com";
 
@@ -19,9 +20,19 @@ async function fetchRetry(url, opts, tries) {
 // Lead-Log (Google Sheet via Apps-Script-Webapp) - nie blockierend, nie UX-relevant
 function logLead(context, env, status, data, detail, alert, extra) {
   if (!env.LEADLOG_URL || !env.LEADLOG_TOKEN) return;
-  const body = JSON.stringify(Object.assign({ token: env.LEADLOG_TOKEN, status, detail: String(detail || "").slice(0, 400), alert: !!alert, data }, extra || {}));
+  const body = JSON.stringify(Object.assign({ token: env.LEADLOG_TOKEN, status, detail: String(detail || "").slice(0, 300), alert: !!alert, data }, extra || {}));
   const pr = fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "follow" }).catch(() => {});
   try { context.waitUntil(pr); } catch { /* ausserhalb Pages-Kontext */ }
+}
+
+// Signierte Lead-ID "<clientId>.<hmac16>": nur damit darf /api/plan spaeter in den CRM-Kontakt schreiben
+async function makeLid(env, cid) {
+  if (!cid || !env.LEADLOG_TOKEN) return "";
+  try {
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.LEADLOG_TOKEN), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("lead:" + cid));
+    return cid + "." + Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+  } catch { return ""; }
 }
 
 // Dublette: bestehenden Client suchen und mit erneuter Anfrage ergaenzen (Stage bleibt)
@@ -49,7 +60,7 @@ async function dupUpdate(env, auth, p, clean) {
       if (hit && hit.id) { found = hit; break; }
     } catch (e) { trace.push("lookup-exc"); }
   }
-  if (!found) return { done: false, detail: "kein Client gefunden: " + trace.join(", ") };
+  if (!found) return { done: false, cid: null, detail: "E-Mail existiert bereits in exercise.com, Kontakt aber nicht auffindbar (evtl. Trainer- oder Staff-Account). Bitte manuell pruefen.", tech: "kein Client gefunden: " + trace.join(", ") };
   // Standort + Profilfelder haengen am User-Objekt (nicht am Client): GET /api/v4/users/{user_id}
   const uid = found.user_id || found.client_id || (found.user && found.user.id) || null;
   let user = null;
@@ -94,7 +105,9 @@ async function dupUpdate(env, auth, p, clean) {
     } catch { trace.push("user-put-exc"); }
   }
   const done = userOk && tagsOk;
-  return { done, locchange: lc, detail: "Client " + found.id + (done ? " ergaenzt" : " gefunden, Update unvollstaendig") + " (" + trace.slice(-3).join(", ") + ")" + (locChanged ? ", Standort " + lc : "") };
+  return { done, cid: found.id, locchange: lc,
+    detail: "Bestehender Kontakt (Client " + found.id + ")" + (done ? " mit Notiz und Tag ergaenzt" : " gefunden, Update unvollstaendig, bitte manuell nachtragen") + (locChanged ? ". Standortwechsel " + lc : ""),
+    tech: trace.join(", ") };
 }
 
 export async function onRequestPost(context) {
@@ -119,7 +132,7 @@ export async function onRequestPost(context) {
     }, 3);
     let auth = null;
     try { auth = (await signin.json()).auth_token; } catch {}
-    if (!signin.ok || !auth) { logLead(context, env, "error_signin", p, "exercise.com Login " + signin.status, true); return j({ error: "signin_failed", up: signin.status }, 502); }
+    if (!signin.ok || !auth) { logLead(context, env, "error_signin", p, "exercise.com Login fehlgeschlagen (Status " + signin.status + "). Lead NICHT im CRM, bitte manuell erfassen.", true); return j({ error: "signin_failed", up: signin.status }, 502); }
 
     // 2) Create client
     const client = { client: {
@@ -149,17 +162,23 @@ export async function onRequestPost(context) {
       body: JSON.stringify(client),
     }, 2);
 
-    if (add.ok) { logLead(context, env, "ok", p, "neu im CRM", false); return j({ ok: true }); }
+    if (add.ok) {
+      let cid = null; try { const aj = await add.json(); const c = aj && (aj.client || aj.data || aj); cid = c && (c.id || c.client_id) ? String(c.id || c.client_id) : null; } catch {}
+      logLead(context, env, "ok", p, "Neu im CRM" + (cid ? " (Client " + cid + ")" : ""), false);
+      return j({ ok: true, lid: await makeLid(env, cid) });
+    }
     // Dublette (E-Mail existiert): bestehenden Client ergaenzen, UX bleibt "erhalten"
     if (add.status === 409 || add.status === 422 || add.status === 400) {
-      let addTxt = ""; try { addTxt = (await add.text()).slice(0, 120); } catch {}
+      let addTxt = ""; try { addTxt = (await add.text()).slice(0, 200); } catch {}
+      let addMsg = ""; try { const ej = JSON.parse(addTxt); addMsg = (ej.errors && ej.errors[0] && ej.errors[0].detail) || ""; } catch {}
       const du = await dupUpdate(env, auth, p, clean);
       // Jede erneute Anfrage -> Mail an den Studio Manager des Standorts (Routing im Apps-Script)
-      logLead(context, env, du.done ? "dublette_ergaenzt" : "dublette_NICHT_ergaenzt", p, "add " + add.status + " " + addTxt + " -> " + du.detail, true, { locchange: du.locchange || "" });
-      return j({ ok: true, dup: true, updated: du.done, up: add.status });
+      logLead(context, env, du.done ? "dublette_ergaenzt" : "dublette_NICHT_ergaenzt", p, du.detail + (!du.done && addMsg ? " exercise.com meldet: " + addMsg : ""), true,
+        { locchange: du.locchange || "", tech: "add " + add.status + " " + addTxt + " -> " + (du.tech || "") });
+      return j({ ok: true, dup: true, updated: du.done, up: add.status, lid: await makeLid(env, du.cid) });
     }
     let addErr = ""; try { addErr = (await add.text()).slice(0, 120); } catch {}
-    logLead(context, env, "error_add", p, "exercise.com " + add.status + " " + addErr, true);
+    logLead(context, env, "error_add", p, "exercise.com hat den Lead abgelehnt (Status " + add.status + "). Bitte manuell erfassen.", true, { tech: "add " + add.status + " " + addErr });
     return j({ error: "add_failed", up: add.status }, 502);
   } catch (e) {
     try { logLead(context, env, "error_exception", (typeof p === "object" && p) ? p : {}, String(e && e.message ? e.message : e).slice(0, 200), true); } catch {}

@@ -1015,12 +1015,13 @@ s.scrollIntoView({behavior:'smooth',block:'center'});
 if(!LEAD_ENDPOINT){console.warn('lead endpoint not configured');showSuccess(true);return;}
 var btn=f.querySelector('button[type=submit]');btn.disabled=true;btn.style.opacity=.6;
 fetch(LEAD_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-.then(function(r){if(!r.ok)throw 0;
+.then(function(r){if(!r.ok)throw 0;return r.json().catch(function(){return {}});})
+.then(function(j){
 window.dataLayer=window.dataLayer||[];
 window.dataLayer.push({event:'generate_lead',lead_location:payload.location,lead_discipline:payload.discipline});
 if(typeof gtag==='function'){gtag('event','generate_lead',{lead_location:payload.location,lead_discipline:payload.discipline})}
 if(typeof fbq==='function'){fbq('track','Lead')}
-setTimeout(function(){location.href='/probetraining/danke/?loc='+encodeURIComponent(payload.location||'')+'&dis='+encodeURIComponent(payload.discipline||'')},400);
+setTimeout(function(){location.href='/probetraining/danke/?loc='+encodeURIComponent(payload.location||'')+'&dis='+encodeURIComponent(payload.discipline||'')+(j&&j.lid?'&lid='+encodeURIComponent(j.lid):'')},400);
 })
 .catch(function(){btn.disabled=false;btn.style.opacity=1;alert('Senden fehlgeschlagen. Bitte versuch es nochmal oder ruf uns an.');});
 });

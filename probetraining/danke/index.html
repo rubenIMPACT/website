@@ -51,6 +51,7 @@ if(loc.indexOf('wint')===0)p.set('loc','w');else if(loc.indexOf('z')===0)p.set('
 var art=null;
 if(dis==='mma')art='mma';else if(dis.indexOf('muay')>=0||dis.indexOf('thai')>=0)art='muaythai';else if(dis.indexOf('bjj')>=0||dis.indexOf('jiu')>=0)art='bjj';else if(dis.indexOf('kickbox')>=0||dis.indexOf('fitnessbox')>=0)art='fitnesskickboxing';else if(dis==='boxen'||dis==='boxing')art='boxing';else if(dis.indexOf('ringen')>=0||dis.indexOf('wrestling')>=0)art='wrestling';else if(dis.indexOf('street')>=0){p.set('g','defense');art='explore';}
 if(art)p.set('a',art);
+var lid=(q.get('lid')||'').slice(0,40);if(/^\d+\.[0-9a-f]{16}$/.test(lid))p.set('lid',lid);
 var qs=p.toString();a.href='/training-plan/'+(qs?'?'+qs:'');
 }catch(e){}})();
 </script>
