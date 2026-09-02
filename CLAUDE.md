@@ -52,3 +52,12 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 - **Team-Grids** ueberall: `gap:clamp(14px,2.4vw,28px)`, kein Hair-Hintergrund mehr. EN-Karten sagen "Learn more +" (vorher faelschlich "Mehr erfahren +").
 - **Nachtrag 02.09.**: Rania Spinnler (Social Media & Marketing Manager) und Paloma Carela (Facility Manager) im Team: Zürich-Team beide, Winterthur-Team nur Paloma, Über uns beide. Fotos aus dem Webflow-CDN in assets/wf. Webflow hatte fuer beide KEINE Beschreibung; auf Rubens Anweisung keine Bios erfunden: Karten tragen Klasse `nobio` (kein "Mehr erfahren", kein Modal), bis Ruben Texte liefert. Über uns: kein "Wir glauben"-Block, kein Story-Kicker, Team/Founders heissen "Lern uns kennen." / "Get to know us.", Hero auf Mobile = Text, darunter Gruppenfoto mit Fade. Team-Modal zeigt das Bild unbeschnitten (object-fit:contain, sitewide).
 - **Nachtrag 02.09. (2)**: Stadtseiten-Teamsektionen (`zurich/`, `winterthur/`, EN) enthalten jetzt dieselben Personen wie die Team-Seiten inkl. Rania (ZH) und Paloma (ZH+WT); doppelte Karten auf zurich/ entfernt. Über uns: keine CTAs zwischen den Sektionen (nur Floating-CTA + Footer), Founders nur mit Kicker. `.final.deep` hat `align-items:center`, damit der CTA auf Desktop nicht gestreckt wird.
+
+## Stand 02.09.2026 (abends): Sam-Feedback-Runde
+- **Team-Kacheln** (`/*cards2*/` auf allen Seiten mit trcard): nur Name + Rolle, Erfolgszeile (`em`) und "Mehr erfahren" per CSS ausgeblendet (bleiben im DOM, Modal zeigt `em` weiterhin), Textfeld solid schwarz, max. 4 Spalten. Ganze Kachel bleibt klickbar (Modal), `nobio`-Karten nicht.
+- **Rania Spinnler** ist in beiden Teams (Stadtseiten + Team-Seiten, DE/EN), jeweils nach Paloma vor Sam/Ruben.
+- **iOS-Statusleiste**: `<meta name="theme-color" content="#0a0908">` auf allen Seiten (Safari faerbt die Leiste damit schwarz).
+- **Stundenplan**: Farbcodierung je Disziplin (`.slot.d-<slug>`, Slug aus dem Kurs-Link, DE- und EN-Slugs), `/*schedcolors*/` in den 4 Stundenplan-Seiten.
+- **TikTok-Pixel** D8ON10BC77UDGOQMBTHG (`/*tiktok*/` im Head aller Seiten), `ttq.track('SubmitForm')` auf /probetraining/danke/ und /en/trial/thanks/. Der Events-API-Token von Michelle ist NICHT im Code (serverseitig, nicht noetig).
+- **Header Desktop** (`/*hdr2*/`): Topbar-Links rechts neben DE/EN, Logo 40px, Abstand Nav-Links zum CTA.
+- **Home**: Zürich-Standortkarte mit Foto mit Leuten (`assets/zuerich-standort-team.jpg`, aus IMPACT-Website-41), Google-Badge steht auf Desktop unter dem Hero-Button.
