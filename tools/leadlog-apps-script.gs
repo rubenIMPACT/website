@@ -298,15 +298,15 @@ function buildAnalyse(ss) {
 
   // ---- Diagramme (rechts neben den Kennzahlen)
   var chartCol = 8;
-  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.LINE)
+  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.LINE).setNumHeaders(1)
     .addRange(sh.getRange(wHead, 1, WEEKS + 1, 1)).addRange(sh.getRange(wHead, 4, WEEKS + 1, 3))
-    .setPosition(4, chartCol, 0, 0).setOption('title', 'Leads pro Woche').setOption('width', 620).setOption('height', 300)
+    .setPosition(4, chartCol, 0, 0).setOption('title', 'Leads pro Woche').setOption('colors', ['#e2c210', '#1a73e8', '#9e9e9e']).setOption('width', 620).setOption('height', 300)
     .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'dd.MM' }).setOption('vAxis', { minValue: 0 }).build());
-  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN)
+  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1)
     .addRange(sh.getRange(mHead, 1, MONTHS + 1, 1)).addRange(sh.getRange(mHead, 3, MONTHS + 1, 2))
-    .setPosition(wHead - 2, chartCol + 8, 0, 0).setOption('title', 'Leads pro Monat (Zürich / Winterthur)').setOption('width', 620).setOption('height', 320)
+    .setPosition(wHead - 2, chartCol + 8, 0, 0).setOption('title', 'Leads pro Monat (Zürich / Winterthur)').setOption('colors', ['#e2c210', '#1a73e8']).setOption('width', 620).setOption('height', 320)
     .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'MMM yyyy' }).setOption('vAxis', { minValue: 0 }).build());
-  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN)
+  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1)
     .addRange(sh.getRange(mHead, 1, MONTHS + 1, 1)).addRange(sh.getRange(mHead, 8, MONTHS + 1, INTERESTS.length))
     .setPosition(mHead - 2, chartCol + 8, 0, 0).setOption('title', 'Leads pro Monat nach Interesse (ab September 2026)').setOption('isStacked', true).setOption('width', 620).setOption('height', 340)
     .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'MMM yyyy' }).setOption('vAxis', { minValue: 0 }).build());
