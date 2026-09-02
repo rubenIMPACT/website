@@ -134,7 +134,8 @@ export async function onRequestPost(context) {
     if (add.status === 409 || add.status === 422 || add.status === 400) {
       let addTxt = ""; try { addTxt = (await add.text()).slice(0, 120); } catch {}
       const du = await dupUpdate(env, auth, p, clean);
-      logLead(context, env, du.done ? "dublette_ergaenzt" : "dublette_NICHT_ergaenzt", p, "add " + add.status + " " + addTxt + " -> " + du.detail, !du.done);
+      // Jede erneute Anfrage -> Mail an den Studio Manager des Standorts (Routing im Apps-Script)
+      logLead(context, env, du.done ? "dublette_ergaenzt" : "dublette_NICHT_ergaenzt", p, "add " + add.status + " " + addTxt + " -> " + du.detail, true);
       return j({ ok: true, dup: true, updated: du.done, up: add.status });
     }
     let addErr = ""; try { addErr = (await add.text()).slice(0, 120); } catch {}
