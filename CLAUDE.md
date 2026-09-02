@@ -38,3 +38,9 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 - Original: https://www.impact-martialarts.com (Webflow, siteId 651f0961164dd76d2ce8fd23; MCP-Zugriff vorhanden).
 - exercise.com Dashboard: app.impact-martialarts.com. my.impact-martialarts.com ist Magicline/MySports (anderes System, vermutlich Striking Studio).
 - IDs: GTM-W6SM24HX, GA4 G-HLBP9H0SZK, Meta Pixel 372030385687058.
+
+## Stand 02.09.2026: Standortwechsel-Routing, Team-Sektion, globaler Burger
+- **Lead-Dubletten mit Standortwechsel** (`functions/api/lead.js` dupUpdate): alter Standort aus `location_id`/Tags des bestehenden Clients, neuer aus dem Formular. Bei Wechsel: profile_field `location_id` (2508 ZH / 2222 WT) wird per PUT umgestellt, Notiz "STANDORTWECHSEL alt -> neu", Tags alt+neu bleiben, Log-Extra `locchange`. Apps Script v4 (deployed 02.09. 09:56) mailt bei `locchange` an abdi@ UND bogdan@ mit Betreff `[Website] STANDORTWECHSEL alt -> neu: Name (loc / disc)`; ohne Wechsel wie bisher abdi@ (ZH) / bogdan@ (WT); Vorname `Testlead*` geht immer an ruben@. Getestet mit Client 3024423 (Testlead Routing, WT -> ZH): PUT 200, Mail OK. Testclients "Testlead Routing" im CRM loeschen.
+- **Stadtseiten** (`zurich/`, `winterthur/`, `en/zurich/`, `en/winterthur/`): Sektion heisst "Unser Team in Zürich/Winterthur" (EN "Our team in ..."), erste Karte = Studio Manager (Abdallah Elshahaibi ZH / Bogdan Cristea WT), Bio in `#trbios`.
+- **Globale Seiten** (Home, ueber-uns, karriere/*, articles/*, en/, en/about): Burger + `#mobmenu` mit Zürich / Winterthur / Über uns / Karriere / Blog + DE/EN. NICHT auf kontakt/ und faq/ (aeltere Nav ohne mobmenu-Struktur).
+- **Mobile-Nav solide** (`/*solidnav*/` Style in jedem head): `.navwrap nav{background:#0a0908}` unter 900px, damit die iOS-Statusleiste keinen Seiteninhalt durchscheinen laesst.
