@@ -41,7 +41,11 @@ async function dupUpdate(env, auth, p, clean) {
   const email = String(p.email || "").trim().toLowerCase();
   const stamp = new Date().toISOString().slice(0, 10);
   let found = null, trace = [];
-  for (const u of ["/api/v2/clients?email=" + encodeURIComponent(email),
+  // exercise.com ignoriert email=/search= und liefert nur die erste Seite. Echte Suche: q[client_search]=... (Hinweis aus der 422-Fehlermeldung des API)
+  for (const u of ["/api/v3/clients?q%5Bclient_search%5D=" + encodeURIComponent(email) + "&per=25",
+                   "/api/v2/clients?q%5Bclient_search%5D=" + encodeURIComponent(email) + "&per=25",
+                   "/api/v4/clients?q%5Bclient_search%5D=" + encodeURIComponent(email) + "&per=25",
+                   "/api/v2/clients?email=" + encodeURIComponent(email),
                    "/api/v2/clients?search=" + encodeURIComponent(email),
                    "/api/v4/clients?email=" + encodeURIComponent(email),
                    "/api/v2/clients?query=" + encodeURIComponent(email) + "&per_page=5",
