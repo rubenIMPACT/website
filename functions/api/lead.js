@@ -34,14 +34,17 @@ async function dupUpdate(env, auth, p, clean) {
                    "/api/v2/clients?search=" + encodeURIComponent(email),
                    "/api/v4/clients?email=" + encodeURIComponent(email),
                    "/api/v2/clients?query=" + encodeURIComponent(email) + "&per_page=5",
-                   "/api/v2/clients?q=" + encodeURIComponent(email)]) {
+                   "/api/v2/clients?q=" + encodeURIComponent(email),
+                   "/api/v2/clients?per_page=100&email=" + encodeURIComponent(email),
+                   "/api/v2/clients?per_page=100&search=" + encodeURIComponent(email)]) {
     try {
       const r = await fetch(API + u, { headers: H });
       const txt = await r.text();
       let js = null; try { js = JSON.parse(txt); } catch {}
-      const list = Array.isArray(js) ? js : (js && (js.clients || js.data || js.results || js.items)) || (js && js.client ? [js.client] : []);
+      let list = Array.isArray(js) ? js : (js && (js.clients || js.data || js.results || js.items || js.client)) || [];
+      if (list && !Array.isArray(list)) list = [list];
       const f0 = (list && list[0]) || null;
-      trace.push(u.split("?")[0] + " " + r.status + " keys=" + (js && !Array.isArray(js) ? Object.keys(js).slice(0, 6).join("/") : Array.isArray(js) ? "array(" + js.length + ")" : "raw:" + txt.slice(0, 60)) + " n=" + ((list && list.length) || 0) + " first=" + (f0 ? Object.keys(f0).slice(0, 12).join("/") + " em=" + String(f0.email || (f0.user && f0.user.email) || "?") : "-"));
+      trace.push(u.split("?")[0] + " " + r.status + " keys=" + (js && !Array.isArray(js) ? Object.keys(js).slice(0, 6).join("/") : Array.isArray(js) ? "array(" + js.length + ")" : "raw:" + txt.slice(0, 60)) + " n=" + ((list && list.length) || 0) + " first=" + (f0 ? Object.keys(f0).slice(0, 12).join("/") + " em=" + String(f0.email || (f0.user && f0.user.email) || "?") + " ids=" + list.slice(0, 3).map((c) => c && c.id).join(",") : "-"));
       const hit = (list || []).find((c) => c && String(c.email || (c.user && c.user.email) || "").toLowerCase() === email) || ((list || []).length === 1 ? list[0] : null);
       if (hit && hit.id) { found = hit; break; }
     } catch (e) { trace.push("lookup-exc"); }
