@@ -1,0 +1,27 @@
+[
+  {
+    "id": "community-2026-09-26",
+    "date": "2026-09-26",
+    "time": "15:00 bis 18:00",
+    "time_en": "3 to 6 p.m.",
+    "location": "Zürich",
+    "address": "Walchestrasse 15, 8006 Zürich",
+    "image": "/assets/zuerich-standort-team.jpg",
+    "de": {
+      "title": "Community Event",
+      "teaser": "Ein Nachmittag voller Action: Open Mat, BJJ, Muay Thai und MMA. Verbring ein paar Stunden mit uns auf der Matte und erlebe die Energie unserer Community.",
+      "points_title": "Was dich erwartet",
+      "points": ["Exklusive Angebote", "Lerne die Coaches kennen", "Snacks und Drinks", "Und mehr"],
+      "rewards_title": "Bring deine Freunde mit und sichere dir Rewards",
+      "rewards": ["1 Freund meldet sich an: 1 Produkt gratis", "2 Freunde melden sich an: 1 Personal-Training-Session", "3 Freunde melden sich an: 1 Monat Mitgliedschaft"]
+    },
+    "en": {
+      "title": "Community Event",
+      "teaser": "An action-packed afternoon: Open Mat, BJJ, Muay Thai and MMA. Spend a few hours on the mats with us and experience the energy of our community.",
+      "points_title": "What awaits you",
+      "points": ["Exclusive offers", "Meet the coaches", "Snacks and drinks", "And more"],
+      "rewards_title": "Bring your friends and earn rewards",
+      "rewards": ["1 friend signs up: 1 free product", "2 friends sign up: 1 personal training session", "3 friends sign up: 1 month membership"]
+    }
+  }
+]

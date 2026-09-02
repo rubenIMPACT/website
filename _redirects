@@ -39,7 +39,11 @@
 /blog /articles/ 301
 /trial/ /probetraining/ 302
 /trial /probetraining/ 302
-/events/ / 302
+/events /events/ 301
+/en/events /en/events/ 301
+/cancellation /en/cancellation/ 301
+/cancellation/ /en/cancellation/ 301
+/kuendigung /kuendigung/ 301
 /seminare/ / 302
 
 # ===== Cutover: alte Webflow-URLs -> neue Struktur (aktiv ab DNS-Flip, harmlos vorher) =====
