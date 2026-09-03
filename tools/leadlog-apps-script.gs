@@ -1029,7 +1029,7 @@ var MA_ROWS = [
   ['trial_noshow', 'Nicht erschienen', '0'],
   ['trial_attended', 'Probetraining stattgefunden', '0'],
   ['noshow_rate', 'No-Show-Quote', '0%'],
-  ['signed_at_trial', 'davon direkt am Probetraining unterschrieben', '0'],
+  ['signed_at_trial', 'davon Abo bis zum ersten Training abgeschlossen', '0'],
   ['new_customers', 'Neukunden (Abos ohne Wechsel, ohne PT)', '0'],
   ['conv_simple', 'Quote Neukunden / Probetrainings im Monat', '0%'],
   ['conv_cohort_n', 'Kohorte: Probetrainer des Monats mit Abo bis heute', '0'],
@@ -1055,6 +1055,8 @@ var MA_ROWS = [
   ['rev_total_net', 'Verkäufe gesamt netto', '#,##0'],
 ];
 function maCall(body) { body.action = 'monat'; return klassenCall(body); }
+// Monatsschluessel 'yyyy-MM' auch dann, wenn Sheets die Zelle als Datum interpretiert hat
+function mkOf(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM') : String(v); }
 function monthKeyStr(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM'); }
 function runMonatsabschluss(start, end) {
   var mk = start.slice(0, 7), m0 = new Date(start + 'T00:00:00');
@@ -1096,32 +1098,34 @@ function runMonatsabschluss(start, end) {
 function maStoreCohorts(ss, mk, cohort) {
   var sh = getOrCreate(ss, MA_COHORT), head = ['Monat', 'Standort', 'UID', 'E-Mail', 'Name', 'Erstbesuch'];
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
-  var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return String(r[0]) !== mk; }) : [];
+  var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return mkOf(r[0]) !== mk; }) : [];
+  keep.forEach(function (r) { r[0] = mkOf(r[0]); });
   Object.keys(cohort).forEach(function (loc) { (cohort[loc] || []).forEach(function (c) { keep.push([mk, loc, String(c.uid), c.email || '', c.name || '', c.date || '']); }); });
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, head.length).clearContent();
-  if (keep.length) sh.getRange(2, 1, keep.length, head.length).setValues(keep);
+  if (keep.length) { sh.getRange(2, 1, keep.length, 1).setNumberFormat('@'); sh.getRange(2, 1, keep.length, head.length).setValues(keep); }
 }
 function maReadCohort(ss, mk, loc) {
   var sh = ss.getSheetByName(MA_COHORT); if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().filter(function (r) { return String(r[0]) === mk && r[1] === loc; }).map(function (r) { return { uid: String(r[2]), email: String(r[3] || '').toLowerCase(), date: String(r[5]) }; });
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().filter(function (r) { return mkOf(r[0]) === mk && r[1] === loc; }).map(function (r) { return { uid: String(r[2]), email: String(r[3] || '').toLowerCase(), date: String(r[5]) }; });
 }
 function maStoreMetrics(ss, mk, loc, metrics) {
   var sh = getOrCreate(ss, MA_HIST), head = ['Monat', 'Standort', 'Kennzahl', 'Wert'];
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
   var rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues() : [];
+  rows.forEach(function (r) { r[0] = mkOf(r[0]); });
   var idx = {}; rows.forEach(function (r, i) { idx[r[0] + '|' + r[1] + '|' + r[2]] = i; });
   Object.keys(metrics).forEach(function (k) {
     var key = mk + '|' + loc + '|' + k;
     if (idx[key] !== undefined) rows[idx[key]][3] = metrics[k]; else { rows.push([mk, loc, k, metrics[k]]); idx[key] = rows.length - 1; }
   });
-  sh.getRange(2, 1, rows.length, 4).setValues(rows);
+  sh.getRange(2, 1, rows.length, 1).setNumberFormat('@'); sh.getRange(2, 1, rows.length, 4).setValues(rows);
 }
 function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
   var hist = ss.getSheetByName(MA_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 4).getValues() : [];
-  var months = {}; hv.forEach(function (r) { months[String(r[0])] = 1; });
+  var months = {}; hv.forEach(function (r) { months[mkOf(r[0])] = 1; });
   var keys = Object.keys(months).sort().slice(-12);
-  var val = {}; hv.forEach(function (r) { val[r[0] + '|' + r[1] + '|' + r[2]] = r[3]; });
+  var val = {}; hv.forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
   sh.getRange('A1').setValue('IMPACT Monatsabschluss').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue('Automatisch am 1. des Monats aus exercise.com (Lifecycle, Erstbesuche, Check-ins, gestartete und gekündigte Abos, Sales by Category). Probetraining stattgefunden = Erstbesucher mit Check-in im Monat, ohne Altkunden und Staff. Neukunden = gestartete Abos ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 aus dem Tab Leads Historie.').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:N2').merge();
@@ -1148,10 +1152,13 @@ function buildMonatsabschluss(ss) {
       rowIdx[def[0]] = r; r++;
     });
     if (keys.length) {
-      var ch = sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).setTransposeRowsAndColumns(true)
-        .addRange(sh.getRange(hdr, 1, 1, keys.length + 1));
-      ['trial_attended', 'new_customers', 'cancellations'].forEach(function (k) { ch = ch.addRange(sh.getRange(rowIdx[k], 1, 1, keys.length + 1)); });
-      sh.insertChart(ch.setPosition(hdr, keys.length + 3, 0, 0).setOption('title', 'Funnel ' + locDE + ': Probetrainings, Neukunden, Kündigungen').setOption('colors', ['#9e9e9e', '#1a73e8', '#e2c210']).setOption('width', 620).setOption('height', 320).setOption('legend', { position: 'bottom' }).build());
+      // Hilfstabelle fuer das Diagramm (Monate als Zeilen) rechts neben dem Block, Spalte P..S
+      var hc = 16, piv = [['Monat', 'Probetrainings', 'Neukunden', 'Kündigungen']];
+      keys.forEach(function (k) { piv.push([new Date(k + '-01T00:00:00'), val[k + '|' + loc + '|trial_attended'] || 0, val[k + '|' + loc + '|new_customers'] || 0, val[k + '|' + loc + '|cancellations'] || 0]); });
+      sh.getRange(hdr, hc, piv.length, 4).setValues(piv); sh.getRange(hdr, hc, 1, 4).setFontWeight('bold').setBackground('#f3f3f3').setFontColor('#999999');
+      sh.getRange(hdr + 1, hc, keys.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(hdr, hc, piv.length, 4).setFontColor('#999999');
+      sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).addRange(sh.getRange(hdr, hc, piv.length, 4))
+        .setPosition(hdr, hc + 5, 0, 0).setOption('title', 'Funnel ' + locDE + ': Probetrainings, Neukunden, Kündigungen').setOption('colors', ['#9e9e9e', '#1a73e8', '#e2c210']).setOption('width', 620).setOption('height', 320).setOption('legend', { position: 'bottom' }).build());
     }
     r += 2;
   });

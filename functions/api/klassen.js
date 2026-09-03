@@ -376,6 +376,8 @@ async function monat(H, p, start, end) {
 function computeMonat(inp) {
   const { start, end } = inp, LOCS = ["Zurich", "Winterthur"];
   const locOf = (v) => (/winterthur/i.test(String(v || "")) ? "Winterthur" : "Zurich");
+  // Destination = Stripe-Konto: 'Zurich' fuer Zuerich, 'IMPACT Martial Arts' fuer Winterthur
+  const destLoc = (v) => (/z[uü]rich/i.test(String(v || "")) ? "Zurich" : "Winterthur");
   const dOf = (v) => String(v || "").slice(0, 10).replace(/\//g, "-");            // "2026/08/04 ..." -> "2026-08-04"
   const inMonth = (d) => d >= start && d <= end;
   const isPT = (name) => /personal training/i.test(String(name || ""));
@@ -388,14 +390,14 @@ function computeMonat(inp) {
   // Abos
   // Abo-Starts aus den laufenden Abos (Start Date); der Report "Started Subscriptions" ist fuer den API-Benutzer gesperrt (403).
   // Abos, die im selben Monat gestartet und schon wieder beendet wurden, fehlen damit (selten).
-  const started = inp.subs.filter((r) => String(r["Active Subscription Type"] || "") !== "Scheduled").map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: locOf(r["Location"] || r["Destination"]), date: dOf(r["Start Date"]), pkg: String(r["Subscribed To"] || "") })).filter((s) => s.date >= inp.cohortStart);
+  const started = inp.subs.filter((r) => String(r["Active Subscription Type"] || "") !== "Scheduled").map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: dOf(r["Start Date"]), pkg: String(r["Subscribed To"] || "") })).filter((s) => s.date >= inp.cohortStart);
   const startedM = started.filter((s) => inMonth(s.date));
-  const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: locOf(r["Destination"]), date: dOf(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
+  const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: dOf(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
   const cancelledUids = new Set(cancelled.map((c) => c.uid)), convertedUids = new Set(cancelled.filter((c) => c.converted).map((c) => c.uid));
   const startedUids = new Set(startedM.map((s) => s.uid));
   const parse = (str) => { const m = /Fr([\d,.]+)\/(month|year|(\d+) months|(\d+) years)/.exec(str || ""); if (!m) return null; const amt = parseFloat(m[1].replace(/,/g, "")); let mo = 1; if (m[2] === "year") mo = 12; else if (m[3]) mo = +m[3]; else if (m[4]) mo = +m[4] * 12; return amt / mo; };
   const coup = (str, v) => { if (!str) return v; let m = /(\d+)% off/.exec(str); if (m) return v * (1 - m[1] / 100); m = /Fr([\d.]+) off/.exec(str); if (m) return Math.max(0, v - parseFloat(m[1])); return v; };
-  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: locOf(r["Location"] || r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: dOf(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
+  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: dOf(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
   const preExisting = new Set(subs.filter((s) => s.date && s.date < start).map((s) => s.uid));
   // Lifecycle
   const life = inp.life.map((r) => ({ loc: locOf(r["Location"]), from: String(r["Transitioned From"] || ""), to: String(r["Transitioned To"] || "") }));
