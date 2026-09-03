@@ -1154,7 +1154,7 @@ function buildMonatsabschluss(ss) {
     }
     r += 2;
   });
-  sh.setColumnWidth(1, 330); sh.setFrozenColumns(1);
+  sh.setColumnWidth(1, 330); // keine fixierte Spalte: A2:N2 ist verbunden, Google erlaubt das Einfrieren dann nicht
   var ma = ss.getSheetByName(MA_SHEET); if (ma) { ss.setActiveSheet(ma); ss.moveActiveSheet(1); }
   [MA_HIST, MA_COHORT].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
 }
