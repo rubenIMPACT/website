@@ -27,6 +27,7 @@ export async function onRequestPost(context) {
     const H = await signIn(env);
     if (!H) return j({ error: "signin_failed" }, 502);
     const q = query(start, end);
+    if (p.action === "monat") return j(await monat(H, p, start, end));
     if (phase === 1) {
       const out = {};
       for (const k of ["recurring", "visits", "subs", "Zurich"]) { const r = await getJson(H, reportUrl(k, q) + "&refresh=true"); out[k] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error }; }
@@ -296,4 +297,155 @@ function REVENUE(vs, subsStats) {
   Object.keys(members).forEach((k) => { ["chf", "chf_visited", "chf_novisit"].forEach((f) => { members[k][f] = Math.round(members[k][f]); }); });
   novisit.sort((a, b) => a.location < b.location ? -1 : a.location > b.location ? 1 : b.chf - a.chf);
   return { basis: "netto (ohne MwSt, nach Coupon)", slots, members, novisit, nosub_visits: nosub, nosub_users: Object.keys(nosubUsers).length, visits_completed: comp.length, subs_unparsed: skipped };
+}
+
+
+// ================================================================ Monatsabschluss (seit 03.09.2026, Entscheid Ruben)
+// Liefert dem Apps Script die Kennzahlen des Finanzplans und den Funnel je Standort, aus den Reports
+// lifecycle, clients_first_visit (je Standort), detailed_visits, started_subscription (Fenster ab Vor-Vormonat bis heute
+// fuer die Kohorten-Conversion), cancelled_subscriptions, active_subscription, sales_by_category (je Standort).
+// Phasen wie bei der Klassenanalyse, weil sich Reports mit Standortfilter einen Cache teilen:
+//   m1: Generierung anstossen (alles inkl. Zuerich-Varianten)  -> {ok}
+//   m2: Zuerich-Varianten abholen (kompakt), Winterthur anstossen -> {ready, fv_zh, sales_zh}
+//   m3: Rest abholen, rechnen (fv_zh/sales_zh mitgeben)          -> {ready, data}
+// Definitionen (Ruben 03.09.2026): Probetraining gebucht = Erstbesuche laut Report; stattgefunden = Erstbesucher mit
+// Check-in im Monat, ohne Personen mit Abo-Start vor dem Monat und ohne Staff; Neukunden = gestartete Abos ohne
+// Wechsel und ohne Personal Training; Kuendigungen = ohne "Converted"; Wechsel separat.
+function monatUrls(start, end, cohortStart, today) {
+  const qM = query(start, end), qC = query(cohortStart, today);
+  return {
+    life: { url: API + "/api/v4/reports/lifecycle?" + qM + "&per=5000", start, arr: false },
+    visits: { url: API + "/api/v4/reports/detailed_visits?" + qM + "&per=5000", start, arr: false },
+    started: { url: API + "/api/v4/reports/started_subscription?" + qC + "&per=2000", start: cohortStart, arr: true },
+    cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qM + "&per=2000", start, arr: true },
+    subs: { url: API + "/api/v4/reports/active_subscription?" + qM + "&per=2000&only_active=true", start, arr: true },
+    fvZH: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
+    fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
+    salesZH: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
+    salesWT: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
+  };
+}
+function rowsOf(cs) {
+  if (Array.isArray(cs)) return cs.slice(1);
+  const H = (cs && cs.headers) || [], rows = [];
+  ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((it) => { const o = {}; H.forEach((h, i) => { o[h] = it[i]; }); o.__group = g.name; rows.push(o); }));
+  return rows;
+}
+function readyFor(spec, json) {
+  const cs = json.cached_stats, f = (Array.isArray(cs) ? ((cs[0] || {}).filters || "") : ((cs || {}).filters || ""));
+  return !json.refreshing && f.indexOf("Start Date: " + spec.start.replace(/-/g, "/")) >= 0 && (!spec.loc || f.indexOf("Location: " + spec.loc) >= 0);
+}
+async function monat(H, p, start, end) {
+  const cohortStart = String(p.cohort_start || start), today = String(p.today || end);
+  const U = monatUrls(start, end, cohortStart, today), phase = String(p.phase || "");
+  if (phase === "m1") {
+    const out = {};
+    for (const k of ["life", "visits", "started", "cancelled", "subs", "fvZH", "salesZH"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    return { ok: true, started: out };
+  }
+  if (phase === "m2") {
+    const fv = await getJson(H, U.fvZH.url), sa = await getJson(H, U.salesZH.url);
+    if (!fv.json || !sa.json) return { error: "fetch_zh" };
+    if (!readyFor(U.fvZH, fv.json)) return { ready: false, waiting: "fvZH" };
+    if (!readyFor(U.salesZH, sa.json)) return { ready: false, waiting: "salesZH" };
+    const fvC = rowsOf(fv.json.cached_stats).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) }));
+    const saC = rowsOf(sa.json.cached_stats).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) }));
+    await getJson(H, U.fvWT.url + "&refresh=true"); await getJson(H, U.salesWT.url + "&refresh=true");
+    return { ready: true, fv_zh: fvC, sales_zh: saC };
+  }
+  if (phase === "m3") {
+    const got = {};
+    for (const k of ["fvWT", "salesWT", "life", "visits", "started", "cancelled", "subs"]) {
+      const r = await getJson(H, U[k].url);
+      if (!r.json) return { error: k + "_" + r.status };
+      if (!readyFor(U[k], r.json)) return { ready: false, waiting: k };
+      got[k] = r.json.cached_stats;
+    }
+    const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: rowsOf(got.fvWT).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) })) };
+    const sales = { Zurich: Array.isArray(p.sales_zh) ? p.sales_zh : [], Winterthur: rowsOf(got.salesWT).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) })) };
+    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, started: rowsOf(got.started), cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), fv, sales }) };
+  }
+  return { error: "phase" };
+}
+function computeMonat(inp) {
+  const { start, end } = inp, LOCS = ["Zurich", "Winterthur"];
+  const locOf = (v) => (/winterthur/i.test(String(v || "")) ? "Winterthur" : "Zurich");
+  const dOf = (v) => String(v || "").slice(0, 10).replace(/\//g, "-");            // "2026/08/04 ..." -> "2026-08-04"
+  const inMonth = (d) => d >= start && d <= end;
+  const isPT = (name) => /personal training/i.test(String(name || ""));
+  // Besuche
+  const vH = (inp.visits && inp.visits.headers) || [], vix = (n) => vH.indexOf(n), vRows = [];
+  (((inp.visits || {}).reports) || []).forEach((g) => (g.items || []).forEach((it) => vRows.push(it)));
+  const comp = vRows.filter((x) => x[vix("Status")] === "Completed");
+  const visitsByUser = {}; comp.forEach((x) => { const u = String(x[vix("User ID")]); (visitsByUser[u] = visitsByUser[u] || []).push(dOf(x[vix("Start Time")])); });
+  const staff = new Set(); vRows.forEach((x) => { [x[vix("Primary Staff")], x[vix("Secondary Staff")]].forEach((s) => { if (s) String(s).split(",").forEach((n) => staff.add(n.trim().toLowerCase())); }); });
+  // Abos
+  const started = inp.started.map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: locOf(r["Location"] || r["Destination"]), date: dOf(r["Start Date"]), pkg: String(r["Subscribed To"] || "") }));
+  const startedM = started.filter((s) => inMonth(s.date));
+  const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: locOf(r["Destination"]), date: dOf(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
+  const cancelledUids = new Set(cancelled.map((c) => c.uid)), convertedUids = new Set(cancelled.filter((c) => c.converted).map((c) => c.uid));
+  const startedUids = new Set(startedM.map((s) => s.uid));
+  const parse = (str) => { const m = /Fr([\d,.]+)\/(month|year|(\d+) months|(\d+) years)/.exec(str || ""); if (!m) return null; const amt = parseFloat(m[1].replace(/,/g, "")); let mo = 1; if (m[2] === "year") mo = 12; else if (m[3]) mo = +m[3]; else if (m[4]) mo = +m[4] * 12; return amt / mo; };
+  const coup = (str, v) => { if (!str) return v; let m = /(\d+)% off/.exec(str); if (m) return v * (1 - m[1] / 100); m = /Fr([\d.]+) off/.exec(str); if (m) return Math.max(0, v - parseFloat(m[1])); return v; };
+  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: locOf(r["Location"] || r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: dOf(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
+  const preExisting = new Set(subs.filter((s) => s.date && s.date < start).map((s) => s.uid));
+  // Lifecycle
+  const life = inp.life.map((r) => ({ loc: locOf(r["Location"]), from: String(r["Transitioned From"] || ""), to: String(r["Transitioned To"] || "") }));
+  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
+  for (const loc of LOCS) {
+    const L = {};
+    const lf = life.filter((x) => x.loc === loc);
+    L.leads_all = lf.filter((x) => x.to === "Lead").length;
+    L.trial_booked_transitions = lf.filter((x) => x.to === "Trial Booked").length;
+    L.lost_after_trial = lf.filter((x) => x.from === "Trial Booked" && /lost/i.test(x.to)).length;
+    L.became_client = lf.filter((x) => x.to === "Client").length;
+    L.became_inactive = lf.filter((x) => x.from === "Client" && /inactive/i.test(x.to)).length;
+    // Probetrainings
+    const fv = inp.fv[loc] || [], seen = new Set(), cohort = [];
+    let excluded = 0, attended = 0, signedAtTrial = 0, nostaff = 0;
+    fv.forEach((f) => {
+      if (seen.has(f.uid)) return; seen.add(f.uid);
+      if (staff.has(f.name.toLowerCase())) { excluded++; nostaff++; return; }
+      if (preExisting.has(f.uid)) { excluded++; return; }
+      const vs = (visitsByUser[f.uid] || []).filter(inMonth).sort();
+      if (!vs.length) return;
+      attended++;
+      const firstVisit = vs[0];
+      const st = startedM.filter((s) => s.uid === f.uid && !isPT(s.pkg));
+      if (st.some((s) => s.date <= firstVisit)) signedAtTrial++;
+      cohort.push({ uid: f.uid, email: f.email, name: f.name, date: firstVisit });
+    });
+    L.first_visits = seen.size; L.first_visits_excluded = excluded; L.trial_attended = attended; L.trial_noshow = seen.size - excluded - attended; L.signed_at_trial = signedAtTrial;
+    out.cohort[loc] = cohort;
+    // Neukunden / Wechsel / Kuendigungen
+    const stL = startedM.filter((s) => s.loc === loc);
+    const pt = stL.filter((s) => isPT(s.pkg)).length;
+    const nonPT = stL.filter((s) => !isPT(s.pkg));
+    const switchUids = new Set(nonPT.filter((s) => cancelledUids.has(s.uid)).map((s) => s.uid));
+    L.subs_started = nonPT.length; L.switches = switchUids.size; L.pt_started = pt;
+    L.new_customers = new Set(nonPT.filter((s) => !switchUids.has(s.uid)).map((s) => s.uid)).size;
+    const byPkg = {}; nonPT.filter((s) => !switchUids.has(s.uid)).forEach((s) => { byPkg[s.pkg] = (byPkg[s.pkg] || 0) + 1; }); L.new_by_package = byPkg;
+    const caL = cancelled.filter((c) => c.loc === loc);
+    L.cancellations = caL.filter((c) => !c.converted && !startedUids.has(c.uid)).length;
+    L.cancellations_converted = caL.length - L.cancellations;
+    const reasons = {}; caL.forEach((c) => { const k = c.reason || "ohne Grund"; reasons[k] = (reasons[k] || 0) + 1; }); L.cancel_reasons = reasons;
+    L.net_growth = L.new_customers - L.cancellations;
+    // Abos (Stand Lauf)
+    const sL = subs.filter((s) => s.loc === loc && s.type !== "Scheduled");
+    const active = sL.filter((s) => s.type !== "Paused");
+    L.active_subs = active.length; L.paused_subs = sL.length - active.length; L.pending_cancel = active.filter((s) => s.type === "Pending Cancel").length;
+    L.mrr_net = Math.round(active.reduce((a, s) => a + s.chf, 0)); L.avg_sub_net = active.length ? Math.round(L.mrr_net / active.length) : 0;
+    L.churn_rate = (L.active_subs + L.cancellations) ? L.cancellations / (L.active_subs + L.cancellations) : 0;
+    // Umsatz (Sales by Category, brutto und netto)
+    const sa = inp.sales[loc] || []; const sum = (rows, f) => Math.round(rows.reduce((a, r) => a + (r[f] || 0), 0));
+    const starter = sa.filter((r) => /starter pack/i.test(r.name)), ptS = sa.filter((r) => isPT(r.name)), gear = sa.filter((r) => /product category/i.test(r.name) && !/starter pack/i.test(r.name));
+    const member = sa.filter((r) => !/product category/i.test(r.name) && !isPT(r.name) && !/single training/i.test(r.name));
+    L.rev_membership_gross = sum(member, "gross"); L.rev_membership_net = sum(member, "net");
+    L.rev_starter_gross = sum(starter, "gross"); L.rev_starter_net = sum(starter, "net"); L.starter_count = sum(starter, "clients");
+    L.rev_pt_gross = sum(ptS, "gross"); L.rev_pt_net = sum(ptS, "net"); L.pt_count = sum(ptS, "clients");
+    L.rev_gear_gross = sum(gear, "gross"); L.rev_gear_net = sum(gear, "net");
+    L.rev_total_gross = sum(sa, "gross"); L.rev_total_net = sum(sa, "net");
+    out.locations[loc] = L;
+  }
+  return out;
 }

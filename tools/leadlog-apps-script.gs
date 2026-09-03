@@ -210,7 +210,7 @@ function setupAnalyse() {
   var ka = ss.getSheetByName('Klassenanalyse');
   if (!ka) { ka = ss.insertSheet('Klassenanalyse'); ka.getRange('A1').setValue('Klassenanalyse: wird monatlich vom Skill impact-class-analysis aus den exercise.com-Reports befuellt (Popular Services + Itemized Recurring Sessions).').setFontColor('#666666'); }
   // Reihenfolge von Ruben (03.09.2026). Tab-Namen: Analyse, Trainingsplan-Analyse, Leads Historie duerfen umbenannt werden (dann hier nachziehen); Leads, Trainingsplan, Events, Kündigungen, Klassenanalyse und die Hilfstabs NIE umbenennen (Webapp schreibt per Name).
-  var order = ['Leads-Analyse', 'Klassenanalyse', 'Kündigungsrisiko', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin', 'RisikoHistorie'];
+  var order = ['Monatsabschluss', 'Leads-Analyse', 'Klassenanalyse', 'Kündigungsrisiko', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin', 'RisikoHistorie', 'MonatsHistorie', 'Kohorten'];
   var pos = 1;
   for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
   ss.setActiveSheet(ss.getSheetByName('Leads-Analyse'));
@@ -817,7 +817,9 @@ function runKlassenanalyseMonthly() {
   var start = Utilities.formatDate(new Date(lastPrev.getFullYear(), lastPrev.getMonth(), 1), TZ, 'yyyy-MM-dd'), end = Utilities.formatDate(lastPrev, TZ, 'yyyy-MM-dd');
   try {
     var report = runKlassenanalyse(start, end);
-    MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Klassenanalyse ' + start.slice(0, 7) + ' ist da', body: 'Die Klassenanalyse fuer ' + start + ' bis ' + end + ' steht im Sheet (Tabs Klassenanalyse und Kuendigungsrisiko).\n\n' + report + '\n\nhttps://docs.google.com/spreadsheets/d/' + SHEET_ID });
+    var ma = '';
+    try { ma = runMonatsabschluss(start, end); } catch (e2) { ma = 'Monatsabschluss FEHLGESCHLAGEN: ' + String(e2 && e2.message ? e2.message : e2); }
+    MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Monatsabschluss und Klassenanalyse ' + start.slice(0, 7) + ' sind da', body: 'Monatsabschluss fuer ' + start + ' bis ' + end + ' (Tab Monatsabschluss):\n' + ma + '\n\nKlassenanalyse (Tabs Klassenanalyse und Kuendigungsrisiko):\n' + report + '\n\nhttps://docs.google.com/spreadsheets/d/' + SHEET_ID });
   } catch (e) {
     MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Klassenanalyse ' + start.slice(0, 7) + ' FEHLGESCHLAGEN', body: 'Fehler: ' + String(e && e.message ? e.message : e) + '\n\nNaechster Versuch: im Script-Editor runKlassenanalyseMonthly ausfuehren oder Fenster manuell mit runKlassenanalyse(start, end).' });
     throw e;
@@ -989,4 +991,149 @@ function doGet(e) {
     if (q.what === 'migrate') return out({ ok: true, changed: migratePlanSheet() });
   } catch (err) { return out({ error: String(err) }); }
   return out({ ok: true });
+}
+
+// ------------------------------------------------------------ Monatsabschluss (seit 03.09.2026, Entscheid Ruben)
+// Kennzahlen des Finanzplans und Funnel je Standort, Monate als Spalten. Daten aus der Cloudflare-Funktion (action 'monat'),
+// gespeichert im versteckten Tab MonatsHistorie (Monat, Standort, Kennzahl, Wert) und Kohorten (Probetrainer je Monat).
+// Kohorten-Conversion wird bei jedem Lauf fuer die letzten drei Monate neu gerechnet (Nachzuegler).
+var MA_SHEET = 'Monatsabschluss', MA_HIST = 'MonatsHistorie', MA_COHORT = 'Kohorten';
+var MA_ROWS = [
+  ['leads_web', 'Leads Website (Log)', '0'],
+  ['leads_all', 'Leads gesamt in exercise.com (alle Quellen)', '0'],
+  ['trial_booked_transitions', 'Probetraining gebucht (Lifecycle)', '0'],
+  ['first_visits', 'Erstbesuche laut Report', '0'],
+  ['first_visits_excluded', 'davon keine Probetrainer (Altkunden, Staff)', '0'],
+  ['trial_noshow', 'Nicht erschienen', '0'],
+  ['trial_attended', 'Probetraining stattgefunden', '0'],
+  ['noshow_rate', 'No-Show-Quote', '0%'],
+  ['signed_at_trial', 'davon direkt am Probetraining unterschrieben', '0'],
+  ['new_customers', 'Neukunden (Abos ohne Wechsel, ohne PT)', '0'],
+  ['conv_simple', 'Quote Neukunden / Probetrainings im Monat', '0%'],
+  ['conv_cohort_n', 'Kohorte: Probetrainer des Monats mit Abo bis heute', '0'],
+  ['conv_cohort_rate', 'Kohorten-Conversion (reift 3 Monate nach)', '0%'],
+  ['switches', 'Paketwechsel', '0'],
+  ['cancellations', 'Kündigungen (ohne Wechsel)', '0'],
+  ['net_growth', 'Nettowachstum', '0'],
+  ['lost_after_trial', 'Nach Probetraining verloren (Lifecycle)', '0'],
+  ['active_subs', 'Aktive Abos (Stand Lauf)', '0'],
+  ['paused_subs', 'Pausierte Abos', '0'],
+  ['pending_cancel', 'Abos mit Kündigung auf Periodenende', '0'],
+  ['churn_rate', 'Churn (Kündigungen / Abos)', '0.0%'],
+  ['mrr_net', 'Abo-Umsatz netto pro Monat (laufende Abos)', '#,##0'],
+  ['avg_sub_net', 'Ø Abo-Wert netto', '#,##0'],
+  ['rev_membership_gross', 'Abo-Einnahmen brutto (Sales by Category)', '#,##0'],
+  ['rev_membership_net', 'Abo-Einnahmen netto', '#,##0'],
+  ['starter_count', 'Starter Packs Stück', '0'],
+  ['rev_starter_gross', 'Starter Packs brutto', '#,##0'],
+  ['pt_count', 'Personal Training Käufer', '0'],
+  ['rev_pt_gross', 'Personal Training brutto', '#,##0'],
+  ['rev_gear_gross', 'Gear brutto', '#,##0'],
+  ['rev_total_gross', 'Verkäufe gesamt brutto', '#,##0'],
+  ['rev_total_net', 'Verkäufe gesamt netto', '#,##0'],
+];
+function maCall(body) { body.action = 'monat'; return klassenCall(body); }
+function monthKeyStr(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM'); }
+function runMonatsabschluss(start, end) {
+  var mk = start.slice(0, 7), m0 = new Date(start + 'T00:00:00');
+  var cohortStart = Utilities.formatDate(new Date(m0.getFullYear(), m0.getMonth() - 2, 1), TZ, 'yyyy-MM-dd'), today = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+  var base = { start: start, end: end, cohort_start: cohortStart, today: today };
+  var p1 = maCall(Object.assign({ phase: 'm1' }, base)); if (p1.error) throw new Error('Monat m1: ' + JSON.stringify(p1).slice(0, 300));
+  var p2 = null, p3 = null, i;
+  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p2 = maCall(Object.assign({ phase: 'm2' }, base)); if (p2.error) throw new Error('Monat m2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
+  if (!p2 || !p2.ready) throw new Error('Monat m2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
+  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh }, base)); if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
+  var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID);
+  maStoreCohorts(ss, mk, data.cohort || {});
+  var lines = [];
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    var L = data.locations[loc] || {}, m = {};
+    Object.keys(L).forEach(function (k) { if (typeof L[k] === 'number') m[k] = L[k]; });
+    var fvNet = (L.first_visits || 0) - (L.first_visits_excluded || 0);
+    m.noshow_rate = fvNet ? (L.trial_noshow || 0) / fvNet : 0;
+    m.conv_simple = L.trial_attended ? (L.new_customers || 0) / L.trial_attended : 0;
+    maStoreMetrics(ss, mk, loc, m);
+    lines.push(loc + ': ' + (L.trial_attended || 0) + ' Probetrainings, ' + (L.new_customers || 0) + ' Neukunden, ' + (L.cancellations || 0) + ' Kuendigungen, netto ' + (L.net_growth || 0) + ', Abo-Umsatz brutto ' + (L.rev_membership_gross || 0) + ' CHF');
+  });
+  // Kohorten-Conversion fuer diesen und die zwei Vormonate
+  var since = data.started_since || [];
+  for (var back = 0; back < 3; back++) {
+    var mkB = monthKeyStr(new Date(m0.getFullYear(), m0.getMonth() - back, 1));
+    ['Zurich', 'Winterthur'].forEach(function (loc) {
+      var coh = maReadCohort(ss, mkB, loc); if (!coh.length) return;
+      var n = 0;
+      coh.forEach(function (c) { if (since.some(function (s) { return (s.uid === c.uid || (c.email && s.email === c.email)) && s.date >= c.date; })) n++; });
+      maStoreMetrics(ss, mkB, loc, { conv_cohort_n: n, conv_cohort_rate: n / coh.length });
+    });
+  }
+  buildMonatsabschluss(ss);
+  Logger.log('Monatsabschluss ' + mk + ': ' + lines.join(' | '));
+  return lines.join('\n');
+}
+function maStoreCohorts(ss, mk, cohort) {
+  var sh = getOrCreate(ss, MA_COHORT), head = ['Monat', 'Standort', 'UID', 'E-Mail', 'Name', 'Erstbesuch'];
+  if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
+  var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return String(r[0]) !== mk; }) : [];
+  Object.keys(cohort).forEach(function (loc) { (cohort[loc] || []).forEach(function (c) { keep.push([mk, loc, String(c.uid), c.email || '', c.name || '', c.date || '']); }); });
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, head.length).clearContent();
+  if (keep.length) sh.getRange(2, 1, keep.length, head.length).setValues(keep);
+}
+function maReadCohort(ss, mk, loc) {
+  var sh = ss.getSheetByName(MA_COHORT); if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().filter(function (r) { return String(r[0]) === mk && r[1] === loc; }).map(function (r) { return { uid: String(r[2]), email: String(r[3] || '').toLowerCase(), date: String(r[5]) }; });
+}
+function maStoreMetrics(ss, mk, loc, metrics) {
+  var sh = getOrCreate(ss, MA_HIST), head = ['Monat', 'Standort', 'Kennzahl', 'Wert'];
+  if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
+  var rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues() : [];
+  var idx = {}; rows.forEach(function (r, i) { idx[r[0] + '|' + r[1] + '|' + r[2]] = i; });
+  Object.keys(metrics).forEach(function (k) {
+    var key = mk + '|' + loc + '|' + k;
+    if (idx[key] !== undefined) rows[idx[key]][3] = metrics[k]; else { rows.push([mk, loc, k, metrics[k]]); idx[key] = rows.length - 1; }
+  });
+  sh.getRange(2, 1, rows.length, 4).setValues(rows);
+}
+function buildMonatsabschluss(ss) {
+  var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
+  var hist = ss.getSheetByName(MA_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 4).getValues() : [];
+  var months = {}; hv.forEach(function (r) { months[String(r[0])] = 1; });
+  var keys = Object.keys(months).sort().slice(-12);
+  var val = {}; hv.forEach(function (r) { val[r[0] + '|' + r[1] + '|' + r[2]] = r[3]; });
+  sh.getRange('A1').setValue('IMPACT Monatsabschluss').setFontSize(16).setFontWeight('bold');
+  sh.getRange('A2').setValue('Automatisch am 1. des Monats aus exercise.com (Lifecycle, Erstbesuche, Check-ins, gestartete und gekündigte Abos, Sales by Category). Probetraining stattgefunden = Erstbesucher mit Check-in im Monat, ohne Altkunden und Staff. Neukunden = gestartete Abos ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 aus dem Tab Leads Historie.').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2:N2').merge();
+  var r = 4;
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur';
+    sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
+    var head = ['Kennzahl'].concat(keys.map(function (k) { return new Date(k + '-01T00:00:00'); }));
+    sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
+    sh.getRange(r, 2, 1, keys.length).setNumberFormat('mmm yyyy');
+    var hdr = r; r++;
+    var rowIdx = {};
+    MA_ROWS.forEach(function (def) {
+      var row = [def[1]];
+      keys.forEach(function (k, ci) {
+        if (def[0] === 'leads_web') {
+          var col = String.fromCharCode(66 + ci), lc = loc === 'Zurich' ? 2 : 3;
+          row.push('=IF(' + col + '$' + hdr + '<DATE(2026,9,1),IFERROR(VLOOKUP(' + col + '$' + hdr + ",'Leads Historie'!$A:$C," + lc + ',FALSE),""),COUNTIFS(Daten!$C:$C,' + col + '$' + hdr + ',Daten!$D:$D,"' + locDE + '",Daten!$G:$G,1))');
+        } else { var v = val[k + '|' + loc + '|' + def[0]]; row.push(v === undefined ? '' : v); }
+      });
+      sh.getRange(r, 1, 1, row.length).setValues([row]);
+      if (keys.length) sh.getRange(r, 2, 1, keys.length).setNumberFormat(def[2]);
+      if (['trial_attended', 'new_customers', 'net_growth', 'rev_total_gross'].indexOf(def[0]) >= 0) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
+      rowIdx[def[0]] = r; r++;
+    });
+    if (keys.length) {
+      var ch = sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).setTransposeRowsAndColumns(true)
+        .addRange(sh.getRange(hdr, 1, 1, keys.length + 1));
+      ['trial_attended', 'new_customers', 'cancellations'].forEach(function (k) { ch = ch.addRange(sh.getRange(rowIdx[k], 1, 1, keys.length + 1)); });
+      sh.insertChart(ch.setPosition(hdr, keys.length + 3, 0, 0).setOption('title', 'Funnel ' + locDE + ': Probetrainings, Neukunden, Kündigungen').setOption('colors', ['#9e9e9e', '#1a73e8', '#e2c210']).setOption('width', 620).setOption('height', 320).setOption('legend', { position: 'bottom' }).build());
+    }
+    r += 2;
+  });
+  sh.setColumnWidth(1, 330); sh.setFrozenColumns(1);
+  var ma = ss.getSheetByName(MA_SHEET); if (ma) { ss.setActiveSheet(ma); ss.moveActiveSheet(1); }
+  [MA_HIST, MA_COHORT].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
 }
