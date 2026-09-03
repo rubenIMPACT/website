@@ -3,8 +3,8 @@
 // Cache: Antwort wird bis 24h vorgehalten und ab 5 Minuten Alter im Hintergrund aufgefrischt (stale-while-revalidate),
 // damit Besucher nie auf Google warten. Nur der allererste Aufruf nach einem Deploy ist langsam.
 const FRESH_MS = 5 * 60 * 1000;
-function pub(e) { return { id: e.id, type: e.type, start: e.start, end: e.end, location: e.location, title_de: e.title_de, title_en: e.title_en,
-  text_de: e.text_de, text_en: e.text_en, registration: !!e.registration, rewards: !!e.rewards, link: e.link, image: e.image, signups: e.signups || 0 }; }
+function pub(e) { return { id: e.id, type: e.type, start: e.start, end: e.end, location: e.location, owner: e.owner || '', title: e.title || e.title_de || '',
+  text: e.text || e.text_de || '', registration: !!e.registration, rewards: !!e.rewards, link: e.link || '', image: e.image || '', signups: e.signups || 0 }; }
 async function fetchUpstream(env) {
   const u = env.LEADLOG_URL + "?token=" + encodeURIComponent(env.LEADLOG_TOKEN) + "&what=events";
   const r = await fetch(u, { redirect: "follow", headers: { "Accept": "application/json" } });
