@@ -712,4 +712,8 @@ function buildRisiko(ss, data, fileName) {
   }
   sh.setColumnWidth(1, 200); sh.setColumnWidth(3, 260); sh.setColumnWidth(6, 240); sh.setColumnWidth(7, 300);
   sh.setFrozenRows(0);
+  // Position: direkt nach Klassenanalyse; RisikoHistorie versteckt (neue Tabs landen sonst neben dem aktiven Tab)
+  var ka = ss.getSheetByName(KA_SHEET); if (ka) { ss.setActiveSheet(sh); ss.moveActiveSheet(ka.getIndex() + 1); }
+  var hs = ss.getSheetByName(RISK_HIST); if (hs && !hs.isSheetHidden()) hs.hideSheet();
+  var an = ss.getSheetByName('Analyse'); if (an) ss.setActiveSheet(an);
 }
