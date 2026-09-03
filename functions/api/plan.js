@@ -93,7 +93,8 @@ export async function onRequestPost(context) {
 
     // Log ins Sheet (nie blockierend)
     if (env.LEADLOG_URL && env.LEADLOG_TOKEN) {
-      const body = JSON.stringify({ token: env.LEADLOG_TOKEN, type: "plan", alert: !!data.lead_id, detail: crm, data });
+      // alert:false = keine Mail je Plan an Abdi/Bogdan (Entscheid Ruben 03.09.2026, die CRM-Notiz reicht); auf !!data.lead_id setzen, um Mails wieder einzuschalten
+      const body = JSON.stringify({ token: env.LEADLOG_TOKEN, type: "plan", alert: false, detail: crm, data });
       const pr = fetch(env.LEADLOG_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body, redirect: "follow" }).catch(() => {});
       try { context.waitUntil(pr); } catch {}
     }

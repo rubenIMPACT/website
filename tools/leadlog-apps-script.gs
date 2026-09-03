@@ -107,9 +107,29 @@ function logLead(ss, p) {
 }
 
 // ---------------------------------------------------------------- Trainingsplan
+function planKey(leadId, sid) { return leadId ? 'L' + leadId : (sid ? 'S' + sid : ''); }
+// Entfernt aeltere Zeilen derselben Person (Lead-ID, sonst Sitzung), damit pro Person nur der letzte Plan im Tab steht (Entscheid Ruben 03.09.2026)
+function dropOlderPlans(sh, key) {
+  if (!key || sh.getLastRow() < 2) return 0;
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, 16).getValues(), del = [];
+  for (var i = 0; i < v.length; i++) if (planKey(s(v[i][15]), s(v[i][1])) === key) del.push(i + 2);
+  for (var j = del.length - 1; j >= 0; j--) sh.deleteRow(del[j]);
+  return del.length;
+}
+function dedupeTrainingsplan() {
+  var sh = planSheet(SpreadsheetApp.openById(SHEET_ID));
+  if (sh.getLastRow() < 2) return;
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, 16).getValues(), last = {}, del = [];
+  for (var i = 0; i < v.length; i++) { var k = planKey(s(v[i][15]), s(v[i][1])); if (k) last[k] = i; }
+  for (var i2 = 0; i2 < v.length; i2++) { var k2 = planKey(s(v[i2][15]), s(v[i2][1])); if (k2 && last[k2] !== i2) del.push(i2 + 2); }
+  for (var j = del.length - 1; j >= 0; j--) sh.deleteRow(del[j]);
+  Logger.log('Trainingsplan bereinigt: ' + del.length + ' aeltere Zeilen entfernt');
+}
+
 function logPlan(ss, p) {
   var sh = planSheet(ss);
   var d = p.data || {};
+  dropOlderPlans(sh, planKey(s(d.lead_id), s(d.sid)));
   sh.appendRow([new Date(), s(d.sid), s(d.src), s(d.location), s(d.goal), s(d.arts), s(d.level), s(d.freq), s(d.win), s(d.otype), s(d.ofreq),
     s(d.sessions), s(d.pkg), s(d.plan), s(d.share), s(d.lead_id), asText(d.firstname), asText(d.lastname), asText(d.email), s(d.page)]);
   if (p.alert && d.lead_id) {
@@ -343,7 +363,14 @@ function buildPlanAnalyse(ss) {
   sh.getRange(r + 2, 2).setFormula('=COUNTIFS(' + base + ',PlanDaten!$M:$M,"<>")');
   sh.getRange(r + 2, 3).setFormula('=COUNTIFS(' + base + ',PlanDaten!$M:$M,"<>",PlanDaten!$B:$B,' + cur + ')');
   sh.getRange(r + 2, 4).setFormula('=COUNTIFS(' + base + ',PlanDaten!$M:$M,"<>",PlanDaten!$B:$B,' + prev + ')');
-  r += 4;
+  // Quote: Anteil der Website-Leads (Status ok, ohne Tests), die danach einen Trainingsplan erstellt haben (ab 02.09.2026, Start des Tools)
+  sh.getRange(r + 3, 1).setValue('Website-Leads (neu im CRM, ohne Tests) seit 02.09.2026');
+  sh.getRange(r + 3, 2).setFormula('=COUNTIFS(Daten!$G:$G,1,Daten!$A:$A,">="&DATE(2026,9,2))');
+  sh.getRange(r + 3, 3).setFormula('=COUNTIFS(Daten!$G:$G,1,Daten!$C:$C,' + cur + ')');
+  sh.getRange(r + 3, 4).setFormula('=COUNTIFS(Daten!$G:$G,1,Daten!$C:$C,' + prev + ')');
+  sh.getRange(r + 4, 1).setValue('Quote Leads mit Trainingsplan').setFontWeight('bold');
+  for (var qc = 2; qc <= 4; qc++) { var L = String.fromCharCode(64 + qc); sh.getRange(r + 4, qc).setFormula('=IF(' + L + (r + 3) + '=0,"",' + L + (r + 2) + '/' + L + (r + 3) + ')').setNumberFormat('0%').setFontWeight('bold'); }
+  r += 6;
   var dims = [
     ['Standort', 'E', ['Zürich', 'Winterthur'], false],
     ['Ziel', 'F', ['Kampfkunst lernen', 'Fit werden', 'Selbstverteidigung', 'Wettkampf'], false],
