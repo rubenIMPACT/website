@@ -401,7 +401,7 @@ section.deep{background:#12100b}
 .evcard h4{font-size:13px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);font-weight:800;margin:24px 0 8px}
 .evlist{list-style:none}.evlist li{padding:7px 0 7px 24px;position:relative;color:#d6d2c8;font-size:15.5px}.evlist li:before{content:"";position:absolute;left:4px;top:11px;width:3px;height:16px;background:var(--gold);transform:skewX(-20deg)}
 .evcard .evbtn{margin-top:22px}.evtype{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);font-weight:800;margin-bottom:10px}.evnote{margin-top:18px;color:var(--grey);font-size:14.5px}.evcard.k-training img,.evcard.k-competition img{aspect-ratio:21/9}
-.evnone{margin:0 var(--mx);padding:30px;border:1px solid var(--hair);color:var(--grey);font-size:16px}
+.evnone{margin:0 var(--mx);padding:30px;border:1px solid var(--hair);color:var(--grey);font-size:16px}.evload{padding:30px 0;color:var(--grey);font-size:15px;letter-spacing:1px;text-transform:uppercase}.evload:after{content:"";display:inline-block;width:10px;height:10px;margin-left:10px;border-radius:50%;background:var(--gold);animation:evpulse 1s infinite alternate}@keyframes evpulse{to{opacity:.2}}
 .fbox{border:1px solid var(--hair);padding:28px;background:#0d0c0a}@media(min-width:900px){.fbox{position:sticky;top:120px}}
 .fbox h3{font-size:24px;line-height:1.05}.fbox .sub{color:var(--grey);font-size:14.5px;margin:8px 0 6px}
 .frow{margin-top:14px}.frow label{display:block;font-size:11.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--grey);margin-bottom:6px}
@@ -433,8 +433,8 @@ section.deep{background:#12100b}
 
 <header class="pagehero"><div class="kick rev">IMPACT Martial Arts</div><h1 class="rev">Events.</h1><p class="lead rev">Community-Events, Open Mats und Seminare in Zürich und Winterthur. Hier findest du die nächsten Termine und kannst dich direkt anmelden.</p></header>
 <section class="evgrid" id="events">
-<div id="evlist"><div class="evnone" id="evnone" hidden>Aktuell ist kein Event geplant. Folge uns auf Instagram, dort kündigen wir neue Termine zuerst an.</div></div>
-<div class="fbox" id="fbox">
+<div id="evlist"><div class="evload" id="evload">Events werden geladen …</div><div class="evnone" id="evnone" hidden>Aktuell ist kein Event geplant. Folge uns auf Instagram, dort kündigen wir neue Termine zuerst an.</div></div>
+<div class="fbox" id="fbox" hidden>
 <form id="evform" novalidate>
 <h3>Platz reservieren</h3><p class="sub">Kostenlos. Wir melden uns nur, wenn sich am Event etwas ändert.</p>
 <div class="frow"><label for="f_event">Event</label><select id="f_event" name="event_id" required></select></div>
@@ -504,10 +504,11 @@ function norm(e){var k=kind(e),loc=String(e.location||''),lz=/winterthur/i.test(
   return {id:e.id,date:st.slice(0,10),time:tm,time_en:tm,location:/winterthur/i.test(loc)?'Winterthur':/z(u|ü)rich/i.test(loc)?'Zürich':loc,address:addr,image:img,kind:k,registration:!!e.registration,link:e.link||'',signups:e.signups||0,de:t,en:t}}
 function load(){return fetch('/api/events',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok||!Array.isArray(j.events))throw 0;return j.events.map(norm)}).catch(function(){return fetch('/data/events.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(all){return all.map(function(e){e.kind='community';e.registration=true;return e})})})}
 load().then(function(all){
+  var lo=document.getElementById('evload');if(lo)lo.remove();
   var today=new Date();today.setHours(0,0,0,0);
   EV=all.filter(function(e){return new Date(e.date+'T23:59:59')>=today}).sort(function(a,b){return a.date<b.date?-1:1});
   if(!EV.length){document.getElementById('evnone').hidden=false;box.hidden=true;return}
-  if(!EV.some(function(e){return e.registration}))box.hidden=true;
+  box.hidden=!EV.some(function(e){return e.registration});
   var h='';EV.forEach(function(e){var t=e[LANG]||e.de;
     var k=e.kind||'community';h+='<article class="evcard rev vis k-'+k+'" id="ev-'+esc(e.id)+'">'+(e.image?'<img loading="lazy" src="'+esc(e.image)+'" alt="'+esc(t.title)+'">':'')+'<div class="eb"><div class="evtype">'+esc(TY[LANG][k]||'')+'</div><h2>'+esc(t.title)+'</h2>'+(t.teaser?'<p class="teaser">'+esc(t.teaser)+'</p>':'')
     +'<div class="evmeta"><div><b>'+L.date+'</b>'+esc(fmt(e.date))+'</div>'+((LANG==='de'?e.time:(e.time_en||e.time))?'<div><b>'+L.time+'</b>'+esc(LANG==='de'?e.time:(e.time_en||e.time))+'</div>':'')+'<div><b>'+L.loc+'</b>'+esc(e.address||e.location)+'</div></div>'
@@ -518,7 +519,7 @@ load().then(function(all){
   });
   list.insertAdjacentHTML('afterbegin',h);
   list.querySelectorAll('[data-ev]').forEach(function(a){a.addEventListener('click',function(){sel.value=a.getAttribute('data-ev')})});
-}).catch(function(){document.getElementById('evnone').hidden=false;box.hidden=true});
+}).catch(function(){var lo=document.getElementById('evload');if(lo)lo.remove();document.getElementById('evnone').hidden=false;box.hidden=true});
 form.addEventListener('submit',function(ev){ev.preventDefault();
   var msg=document.getElementById('evmsg'),btn=document.getElementById('evbtn');msg.className='fmsg';msg.textContent='';
   var name=form.name.value.trim(),email=form.email.value.trim();
