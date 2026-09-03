@@ -19,6 +19,13 @@ Rotation, Gratisklassen, Kids vs. Erwachsene) sind im Ablauf eingebaut, nicht op
 - Google-Drive-Connector (zum Hochladen der Import-Datei).
 - Die Scripts liegen im Website-Repo unter `tools/klassenanalyse/` und als Kopie in `scripts/` dieses Skills.
 
+## Hinweis: Der Normalfall laeuft ohne diesen Skill
+
+Seit 03.09.2026 rechnet die Cloudflare-Funktion `/api/klassen` die Monatsanalyse serverseitig, und das Apps Script
+"IMPACT Website Lead Log" holt sie am 1. des Monats per Zeit-Trigger (`runKlassenanalyseMonthly`) und baut die Tabs.
+Dieser Skill ist nur noch der manuelle Fallback (z.B. anderes Fenster, API-Ausfall). Fuer ein beliebiges Fenster
+reicht im Script-Editor: `runKlassenanalyse('YYYY-MM-DD', 'YYYY-MM-DD')`.
+
 ## Ablauf (ca. 10 Minuten)
 
 **0. Fenster bestimmen.** Standard: der letzte volle Kalendermonat (am 1. Oktober also 01.09. bis 30.09.).
