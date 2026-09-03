@@ -1057,6 +1057,7 @@ var MA_ROWS = [
 function maCall(body) { body.action = 'monat'; return klassenCall(body); }
 // Monatsschluessel 'yyyy-MM' auch dann, wenn Sheets die Zelle als Datum interpretiert hat
 function mkOf(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM') : String(v); }
+function dOfCell(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v || '').slice(0, 10); }
 function monthKeyStr(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM'); }
 function runMonatsabschluss(start, end) {
   var mk = start.slice(0, 7), m0 = new Date(start + 'T00:00:00');
@@ -1102,11 +1103,11 @@ function maStoreCohorts(ss, mk, cohort) {
   keep.forEach(function (r) { r[0] = mkOf(r[0]); });
   Object.keys(cohort).forEach(function (loc) { (cohort[loc] || []).forEach(function (c) { keep.push([mk, loc, String(c.uid), c.email || '', c.name || '', c.date || '']); }); });
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, head.length).clearContent();
-  if (keep.length) { sh.getRange(2, 1, keep.length, 1).setNumberFormat('@'); sh.getRange(2, 1, keep.length, head.length).setValues(keep); }
+  if (keep.length) { sh.getRange(2, 1, keep.length, 1).setNumberFormat('@'); sh.getRange(2, 3, keep.length, 1).setNumberFormat('@'); sh.getRange(2, 6, keep.length, 1).setNumberFormat('@'); sh.getRange(2, 1, keep.length, head.length).setValues(keep); }
 }
 function maReadCohort(ss, mk, loc) {
   var sh = ss.getSheetByName(MA_COHORT); if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().filter(function (r) { return mkOf(r[0]) === mk && r[1] === loc; }).map(function (r) { return { uid: String(r[2]), email: String(r[3] || '').toLowerCase(), date: String(r[5]) }; });
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().filter(function (r) { return mkOf(r[0]) === mk && r[1] === loc; }).map(function (r) { return { uid: String(r[2]), email: String(r[3] || '').toLowerCase(), date: dOfCell(r[5]) }; });
 }
 function maStoreMetrics(ss, mk, loc, metrics) {
   var sh = getOrCreate(ss, MA_HIST), head = ['Monat', 'Standort', 'Kennzahl', 'Wert'];
