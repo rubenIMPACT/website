@@ -64,7 +64,8 @@ function leadsSheet(ss) {
   sh.getRange('F:F').setNumberFormat('@');
   return sh;
 }
-function planSheet(ss) {
+// Trainingsplan-Tab (frueher planSheet; umbenannt 03.09.2026, weil der Events-Teil eine eigene Funktion planSheet(sheet) hat)
+function planLogSheet(ss) {
   var sh = ss.getSheetByName('Trainingsplan');
   if (!sh) { sh = ss.insertSheet('Trainingsplan'); }
   if (sh.getLastRow() === 0) { sh.appendRow(PLAN_HEAD); sh.getRange(1, 1, 1, PLAN_HEAD.length).setFontWeight('bold'); sh.setFrozenRows(1); }
@@ -119,7 +120,7 @@ function dropOlderPlans(sh, key) {
 }
 // Einmalig: bestehende Share-Aufrufe (Quelle 'share') aus dem Tab Trainingsplan entfernen
 function dropShareRows() {
-  var ss = SpreadsheetApp.openById(SHEET_ID), sh = planSheet(ss);
+  var ss = SpreadsheetApp.openById(SHEET_ID), sh = planLogSheet(ss);
   if (sh.getLastRow() < 2) return;
   var v = sh.getRange(2, 3, sh.getLastRow() - 1, 1).getValues(), del = [];
   for (var i = 0; i < v.length; i++) if (String(v[i][0]) === 'share') del.push(i + 2);
@@ -127,7 +128,7 @@ function dropShareRows() {
   Logger.log('Trainingsplan: ' + del.length + ' Share-Aufrufe entfernt');
 }
 function dedupeTrainingsplan() {
-  var sh = planSheet(SpreadsheetApp.openById(SHEET_ID));
+  var sh = planLogSheet(SpreadsheetApp.openById(SHEET_ID));
   if (sh.getLastRow() < 2) return;
   var v = sh.getRange(2, 1, sh.getLastRow() - 1, 16).getValues(), last = {}, del = [];
   for (var i = 0; i < v.length; i++) { var k = planKey(s(v[i][15]), s(v[i][1])); if (k) last[k] = i; }
@@ -137,7 +138,7 @@ function dedupeTrainingsplan() {
 }
 
 function logPlan(ss, p) {
-  var sh = planSheet(ss);
+  var sh = planLogSheet(ss);
   var d = p.data || {};
   if (s(d.src) === 'share') return { ok: true, skipped: 'share' }; // Aufrufe geteilter Links nicht loggen (Entscheid Ruben 03.09.2026)
   dropOlderPlans(sh, planKey(s(d.lead_id), s(d.sid)));
@@ -196,7 +197,7 @@ function repairPhones() {
 // ---------------------------------------------------------------- Analyse-Tabs (einmalig ausfuehren, spaeter beliebig wiederholbar)
 function setupAnalyse() {
   var ss = SpreadsheetApp.openById(SHEET_ID);
-  leadsSheet(ss); planSheet(ss);
+  leadsSheet(ss); planLogSheet(ss);
   buildHistorie(ss);
   buildDaten(ss);
   buildPlanDaten(ss);
