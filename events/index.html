@@ -487,7 +487,7 @@ section.deep{background:#12100b}
 </footer>
 <script>
 (function(){
-var LANG='de',L={date:'Datum',time:'Zeit',loc:'Ort',cta:'Jetzt anmelden',sel:'Bitte wählen',sending:'Wird gesendet …',err:'Das hat nicht geklappt. Bitte versuch es nochmals oder schreib an support@impact-martialarts.com.',btn:'Platz reservieren',hint3:'Ab drei Freunden bitte vorher kurz mit {{m}} absprechen, damit wir genug Platz auf der Matte haben.',mgr_z:'Abdallah (Studio Manager Zürich)',mgr_w:'Bogdan (Studio Manager Winterthur)'};
+var LANG='de',L={date:'Datum',time:'Zeit',loc:'Ort',cta:'Jetzt anmelden',sel:'Bitte wählen',sending:'Wird gesendet …',err:'Das hat nicht geklappt. Bitte versuch es nochmals oder schreib an support@impact-martialarts.com.',btn:'Platz reservieren',hint3:'Ab drei Freunden bitte vorher kurz mit {m} absprechen, damit wir genug Platz auf der Matte haben.',mgr_z:'Abdallah (Studio Manager Zürich)',mgr_w:'Bogdan (Studio Manager Winterthur)'};
 var list=document.getElementById('evlist'),sel=document.getElementById('f_event'),form=document.getElementById('evform'),box=document.getElementById('fbox');
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmt(d){var p=d.split('-');return LANG==='de'?p[2]+'.'+p[1]+'.'+p[0]:new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}

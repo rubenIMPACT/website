@@ -487,7 +487,7 @@ section.deep{background:#12100b}
 </footer>
 <script>
 (function(){
-var LANG='en',L={date:'Date',time:'Time',loc:'Location',cta:'Sign up now',sel:'Please choose',sending:'Sending …',err:'That did not work. Please try again or email support@impact-martialarts.com.',btn:'Reserve your spot',hint3:'Bringing three or more friends? Please check with {{m}} first so we have enough space on the mats.',mgr_z:'Abdallah (studio manager Zurich)',mgr_w:'Bogdan (studio manager Winterthur)'};
+var LANG='en',L={date:'Date',time:'Time',loc:'Location',cta:'Sign up now',sel:'Please choose',sending:'Sending …',err:'That did not work. Please try again or email support@impact-martialarts.com.',btn:'Reserve your spot',hint3:'Bringing three or more friends? Please check with {m} first so we have enough space on the mats.',mgr_z:'Abdallah (studio manager Zurich)',mgr_w:'Bogdan (studio manager Winterthur)'};
 var list=document.getElementById('evlist'),sel=document.getElementById('f_event'),form=document.getElementById('evform'),box=document.getElementById('fbox');
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmt(d){var p=d.split('-');return LANG==='de'?p[2]+'.'+p[1]+'.'+p[0]:new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
