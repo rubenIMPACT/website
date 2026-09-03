@@ -879,7 +879,8 @@ function updateSignupCount(ss, eventId) {
     if (!eventId) return;
     var ev = ss.getSheetByName('Events'); if (!ev || ev.getLastRow() < 2) return;
     var head = ev.getRange(1, 1, 1, ev.getLastColumn()).getValues()[0].map(String);
-    var idCol = head.indexOf('Event-ID'); if (idCol < 0) return;
+    var idCol = head.indexOf('Event-ID');
+    if (idCol < 0) { ev.getRange(1, head.length + 1).setValue('Event-ID').setFontWeight('bold'); idCol = head.length; } // Tab wurde vor der Event-ID-Spalte angelegt
     var vals = ev.getRange(2, 1, ev.getLastRow() - 1, ev.getLastColumn()).getValues();
     var n = 0; vals.forEach(function (r) { if (String(r[idCol]) === String(eventId)) n++; });
     var ps = planSheet(); var last = ps.sh.getLastRow(); if (last < 2) return;
