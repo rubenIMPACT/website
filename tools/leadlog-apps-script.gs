@@ -884,13 +884,14 @@ function migrateOne(sh) {
       var dest = c['Anmeldung'] + 1; if (c['Freunde'] > dest) sh.moveColumns(sh.getRange(1, c['Freunde'], 1, 1), dest); else sh.moveColumns(sh.getRange(1, c['Freunde'], 1, 1), dest + 1);
       changed.push('move:Freunde');
     }
+    SpreadsheetApp.flush();
   } catch (mv) { changed.push('move-fehler:' + mv); }
   // Bild-URL: Kopfzeile verlinkt auf den Drive-Ordner + Notiz mit Anleitung
   try {
     var ps1 = planSheet(sh); if (ps1.col['Bild-URL']) {
-      var hc = sh.getRange(1, ps1.col['Bild-URL']);
-      hc.setFormula('=HYPERLINK("' + IMG_FOLDER_URL + '";"Bild-URL")');
-      hc.setNote('Event-Bilder: Bild in den Drive-Ordner "' + IMG_FOLDER_NAME + '" legen (Klick auf die Kopfzeile oeffnet ihn). Dann Rechtsklick auf die Datei > Freigeben > Link kopieren > hier einfuegen. Keine Freigabe-Einstellung noetig, die Website holt das Bild selbst. Hochkant-Flyer werden komplett gezeigt.');
+      var hc = sh.getRange(1, ps1.col['Bild-URL']); // Kopfzeile einer Google-"Tabelle": keine Formeln erlaubt, darum nur Notiz
+      hc.setNote('EVENT-BILDER\nOrdner "' + IMG_FOLDER_NAME + '": ' + IMG_FOLDER_URL + '\n\nSo geht es: 1) Bild in den Ordner legen. 2) Rechtsklick auf die Datei > Freigeben > Link kopieren. 3) Link hier in die Zelle einfuegen.\nKeine Freigabe-Einstellung noetig, die Website holt das Bild selbst. Hochkant-Flyer werden komplett gezeigt.');
+      SpreadsheetApp.flush();
     }
   } catch (nt) { changed.push('note-fehler:' + nt); }
   planSheet(sh);
