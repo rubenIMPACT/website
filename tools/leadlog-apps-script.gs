@@ -204,7 +204,7 @@ function setupAnalyse() {
   ss.setActiveSheet(ss.getSheetByName('Analyse'));
 }
 function getOrCreate(ss, name) { return ss.getSheetByName(name) || ss.insertSheet(name); }
-function clearSheet(sh) { sh.clear(); var cs = sh.getCharts(); for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]); }
+function clearSheet(sh) { var f = sh.getFilter(); if (f) f.remove(); sh.clear(); var cs = sh.getCharts(); for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]); }
 
 function buildHistorie(ss) {
   var sh = ss.getSheetByName('Historie') || getOrCreate(ss, 'Leads Historie'); if (sh.getName() === 'Historie') sh.setName('Leads Historie');
