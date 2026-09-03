@@ -129,6 +129,9 @@ def slot_factors(rows):
             r['has_neighbor'] = len(slot[k][2] - {r.get('discipline', r['service'])}) > 0
 
 
+MIN_AVG, MIN_EV = 3, 4  # Mindestschwelle je Standort fuer einen Hitlist-Index
+
+
 def hitlist(rows, key):
     """Gewichtete Hitlist. key(r) = Gruppenname. Index = Slot-Faktor gewichtet mit Terminen, ERST je Standort,
     dann Mittel beider Standorte. Termine mit Vergleich = Termine in Slots mit mindestens einer Nachbarklasse."""
@@ -150,9 +153,13 @@ def hitlist(rows, key):
         for loc in ('Zurich', 'Winterthur'):
             g = locs.get(loc)
             if g and g['w']:
-                idx = g['wr'] / g['w']; vals.append(idx)
+                avg = g['att'] / g['ev'] if g['ev'] else 0
+                # Mindestschwelle (Ruben 03.09.2026): unter MIN_AVG Personen pro Klasse oder MIN_EV Terminen ist der
+                # Slot-Index Zufall (z.B. 2.5 Personen in einem toten Slot ergaben Index 1.33) -> kein Index (n/a)
+                idx = g['wr'] / g['w'] if (avg >= MIN_AVG and g['ev'] >= MIN_EV) else None
+                if idx is not None: vals.append(idx)
                 row[loc] = dict(index=idx, util=g['att'] / g['cap'] if g['cap'] else 0, events=g['ev'], attended=g['att'],
-                                avg=g['att'] / g['ev'] if g['ev'] else 0, with_neighbor=g['evn'], uniq=g['uniq'], classes=g['n'])
+                                avg=avg, with_neighbor=g['evn'], uniq=g['uniq'], classes=g['n'])
             else:
                 row[loc] = None
         row['index'] = sum(vals) / len(vals) if vals else None
@@ -209,7 +216,7 @@ def main():
     print('Hitlist (Slot-Index, erst je Standort, dann Mittel):')
     for h in out['hitlist']:
         z, w = h.get('Zurich'), h.get('Winterthur')
-        print(f"  {h['name']:<22} ZH {('%.2f' % z['index']) if z else '  - '}  WT {('%.2f' % w['index']) if w else '  - '}  Mittel {('%.2f' % h['index']) if h['index'] is not None else '  - '}"
+        print(f"  {h['name']:<22} ZH {('%.2f' % z['index']) if z and z['index'] is not None else ' n/a' if z else '  - '}  WT {('%.2f' % w['index']) if w and w['index'] is not None else ' n/a' if w else '  - '}  Mittel {('%.2f' % h['index']) if h['index'] is not None else '  - '}"
               f"  Auslastung {h['util']:.0%}  Besuche {h['attended']:>4}  Termine {h['events']:>3}  mit Vergleich {h['with_neighbor']}")
 
 

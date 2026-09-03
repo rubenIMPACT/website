@@ -6,7 +6,7 @@
 //  1. doPost: Leads (vom Cloudflare-Endpunkt /api/lead) ins Tab "Leads" schreiben + Mail-Routing
 //  2. doPost: Trainingsplaene (vom Endpunkt /api/plan) ins Tab "Trainingsplan" schreiben + Mail bei bekanntem Lead
 //  2b. doPost: Formulare ohne CRM (kind=event / cancellation vom Endpunkt /api/form) in die Tabs "Events" / "Kündigungen" (logForm, aus v5 des Events-Chats uebernommen)
-//  3. setupAnalyse(): Tabs "Analyse", "Trainingsplan-Analyse", "Historie", "Daten", "PlanDaten" anlegen/erneuern (einmalig manuell ausfuehren)
+//  3. setupAnalyse(): Tabs "Analyse", "Trainingsplan-Analyse", "Leads Historie", "Daten", "PlanDaten" anlegen/erneuern (einmalig manuell ausfuehren)
 //  4. repairPhones(): alte "#ERROR!"-Telefonzellen reparieren (einmalig manuell ausfuehren)
 //
 // Nach dem Einfuegen: Bereitstellen > Bereitstellung verwalten > Bearbeiten > Version "Neue Version" > Bereitstellen.
@@ -197,7 +197,8 @@ function setupAnalyse() {
   // Klassenanalyse-Tab (wird vom Skill impact-class-analysis befuellt)
   var ka = ss.getSheetByName('Klassenanalyse');
   if (!ka) { ka = ss.insertSheet('Klassenanalyse'); ka.getRange('A1').setValue('Klassenanalyse: wird monatlich vom Skill impact-class-analysis aus den exercise.com-Reports befuellt (Popular Services + Itemized Recurring Sessions).').setFontColor('#666666'); }
-  var order = ['Analyse', 'Leads', 'Klassenanalyse', 'Events', 'Kündigungen', 'Trainingsplan', 'Trainingsplan-Analyse', 'Historie', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin'];
+  // Reihenfolge von Ruben (03.09.2026). Tab-Namen: Analyse, Trainingsplan-Analyse, Leads Historie duerfen umbenannt werden (dann hier nachziehen); Leads, Trainingsplan, Events, Kündigungen, Klassenanalyse und die Hilfstabs NIE umbenennen (Webapp schreibt per Name).
+  var order = ['Analyse', 'Klassenanalyse', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin'];
   var pos = 1;
   for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
   ss.setActiveSheet(ss.getSheetByName('Analyse'));
@@ -206,7 +207,7 @@ function getOrCreate(ss, name) { return ss.getSheetByName(name) || ss.insertShee
 function clearSheet(sh) { sh.clear(); var cs = sh.getCharts(); for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]); }
 
 function buildHistorie(ss) {
-  var sh = getOrCreate(ss, 'Historie');
+  var sh = ss.getSheetByName('Historie') || getOrCreate(ss, 'Leads Historie'); if (sh.getName() === 'Historie') sh.setName('Leads Historie');
   if (sh.getLastRow() > 0) return; // manuelle Werte nie ueberschreiben
   sh.appendRow(['Monat', 'Zürich', 'Winterthur', 'Quelle']);
   for (var i = 0; i < HISTORY.length; i++) sh.appendRow([new Date(HISTORY[i][0] + 'T00:00:00'), HISTORY[i][1], HISTORY[i][2], 'manuell (Ruben, 02.09.2026)']);
@@ -267,7 +268,7 @@ function buildAnalyse(ss) {
   var WEEKS = 16, MONTHS = 12;
   var pct = '0.0%';
   sh.getRange('A1').setValue('IMPACT Website Leads – Analyse').setFontSize(16).setFontWeight('bold');
-  sh.getRange('A2').setValue('Leads = Status "ok" (neu im CRM), ohne Dubletten, Tests und Ausschluss-Markierungen (Spalte "Ausschluss" im Tab Leads mit x markieren). Dubletten = erneute Anfragen bestehender Kontakte. Woche = Montag bis Sonntag. Prozent = Vergleich der letzten abgeschlossenen Periode mit der davor. Monate vor September 2026 aus dem Tab Historie (manuell gezaehlt).').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2').setValue('Leads = Status "ok" (neu im CRM), ohne Dubletten, Tests und Ausschluss-Markierungen (Spalte "Ausschluss" im Tab Leads mit x markieren). Dubletten = erneute Anfragen bestehender Kontakte. Woche = Montag bis Sonntag. Prozent = Vergleich der letzten abgeschlossenen Periode mit der davor. Monate vor September 2026 aus dem Tab Leads Historie (manuell gezaehlt). Wochen vor dem 31.08.2026 bleiben leer (Log-Start).').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:R2').merge();
 
   // ---- Wochentabelle
@@ -276,16 +277,17 @@ function buildAnalyse(ss) {
   sh.getRange(wHead - 1, 1).setValue('Leads pro Woche (letzte ' + WEEKS + ' Wochen)').setFontWeight('bold').setFontSize(12);
   sh.getRange(wHead, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
   for (var i = 0; i < WEEKS; i++) {
-    var r = wFirst + i, off = WEEKS - 1 - i;
+    var r = wFirst + i, off = WEEKS - 1 - i, pre = 'A' + r + '<DATE(2026,8,31)'; // vor Log-Start: leer statt 0
+    var W = function (f) { return '=IF(' + pre + ',"",' + f + ')'; };
     sh.getRange(r, 1).setFormula('=TODAY()-WEEKDAY(TODAY(),2)+1-7*' + off);
     sh.getRange(r, 2).setFormula('=A' + r + '+6');
-    sh.getRange(r, 3).setFormula('=IF(B' + r + '>=TODAY(),"läuft noch","")');
-    sh.getRange(r, 4).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$D:$D,"Zürich",Daten!$G:$G,1)');
-    sh.getRange(r, 5).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$D:$D,"Winterthur",Daten!$G:$G,1)');
-    sh.getRange(r, 6).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$G:$G,1)');
-    sh.getRange(r, 7).setFormula(i === 0 ? '=""' : '=IF(C' + r + '="läuft noch","",IF(OR(F' + (r - 1) + '="",F' + (r - 1) + '=0),"",(F' + r + '-F' + (r - 1) + ')/F' + (r - 1) + '))');
-    sh.getRange(r, 8).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$H:$H,1)');
-    for (var k = 0; k < INTERESTS.length; k++) sh.getRange(r, 9 + k).setFormula('=COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$E:$E,"' + INTERESTS[k] + '",Daten!$G:$G,1)');
+    sh.getRange(r, 3).setFormula(W('IF(B' + r + '>=TODAY(),"läuft noch","")'));
+    sh.getRange(r, 4).setFormula(W('COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$D:$D,"Zürich",Daten!$G:$G,1)'));
+    sh.getRange(r, 5).setFormula(W('COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$D:$D,"Winterthur",Daten!$G:$G,1)'));
+    sh.getRange(r, 6).setFormula(W('COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$G:$G,1)'));
+    sh.getRange(r, 7).setFormula(i === 0 ? '=""' : W('IF(C' + r + '="läuft noch","",IF(OR(F' + (r - 1) + '="",F' + (r - 1) + '=0),"",(F' + r + '-F' + (r - 1) + ')/F' + (r - 1) + '))'));
+    sh.getRange(r, 8).setFormula(W('COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$H:$H,1)'));
+    for (var k = 0; k < INTERESTS.length; k++) sh.getRange(r, 9 + k).setFormula(W('COUNTIFS(Daten!$B:$B,$A' + r + ',Daten!$E:$E,"' + INTERESTS[k] + '",Daten!$G:$G,1)'));
   }
   sh.getRange(wFirst, 1, WEEKS, 2).setNumberFormat('dd.mm.yyyy');
   sh.getRange(wFirst, 7, WEEKS, 1).setNumberFormat(pct);
@@ -300,8 +302,8 @@ function buildAnalyse(ss) {
     var r2 = mFirst + j, off2 = MONTHS - 1 - j, h = hist.replace('{r}', r2);
     sh.getRange(r2, 1).setFormula('=DATE(YEAR(TODAY()),MONTH(TODAY())-' + off2 + ',1)');
     sh.getRange(r2, 2).setFormula('=IF(A' + r2 + '>=DATE(YEAR(TODAY()),MONTH(TODAY()),1),"läuft noch","")');
-    sh.getRange(r2, 3).setFormula('=IF(' + h + ',IFERROR(VLOOKUP(A' + r2 + ',Historie!$A:$C,2,FALSE),""),COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$D:$D,"Zürich",Daten!$G:$G,1))');
-    sh.getRange(r2, 4).setFormula('=IF(' + h + ',IFERROR(VLOOKUP(A' + r2 + ',Historie!$A:$C,3,FALSE),""),COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$D:$D,"Winterthur",Daten!$G:$G,1))');
+    sh.getRange(r2, 3).setFormula('=IF(' + h + ',IFERROR(VLOOKUP(A' + r2 + ',\'Leads Historie\'!$A:$C,2,FALSE),""),COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$D:$D,"Zürich",Daten!$G:$G,1))');
+    sh.getRange(r2, 4).setFormula('=IF(' + h + ',IFERROR(VLOOKUP(A' + r2 + ',\'Leads Historie\'!$A:$C,3,FALSE),""),COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$D:$D,"Winterthur",Daten!$G:$G,1))');
     sh.getRange(r2, 5).setFormula('=IF(AND(C' + r2 + '="",D' + r2 + '=""),"",N(C' + r2 + ')+N(D' + r2 + '))');
     sh.getRange(r2, 6).setFormula(j === 0 ? '=""' : '=IF(B' + r2 + '="läuft noch","",IF(OR(E' + (r2 - 1) + '="",E' + (r2 - 1) + '=0,E' + r2 + '=""),"",(E' + r2 + '-E' + (r2 - 1) + ')/E' + (r2 - 1) + '))');
     sh.getRange(r2, 7).setFormula('=IF(' + h + ',"",COUNTIFS(Daten!$C:$C,$A' + r2 + ',Daten!$H:$H,1))');
@@ -331,18 +333,18 @@ function buildAnalyse(ss) {
   sh.setColumnWidth(1, 240); sh.setFrozenRows(0);
 
   // ---- Diagramme (rechts neben den Kennzahlen)
-  var chartCol = 8;
+  var chartCol = 19; // Spalte S, rechts neben der breitesten Tabelle (A..Q), Diagramme untereinander
   sh.insertChart(sh.newChart().setChartType(Charts.ChartType.LINE).setNumHeaders(1)
     .addRange(sh.getRange(wHead, 1, WEEKS + 1, 1)).addRange(sh.getRange(wHead, 4, WEEKS + 1, 3))
     .setPosition(4, chartCol, 0, 0).setOption('title', 'Leads pro Woche').setOption('colors', ['#e2c210', '#1a73e8', '#9e9e9e']).setOption('width', 620).setOption('height', 300)
     .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'dd.MM' }).setOption('vAxis', { minValue: 0 }).build());
   sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1)
     .addRange(sh.getRange(mHead, 1, MONTHS + 1, 1)).addRange(sh.getRange(mHead, 3, MONTHS + 1, 2))
-    .setPosition(wHead - 2, chartCol + 8, 0, 0).setOption('title', 'Leads pro Monat (Zürich / Winterthur)').setOption('colors', ['#e2c210', '#1a73e8']).setOption('width', 620).setOption('height', 320)
+    .setPosition(21, chartCol, 0, 0).setOption('title', 'Leads pro Monat (Zürich / Winterthur)').setOption('colors', ['#e2c210', '#1a73e8']).setOption('width', 620).setOption('height', 320)
     .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'MMM yyyy' }).setOption('vAxis', { minValue: 0 }).build());
   sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1)
     .addRange(sh.getRange(mHead, 1, MONTHS + 1, 1)).addRange(sh.getRange(mHead, 8, MONTHS + 1, INTERESTS.length))
-    .setPosition(mHead - 2, chartCol + 8, 0, 0).setOption('title', 'Leads pro Monat nach Interesse (ab September 2026)').setOption('isStacked', true).setOption('width', 620).setOption('height', 340)
+    .setPosition(39, chartCol, 0, 0).setOption('title', 'Leads pro Monat nach Interesse (ab September 2026)').setOption('isStacked', true).setOption('width', 620).setOption('height', 340)
     .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'MMM yyyy' }).setOption('vAxis', { minValue: 0 }).build());
 }
 
@@ -499,7 +501,8 @@ function hitlistBlock(sh, r, title, list) {
   sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
   var vals = list.map(function (h, i) {
     var z = h.Zurich, w = h.Winterthur;
-    return [i + 1, h.name, z ? z.index : '', w ? w.index : '', h.index == null ? '' : h.index, h.util, h.attended, h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0];
+    var ix = function (o) { return !o ? '' : (o.index == null ? 'n/a' : o.index); };
+    return [i + 1, h.name, ix(z), ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0];
   });
   if (vals.length) {
     sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
@@ -509,7 +512,9 @@ function hitlistBlock(sh, r, title, list) {
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.8).setBackground('#F8CBAD').setRanges([rg]).build());
     sh.setConditionalFormatRules(rules);
   }
-  return r + vals.length + 1;
+  r += vals.length;
+  sh.getRange(r, 1).setValue('n/a = unter der Mindestschwelle am Standort (Ø < 3 Personen pro Klasse oder < 4 Termine im Monat); Index Mittel dann nur aus dem anderen Standort.').setFontColor('#666666').setFontStyle('italic');
+  return r + 2;
 }
 
 function buildKlassenanalyse(ss, data, fileName) {
