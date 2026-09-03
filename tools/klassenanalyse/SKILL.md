@@ -94,7 +94,9 @@ probieren, bleiben nicht. Hoch = fester Stamm, den eine Schliessung real kostet.
 **Bewertung** im Sheet: unter 5 Termine "zu wenig Termine", unter 10 Prozent "tot", unter 16 "schliessen
 pruefen", unter 28 "schwach", ueber 45 "Kapazitaet pruefen".
 
-## Hitlist Kampfsportarten (seit 03.09.2026, Entscheid Ruben)
+## Hitlist Kampfsportarten
+
+Mindestschwelle je Standort (Ruben 03.09.2026): Index nur bei Ø >= 3 Personen pro Klasse UND >= 4 Terminen im Monat, sonst `null` (Sheet zeigt n/a); das Mittel nimmt dann nur den anderen Standort. (seit 03.09.2026, Entscheid Ruben)
 
 Der Tab enthaelt ueber der Klassentabelle eine gewichtete Hitlist je Disziplin, uhrzeitbereinigt: Slot-Index =
 Oe pro Klasse geteilt durch Oe aller Nicht-Gratis-Klassen zur selben Uhrzeit am selben Standort (Werktag und
