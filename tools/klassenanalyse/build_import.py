@@ -113,11 +113,11 @@ def level(service):
 
 def slot_factors(rows):
     """Slot-Faktor je Klasse: Oe pro Klasse / Oe aller Nicht-Gratis-Klassen zur selben Uhrzeit, Standort, Tagtyp."""
-    slot = collections.defaultdict(lambda: [0, 0, 0])   # attended, events, n
+    slot = collections.defaultdict(lambda: [0, 0, set()])   # attended, events, Disziplinen im Slot
     for r in rows:
         if r['segment'] == 'Gratis': continue
         k = (r['location'], r['daytype'], r['minutes'])
-        slot[k][0] += r['attended']; slot[k][1] += r['events']; slot[k][2] += 1
+        slot[k][0] += r['attended']; slot[k][1] += r['events']; slot[k][2].add(r.get('discipline', r['service']))
     for r in rows:
         k = (r['location'], r['daytype'], r['minutes'])
         if r['segment'] == 'Gratis' or slot[k][1] == 0:
@@ -125,7 +125,8 @@ def slot_factors(rows):
         else:
             avg_slot = slot[k][0] / slot[k][1]
             r['slot_ratio'] = (r['attended'] / r['events']) / avg_slot if avg_slot else None
-            r['has_neighbor'] = slot[k][2] > 1
+            # "mit Vergleich" = im Slot laeuft mindestens eine ANDERE Disziplin (gleiche Disziplin am anderen Wochentag ist kein Vergleich)
+            r['has_neighbor'] = len(slot[k][2] - {r.get('discipline', r['service'])}) > 0
 
 
 def hitlist(rows, key):

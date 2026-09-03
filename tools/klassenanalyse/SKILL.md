@@ -94,6 +94,20 @@ probieren, bleiben nicht. Hoch = fester Stamm, den eine Schliessung real kostet.
 **Bewertung** im Sheet: unter 5 Termine "zu wenig Termine", unter 10 Prozent "tot", unter 16 "schliessen
 pruefen", unter 28 "schwach", ueber 45 "Kapazitaet pruefen".
 
+## Hitlist Kampfsportarten (seit 03.09.2026, Entscheid Ruben)
+
+Der Tab enthaelt ueber der Klassentabelle eine gewichtete Hitlist je Disziplin, uhrzeitbereinigt: Slot-Index =
+Oe pro Klasse geteilt durch Oe aller Nicht-Gratis-Klassen zur selben Uhrzeit am selben Standort (Werktag und
+Samstag getrennt), gewichtet mit Terminen, ZUERST je Standort gerechnet (Spalten Index Zuerich, Index
+Winterthur), dann Mittel beider Standorte. 1.00 = zieht so viele Leute wie der Slot im Schnitt, 1.30 = 30 Prozent
+mehr. Daneben rohe Auslastung, Besuche, Termine, "Termine mit Vergleich" (Termine in Slots, in denen eine andere
+Disziplin laeuft; steht eine Disziplin allein, ist ihr Faktor per Definition 1.0) und Unique Users.
+Regeln: Levels zusammengefasst (Basics + All Levels + Competition), BJJ Gi und BJJ No-Gi getrennt ("BJJ -
+Competition" zaehlt zu Gi, "Striking - Competition" zu Muay Thai), Kids in derselben Liste, Open Mat und Self
+Defense for Women ausgeschlossen. Zweite Liste nach Disziplin und Level. Ab dem zweiten Import zusaetzlich eine
+rollierende Liste ueber die letzten drei Monate (Tab KlassenHistorieDisziplin, versteckt). Alles rechnet
+`build_import.py` (Felder `hitlist`, `hitlist_levels`), das Apps-Script rendert nur.
+
 ## Datenfallen
 
 - **Schedule-Fragmente**: jede Stundenplan-Aenderung legt eine neue Serie an; zusammengefasst wird auf Standort,
