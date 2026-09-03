@@ -11,17 +11,35 @@
       "title": "Community Event",
       "teaser": "Ein Nachmittag voller Action: Open Mat, BJJ, Muay Thai und MMA. Verbring ein paar Stunden mit uns auf der Matte und erlebe die Energie unserer Community.",
       "points_title": "Was dich erwartet",
-      "points": ["Exklusive Angebote", "Lerne die Coaches kennen", "Snacks und Drinks", "Und mehr"],
+      "points": [
+        "Exklusive Angebote",
+        "Lerne die Coaches kennen",
+        "Snacks und Drinks",
+        "Und mehr"
+      ],
       "rewards_title": "Bring deine Freunde mit und sichere dir Rewards",
-      "rewards": ["1 Freund meldet sich an: 1 Produkt gratis", "2 Freunde melden sich an: 1 Personal-Training-Session", "3 Freunde melden sich an: 1 Monat Mitgliedschaft"]
+      "rewards": [
+        "Wird 1 Freund IMPACT-Mitglied: 1 Produkt gratis",
+        "Werden 2 Freunde Mitglied: 1 Personal-Training-Session",
+        "Werden 3 Freunde Mitglied: 1 Monat Mitgliedschaft geschenkt"
+      ]
     },
     "en": {
       "title": "Community Event",
       "teaser": "An action-packed afternoon: Open Mat, BJJ, Muay Thai and MMA. Spend a few hours on the mats with us and experience the energy of our community.",
       "points_title": "What awaits you",
-      "points": ["Exclusive offers", "Meet the coaches", "Snacks and drinks", "And more"],
+      "points": [
+        "Exclusive offers",
+        "Meet the coaches",
+        "Snacks and drinks",
+        "And more"
+      ],
       "rewards_title": "Bring your friends and earn rewards",
-      "rewards": ["1 friend signs up: 1 free product", "2 friends sign up: 1 personal training session", "3 friends sign up: 1 month membership"]
+      "rewards": [
+        "1 friend becomes an IMPACT member: 1 free product",
+        "2 friends become members: 1 personal training session",
+        "3 friends become members: 1 month of membership for free"
+      ]
     }
   }
 ]

@@ -400,7 +400,7 @@ section.deep{background:#12100b}
 .evmeta{display:grid;gap:12px;margin:20px 0 0}@media(min-width:560px){.evmeta{grid-template-columns:1fr 1fr 1fr}}.evmeta div{border-left:2px solid var(--gold);padding-left:12px;font-size:15px;color:#e6e2d8}.evmeta b{display:block;color:var(--gold);font-weight:600;letter-spacing:1.6px;text-transform:uppercase;font-size:11px;margin-bottom:3px}
 .evcard h4{font-size:13px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);font-weight:800;margin:24px 0 8px}
 .evlist{list-style:none}.evlist li{padding:7px 0 7px 24px;position:relative;color:#d6d2c8;font-size:15.5px}.evlist li:before{content:"";position:absolute;left:4px;top:11px;width:3px;height:16px;background:var(--gold);transform:skewX(-20deg)}
-.evcard .evbtn{margin-top:22px}
+.evcard .evbtn{margin-top:22px}.evtype{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);font-weight:800;margin-bottom:10px}.evnote{margin-top:18px;color:var(--grey);font-size:14.5px}.evcard.k-training img,.evcard.k-competition img{aspect-ratio:21/9}
 .evnone{margin:0 var(--mx);padding:30px;border:1px solid var(--hair);color:var(--grey);font-size:16px}
 .fbox{border:1px solid var(--hair);padding:28px;background:#0d0c0a}@media(min-width:900px){.fbox{position:sticky;top:120px}}
 .fbox h3{font-size:24px;line-height:1.05}.fbox .sub{color:var(--grey);font-size:14.5px;margin:8px 0 6px}
@@ -492,17 +492,29 @@ var list=document.getElementById('evlist'),sel=document.getElementById('f_event'
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmt(d){var p=d.split('-');return LANG==='de'?p[2]+'.'+p[1]+'.'+p[0]:new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
 var EV=[];
-fetch('/data/events.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(all){
+var IMG={'community-zurich':'/assets/zuerich-standort-team.jpg','community-winterthur':'/assets/wf/d682405b-6939cc366abb7ae079b0e152-Untitled-design-6-.avif','training':'/assets/wf/ce79a908-6a54854cfe09ac6b2922c5a8-IMPACT-Website-33-.png','competition':'/assets/cheering.jpg','kids':'/assets/wf/d8452d7e-69d675af6e28c4058f4fa1b3-Untitled-design-1-.jpg','default':'/assets/about-hero-group.avif'};
+var RW={de:{title:'Bring deine Freunde mit und sichere dir Rewards',items:['Wird 1 Freund IMPACT-Mitglied: 1 Produkt gratis','Werden 2 Freunde Mitglied: 1 Personal-Training-Session','Werden 3 Freunde Mitglied: 1 Monat Mitgliedschaft geschenkt']},en:{title:'Bring your friends and earn rewards',items:['1 friend becomes an IMPACT member: 1 free product','2 friends become members: 1 personal training session','3 friends become members: 1 month of membership for free']}};
+var TY={de:{training:'Training · nur für Mitglieder',competition:'Wettkampf',community:'Community Event',members:'Nur für Mitglieder, kostenlos. Keine Anmeldung nötig.',link:'Zum Wettkampf'},en:{training:'Training · members only',competition:'Competition',community:'Community Event',members:'Members only, free of charge. No sign-up needed.',link:'Competition website'}};
+function kind(e){var t=String(e.type||'').toLowerCase();return /compet/.test(t)?'competition':/train/.test(t)?'training':'community'}
+function norm(e){var k=kind(e),loc=String(e.location||''),lz=/winterthur/i.test(loc)?'winterthur':'zurich';var isKids=/kid|ninja/i.test((e.activity||'')+(e.title_de||''));
+  var img=e.image||(k==='community'?IMG['community-'+lz]:isKids?IMG.kids:IMG[k]||IMG.default);
+  var st=String(e.start||''),en=String(e.end||'');var tm='';if(st.length>=16&&st.slice(11)!=='00:00'){tm=st.slice(11)+(en.length>=16&&en.slice(11)!=='00:00'?(LANG==='de'?' bis ':' to ')+en.slice(11):'')}
+  var addr=/winterthur/i.test(loc)&&/impact/i.test(loc)?'Technoparkstrasse 3, 8406 Winterthur':/z(u|ü)rich/i.test(loc)&&/impact/i.test(loc)?'Walchestrasse 15, 8006 Zürich':loc;
+  var t={title:(LANG==='de'?e.title_de:e.title_en)||e.title_de||e.title_en||e.activity||'',teaser:(LANG==='de'?e.text_de:e.text_en)||e.text_de||e.text_en||'',points:[],points_title:'',rewards:e.rewards?RW[LANG].items:[],rewards_title:e.rewards?RW[LANG].title:''};
+  return {id:e.id,date:st.slice(0,10),time:tm,time_en:tm,location:/winterthur/i.test(loc)?'Winterthur':/z(u|ü)rich/i.test(loc)?'Zürich':loc,address:addr,image:img,kind:k,registration:!!e.registration,link:e.link||'',signups:e.signups||0,de:t,en:t}}
+function load(){return fetch('/api/events',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok||!Array.isArray(j.events))throw 0;return j.events.map(norm)}).catch(function(){return fetch('/data/events.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(all){return all.map(function(e){e.kind='community';e.registration=true;return e})})})}
+load().then(function(all){
   var today=new Date();today.setHours(0,0,0,0);
   EV=all.filter(function(e){return new Date(e.date+'T23:59:59')>=today}).sort(function(a,b){return a.date<b.date?-1:1});
   if(!EV.length){document.getElementById('evnone').hidden=false;box.hidden=true;return}
+  if(!EV.some(function(e){return e.registration}))box.hidden=true;
   var h='';EV.forEach(function(e){var t=e[LANG]||e.de;
-    h+='<article class="evcard rev vis" id="ev-'+esc(e.id)+'">'+(e.image?'<img loading="lazy" src="'+esc(e.image)+'" alt="'+esc(t.title)+'">':'')+'<div class="eb"><h2>'+esc(t.title)+'</h2><p class="teaser">'+esc(t.teaser)+'</p>'
-    +'<div class="evmeta"><div><b>'+L.date+'</b>'+esc(fmt(e.date))+'</div><div><b>'+L.time+'</b>'+esc(LANG==='de'?e.time:(e.time_en||e.time))+'</div><div><b>'+L.loc+'</b>'+esc(e.address||e.location)+'</div></div>'
+    var k=e.kind||'community';h+='<article class="evcard rev vis k-'+k+'" id="ev-'+esc(e.id)+'">'+(e.image?'<img loading="lazy" src="'+esc(e.image)+'" alt="'+esc(t.title)+'">':'')+'<div class="eb"><div class="evtype">'+esc(TY[LANG][k]||'')+'</div><h2>'+esc(t.title)+'</h2>'+(t.teaser?'<p class="teaser">'+esc(t.teaser)+'</p>':'')
+    +'<div class="evmeta"><div><b>'+L.date+'</b>'+esc(fmt(e.date))+'</div>'+((LANG==='de'?e.time:(e.time_en||e.time))?'<div><b>'+L.time+'</b>'+esc(LANG==='de'?e.time:(e.time_en||e.time))+'</div>':'')+'<div><b>'+L.loc+'</b>'+esc(e.address||e.location)+'</div></div>'
     +(t.points&&t.points.length?'<h4>'+esc(t.points_title||'')+'</h4><ul class="evlist">'+t.points.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>':'')
     +(t.rewards&&t.rewards.length?'<h4>'+esc(t.rewards_title||'')+'</h4><ul class="evlist">'+t.rewards.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>':'')
-    +'<div class="evbtn"><a class="cta" href="#fbox" data-ev="'+esc(e.id)+'">'+L.cta+'</a></div></div></article>';
-    var o=document.createElement('option');o.value=e.id;o.textContent=t.title+' · '+fmt(e.date)+' · '+e.location;sel.appendChild(o);
+    +(e.registration?'<div class="evbtn"><a class="cta" href="#fbox" data-ev="'+esc(e.id)+'">'+L.cta+'</a></div>':k==='competition'&&e.link?'<div class="evbtn"><a class="cta" href="'+esc(e.link)+'" target="_blank" rel="noopener">'+TY[LANG].link+'</a></div>':k==='training'?'<p class="evnote">'+TY[LANG].members+'</p>':'')+'</div></article>';
+    if(e.registration){var o=document.createElement('option');o.value=e.id;o.textContent=t.title+' · '+fmt(e.date)+' · '+e.location;sel.appendChild(o);}
   });
   list.insertAdjacentHTML('afterbegin',h);
   list.querySelectorAll('[data-ev]').forEach(function(a){a.addEventListener('click',function(){sel.value=a.getAttribute('data-ev')})});
