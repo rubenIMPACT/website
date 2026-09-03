@@ -177,7 +177,7 @@ function setupAnalyse() {
   // Klassenanalyse-Tab (wird vom Skill impact-class-analysis befuellt)
   var ka = ss.getSheetByName('Klassenanalyse');
   if (!ka) { ka = ss.insertSheet('Klassenanalyse'); ka.getRange('A1').setValue('Klassenanalyse: wird monatlich vom Skill impact-class-analysis aus den exercise.com-Reports befuellt (Popular Services + Itemized Recurring Sessions).').setFontColor('#666666'); }
-  var order = ['Analyse', 'Leads', 'Klassenanalyse', 'Events', 'Kündigungen', 'Trainingsplan', 'Trainingsplan-Analyse', 'Historie', 'Daten', 'PlanDaten', 'KlassenHistorie'];
+  var order = ['Analyse', 'Leads', 'Klassenanalyse', 'Events', 'Kündigungen', 'Trainingsplan', 'Trainingsplan-Analyse', 'Historie', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin'];
   var pos = 1;
   for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
   ss.setActiveSheet(ss.getSheetByName('Analyse'));
@@ -382,6 +382,7 @@ function buildPlanAnalyse(ss) {
 var KA_FOLDER = 'Klassenanalyse-Import';
 var KA_SHEET = 'Klassenanalyse';
 var KA_HIST = 'KlassenHistorie';
+var KA_HIST_D = 'KlassenHistorieDisziplin'; // Monat, Typ (Disziplin|Level), Name, Standort (Zurich|Winterthur|Mittel), Index, Auslastung, Besuche, Termine, Plaetze, Termine mit Vergleich
 var KA_HEAD = ['Standort', 'Segment', 'Klasse', 'Tag', 'Zeit', 'Tagtyp', 'Termine', 'Besuche', 'Ø pro Klasse', 'Ø dieser Uhrzeit', 'Verhältnis zur Uhrzeit', 'Plätze', 'Auslastung', 'Unique Users', 'Buchungen', 'Besuche je Teilnehmer', 'Trainer', 'Bewertung', 'Aktion'];
 
 function latestImportFile() {
@@ -426,6 +427,59 @@ function updateKlassenHistorie(ss, data) {
     if (found >= 0) sh.getRange(found + 2, 1, 1, 8).setValues([row]); else sh.appendRow(row);
   }
   sh.getRange('A2:A').setNumberFormat('mmm yyyy'); sh.getRange('G2:G').setNumberFormat('0%');
+  updateKlassenHistorieDisziplin(ss, data, mkey);
+}
+
+function updateKlassenHistorieDisziplin(ss, data, mkey) {
+  var sh = getOrCreate(ss, KA_HIST_D);
+  var head = ['Monat', 'Typ', 'Name', 'Standort', 'Index', 'Auslastung', 'Besuche', 'Termine', 'Plätze', 'Termine mit Vergleich'];
+  if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet(); }
+  var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return String(r[0]) !== mkey; }) : [];
+  [['Disziplin', data.hitlist || []], ['Level', data.hitlist_levels || []]].forEach(function (pair) {
+    pair[1].forEach(function (h) {
+      keep.push([mkey, pair[0], h.name, 'Mittel', h.index == null ? '' : h.index, h.util, h.attended, h.events, h.capacity, h.with_neighbor]);
+      ['Zurich', 'Winterthur'].forEach(function (loc) { var g = h[loc]; if (g) keep.push([mkey, pair[0], h.name, loc, g.index, g.util, g.attended, g.events, '', g.with_neighbor]); });
+    });
+  });
+  keep.sort(function (a, b) { return (a[0] + a[1] + a[2]) < (b[0] + b[1] + b[2]) ? -1 : 1; });
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, head.length).clearContent();
+  if (keep.length) sh.getRange(2, 1, keep.length, head.length).setValues(keep);
+  sh.getRange('E2:E').setNumberFormat('0.00'); sh.getRange('F2:F').setNumberFormat('0%');
+}
+
+// Rollierende Hitlist: Mittel der Monats-Indizes (Zeilen Standort=Mittel) ueber die letzten n importierten Monate
+function rollingHitlist(ss, typ, n) {
+  var sh = ss.getSheetByName(KA_HIST_D); if (!sh || sh.getLastRow() < 2) return { rows: [], months: [] };
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, 10).getValues(), months = {};
+  v.forEach(function (r) { if (r[1] === typ && r[3] === 'Mittel') months[String(r[0])] = 1; });
+  var keep = Object.keys(months).sort().slice(-n), agg = {};
+  v.forEach(function (r) {
+    if (r[1] !== typ || r[3] !== 'Mittel' || keep.indexOf(String(r[0])) < 0 || r[4] === '') return;
+    var a = agg[r[2]] = agg[r[2]] || { sum: 0, k: 0, att: 0, ev: 0, cap: 0 };
+    a.sum += Number(r[4]); a.k++; a.att += Number(r[6] || 0); a.ev += Number(r[7] || 0); a.cap += Number(r[8] || 0);
+  });
+  var rows = Object.keys(agg).map(function (name) { var a = agg[name]; return [name, a.sum / a.k, a.k, a.cap ? a.att / a.cap : '', a.att, a.ev]; });
+  rows.sort(function (a, b) { return b[1] - a[1]; });
+  return { rows: rows, months: keep };
+}
+
+function hitlistBlock(sh, r, title, list) {
+  sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
+  var hh = ['Rang', 'Disziplin', 'Index Zürich', 'Index Winterthur', 'Index Mittel', 'Auslastung', 'Besuche', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', 'Unique Users'];
+  sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+  var vals = list.map(function (h, i) {
+    var z = h.Zurich, w = h.Winterthur;
+    return [i + 1, h.name, z ? z.index : '', w ? w.index : '', h.index == null ? '' : h.index, h.util, h.attended, h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0];
+  });
+  if (vals.length) {
+    sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
+    sh.getRange(r, 3, vals.length, 3).setNumberFormat('0.00'); sh.getRange(r, 6, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 10, vals.length, 1).setNumberFormat('0.0');
+    var rg = sh.getRange(r, 5, vals.length, 1), rules = sh.getConditionalFormatRules();
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThanOrEqualTo(1.1).setBackground('#C6E0B4').setRanges([rg]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.8).setBackground('#F8CBAD').setRanges([rg]).build());
+    sh.setConditionalFormatRules(rules);
+  }
+  return r + vals.length + 1;
 }
 
 function buildKlassenanalyse(ss, data, fileName) {
@@ -488,8 +542,21 @@ function buildKlassenanalyse(ss, data, fileName) {
       .setOption('legend', { position: 'bottom' }).setOption('vAxis', { format: 'percent', minValue: 0 }).build());
   }
 
+  // ---- Hitlist Kampfsportarten (uhrzeitbereinigt; Entscheid Ruben 03.09.2026: Levels zusammen, BJJ Gi/No-Gi getrennt,
+  //      Competition und Kids drin, Open Mat und Self Defense for Women raus; erst je Standort, dann Mittel)
+  var hr = Math.max(vrow + keys.length + 2, 20);
+  hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (Slot-Index: Ø pro Klasse geteilt durch Ø der Uhrzeit, gewichtet mit Terminen; 1.00 = wie der Slot im Schnitt)', data.hitlist || []);
+  var roll = rollingHitlist(ss, 'Disziplin', 3);
+  if (roll.months.length > 1) {
+    sh.getRange(hr, 1).setValue('Hitlist rollierend, letzte ' + roll.months.length + ' Monate (' + roll.months.join(', ') + ')').setFontWeight('bold').setFontSize(12); hr++;
+    sh.getRange(hr, 1, 1, 7).setValues([['Rang', 'Disziplin', 'Index Mittel', 'Monate', 'Auslastung', 'Besuche', 'Termine']]).setFontWeight('bold').setBackground('#f3f3f3'); hr++;
+    var rv = roll.rows.map(function (x, i) { return [i + 1].concat(x); });
+    sh.getRange(hr, 1, rv.length, 7).setValues(rv); sh.getRange(hr, 3, rv.length, 1).setNumberFormat('0.00'); sh.getRange(hr, 5, rv.length, 1).setNumberFormat('0%');
+    hr += rv.length + 1;
+  }
+  hr = hitlistBlock(sh, hr, 'Hitlist nach Disziplin und Level', data.hitlist_levels || []);
   // ---- Slot-Tabelle
-  var HR = Math.max(vrow + keys.length + 2, 20), D0 = HR + 1, last = D0 + rows.length - 1;
+  var HR = hr + 1, D0 = HR + 1, last = D0 + rows.length - 1;
   sh.getRange(HR - 1, 1).setValue('Klassen nach Standort, Wochentag und Uhrzeit (liest sich wie der Stundenplan; Rangliste per Filter)').setFontWeight('bold').setFontSize(12);
   sh.getRange(HR, 1, 1, KA_HEAD.length).setValues([KA_HEAD]).setFontWeight('bold').setBackground('#1F3864').setFontColor('#ffffff').setWrap(true);
   if (!rows.length) return;
@@ -514,10 +581,10 @@ function buildKlassenanalyse(ss, data, fileName) {
   sh.getRange(D0, 9, rows.length, 2).setNumberFormat('0.0'); sh.getRange(D0, 11, rows.length, 1).setNumberFormat('0.00');
   sh.getRange(D0, 13, rows.length, 1).setNumberFormat('0%'); sh.getRange(D0, 16, rows.length, 1).setNumberFormat('0.0');
   var mr = sh.getRange(D0, 13, rows.length, 1);
-  sh.setConditionalFormatRules([
+  sh.setConditionalFormatRules(sh.getConditionalFormatRules().concat([
     SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.16).setBackground('#F8CBAD').setRanges([mr]).build(),
     SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.45).setBackground('#C6E0B4').setRanges([mr]).build(),
-  ]);
+  ]));
   sh.hideColumns(6); sh.hideColumns(12);
   sh.setFrozenRows(0); sh.setColumnWidth(3, 200); sh.setColumnWidth(17, 220); sh.setColumnWidth(19, 260);
   var notes = [
