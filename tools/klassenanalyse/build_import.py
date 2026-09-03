@@ -197,7 +197,12 @@ def hitlist(rows, key, total_rev=0):
         row['revenue_share'] = (row['revenue'] / total_rev) if total_rev else None
         row['util'] = row['attended'] / row['capacity'] if row['capacity'] else 0
         out.append(row)
-    out.sort(key=lambda r: (-(r['index'] if r['index'] is not None else -9), -r['attended']))
+        row['revenue_per_event'] = round(row['revenue'] / row['events'], 2) if (total_rev and row['events']) else None
+    # Rang nach Umsatz (Entscheid Ruben 03.09.2026); ohne Umsatzdaten nach Index
+    if total_rev:
+        out.sort(key=lambda r: (-(r['revenue'] or 0), -r['attended']))
+    else:
+        out.sort(key=lambda r: (-(r['index'] if r['index'] is not None else -9), -r['attended']))
     return out
 
 

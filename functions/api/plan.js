@@ -49,6 +49,9 @@ export async function onRequestPost(context) {
       sessions: s(p.sessions, 3), pkg: s(p.pkg, 40), plan, share, lead_id: "", firstname: "", lastname: "", email: "", page: s(p.page, 200),
     };
 
+    // Aufrufe ueber geteilte Links (src=share) nur bestaetigen, nicht loggen (Entscheid Ruben 03.09.2026: sonst je Klick auf den CRM-Link eine Zeile)
+    if (data.src === "share") return j({ ok: true, linked: false, crm: "", skipped: "share" });
+
     // Bekannter Lead: Kontakt lesen, Plan als Notiz ins Profil (Feld "Message") schreiben
     const cid = await verifyLid(env, p.lid);
     let crm = "";
