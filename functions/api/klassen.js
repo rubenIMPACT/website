@@ -331,10 +331,12 @@ function rowsOf(cs) {
   ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((it) => { const o = {}; H.forEach((h, i) => { o[h] = it[i]; }); o.__group = g.name; rows.push(o); }));
   return rows;
 }
+function filtersText(json) { const cs = json.cached_stats; return Array.isArray(cs) ? ((cs[0] || {}).filters || "") : ((cs || {}).filters || ""); }
 function readyFor(spec, json) {
-  const cs = json.cached_stats, f = (Array.isArray(cs) ? ((cs[0] || {}).filters || "") : ((cs || {}).filters || ""));
+  const f = filtersText(json);
   return !json.refreshing && f.indexOf("Start Date: " + spec.start.replace(/-/g, "/")) >= 0 && (!spec.loc || f.indexOf("Location: " + spec.loc) >= 0);
 }
+function whyNot(spec, json) { return { refreshing: json.refreshing, error: json.error, want: spec.start, filters: filtersText(json).slice(0, 160) }; }
 async function monat(H, p, start, end) {
   const cohortStart = String(p.cohort_start || start), today = String(p.today || end);
   const U = monatUrls(start, end, cohortStart, today), phase = String(p.phase || "");
@@ -346,8 +348,8 @@ async function monat(H, p, start, end) {
   if (phase === "m2") {
     const fv = await getJson(H, U.fvZH.url), sa = await getJson(H, U.salesZH.url);
     if (!fv.json || !sa.json) return { error: "fetch_zh" };
-    if (!readyFor(U.fvZH, fv.json)) return { ready: false, waiting: "fvZH" };
-    if (!readyFor(U.salesZH, sa.json)) return { ready: false, waiting: "salesZH" };
+    if (!readyFor(U.fvZH, fv.json)) return { ready: false, waiting: "fvZH", why: whyNot(U.fvZH, fv.json) };
+    if (!readyFor(U.salesZH, sa.json)) return { ready: false, waiting: "salesZH", why: whyNot(U.salesZH, sa.json) };
     const fvC = rowsOf(fv.json.cached_stats).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) }));
     const saC = rowsOf(sa.json.cached_stats).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) }));
     await getJson(H, U.fvWT.url + "&refresh=true"); await getJson(H, U.salesWT.url + "&refresh=true");
@@ -358,7 +360,7 @@ async function monat(H, p, start, end) {
     for (const k of ["fvWT", "salesWT", "life", "visits", "started", "cancelled", "subs"]) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
-      if (!readyFor(U[k], r.json)) return { ready: false, waiting: k };
+      if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
       got[k] = r.json.cached_stats;
     }
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: rowsOf(got.fvWT).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) })) };

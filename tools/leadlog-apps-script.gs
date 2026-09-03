@@ -1040,10 +1040,10 @@ function runMonatsabschluss(start, end) {
   var base = { start: start, end: end, cohort_start: cohortStart, today: today };
   var p1 = maCall(Object.assign({ phase: 'm1' }, base)); if (p1.error) throw new Error('Monat m1: ' + JSON.stringify(p1).slice(0, 300));
   var p2 = null, p3 = null, i;
-  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p2 = maCall(Object.assign({ phase: 'm2' }, base)); if (p2.error) throw new Error('Monat m2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
+  for (i = 0; i < 7; i++) { Utilities.sleep(20000); p2 = maCall(Object.assign({ phase: 'm2' }, base)); if (p2.error) throw new Error('Monat m2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Monat m2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
-  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh }, base)); if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
-  if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
+  for (i = 0; i < 7; i++) { Utilities.sleep(20000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh }, base)); if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 400));
   var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID);
   maStoreCohorts(ss, mk, data.cohort || {});
   var lines = [];
