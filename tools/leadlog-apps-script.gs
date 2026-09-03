@@ -499,16 +499,17 @@ function rollingHitlist(ss, typ, n) {
 
 function hitlistBlock(sh, r, title, list) {
   sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
-  var hh = ['Rang', 'Disziplin', 'Index Zürich', 'Index Winterthur', 'Index Mittel', 'Auslastung', 'Besuche', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', 'Unique Users', 'Umsatz CHF/Monat', 'Umsatzanteil'];
+  // Spalten F und L sind im Tab global ausgeblendet (Tagtyp/Plätze der Slot-Tabelle), deshalb dort Leerspalten
+  var hh = ['Rang', 'Disziplin', 'Index Zürich', 'Index Winterthur', 'Index Mittel', '', 'Auslastung', 'Besuche', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', '', 'Unique Users', 'Umsatz CHF/Monat', 'Umsatzanteil'];
   sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
   var vals = list.map(function (h, i) {
     var z = h.Zurich, w = h.Winterthur;
     var ix = function (o) { return !o ? '' : (o.index == null ? 'n/a' : o.index); };
-    return [i + 1, h.name, ix(z), ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0, h.revenue == null ? '' : h.revenue, h.revenue_share == null ? '' : h.revenue_share];
+    return [i + 1, h.name, ix(z), ix(w), h.index == null ? 'n/a' : h.index, '', h.util, h.attended, h.events, h.with_neighbor, h.events ? h.attended / h.events : '', '', h.uniq || 0, h.revenue == null ? '' : h.revenue, h.revenue_share == null ? '' : h.revenue_share];
   });
   if (vals.length) {
     sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
-    sh.getRange(r, 3, vals.length, 3).setNumberFormat('0.00'); sh.getRange(r, 6, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 7, vals.length, 3).setNumberFormat('0'); sh.getRange(r, 10, vals.length, 1).setNumberFormat('0.0'); sh.getRange(r, 11, vals.length, 1).setNumberFormat('0'); sh.getRange(r, 12, vals.length, 1).setNumberFormat('#,##0'); sh.getRange(r, 13, vals.length, 1).setNumberFormat('0%');
+    sh.getRange(r, 3, vals.length, 3).setNumberFormat('0.00'); sh.getRange(r, 7, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 8, vals.length, 3).setNumberFormat('0'); sh.getRange(r, 11, vals.length, 1).setNumberFormat('0.0'); sh.getRange(r, 13, vals.length, 1).setNumberFormat('0'); sh.getRange(r, 14, vals.length, 1).setNumberFormat('#,##0'); sh.getRange(r, 15, vals.length, 1).setNumberFormat('0%');
     var rg = sh.getRange(r, 5, vals.length, 1), rules = sh.getConditionalFormatRules();
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThanOrEqualTo(1.1).setBackground('#C6E0B4').setRanges([rg]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.8).setBackground('#F8CBAD').setRanges([rg]).build());
@@ -587,9 +588,9 @@ function buildKlassenanalyse(ss, data, fileName) {
   var roll = rollingHitlist(ss, 'Disziplin', 3);
   if (roll.months.length > 1) {
     sh.getRange(hr, 1).setValue('Hitlist rollierend, letzte ' + roll.months.length + ' Monate (' + roll.months.join(', ') + ')').setFontWeight('bold').setFontSize(12); hr++;
-    sh.getRange(hr, 1, 1, 7).setValues([['Rang', 'Disziplin', 'Index Mittel', 'Monate', 'Auslastung', 'Besuche', 'Termine']]).setFontWeight('bold').setBackground('#f3f3f3'); hr++;
-    var rv = roll.rows.map(function (x, i) { return [i + 1].concat(x); });
-    sh.getRange(hr, 1, rv.length, 7).setValues(rv); sh.getRange(hr, 3, rv.length, 1).setNumberFormat('0.00'); sh.getRange(hr, 5, rv.length, 1).setNumberFormat('0%');
+    sh.getRange(hr, 1, 1, 8).setValues([['Rang', 'Disziplin', 'Index Mittel', 'Monate', 'Auslastung', '', 'Besuche', 'Termine']]).setFontWeight('bold').setBackground('#f3f3f3'); hr++;
+    var rv = roll.rows.map(function (x, i) { return [i + 1, x[0], x[1], x[2], x[3], '', x[4], x[5]]; }); // Spalte F ist ausgeblendet
+    sh.getRange(hr, 1, rv.length, 8).setValues(rv); sh.getRange(hr, 3, rv.length, 1).setNumberFormat('0.00'); sh.getRange(hr, 5, rv.length, 1).setNumberFormat('0%');
     hr += rv.length + 1;
   }
   hr = hitlistBlock(sh, hr, 'Hitlist nach Disziplin und Level', data.hitlist_levels || []);
