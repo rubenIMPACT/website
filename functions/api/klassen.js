@@ -316,7 +316,6 @@ function monatUrls(start, end, cohortStart, today) {
   return {
     life: { url: API + "/api/v4/reports/lifecycle?" + qM + "&per=5000", start, arr: false },
     visits: { url: API + "/api/v4/reports/detailed_visits?" + qM + "&per=5000", start, arr: false },
-    started: { url: API + "/api/v4/reports/started_subscription?" + qC + "&per=2000", start: cohortStart, arr: true },
     cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qM + "&per=2000", start, arr: true },
     subs: { url: API + "/api/v4/reports/active_subscription?" + qM + "&per=2000&only_active=true", start, arr: true },
     fvZH: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
@@ -341,13 +340,13 @@ async function monat(H, p, start, end) {
   const cohortStart = String(p.cohort_start || start), today = String(p.today || end);
   const U = monatUrls(start, end, cohortStart, today), phase = String(p.phase || "");
   if (phase === "dbg") {
-    const k = String(p.report || "started"), r = await getJson(H, U[k].url + (p.refresh ? "&refresh=true" : ""));
+    const k = String(p.report || "subs"), r = await getJson(H, U[k].url + (p.refresh ? "&refresh=true" : ""));
     const cs = r.json && r.json.cached_stats;
     return { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error, meta: r.json && r.json.meta, csType: Array.isArray(cs) ? "array" + cs.length : typeof cs, keys: cs && !Array.isArray(cs) ? Object.keys(cs).slice(0, 8) : (Array.isArray(cs) && cs[0] ? Object.keys(cs[0]).slice(0, 8) : []), filters: filtersText(r.json || {}).slice(0, 160), url: U[k].url.replace(API, "") };
   }
   if (phase === "m1") {
     const out = {};
-    for (const k of ["life", "visits", "started", "cancelled", "subs", "fvZH", "salesZH"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    for (const k of ["life", "visits", "cancelled", "subs", "fvZH", "salesZH"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
     return { ok: true, started: out };
   }
   if (phase === "m2") {
@@ -362,7 +361,7 @@ async function monat(H, p, start, end) {
   }
   if (phase === "m3") {
     const got = {};
-    for (const k of ["fvWT", "salesWT", "life", "visits", "started", "cancelled", "subs"]) {
+    for (const k of ["fvWT", "salesWT", "life", "visits", "cancelled", "subs"]) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
       if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
@@ -370,7 +369,7 @@ async function monat(H, p, start, end) {
     }
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: rowsOf(got.fvWT).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) })) };
     const sales = { Zurich: Array.isArray(p.sales_zh) ? p.sales_zh : [], Winterthur: rowsOf(got.salesWT).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) })) };
-    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, started: rowsOf(got.started), cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), fv, sales }) };
+    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), fv, sales }) };
   }
   return { error: "phase" };
 }
@@ -387,7 +386,9 @@ function computeMonat(inp) {
   const visitsByUser = {}; comp.forEach((x) => { const u = String(x[vix("User ID")]); (visitsByUser[u] = visitsByUser[u] || []).push(dOf(x[vix("Start Time")])); });
   const staff = new Set(); vRows.forEach((x) => { [x[vix("Primary Staff")], x[vix("Secondary Staff")]].forEach((s) => { if (s) String(s).split(",").forEach((n) => staff.add(n.trim().toLowerCase())); }); });
   // Abos
-  const started = inp.started.map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: locOf(r["Location"] || r["Destination"]), date: dOf(r["Start Date"]), pkg: String(r["Subscribed To"] || "") }));
+  // Abo-Starts aus den laufenden Abos (Start Date); der Report "Started Subscriptions" ist fuer den API-Benutzer gesperrt (403).
+  // Abos, die im selben Monat gestartet und schon wieder beendet wurden, fehlen damit (selten).
+  const started = inp.subs.filter((r) => String(r["Active Subscription Type"] || "") !== "Scheduled").map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: locOf(r["Location"] || r["Destination"]), date: dOf(r["Start Date"]), pkg: String(r["Subscribed To"] || "") })).filter((s) => s.date >= inp.cohortStart);
   const startedM = started.filter((s) => inMonth(s.date));
   const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: locOf(r["Destination"]), date: dOf(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
   const cancelledUids = new Set(cancelled.map((c) => c.uid)), convertedUids = new Set(cancelled.filter((c) => c.converted).map((c) => c.uid));
