@@ -120,8 +120,8 @@ header,.builder,.actions,.fn,.hint{display:none!important}#out{margin:0}.card{bo
 <div class="step" data-k="freq"><div class="lbl"><i>4</i> How many days a week do you want to train with us?</div><div class="grid gnum" id="freq">
 <button class="choice" data-v="1">1×</button><button class="choice" data-v="2">2×</button><button class="choice" data-v="3">3×</button><button class="choice" data-v="4">4×</button><button class="choice" data-v="5">5×</button><button class="choice" data-v="6">6×</button>
 </div></div>
-<div class="step" data-k="win"><div class="lbl"><i>5</i> When can you train? <em>pick any</em></div><div class="grid g3" id="win">
-<button class="choice" data-v="morning">Morning<small>7:00–10:50</small></button><button class="choice" data-v="midday">Midday<small>from 12:00</small></button><button class="choice" data-v="evening">Evening<small>from 16:30</small></button>
+<div class="step" data-k="win"><div class="lbl"><i>5</i> When can you train? <em>pick any</em></div><div class="grid g4" id="win">
+<button class="choice" data-v="morning">Morning<small>7:00–10:50</small></button><button class="choice" data-v="midday">Midday<small>from 12:00</small></button><button class="choice" data-v="early">Early evening<small>16:30–17:40</small></button><button class="choice" data-v="late">Late evening<small>18:50–20:00</small></button>
 </div></div>
 <div class="step" data-k="otype"><div class="lbl"><i>6</i> What else do you train on the side?</div><div class="grid g4" id="otype">
 <button class="choice" data-v="nothing">Nothing</button><button class="choice" data-v="cardio">Running · Cardio</button><button class="choice" data-v="strength">Strength training</button><button class="choice" data-v="sport">Another sport</button>
@@ -269,53 +269,77 @@ const STEPS=['goal','art','level','freq','win','otype','loc'];
 function answered(k){return k==='win'?S.win.size>0:!!S[k];}
 function updateReveal(){STEPS.forEach((k,i)=>{const el=document.querySelector('.step[data-k="'+k+'"]');if(!el)return;let lock;if(k==='loc'){lock=!(S.goal&&S.art&&S.level);}else{lock=i>0&&!answered(STEPS[i-1]);}el.classList.toggle('locked',lock);});}
 function refresh(){updateReveal();const done=STEPS.filter(answered).length;const pf=document.getElementById('progfill');if(pf)pf.style.width=Math.round(done/STEPS.length*100)+'%';const pt=document.getElementById('progtxt');if(pt)pt.textContent=done?done+' of '+STEPS.length+' done':'Start here';const essential=S.loc&&S.goal&&S.art&&S.level;let m=null;if(!S.goal)m='Pick what you want to achieve';else if(!S.art)m='Pick a martial art';else if(!S.level)m='Pick your level — then we can help you';else if(!S.loc)m='Last thing — which studio?';else if(done<STEPS.length)m='You can build now — or finish the last steps for a sharper plan.';document.getElementById('go').disabled=!essential;const e=document.getElementById('hint');e.style.display=m?'block':'none';if(m)e.textContent=m;}
-function inWin(s){const h=parseInt(s);if(h<12)return S.win.has('morning');if(h<16)return S.win.has('midday');return S.win.has('evening');}
-function eligible(){if(S.goal==='defense'){if(S.arts.includes('explore')||!S.arts.length)return['streetdefense','boxing','bjj'];return S.arts.slice();}if(S.arts.includes('explore'))return['mma','muaythai','boxing','bjj','wrestling','striking'];if(S.arts.includes('mma'))return['mma','boxing','muaythai','bjj','wrestling','striking'];return S.arts.slice();}
+const WINS=['morning','midday','early','late'],WINLBL={morning:'Morning',midday:'Midday',early:'Early evening',late:'Late evening'};
+const startMin=s=>{const p=s.split(':');return (+p[0])*60+(+(p[1]||0));};
+function winOf(s){const m=startMin(s);return m<12*60?'morning':m<16*60?'midday':m<18*60+50?'early':'late';}
+function inWin(s){return S.win.has(winOf(s));}
+/* Alte Share-Links tragen w=evening: entspricht heute frueher + spaeter Abend */
+function normWin(set){const w=new Set([...set].filter(x=>WINS.includes(x)));if(set.has('evening')){w.add('early');w.add('late');}return w;}
+const isExplore=()=>S.arts.includes('explore')||!S.arts.length;
+const isBundle=()=>S.goal==='defense'&&isExplore();
+function eligible(){if(S.arts.includes('mma'))return['mma','wrestling','muaythai','bjj','boxing','striking'];if(isBundle())return['streetdefense','boxing','bjj'];if(isExplore())return['mma','muaythai','boxing','bjj','wrestling','striking'];return S.arts.slice();}
 function lvScore(lv){if(S.goal==='compete'){if(S.level==='beginner')return lv==='All Levels'?3:lv==='Basics'?2:1;return lv==='Competition'?3:lv==='All Levels'?2:1;}if(S.level==='beginner')return lv==='Basics'?3:lv==='All Levels'?1:0;return lv==='All Levels'?3:lv==='Basics'?1:0;}
 function circGap(a,b){const d=Math.abs(ORD.indexOf(a)-ORD.indexOf(b));return Math.min(d,7-d);}
-function spread(avail,n,matArr){if(!avail.length)avail=ORD.slice();if(n<=1){let best=avail[0],bs=-1;avail.forEach(d=>{const dist=matArr&&matArr.length?Math.min.apply(null,matArr.map(m=>circGap(d,m))):3;if(dist>bs){bs=dist;best=d;}});return[best];}if(n===2){let best=null,bg=-1;for(let i=0;i<avail.length;i++)for(let j=i+1;j<avail.length;j++){const g=circGap(avail[i],avail[j]);if(g>bg){bg=g;best=[avail[i],avail[j]];}}return best||avail.slice(0,2);}const res=[];for(let i=0;i<n;i++){const d=avail[Math.round(i*(avail.length-1)/(n-1))];if(!res.includes(d))res.push(d);}for(const d of avail){if(res.length>=n)break;if(!res.includes(d))res.push(d);}return res.slice(0,n);}
-function contactCoach(){if(S.goal==='defense'&&(S.arts.includes('explore')||!S.arts.length))return'samuel';if(S.art==='explore'||!S.art)return null;if(S.art==='mma')return'joao';if(S.art==='bjj')return'joao';if(S.art==='wrestling')return'laszlo';if(S.art==='fitnesskickboxing')return'natassja';if(S.art==='boxing'||S.art==='muaythai')return S.level==='beginner'?'nathan':'sergei';return'joao';}
-function pickDays(avail,n){const s=avail.slice().sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b));if(s.length<=n)return s;for(let mg=2;mg>=1;mg--){const pick=[];let last=-99;for(const d of s){const idx=ORD.indexOf(d);if(!pick.length||idx-last>=mg){pick.push(d);last=idx;}if(pick.length>=n)break;}if(pick.length>=n)return pick;}const r=[];for(let i=0;i<n;i++){const d=s[Math.round(i*(s.length-1)/(n-1))];if(!r.includes(d))r.push(d);}for(const d of s){if(r.length>=n)break;if(!r.includes(d))r.push(d);}return r;}
+function spread(avail,n,matArr){if(n<=0)return[];if(!avail.length)avail=ORD.slice();if(n<=1){let best=avail[0],bs=-1;avail.forEach(d=>{const dist=matArr&&matArr.length?Math.min.apply(null,matArr.map(m=>circGap(d,m))):3;if(dist>bs){bs=dist;best=d;}});return[best];}if(n===2){let best=null,bg=-1;for(let i=0;i<avail.length;i++)for(let j=i+1;j<avail.length;j++){const g=circGap(avail[i],avail[j]);if(g>bg){bg=g;best=[avail[i],avail[j]];}}return best||avail.slice(0,2);}const res=[];for(let i=0;i<n;i++){const d=avail[Math.round(i*(avail.length-1)/(n-1))];if(!res.includes(d))res.push(d);}for(const d of avail){if(res.length>=n)break;if(!res.includes(d))res.push(d);}return res.slice(0,n);}
+function contactCoach(){if(isBundle())return S.loc==='w'?null:'samuel';if(S.art==='explore'||!S.art)return null;if(S.art==='mma'||S.art==='bjj')return'joao';if(S.art==='wrestling')return'laszlo';if(S.art==='streetdefense')return'samuel';if(S.art==='fitnesskickboxing')return S.goal==='compete'?'sergei':'natassja';if(S.art==='boxing'||S.art==='muaythai')return S.level==='beginner'?'nathan':'sergei';return'joao';}
+function pickDays(avail,n,fixed){const f=fixed||[];const s=avail.filter(d=>!f.includes(d)).sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b));if(n<=0)return[];if(s.length<=n)return s;
+ for(let mg=(n+f.length<=2?3:2);mg>=1;mg--){const pick=[],ch=f.slice();for(const d of s){if(ch.every(c=>circGap(c,d)>=mg)){pick.push(d);ch.push(d);}if(pick.length>=n)break;}if(pick.length>=n)return pick;}
+ const r=[];for(let i=0;i<n;i++){const d=s[Math.round(i*(s.length-1)/(n-1))];if(!r.includes(d))r.push(d);}for(const d of s){if(r.length>=n)break;if(!r.includes(d))r.push(d);}return r;}
 function buildMat(){
- const elig=eligible(),freq=parseInt(S.freq),compete=S.goal==='compete';
- const winOf=s=>{const h=parseInt(s);return h<12?'morning':h<16?'midday':'evening';};
- const startMin=s=>{const p=s.split(':');return (+p[0])*60+(+(p[1]||0));};
- function pairKind(a,b){const pa=winOf(a.s),pb=winOf(b.s);if(pa===pb)return Math.abs(startMin(a.s)-startMin(b.s))<=90?'b2b':null;if((pa==='morning'&&pb==='midday')||(pa==='midday'&&pb==='morning'))return null;return 'spread';}
+ const elig=eligible(),freq=parseInt(S.freq),compete=S.goal==='compete',mmaPlan=S.arts.includes('mma'),bundle=isBundle();
+ const isEve=w=>w==='early'||w==='late';
+ /* Gueltige Doppel: gleicher Block oder frueher+spaeter Abend nur back-to-back (<=90 Min); Morgen+Mittag nie; sonst verteilt */
+ function pairKind(a,b){const pa=winOf(a.s),pb=winOf(b.s);if(pa===pb||(isEve(pa)&&isEve(pb)))return Math.abs(startMin(a.s)-startMin(b.s))<=90?'b2b':null;if((pa==='morning'&&pb==='midday')||(pa==='midday'&&pb==='morning'))return null;return'spread';}
  function pairScore(prim,c){const k=pairKind(prim,c);if(!k)return -1;const dd=c.disc!==prim.disc?1:0;const base=compete?(k==='spread'?4:2):(k==='b2b'?4:2);return base+dd;}
  const inPool=x=>elig.includes(x.disc)&&(compete||x.lv!=='Competition');
- const NEARMAP={wrestling:['bjj'],bjj:['wrestling'],boxing:['muaythai','fitnesskickboxing'],muaythai:['boxing','fitnesskickboxing']};
+ const NEARMAP={wrestling:['bjj'],bjj:['wrestling'],boxing:['muaythai','fitnesskickboxing'],muaythai:['boxing','fitnesskickboxing'],fitnesskickboxing:['muaythai','boxing']};
  const nearSet=new Set();if(elig.length===1){elig.forEach(d=>(NEARMAP[d]||[]).forEach(n=>{if(!elig.includes(n))nearSet.add(n);}));}
  const inNear=x=>nearSet.has(x.disc)&&(compete||x.lv!=='Competition');
- const sortCl=arr=>arr.sort((a,b)=>lvScore(b.lv)-lvScore(a.lv)||((parseInt(b.s)>=16)-(parseInt(a.s)>=16))||a.s.localeCompare(b.s));
  const byDay={},byNear={};
  SCHEDULE.filter(x=>x.loc===S.loc&&inPool(x)&&inWin(x.s)).forEach(x=>{(byDay[x.d]=byDay[x.d]||[]).push(x)});
  SCHEDULE.filter(x=>x.loc===S.loc&&inNear(x)&&inWin(x.s)).forEach(x=>{(byNear[x.d]=byNear[x.d]||[]).push(x)});
- Object.values(byDay).forEach(sortCl);Object.values(byNear).forEach(sortCl);
  const multi=elig.length>1;
  const targetDays=freq;const dbls=freq>=6?3:freq>=4?2:0;const sessionTarget=freq+dbls;
- const mmaCap=S.art==='mma'?Math.max(1,Math.floor(sessionTarget/3)):99;
+ const mmaCap=mmaPlan?Math.max(1,Math.floor(sessionTarget/3)):99;
+ const CORE=['wrestling','muaythai','bjj'];
  const out=[],perDay={},dc={};let mma=0;
  const canTake=x=>!(x.disc==='mma'&&mma>=mmaCap);
  const taken=x=>out.some(o=>o.d===x.d&&o.s===x.s);
  function take(x,extra){const o=Object.assign({},x,extra||{});out.push(o);perDay[x.d]=(perDay[x.d]||0)+1;dc[x.disc]=(dc[x.disc]||0)+1;if(x.disc==='mma')mma++;return o;}
- function choose(cands){let c=cands.filter(canTake);if(!c.length)c=cands;if(multi){let lo=Math.min(...c.map(z=>dc[z.disc]||0));const pick=c.find(z=>(dc[z.disc]||0)===lo);if(pick)return pick;}return c[0];}
- const rem=(d,src)=>(src[d]||[]).filter(x=>!taken(x));
+ /* Rang einer Klasse (kleiner = besser): richtige Disziplin vor Level vor Abendlage vor Uhrzeit.
+    MMA-Plan: Wrestling, Muay Thai, BJJ je mindestens einmal, dann eine MMA-Stunde, Boxen zuletzt; MMA hart auf ein Drittel gedeckelt (canTake). */
+ function pri(x){const n=dc[x.disc]||0;let t=2;
+  if(bundle)t=x.disc==='streetdefense'?0:2;
+  else if(mmaPlan){if(CORE.includes(x.disc)&&n===0)t=0;else if(x.disc==='mma'&&n===0)t=1;else if(x.disc==='boxing'||x.disc==='striking')t=3;}
+  return[t,multi?n:0,-lvScore(x.lv),startMin(x.s)>=16*60?0:1,startMin(x.s)];}
+ const lt=(a,b)=>{for(let i=0;i<a.length;i++){if(a[i]!==b[i])return a[i]<b[i];}return false;};
+ const cmp=(a,b)=>lt(pri(a),pri(b))?-1:lt(pri(b),pri(a))?1:0;
+ const rem=(d,src)=>(src[d]||[]).filter(x=>!taken(x)&&canTake(x));
  const dayDbl=d=>(perDay[d]||0)>=2;
  const adjDbl=d=>{const i=ORD.indexOf(d);return dayDbl(ORD[(i-1+7)%7])||dayDbl(ORD[(i+1)%7]);};
- let avail=ORD.filter(d=>byDay[d]&&byDay[d].length);
- let pdays=pickDays(avail,targetDays);pdays.sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b));
- pdays.forEach(d=>{const p=choose(rem(d,byDay));if(p)take(p);});
- if(out.length<targetDays){let g=0;while(out.length<targetDays&&g++<40){
-   const nd=ORD.filter(d=>!perDay[d]&&rem(d,byNear).length);if(!nd.length)break;
-   const p=choose(rem(nd[0],byNear));if(!p)break;take(p,{near:true,edge:true});}}
- function stack(src,nearFlag){let g=0;while(out.length<sessionTarget&&g++<60){
+ const minGap=(d,days)=>days.length?Math.min.apply(null,days.map(x=>circGap(d,x))):3;
+ /* Tage: Anker zuerst (Street Defense im Selbstverteidigungs-Bundle), dann Tage mit der besten Klassenstufe, dann der Rest - immer mit Abstand */
+ let fixed=[];
+ if(bundle){const sd=SCHEDULE.filter(x=>x.loc===S.loc&&x.disc==='streetdefense'&&inWin(x.s));if(sd.length){take(sd[0]);fixed=[sd[0].d];}}
+ const avail=ORD.filter(d=>!fixed.includes(d)&&byDay[d]&&byDay[d].length);
+ const bestLv=d=>Math.max.apply(null,byDay[d].map(x=>lvScore(x.lv)));
+ const topLv=avail.length?Math.max.apply(null,avail.map(bestLv)):0;
+ const need=targetDays-fixed.length;
+ let pdays=pickDays(avail.filter(d=>bestLv(d)===topLv),need,fixed);
+ if(pdays.length<need)pdays=pdays.concat(pickDays(avail.filter(d=>!pdays.includes(d)),need-pdays.length,fixed.concat(pdays)));
+ /* Erste Klasse je Tag: ueber alle gewaehlten Tage hinweg immer die dringendste zuerst */
+ let open=pdays.slice(),g=0;
+ while(open.length&&g++<40){let pick=null,pd=null;for(const d of open){const r=rem(d,byDay).sort(cmp);if(r.length&&(!pick||cmp(r[0],pick)<0)){pick=r[0];pd=d;}}if(!pick)break;take(pick);open=open.filter(d=>d!==pd);}
+ if(out.length<targetDays){let g2=0;while(out.length<targetDays&&g2++<40){
+   const used=Object.keys(perDay).map(Number);const nd=ORD.filter(d=>!perDay[d]&&rem(d,byNear).length).sort((a,b)=>minGap(b,used)-minGap(a,used)||ORD.indexOf(a)-ORD.indexOf(b));if(!nd.length)break;
+   const p=rem(nd[0],byNear).sort(cmp)[0];if(!p)break;take(p,{near:true,edge:true});}}
+ function stack(src,nearFlag){let g3=0;while(out.length<sessionTarget&&g3++<60){
    let cand=ORD.filter(d=>perDay[d]===1&&rem(d,src).length);
    {const sp=cand.filter(d=>!adjDbl(d));if(sp.length)cand=sp;}
    if(!cand.length)break;
-   let pickD=null,pickC=null,pickScore=-1;
-   for(const d of cand){const prim=out.find(o=>o.d===d);let r=rem(d,src).filter(canTake);if(!r.length)r=rem(d,src);
-     for(const c of r){const sc=pairScore(prim,c);if(sc>pickScore){pickScore=sc;pickD=d;pickC=c;}}}
-   if(!pickD||pickScore<0)break;take(pickC,nearFlag?{near:true,edge:true}:null);}}
+   let bc=null,bk=null;
+   for(const d of cand){const prim=out.find(o=>o.d===d);for(const c of rem(d,src)){const ps=pairScore(prim,c);if(ps<0)continue;const k=pri(c).concat([-ps]);if(!bk||lt(k,bk)){bk=k;bc=c;}}}
+   if(!bc)break;take(bc,nearFlag?{near:true,edge:true}:null);}}
  if(out.length<sessionTarget)stack(byDay,false);
  if(out.length<sessionTarget)stack(byNear,true);
  return out.sort((a,b)=>ORD.indexOf(a.d)-ORD.indexOf(b.d)||a.s.localeCompare(b.s));
@@ -336,8 +360,8 @@ function buildResume(hasDbl){
  x.push('<p class="guard">General guidance from how we train and fuel at a high level — not personalised nutrition or medical advice. Bodies differ; individualise it, ask your coach, and for anything medical, see a doctor.</p>');
  return '<details class="resume"><summary>Periodization, fuelling &amp; recovery — get the most from this plan</summary><div class="rbody">'+x.join('')+'</div></details>';
 }
-function buildSC(matDays){
- const nonMat=ORD.filter(d=>!matDays.has(d)),blocks=[];let adv="";const matArr=[...matDays];
+function buildSC(mat){
+ const matDays=new Set(mat.map(m=>m.d)),matArr=[...matDays],nonMat=ORD.filter(d=>!matDays.has(d)),blocks=[];let adv="";
  const STR={label:"Strength training",sub:"Functional · compound lifts"};
  const RUN={label:"Running",sub:"Easy Zone-2 ~130 bpm"};
  const SPORT={label:"Your sport",sub:"Keep it up · just spaced"};
@@ -362,13 +386,22 @@ function buildSC(matDays){
    seq.push({label:"Strength / Running",sub:"Either one — add a 2nd active day"});
    adv="Train with us once, and add <b>one</b> more active day — a strength session <i>or</i> an easy run, your choice. The goal is simply to move at least twice a week.";
  }
- const days=spread(nonMat,seq.length,matArr);
- seq.forEach((it,i)=>blocks.push({day:days[i%days.length],sc:true,label:it.label,sub:it.sub}));
+ /* Ein kompletter Ruhetag bleibt immer: freie Tage minus einer tragen die Heim-Einheiten, nie zwei am selben Tag;
+    was nicht mehr passt, kommt mit Stunden Abstand auf einen Mattentag mit nur einer Stunde */
+ const freeN=Math.max(0,nonMat.length-1);
+ const freeDays=spread(nonMat,Math.min(seq.length,freeN),matArr);
+ const shared=[];
+ if(seq.length>freeN){const single=matArr.filter(d=>mat.filter(m=>m.d===d).length===1);const pool=(single.length?single:matArr).slice();
+  for(let i=freeN;i<seq.length&&pool.length;i++){const used=freeDays.concat(shared);const gap=d=>used.length?Math.min.apply(null,used.map(u=>circGap(d,u))):3;pool.sort((a,b)=>gap(b)-gap(a)||ORD.indexOf(a)-ORD.indexOf(b));shared.push(pool.shift());}}
+ seq.forEach((it,i)=>{if(i<freeDays.length)blocks.push({day:freeDays[i],sc:true,label:it.label,sub:it.sub});else if(i-freeDays.length<shared.length)blocks.push({day:shared[i-freeDays.length],sc:true,label:it.label,sub:it.sub,shared:true});});
  {const sI=blocks.map((b,i)=>i).filter(i=>/Strength/.test(blocks[i].label)&&!/Running/.test(blocks[i].label));
   if(sI.length===2){const g=circGap(blocks[sI[0]].day,blocks[sI[1]].day);
     if(g>=3){blocks[sI[0]].sub="Full body · compound lifts";blocks[sI[1]].sub="Full body · compound lifts";adv+=" Your two strength days are spaced well apart, so both are <b>full-body</b> sessions.";}
     else{blocks[sI[0]].label="Strength — pull & legs";blocks[sI[0]].sub="Posterior chain · pulls · legs";blocks[sI[1]].label="Strength — push & core";blocks[sI[1]].sub="Press · push · core";adv+=" Your two strength days fall close together this week, so we've <b>split</b> them — pull &amp; legs one day, push &amp; core the other — to avoid hitting the same muscles without recovery.";}}}
- if(seq.length)adv+=" Do it at home or another gym — never right after class, and hours apart on the same day.";
+ const nSh=blocks.filter(b=>b.shared).length;
+ blocks.forEach(b=>{if(b.shared)b.sub+=" · hours apart from class";});
+ if(nSh)adv+=" Your week is full, so "+(nSh===1?"one home session shares a mat day":"your home sessions share mat days")+" — we always keep <b>one full rest day</b>.";
+ if(seq.length)adv+=" Do it at home or another gym — never right after class"+(nSh?", and on a shared day keep hours between the two.":".");
  return {blocks,adv};
 }
 function artLabel(){const xs=S.arts.filter(x=>x!=="mma"&&x!=="explore");if(xs.length===2)return NAME[xs[0]]+" & "+NAME[xs[1]];return NAME[S.art]||"Training";}
@@ -381,18 +414,28 @@ function headline(){const a=artLabel();
 function render(){
  const _snap={freq:S.freq,otype:S.otype,ofreq:S.ofreq,win:new Set(S.win)};let _used=[];
  if(!S.freq){S.freq=(S.goal==='compete'?'3':'2');_used.push('how often');}
- if(S.win.size===0){['morning','midday','evening'].forEach(w=>S.win.add(w));_used.push('availability');}
+ if(S.win.size===0){WINS.forEach(w=>S.win.add(w));_used.push('availability');}
  if(!S.otype){S.otype='nothing';S.ofreq='0';_used.push('side training');}
  if(S.otype&&S.otype!=='nothing'&&!S.ofreq)S.ofreq='2';
  const _restore=()=>{S.freq=_snap.freq;S.otype=_snap.otype;S.ofreq=_snap.ofreq;S.win=_snap.win;refresh();};
  if(S.goal==='compete'&&parseInt(S.freq)<3){document.getElementById('out').innerHTML=`<div class="card"><div class="advisory" style="background:#15140f;color:#f4f2ec;padding:28px 24px"><div class="h" style="color:#F2B713;margin-bottom:8px">Not enough to compete</div>To prepare for ${NAME[S.art]||'competition'} you need to train at least <b style="color:#fff">3× a week</b> with us — twice won't get you fight-ready. Bump up your frequency and let's build a real camp.</div></div>`;document.getElementById('out').scrollIntoView({behavior:'smooth',block:'start'});_restore();return;}
  let mat=buildMat();
- if(!mat.length){let el=eligible(),chk=SCHEDULE.filter(x=>el.includes(x.disc));if(S.goal!=='compete')chk=chk.filter(x=>x.lv!=='Competition');const w={morning:false,midday:false,evening:false};chk.forEach(x=>{const hh=parseInt(x.s);if(hh<12)w.morning=true;else if(hh<16)w.midday=true;else w.evening=true;});const L={morning:'Morning',midday:'Midday',evening:'Evening'};const have=Object.keys(w).filter(k=>w[k]).map(k=>L[k]);const an=S.art==='explore'?'Those classes':(S.goal==='defense'?'Self-defense classes':(NAME[S.art]||'')+' classes');document.getElementById('out').innerHTML=`<div class="card"><div class="advisory" style="background:#15140f;color:#f4f2ec;padding:28px 24px"><div class="h" style="color:#F2B713;margin-bottom:8px">No classes in those times</div>${an} don't run in your selected time(s). ${have.length?'They run in the <b style="color:#fff">'+have.join(' and ')+'</b> — add one of those and build again.':'Try picking different times.'}</div></div>`;document.getElementById('out').scrollIntoView({behavior:'smooth',block:'start'});_restore();return;}
+ if(!mat.length){let el=eligible(),chk=SCHEDULE.filter(x=>el.includes(x.disc));if(S.goal!=='compete')chk=chk.filter(x=>x.lv!=='Competition');const w={};chk.forEach(x=>{w[winOf(x.s)]=true;});const have=WINS.filter(k=>w[k]).map(k=>WINLBL[k]);const an=S.art==='explore'?'Those classes':(S.goal==='defense'?'Self-defense classes':(NAME[S.art]||'')+' classes');document.getElementById('out').innerHTML=`<div class="card"><div class="advisory" style="background:#15140f;color:#f4f2ec;padding:28px 24px"><div class="h" style="color:#F2B713;margin-bottom:8px">No classes in those times</div>${an} don't run in your selected time(s). ${have.length?'They run in the <b style="color:#fff">'+have.join(' and ')+'</b> — add one of those and build again.':'Try picking different times.'}</div></div>`;document.getElementById('out').scrollIntoView({behavior:'smooth',block:'start'});_restore();return;}
  mat=assignCoaches(mat);
- let _cc=contactCoach();const _present={};mat.forEach(m=>{_present[m.coach]=(_present[m.coach]||0)+1;});if(_cc&&!_present[_cc]){const EST=['joao','sergei','laszlo','natassja','samuel','nathan'];const best=Object.keys(_present).filter(c=>EST.includes(c)).sort((a,b)=>_present[b]-_present[a])[0];if(best)_cc=best;}
+ let _cc=contactCoach();const _present={};mat.forEach(m=>{_present[m.coach]=(_present[m.coach]||0)+1;});/* Samuel bleibt im Selbstverteidigungs-Bundle immer Kontakt; sonst muss der Kontakt im Plan unterrichten, andernfalls der etablierte Coach mit den meisten Stunden */if(_cc!=='samuel'&&((!_cc&&isBundle())||(_cc&&!_present[_cc]))){const EST=['joao','sergei','laszlo','natassja','samuel','nathan'];const best=Object.keys(_present).filter(c=>EST.includes(c)).sort((a,b)=>_present[b]-_present[a])[0];if(best)_cc=best;}
  const matDays=new Set(mat.map(m=>m.d));
- const sc=buildSC(matDays),total=mat.length,pkg=PKG[Math.max(0,Math.min(total-1,3))];
+ const sc=buildSC(mat),total=mat.length,pkg=PKG[Math.max(0,Math.min(total-1,3))];
  const _df=parseInt(S.freq)>=6?3:parseInt(S.freq)>=4?2:0;const _req=parseInt(S.freq)+_df;const _hasNear=mat.some(m=>m.near);const _short=total<_req;const _locName=S.loc==='w'?'Winterthur':'Zürich';const _artNm=artLabel();const _primaryDays=new Set(SCHEDULE.filter(x=>x.loc===S.loc&&eligible().includes(x.disc)&&(S.goal==='compete'||x.lv!=='Competition')&&inWin(x.s)).map(x=>x.d)).size;const _nearNms=[...new Set(mat.filter(m=>m.near).map(m=>NAME[m.disc]))].join(' and ');const _discLimited=_primaryDays<parseInt(S.freq);
+ /* Ehrliche Hinweise: Street Defense ausserhalb der Zeiten / nur in Zuerich; Fitness Kickboxing ist keine Wettkampfbasis; Anfaenger mit weniger als der Haelfte Basics */
+ const _notes=(function(){const N=[];const fmt=xs=>xs.map(x=>FULL[x.d]+' '+x.s).join(', ');
+  if(isBundle()&&!mat.some(m=>m.disc==='streetdefense')){const here=SCHEDULE.filter(x=>x.loc===S.loc&&x.disc==='streetdefense');
+   if(here.length)N.push(`<b>Street Defense</b> runs ${fmt(here)} at ${_locName} — outside your chosen times. Open that window to get it into your week. Samuel stays your point of contact.`);
+   else{const o=S.loc==='w'?'z':'w';const there=SCHEDULE.filter(x=>x.loc===o&&x.disc==='streetdefense');N.push(`<b>Street Defense</b> currently runs only in ${o==='w'?'Winterthur':'Zürich'}${there.length?' ('+fmt(there)+')':''}. At ${_locName} we build your self-defense week from <b>Boxing and BJJ</b>.`);}}
+  if(S.goal==='compete'&&S.arts.includes('fitnesskickboxing'))N.push(`<b>Fitness Kickboxing</b> is great conditioning, but it isn't the base to compete from. To step in the ring you'll need to add <b>Muay Thai or Boxing</b> — talk to Sergei about that path.`);
+  if(S.level==='beginner'&&S.goal!=='compete'&&!isBundle()){const own=mat.filter(m=>!m.near);const nb=own.filter(m=>m.lv==='Basics').length;
+   if(own.length&&nb<Math.ceil(own.length/2)){const el=eligible();const bAll=SCHEDULE.filter(x=>x.loc===S.loc&&el.includes(x.disc)&&x.lv==='Basics');const bWin=bAll.filter(x=>inWin(x.s)).length;
+    N.push((nb===0?`None of your ${own.length} sessions is a <b>Basics</b> class — they're all All Levels.`:`Only <b>${nb} of your ${own.length}</b> sessions ${nb===1?'is a':'are'} <b>Basics</b> class${nb===1?'':'es'} — the rest are All Levels.`)+(bAll.length>bWin?' Want more Basics? Open another time window.':` ${_artNm} Basics runs ${bAll.length}× a week at ${_locName}.`));}}
+  return N.map(t=>`<div class="shortnote">${t}</div>`).join('');})();
  const cc=_cc,hl=headline(),eye=hl[0],h1=hl[1];
  const svc=SERVICE[S.loc]||SERVICE.z;
  const _days=[...new Set(mat.map(m=>FULL[m.d]))].join('/');
@@ -416,7 +459,7 @@ function render(){
   });});
  document.getElementById('out').innerHTML=`<div class="card"><div class="cardlogo"><img src="${LOGO}"></div>${_used.length?`<div style="background:#2a2a2e;color:#f4f2ec;padding:9px 24px;font-size:11px;line-height:1.4">Built with flexible defaults for: <b>${_used.join(', ')}</b>. Fill those steps in for an exact plan.</div>`:''}${hero}
   <div class="motiv">Show up to <b>every</b> session here and you'll build a real foundation. Consistency beats everything.</div>
-  <div class="week">${rows}</div>${_hasNear?`<div class="edgenote">Marked <b>red with a ?</b>: <b>${_artNm}</b> runs limited times in your slots at ${_locName}, so we've added <b>${_nearNms}</b> to round out the week — confirm those fit.</div>`:''}${_short?(_discLimited?`<div class="shortnote"><b>${_artNm}</b> only runs ${_primaryDays} day${_primaryDays===1?'':'s'} a week in your chosen times at ${_locName}. Open another time window — or try the other location — for more.</div>`:`<div class="shortnote">Your selected times only hold <b>${total}</b> session${total===1?'':'s'} a week. Open up another window to train more often.</div>`):''}
+  <div class="week">${rows}</div>${_hasNear?`<div class="edgenote">Marked <b>red with a ?</b>: <b>${_artNm}</b> runs limited times in your slots at ${_locName}, so we've added <b>${_nearNms}</b> to round out the week — confirm those fit.</div>`:''}${_short?(_discLimited?`<div class="shortnote"><b>${_artNm}</b> only runs ${_primaryDays} day${_primaryDays===1?'':'s'} a week in your chosen times at ${_locName}. Open another time window — or try the other location — for more.</div>`:`<div class="shortnote">Your selected times only hold <b>${total}</b> session${total===1?'':'s'} a week. Open up another window to train more often.</div>`):''}${_notes}
   <div class="advisory"><div class="h">Strength &amp; Conditioning</div>${sc.adv}</div>
   ${resume}<div class="foot"><div><div class="rec">Recommended membership</div><h2>${pkg}</h2></div><div class="note">${total} session${total===1?'':'s'} a week. Your coach sets you up in the studio.</div></div>${firststop}
  </div>
@@ -436,7 +479,7 @@ track('tp_open');
  if(q.get('a'))S.arts=q.get('a').split(',').filter(Boolean);
  if(q.get('l'))S.level=q.get('l');
  if(q.get('f'))S.freq=q.get('f');
- if(q.get('w'))S.win=new Set(q.get('w').split(',').filter(Boolean));
+ if(q.get('w'))S.win=normWin(new Set(q.get('w').split(',').filter(Boolean)));
  if(q.get('o'))S.otype=q.get('o');
  if(q.get('of'))S.ofreq=q.get('of');
  press('loc',[S.loc]);press('goal',[S.goal]);press('level',[S.level]);press('freq',[S.freq]);press('win',[...(S.win||[])]);press('otype',[S.otype]);press('ofreq',[S.ofreq]);

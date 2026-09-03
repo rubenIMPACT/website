@@ -6,7 +6,7 @@ const L = {
   goal: { learn: "Kampfkunst lernen", fit: "Fit werden", defense: "Selbstverteidigung", compete: "Wettkampf" },
   art: { mma: "MMA", muaythai: "Muay Thai", boxing: "Boxen", bjj: "BJJ", wrestling: "Ringen", fitnesskickboxing: "Fitness Kickboxen", explore: "Unsicher" },
   level: { beginner: "Anfänger", intermediate: "Fortgeschritten", advanced: "Erfahren" },
-  win: { morning: "Morgen", midday: "Mittag", evening: "Abend" },
+  win: { morning: "Morgen", midday: "Mittag", early: "Früher Abend", late: "Später Abend", evening: "Abend" },
   otype: { nothing: "Nichts", cardio: "Laufen/Cardio", strength: "Kraft", sport: "Andere Sportart" },
   ofreq: { "1": "1x", "2": "2x", "3": "3+x" },
 };
