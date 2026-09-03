@@ -245,8 +245,7 @@ def main():
     total_rev = rev['class_total'] if rev else 0
     out = dict(window=win, generated=data.get('generated', ''), rows=rows, summary=summary(rows), revenue=rev,
                unmatched=sum(1 for r in rows if not r['matched']),
-               hitlist=hitlist(rows, lambda r: r['discipline'], total_rev),
-               hitlist_levels=hitlist(rows, lambda r: r['discipline'] + (' ' + r['level'] if r['level'] else ''), total_rev))
+               hitlist=hitlist(rows, lambda r: r['discipline'], total_rev))  # Level-Hitlist seit 03.09.2026 nicht mehr (Entscheid Ruben)
     json.dump(out, open(a.output, 'w', encoding='utf-8'), ensure_ascii=False)
     print(f'{len(rows)} Klassen -> {a.output}')
     for loc, s in sorted(out['summary'].items()):

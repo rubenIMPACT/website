@@ -253,11 +253,11 @@ function compute(data) {
   slotFactors(rows);
   const rev = applyRevenue(rows, data.revenue);
   const totalRev = rev ? rev.class_total : 0;
-  const hl = hitlist(rows, (r) => r.discipline, totalRev), hll = hitlist(rows, (r) => r.discipline + (r.level ? " " + r.level : ""), totalRev);
+  const hl = hitlist(rows, (r) => r.discipline, totalRev); // Level-Hitlist seit 03.09.2026 nicht mehr (Entscheid Ruben)
   const slimRev = rev ? { basis: rev.basis, members: rev.members, novisit: (rev.novisit || []).map((m) => ({ name: m.name, email: m.email, location: m.location, package: m.package, chf: m.chf, since: m.since })),
     nosub_visits: rev.nosub_visits, nosub_users: rev.nosub_users, visits_completed: rev.visits_completed, class_total: rev.class_total, other_total: rev.other_total, other_services: rev.other_services } : null;
   return { window: data.window, generated: data.generated, rows: rows.map((r) => { const o = {}; for (const k of KEEP_ROW) o[k] = r[k] === undefined ? null : r[k]; return o; }),
-    summary: summary(rows), unmatched: rows.filter((r) => !r.matched).length, hitlist: hl.map(slimHit), hitlist_levels: hll.map(slimHit), revenue: slimRev };
+    summary: summary(rows), unmatched: rows.filter((r) => !r.matched).length, hitlist: hl.map(slimHit), revenue: slimRev };
 }
 
 // ---------------------------------------------------------------- Value Pricing (1:1 aus tools/klassenanalyse/fetch_reports.js)

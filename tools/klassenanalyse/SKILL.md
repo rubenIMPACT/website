@@ -148,7 +148,7 @@ Regeln: Levels zusammengefasst (Basics + All Levels + Competition), BJJ Gi und B
 Competition" zaehlt zu Gi, "Striking - Competition" zu Muay Thai), Kids in derselben Liste, Open Mat und Self
 Defense for Women ausgeschlossen. Zweite Liste nach Disziplin und Level. Ab dem zweiten Import zusaetzlich eine
 rollierende Liste ueber die letzten drei Monate (Tab KlassenHistorieDisziplin, versteckt). Alles rechnet
-`build_import.py` (Felder `hitlist`, `hitlist_levels`), das Apps-Script rendert nur.
+`build_import.py` (Feld `hitlist`; die Level-Liste ist seit 03.09.2026 weg, stattdessen zeigt das Apps Script Top 10 / Bottom 10 Klassen nach Umsatz je Termin aus den Zeilen), das Apps-Script rendert nur.
 
 ## Datenfallen
 

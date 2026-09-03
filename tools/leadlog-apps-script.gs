@@ -483,7 +483,7 @@ function updateKlassenHistorieDisziplin(ss, data, mkey) {
   var head = ['Monat', 'Typ', 'Name', 'Standort', 'Index', 'Auslastung', 'Besuche', 'Termine', 'Plätze', 'Termine mit Vergleich'];
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet(); }
   var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return String(r[0]) !== mkey; }) : [];
-  [['Disziplin', data.hitlist || []], ['Level', data.hitlist_levels || []]].forEach(function (pair) {
+  [['Disziplin', data.hitlist || []]].forEach(function (pair) { // Level-Liste seit 03.09.2026 nicht mehr (Entscheid Ruben)
     pair[1].forEach(function (h) {
       keep.push([mkey, pair[0], h.name, 'Mittel', h.index == null ? '' : h.index, h.util, h.attended, h.events, h.capacity, h.with_neighbor]);
       ['Zurich', 'Winterthur'].forEach(function (loc) { var g = h[loc]; if (g) keep.push([mkey, pair[0], h.name, loc, g.index, g.util, g.attended, g.events, '', g.with_neighbor]); });
@@ -541,6 +541,26 @@ function hitlistBlock(sh, r, title, list) {
   r += vals.length;
   sh.getRange(r, 1).setValue('Rang nach Umsatzanteil. Umsatz je Termin = Umsatz / Termine. n/a = unter der Mindestschwelle am Standort (Ø < 3 Personen pro Klasse oder < 4 Termine im Monat); Index Mittel dann nur aus dem anderen Standort.').setFontColor('#666666').setFontStyle('italic');
   return Math.max(r + 2, hdr + Math.ceil((80 + 22 * vals.length) / 21) + 2);
+}
+
+function classBlock(sh, r, title, list, color) {
+  sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
+  // Spalten F und L sind im Tab ausgeblendet, deshalb dort Leerspalten
+  var hh = ['Rang', 'Standort', 'Klasse (Tag, Zeit)', 'Tag', 'Zeit', '', 'Trainer', 'Umsatz je Termin', 'Umsatz CHF/Monat', 'Termine', 'Ø pro Klasse', '', 'Auslastung'];
+  var hdr = r;
+  sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+  var vals = list.map(function (x, i) {
+    return [i + 1, x.location, x.service + ' (' + x.days + ' ' + x.start + ', ' + (x.location === 'Zurich' ? 'ZH' : 'WT') + ')', x.days, x.start, '', x.staff || '', x.revenue_per_event, x.revenue, x.events, x.events ? x.attended / x.events : '', '', x.capacity ? x.attended / x.capacity : ''];
+  });
+  sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
+  sh.getRange(r, 8, vals.length, 2).setNumberFormat('#,##0'); sh.getRange(r, 10, vals.length, 1).setNumberFormat('0'); sh.getRange(r, 11, vals.length, 1).setNumberFormat('0.0'); sh.getRange(r, 13, vals.length, 1).setNumberFormat('0%');
+  sh.getRange(r, 8, vals.length, 1).setBackground(color);
+  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.BAR).setNumHeaders(1)
+    .addRange(sh.getRange(hdr, 3, vals.length + 1, 1)).addRange(sh.getRange(hdr, 8, vals.length + 1, 1))
+    .setPosition(hdr - 1, 18, 0, 0).setOption('title', title.split(' (')[0] + ' (CHF)').setOption('legend', { position: 'none' })
+    .setOption('colors', [color === '#C6E0B4' ? '#1a73e8' : '#e2c210']).setOption('hAxis', { minValue: 0 }).setOption('width', 620).setOption('height', 80 + 24 * vals.length).build());
+  r += vals.length;
+  return Math.max(r + 2, hdr + Math.ceil((80 + 24 * vals.length) / 21) + 2);
 }
 
 function buildKlassenanalyse(ss, data, fileName) {
@@ -617,7 +637,14 @@ function buildKlassenanalyse(ss, data, fileName) {
     sh.getRange(hr, 1, rv.length, 8).setValues(rv); sh.getRange(hr, 3, rv.length, 1).setNumberFormat('0.00'); sh.getRange(hr, 5, rv.length, 1).setNumberFormat('0%');
     hr += rv.length + 1;
   }
-  hr = hitlistBlock(sh, hr, 'Hitlist nach Disziplin und Level', data.hitlist_levels || []);
+  // Klassen-Hitlist (Entscheid Ruben 03.09.2026, ersetzt die Level-Liste): Umsatz je Termin ist ueber alle Klassen vergleichbar
+  // (60 Minuten, ein Trainer). Nur Klassen mit mindestens 4 Terminen, Open Mat raus.
+  var ranked = rows.filter(function (x) { return x.segment !== 'Gratis' && x.events >= 4 && x.revenue_per_event != null && x.revenue_per_event !== ''; })
+    .sort(function (a, b) { return b.revenue_per_event - a.revenue_per_event; });
+  if (ranked.length) {
+    hr = classBlock(sh, hr, 'Top 10 Klassen nach Umsatz je Termin (mindestens 4 Termine im Monat)', ranked.slice(0, 10), '#C6E0B4');
+    hr = classBlock(sh, hr, 'Bottom 10 Klassen nach Umsatz je Termin (mindestens 4 Termine im Monat)', ranked.slice(-10).reverse(), '#F8CBAD');
+  }
   // ---- Slot-Tabelle
   var HR = hr + 1, D0 = HR + 1, last = D0 + rows.length - 1;
   sh.getRange(HR - 1, 1).setValue('Klassen nach Standort, Wochentag und Uhrzeit (liest sich wie der Stundenplan; Rangliste per Filter)').setFontWeight('bold').setFontSize(12);
