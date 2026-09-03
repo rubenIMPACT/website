@@ -226,16 +226,18 @@ function buildDaten(ss) {
 // weil COUNTIFS nur gleich grosse Bereiche kombinieren kann und zwei Tabs nie garantiert gleich lang sind.
 function buildPlanDaten(ss) {
   var sh = getOrCreate(ss, 'PlanDaten'); clearSheet(sh);
-  sh.appendRow(['Datum', 'Monat', 'Letzte', 'Zählt', 'Standort', 'Ziel', 'Kampfkunst', 'Level', 'Tage/Woche', 'Zeitfenster', 'Nebensport', 'Nebensport/Woche', 'Lead-ID']);
+  sh.appendRow(['Datum', 'Monat', 'Letzte', 'Zählt', 'Standort', 'Ziel', 'Kampfkunst', 'Level', 'Tage/Woche', 'Zeitfenster', 'Nebensport', 'Nebensport/Woche', 'Lead-ID', 'Schlüssel']);
   var A = 'Trainingsplan!A2:A', blank = 'IF(' + A + '="","",';
   sh.getRange('A2').setFormula('=ARRAYFORMULA(' + blank + 'INT(' + A + ')))');
   sh.getRange('B2').setFormula('=ARRAYFORMULA(' + blank + 'DATE(YEAR(' + A + '),MONTH(' + A + '),1)))');
-  sh.getRange('C2').setFormula('=ARRAYFORMULA(' + blank + 'IF(COUNTIFS(Trainingsplan!B2:B,Trainingsplan!B2:B&"",Trainingsplan!A2:A,">"&Trainingsplan!A2:A)=0,1,0)))');
+  // Schluessel = Person: CRM-Kennung (Lead-ID, Spalte P) wenn bekannt, sonst die Sitzung (Spalte B). Gezaehlt wird nur der letzte Plan je Schluessel (Entscheid Ruben 03.09.2026).
+  sh.getRange('N2').setFormula('=ARRAYFORMULA(' + blank + 'IF(Trainingsplan!P2:P<>"","L"&Trainingsplan!P2:P,"S"&Trainingsplan!B2:B)))');
+  sh.getRange('C2').setFormula('=ARRAYFORMULA(' + blank + 'IF(COUNTIFS(N2:N,N2:N&"",Trainingsplan!A2:A,">"&Trainingsplan!A2:A)=0,1,0)))');
   sh.getRange('D2').setFormula('=ARRAYFORMULA(' + blank + 'IF((C2:C=1)*(LOWER(Trainingsplan!C2:C&"")<>"share")*(NOT(REGEXMATCH(LOWER(Trainingsplan!Q2:Q&""),"^test"))),1,0)))');
   var copy = { E: 'D', F: 'E', G: 'F', H: 'G', I: 'H', J: 'I', K: 'J', L: 'K', M: 'P' }; // Ziel <- Quelle (Trainingsplan)
   for (var c in copy) sh.getRange(c + '2').setFormula('=ARRAYFORMULA(' + blank + 'Trainingsplan!' + copy[c] + '2:' + copy[c] + '&""))');
   sh.getRange('A2:B').setNumberFormat('dd.mm.yyyy');
-  sh.getRange(1, 1, 1, 13).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
+  sh.getRange(1, 1, 1, 14).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
 }
 
 // Analyse: Kennzahlen, Wochen- und Monatstabelle, Diagramme
@@ -327,7 +329,7 @@ function buildAnalyse(ss) {
 function buildPlanAnalyse(ss) {
   var sh = getOrCreate(ss, 'Trainingsplan-Analyse'); clearSheet(sh);
   sh.getRange('A1').setValue('Trainingsplan-Tool – Auswertung der Eingaben').setFontSize(16).setFontWeight('bold');
-  sh.getRange('A2').setValue('Gezaehlt wird pro Sitzung nur der zuletzt erstellte Plan; Aufrufe ueber geteilte Links und Testleads zaehlen nicht. "Monat" = Kalendermonat.').setFontColor('#666666');
+  sh.getRange('A2').setValue('Gezaehlt wird pro Person nur der zuletzt erstellte Plan (Person = CRM-Kontakt, sonst Sitzung); Aufrufe ueber geteilte Links und Testleads zaehlen nicht. "Monat" = Kalendermonat.').setFontColor('#666666');
   var cur = 'DATE(YEAR(TODAY()),MONTH(TODAY()),1)', prev = 'DATE(YEAR(TODAY()),MONTH(TODAY())-1,1)';
   var base = 'PlanDaten!$D:$D,1';
   var r = 4;
