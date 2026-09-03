@@ -94,6 +94,22 @@ probieren, bleiben nicht. Hoch = fester Stamm, den eine Schliessung real kostet.
 **Bewertung** im Sheet: unter 5 Termine "zu wenig Termine", unter 10 Prozent "tot", unter 16 "schliessen
 pruefen", unter 28 "schwach", ueber 45 "Kapazitaet pruefen".
 
+## Value Pricing und Kuendigungsrisiko (seit 03.09.2026, Entscheid Ruben)
+
+`fetch_reports.js` holt zusaetzlich `detailed_visits` (alle Check-ins des Monats, per=5000) und `active_subscription`
+(alle laufenden Abos, per=2000) und rechnet im Browser (`REVENUE`): Netto-Abobetrag pro Monat je Mitglied (Payment Plan
+Price ohne MwSt, Jahres-/Halbjahresabos auf Monate umgerechnet, Coupon abgezogen; pausierte und geplante Abos raus)
+gleichmaessig auf dessen abgeschlossene Check-ins verteilt und je Slot (Standort|Kurs|Wochentag|Uhrzeit) summiert.
+Check-ins ohne Abo (Probetraining, Gaeste) = 0 CHF. `collect()` liefert das als `revenue` (slots, members je Standort,
+novisit = Mitglieder ohne einen Check-in, mit Name/E-Mail/Abo/CHF). `build_import.py` haengt `revenue` und
+`revenue_per_event` an die Klassenzeilen (Kursnamen normalisiert, exercise.com liefert z.B. "Boxing - All Levels " mit
+Leerzeichen), `revenue`/`revenue_share` an die Hitlist und gibt `revenue` (ohne slots) an das Apps-Script weiter.
+Im Sheet: Klassenanalyse zeigt Umsatz CHF/Monat und CHF/Termin je Klasse, Umsatz je Standort und Umsatzanteil je
+Disziplin (nur Umsatz je Termin, KEINE Trainerstunden, alle Klassen dauern 60 Minuten; Entscheid Ruben). Tab
+"Kuendigungsrisiko": Statistik pro Monat je Standort (Abos, mit/ohne Besuch, Quote, CHF) aus dem versteckten Tab
+RisikoHistorie plus Namensliste des Monats mit manueller Notizspalte (bleibt beim Import erhalten). Kein Grenzumsatz:
+faellt eine Klasse weg, wandern die Besuche in andere Klassen.
+
 ## Hitlist Kampfsportarten (seit 03.09.2026, Entscheid Ruben)
 
 Mindestschwelle je Standort (Ruben 03.09.2026): Index nur bei Ø >= 3 Personen pro Klasse UND >= 4 Terminen im Monat, sonst `null` (Sheet zeigt n/a); das Mittel nimmt dann nur den anderen Standort.

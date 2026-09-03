@@ -95,6 +95,33 @@ def load(data):
 EXCL_HIT = re.compile(r'open mat|self defense for women', re.I)   # nicht in der Hitlist (Entscheid Ruben 03.09.2026)
 
 
+def apply_revenue(rows, rv):
+    """Value Pricing: verteilter Abo-Nettoumsatz je Slot (aus fetch_reports.js REVENUE) an die Klassenzeilen haengen.
+    Schluessel Standort|Kurs|Wochentag|HH:MM; Zeilen mit mehreren Tagen (z.B. 'We, Fr') summieren ueber die Tage."""
+    if not rv or not rv.get('slots'):
+        return None
+    norm = lambda k: '|'.join(' '.join(x.split()) for x in k.split('|'))   # exercise.com liefert z.B. 'Boxing - All Levels ' mit Leerzeichen
+    slots = {norm(k): v for k, v in rv['slots'].items()}
+    used = set()
+    for r in rows:
+        chf, vis = 0.0, 0
+        for d in r['days'].split(','):
+            k = norm(f"{r['location']}|{r['service']}|{d.strip()}|{r['start']}")
+            if k in slots:
+                chf += slots[k]['chf']; vis += slots[k]['visits']; used.add(k)
+        r['revenue'] = round(chf, 2); r['revenue_visits'] = vis
+        r['revenue_per_event'] = round(chf / r['events'], 2) if r['events'] else None
+    other = collections.defaultdict(float)
+    for k, sl in slots.items():
+        if k not in used:
+            other[k.split('|')[1]] += sl['chf']
+    out = {k: v for k, v in rv.items() if k != 'slots'}
+    out['class_total'] = round(sum(r['revenue'] for r in rows), 2)
+    out['other_services'] = {k: round(v, 2) for k, v in sorted(other.items(), key=lambda x: -x[1])}
+    out['other_total'] = round(sum(other.values()), 2)
+    return out
+
+
 def discipline(service):
     """Disziplin ohne Level. BJJ Gi und No-Gi getrennt, Levels zusammen, Competition drin, Kids drin."""
     x = re.sub(r'\s+', ' ', service.replace('&amp;', '&')).strip()
@@ -132,10 +159,10 @@ def slot_factors(rows):
 MIN_AVG, MIN_EV = 3, 4  # Mindestschwelle je Standort fuer einen Hitlist-Index
 
 
-def hitlist(rows, key):
+def hitlist(rows, key, total_rev=0):
     """Gewichtete Hitlist. key(r) = Gruppenname. Index = Slot-Faktor gewichtet mit Terminen, ERST je Standort,
     dann Mittel beider Standorte. Termine mit Vergleich = Termine in Slots mit mindestens einer Nachbarklasse."""
-    per = collections.defaultdict(lambda: collections.defaultdict(lambda: dict(w=0, wr=0, ev=0, att=0, cap=0, evn=0, uniq=0, n=0)))
+    per = collections.defaultdict(lambda: collections.defaultdict(lambda: dict(w=0, wr=0, ev=0, att=0, cap=0, evn=0, uniq=0, n=0, rev=0.0)))
     for r in rows:
         if r['segment'] == 'Gratis' or EXCL_HIT.search(r['service']): continue
         k = key(r)
@@ -143,7 +170,7 @@ def hitlist(rows, key):
         keys = [k.replace('BJJ Competition', 'BJJ Gi'), k.replace('BJJ Competition', 'BJJ No-Gi')] if 'BJJ Competition' in k else [k]
         for kk in keys:
             g = per[kk][r['location']]
-            g['ev'] += r['events']; g['att'] += r['attended']; g['cap'] += r['capacity']; g['uniq'] += r['uniq']; g['n'] += 1
+            g['ev'] += r['events']; g['att'] += r['attended']; g['cap'] += r['capacity']; g['uniq'] += r['uniq']; g['n'] += 1; g['rev'] += r.get('revenue') or 0
             if r.get('slot_ratio') is not None:
                 g['w'] += r['events']; g['wr'] += r['events'] * r['slot_ratio']
                 if r.get('has_neighbor'): g['evn'] += r['events']
@@ -159,13 +186,15 @@ def hitlist(rows, key):
                 idx = g['wr'] / g['w'] if (avg >= MIN_AVG and g['ev'] >= MIN_EV) else None
                 if idx is not None: vals.append(idx)
                 row[loc] = dict(index=idx, util=g['att'] / g['cap'] if g['cap'] else 0, events=g['ev'], attended=g['att'],
-                                avg=avg, with_neighbor=g['evn'], uniq=g['uniq'], classes=g['n'])
+                                avg=avg, with_neighbor=g['evn'], uniq=g['uniq'], classes=g['n'], revenue=round(g['rev'], 2))
             else:
                 row[loc] = None
         row['index'] = sum(vals) / len(vals) if vals else None
         row['events'] = sum(locs[l]['ev'] for l in locs); row['attended'] = sum(locs[l]['att'] for l in locs)
         row['capacity'] = sum(locs[l]['cap'] for l in locs); row['with_neighbor'] = sum(locs[l]['evn'] for l in locs)
         row['uniq'] = sum(locs[l]['uniq'] for l in locs)
+        row['revenue'] = round(sum(locs[l]['rev'] for l in locs), 2) if total_rev else None
+        row['revenue_share'] = (row['revenue'] / total_rev) if total_rev else None
         row['util'] = row['attended'] / row['capacity'] if row['capacity'] else 0
         out.append(row)
     out.sort(key=lambda r: (-(r['index'] if r['index'] is not None else -9), -r['attended']))
@@ -186,6 +215,7 @@ def summary(rows):
             continue
         s = out.setdefault(r['location'], {'classes': 0, 'events': 0, 'attended': 0, 'capacity': 0})
         s['classes'] += 1; s['events'] += r['events']; s['attended'] += r['attended']; s['capacity'] += r['capacity']
+        s['revenue'] = round(s.get('revenue', 0) + (r.get('revenue') or 0), 2)
     return out
 
 
@@ -202,15 +232,20 @@ def main():
     for r in rows:
         r['discipline'] = discipline(r['service']); r['level'] = level(r['service'])
     slot_factors(rows)
-    out = dict(window=win, generated=data.get('generated', ''), rows=rows, summary=summary(rows),
+    rev = apply_revenue(rows, data.get('revenue'))
+    total_rev = rev['class_total'] if rev else 0
+    out = dict(window=win, generated=data.get('generated', ''), rows=rows, summary=summary(rows), revenue=rev,
                unmatched=sum(1 for r in rows if not r['matched']),
-               hitlist=hitlist(rows, lambda r: r['discipline']),
-               hitlist_levels=hitlist(rows, lambda r: r['discipline'] + (' ' + r['level'] if r['level'] else '')))
+               hitlist=hitlist(rows, lambda r: r['discipline'], total_rev),
+               hitlist_levels=hitlist(rows, lambda r: r['discipline'] + (' ' + r['level'] if r['level'] else ''), total_rev))
     json.dump(out, open(a.output, 'w', encoding='utf-8'), ensure_ascii=False)
     print(f'{len(rows)} Klassen -> {a.output}')
     for loc, s in sorted(out['summary'].items()):
         print(f"  {loc}: {s['classes']} Klassen, {s['events']} Termine, {s['attended']} Besuche, {s['capacity']} Plaetze, "
               f"Auslastung {s['attended'] / s['capacity']:.0%}" if s['capacity'] else f'  {loc}: keine Plaetze')
+    if rev:
+        print(f"Value Pricing: {rev['class_total']:.0f} CHF netto auf Klassen verteilt, {rev['other_total']:.0f} CHF auf andere Services (PT etc.), "
+              f"{rev['nosub_visits']} Check-ins ohne Abo; ohne Besuch: " + ', '.join(f"{k} {v['novisit']}/{v['subs']} ({v['chf_novisit']} CHF)" for k, v in rev['members'].items()))
     if out['unmatched']:
         print(f"  {out['unmatched']} Klassen ohne Gegenstueck im Recurring-Report (keine Unique Users/Trainer)")
     print('Hitlist (Slot-Index, erst je Standort, dann Mittel):')

@@ -198,7 +198,7 @@ function setupAnalyse() {
   var ka = ss.getSheetByName('Klassenanalyse');
   if (!ka) { ka = ss.insertSheet('Klassenanalyse'); ka.getRange('A1').setValue('Klassenanalyse: wird monatlich vom Skill impact-class-analysis aus den exercise.com-Reports befuellt (Popular Services + Itemized Recurring Sessions).').setFontColor('#666666'); }
   // Reihenfolge von Ruben (03.09.2026). Tab-Namen: Analyse, Trainingsplan-Analyse, Leads Historie duerfen umbenannt werden (dann hier nachziehen); Leads, Trainingsplan, Events, Kündigungen, Klassenanalyse und die Hilfstabs NIE umbenennen (Webapp schreibt per Name).
-  var order = ['Analyse', 'Klassenanalyse', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin'];
+  var order = ['Analyse', 'Klassenanalyse', 'Kündigungsrisiko', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin', 'RisikoHistorie'];
   var pos = 1;
   for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
   ss.setActiveSheet(ss.getSheetByName('Analyse'));
@@ -415,7 +415,8 @@ var KA_FOLDER = 'Klassenanalyse-Import';
 var KA_SHEET = 'Klassenanalyse';
 var KA_HIST = 'KlassenHistorie';
 var KA_HIST_D = 'KlassenHistorieDisziplin'; // Monat, Typ (Disziplin|Level), Name, Standort (Zurich|Winterthur|Mittel), Index, Auslastung, Besuche, Termine, Plaetze, Termine mit Vergleich
-var KA_HEAD = ['Standort', 'Segment', 'Klasse', 'Tag', 'Zeit', 'Tagtyp', 'Termine', 'Besuche', 'Ø pro Klasse', 'Ø dieser Uhrzeit', 'Verhältnis zur Uhrzeit', 'Plätze', 'Auslastung', 'Unique Users', 'Buchungen', 'Besuche je Teilnehmer', 'Trainer', 'Bewertung', 'Aktion'];
+var KA_HEAD = ['Standort', 'Segment', 'Klasse', 'Tag', 'Zeit', 'Tagtyp', 'Termine', 'Besuche', 'Ø pro Klasse', 'Ø dieser Uhrzeit', 'Verhältnis zur Uhrzeit', 'Plätze', 'Auslastung', 'Unique Users', 'Buchungen', 'Besuche je Teilnehmer', 'Trainer', 'Bewertung', 'Umsatz CHF/Monat', 'Umsatz CHF/Termin', 'Aktion'];
+var RISK_SHEET = 'Kündigungsrisiko', RISK_HIST = 'RisikoHistorie'; // Value Pricing / Mitglieder ohne Besuch (seit 03.09.2026)
 
 function latestImportFile() {
   var it = DriveApp.getFoldersByName(KA_FOLDER);
@@ -439,6 +440,7 @@ function importKlassenanalyse(force) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   updateKlassenHistorie(ss, data);
   buildKlassenanalyse(ss, data, f.getName());
+  if (data.revenue) { updateRisikoHistorie(ss, data); buildRisiko(ss, data, f.getName()); }
   props.setProperty('KA_LAST', stamp);
   Logger.log('Klassenanalyse importiert: ' + f.getName() + ' (' + (data.rows || []).length + ' Klassen)');
 }
@@ -497,16 +499,16 @@ function rollingHitlist(ss, typ, n) {
 
 function hitlistBlock(sh, r, title, list) {
   sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
-  var hh = ['Rang', 'Disziplin', 'Index Zürich', 'Index Winterthur', 'Index Mittel', 'Auslastung', 'Besuche', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', 'Unique Users'];
+  var hh = ['Rang', 'Disziplin', 'Index Zürich', 'Index Winterthur', 'Index Mittel', 'Auslastung', 'Besuche', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', 'Unique Users', 'Umsatz CHF/Monat', 'Umsatzanteil'];
   sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
   var vals = list.map(function (h, i) {
     var z = h.Zurich, w = h.Winterthur;
     var ix = function (o) { return !o ? '' : (o.index == null ? 'n/a' : o.index); };
-    return [i + 1, h.name, ix(z), ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0];
+    return [i + 1, h.name, ix(z), ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0, h.revenue == null ? '' : h.revenue, h.revenue_share == null ? '' : h.revenue_share];
   });
   if (vals.length) {
     sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
-    sh.getRange(r, 3, vals.length, 3).setNumberFormat('0.00'); sh.getRange(r, 6, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 7, vals.length, 3).setNumberFormat('0'); sh.getRange(r, 10, vals.length, 1).setNumberFormat('0.0'); sh.getRange(r, 11, vals.length, 1).setNumberFormat('0');
+    sh.getRange(r, 3, vals.length, 3).setNumberFormat('0.00'); sh.getRange(r, 6, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 7, vals.length, 3).setNumberFormat('0'); sh.getRange(r, 10, vals.length, 1).setNumberFormat('0.0'); sh.getRange(r, 11, vals.length, 1).setNumberFormat('0'); sh.getRange(r, 12, vals.length, 1).setNumberFormat('#,##0'); sh.getRange(r, 13, vals.length, 1).setNumberFormat('0%');
     var rg = sh.getRange(r, 5, vals.length, 1), rules = sh.getConditionalFormatRules();
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThanOrEqualTo(1.1).setBackground('#C6E0B4').setRanges([rg]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.8).setBackground('#F8CBAD').setRanges([rg]).build());
@@ -523,9 +525,10 @@ function buildKlassenanalyse(ss, data, fileName) {
   var actions = {};
   var lr = sh.getLastRow();
   if (lr > 0) {
-    var all = sh.getRange(1, 1, lr, KA_HEAD.length).getValues();
+    var all = sh.getRange(1, 1, lr, Math.max(KA_HEAD.length, sh.getLastColumn())).getValues(), ac = -1;
+    for (var hI = 0; hI < all.length && ac < 0; hI++) ac = all[hI].indexOf('Aktion'); // Spalte "Aktion" suchen (Layout kann sich aendern)
     for (var i = 0; i < all.length; i++) {
-      if (all[i][0] && all[i][2] && all[i][3] && all[i][18] && all[i][0] !== 'Standort') actions[[all[i][0], all[i][2], all[i][3], all[i][4]].join('|')] = all[i][18];
+      if (ac >= 0 && all[i][0] && all[i][2] && all[i][3] && all[i][ac] && all[i][0] !== 'Standort') actions[[all[i][0], all[i][2], all[i][3], all[i][4]].join('|')] = all[i][ac];
     }
   }
   clearSheet(sh);
@@ -534,7 +537,7 @@ function buildKlassenanalyse(ss, data, fileName) {
   var tot = { cls: 0, ev: 0, att: 0 };
   for (var r0 = 0; r0 < rows.length; r0++) { tot.cls++; tot.ev += rows[r0].events; tot.att += rows[r0].attended; }
   sh.getRange('A1').setValue('IMPACT Klassenanalyse ' + fmt(win.start) + ' bis ' + fmt(win.end)).setFontSize(16).setFontWeight('bold');
-  sh.getRange('A2').setValue(tot.cls + ' Klassen, ' + tot.ev + ' durchgeführte Termine, ' + tot.att + ' Besuche. Importiert ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm') + ' aus ' + fileName + ' (exercise.com Popular Services + Itemized Recurring Sessions).').setFontColor('#666666');
+  sh.getRange('A2').setValue(tot.cls + ' Klassen, ' + tot.ev + ' durchgeführte Termine, ' + tot.att + ' Besuche. Importiert ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm') + ' aus ' + fileName + ' (exercise.com Popular Services + Itemized Recurring Sessions' + (data.revenue ? '; Umsatz aus Itemized Visits + Active Subscriptions: Netto-Abobetrag je Mitglied gleichmässig auf dessen Check-ins verteilt' : '') + ').').setFontColor('#666666');
 
   // ---- Standort-Summen mit Vergleich zum Vormonat (aus KlassenHistorie)
   var hist = ss.getSheetByName(KA_HIST);
@@ -543,13 +546,13 @@ function buildKlassenanalyse(ss, data, fileName) {
   var prevKey = Utilities.formatDate(new Date(month.getFullYear(), month.getMonth() - 1, 1), TZ, 'yyyy-MM');
   var prevUtil = {};
   for (var h = 0; h < hv.length; h++) if (hv[h][0] instanceof Date && Utilities.formatDate(hv[h][0], TZ, 'yyyy-MM') === prevKey) prevUtil[hv[h][1]] = hv[h][6];
-  sh.getRange(4, 1, 1, 7).setValues([['Standort', 'Klassen', 'Termine', 'Besuche', 'Plätze', 'Auslastung', 'Δ% zum Vormonat']]).setFontWeight('bold').setBackground('#f3f3f3');
+  sh.getRange(4, 1, 1, 8).setValues([['Standort', 'Klassen', 'Termine', 'Besuche', 'Plätze', 'Auslastung', 'Δ% zum Vormonat', 'Umsatz CHF/Monat']]).setFontWeight('bold').setBackground('#f3f3f3');
   var sum = data.summary || {}, locs = Object.keys(sum).sort(), r = 5;
   for (var l = 0; l < locs.length; l++) {
     var s = sum[locs[l]], util = s.capacity ? s.attended / s.capacity : '';
     var d = (util !== '' && prevUtil[locs[l]]) ? (util - prevUtil[locs[l]]) / prevUtil[locs[l]] : '';
-    sh.getRange(r, 1, 1, 7).setValues([[locs[l], s.classes, s.events, s.attended, s.capacity, util, d]]);
-    sh.getRange(r, 6).setNumberFormat('0%'); sh.getRange(r, 7).setNumberFormat('+0.0%;-0.0%');
+    sh.getRange(r, 1, 1, 8).setValues([[locs[l], s.classes, s.events, s.attended, s.capacity, util, d, s.revenue == null ? '' : s.revenue]]);
+    sh.getRange(r, 6).setNumberFormat('0%'); sh.getRange(r, 7).setNumberFormat('+0.0%;-0.0%'); sh.getRange(r, 8).setNumberFormat('#,##0');
     r++;
   }
 
@@ -599,7 +602,7 @@ function buildKlassenanalyse(ss, data, fileName) {
   var NG = '$B$' + D0 + ':$B$' + last + ',"<>Gratis"';
   for (var i2 = 0; i2 < rows.length; i2++) {
     var x = rows[i2], rr = D0 + i2, free = x.segment === 'Gratis';
-    statics.push([x.location, x.segment, x.service, x.days, x.start, x.daytype, x.events, x.attended, '', '', '', x.capacity, '', x.uniq, x.rec_visits, '', x.staff, '', actions[[x.location, x.service, x.days, x.start].join('|')] || '']);
+    statics.push([x.location, x.segment, x.service, x.days, x.start, x.daytype, x.events, x.attended, '', '', '', x.capacity, '', x.uniq, x.rec_visits, '', x.staff, '', x.revenue == null ? '' : x.revenue, x.revenue_per_event == null ? '' : x.revenue_per_event, actions[[x.location, x.service, x.days, x.start].join('|')] || '']);
     var b = '$A$' + D0 + ':$A$' + last + ',$A' + rr + ',$E$' + D0 + ':$E$' + last + ',$E' + rr + ',$F$' + D0 + ':$F$' + last + ',$F' + rr + ',' + NG;
     formulas.push({
       I: '=IF(G' + rr + '=0,"",H' + rr + '/G' + rr + ')',
@@ -614,19 +617,99 @@ function buildKlassenanalyse(ss, data, fileName) {
   var cols = { I: 9, J: 10, K: 11, M: 13, P: 16, R: 18 };
   for (var c in cols) sh.getRange(D0, cols[c], rows.length, 1).setFormulas(formulas.map(function (f) { return [f[c]]; }));
   sh.getRange(D0, 9, rows.length, 2).setNumberFormat('0.0'); sh.getRange(D0, 11, rows.length, 1).setNumberFormat('0.00');
-  sh.getRange(D0, 13, rows.length, 1).setNumberFormat('0%'); sh.getRange(D0, 16, rows.length, 1).setNumberFormat('0.0');
+  sh.getRange(D0, 13, rows.length, 1).setNumberFormat('0%'); sh.getRange(D0, 16, rows.length, 1).setNumberFormat('0.0'); sh.getRange(D0, 19, rows.length, 2).setNumberFormat('#,##0');
   var mr = sh.getRange(D0, 13, rows.length, 1);
   sh.setConditionalFormatRules(sh.getConditionalFormatRules().concat([
     SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.16).setBackground('#F8CBAD').setRanges([mr]).build(),
     SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.45).setBackground('#C6E0B4').setRanges([mr]).build(),
   ]));
   sh.hideColumns(6); sh.hideColumns(12);
-  sh.setFrozenRows(0); sh.setColumnWidth(3, 200); sh.setColumnWidth(17, 220); sh.setColumnWidth(19, 260);
+  sh.setFrozenRows(0); sh.setColumnWidth(3, 200); sh.setColumnWidth(17, 220); sh.setColumnWidth(21, 260);
   var notes = [
     'Termine, Besuche und Plätze aus "Popular Services" (Events zählt nur durchgeführte Termine; Ferien, Ausfälle, Trainer-Rotation sind damit erledigt). Unique Users, Buchungen, Trainer aus "Itemized Recurring Sessions", verbunden über Standort, Kurs, Wochentag, Startzeit.',
     'Auslastung = Besuche / Plätze (Hauptkennzahl). Ø dieser Uhrzeit = Schnitt aller Klassen zur selben Uhrzeit, am selben Standort, gleicher Tagtyp (Werktag/Samstag). Verhältnis < 1 = schwächer als die Nachbarklassen zur selben Zeit.',
     'Besuche je Teilnehmer = Buchungen / Unique Users (beide aus dem Recurring-Report, enthalten No-Shows). Gratisklassen (Open Mat) sind aus Vergleichen ausgeschlossen. Spalte "Aktion" ist manuell und bleibt beim nächsten Import erhalten.',
     'Bewertung: < 5 Termine = zu wenig Termine; < 10% tot; < 16% schliessen prüfen; < 28% schwach; > 45% Kapazität prüfen. Competition-Klassen nicht nach Ø bewerten (Kaderaufbau), Kids in Ferienmonaten nach unten verzerrt.',
+    'Umsatz (Value Pricing, seit 03.09.2026): Netto-Abobetrag pro Monat je Mitglied (Payment Plan Price ohne MwSt, Jahres-/Halbjahresabos auf Monate umgerechnet, Coupon abgezogen) gleichmässig auf dessen Check-ins des Monats verteilt und je Klasse summiert. Check-ins ohne Abo (Probetraining, Gäste) = 0 CHF. Mitglieder ohne Besuch stehen im Tab Kündigungsrisiko. Kein Grenzumsatz: fällt eine Klasse weg, wandern die Besuche in andere Klassen.',
   ];
   for (var n = 0; n < notes.length; n++) sh.getRange(last + 2 + n, 1).setValue(notes[n]).setFontStyle('italic').setFontColor('#666666');
+}
+
+// ------------------------------------------------------------ Kuendigungsrisiko (Value Pricing, seit 03.09.2026)
+// data.revenue.members = { Zurich: {subs, visited, novisit, chf, chf_visited, chf_novisit}, ... }
+// data.revenue.novisit = [ {name, email, location, package, chf, since}, ... ] (Mitglieder ohne einen Check-in im Monat)
+function monthKey(data) {
+  var win = data.window || {}, month = new Date((win.start || '2026-01-01') + 'T00:00:00');
+  return { month: new Date(month.getFullYear(), month.getMonth(), 1), key: Utilities.formatDate(month, TZ, 'yyyy-MM') };
+}
+function updateRisikoHistorie(ss, data) {
+  var sh = getOrCreate(ss, RISK_HIST), head = ['Monat', 'Standort', 'Abos', 'mit Besuch', 'ohne Besuch', 'Quote ohne Besuch', 'CHF Abos/Monat', 'CHF ohne Besuch'];
+  if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
+  var mk = monthKey(data), mem = (data.revenue || {}).members || {};
+  var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return !(r[0] instanceof Date) || Utilities.formatDate(r[0], TZ, 'yyyy-MM') !== mk.key; }) : [];
+  Object.keys(mem).sort().forEach(function (loc) { var m = mem[loc]; keep.push([mk.month, loc, m.subs, m.visited, m.novisit, m.subs ? m.novisit / m.subs : '', m.chf, m.chf_novisit]); });
+  keep.sort(function (a, b) { return (a[0].getTime() - b[0].getTime()) || (a[1] < b[1] ? -1 : 1); });
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, head.length).clearContent();
+  if (keep.length) sh.getRange(2, 1, keep.length, head.length).setValues(keep);
+  sh.getRange('A2:A').setNumberFormat('mmm yyyy'); sh.getRange('F2:F').setNumberFormat('0%'); sh.getRange('G2:H').setNumberFormat('#,##0');
+}
+function buildRisiko(ss, data, fileName) {
+  var sh = getOrCreate(ss, RISK_SHEET), rv = data.revenue || {}, mk = monthKey(data);
+  // manuelle Notizen (letzte Spalte der Namensliste) ueber E-Mail bzw. Name merken
+  var notes = {}, lr = sh.getLastRow();
+  if (lr > 0) {
+    var all = sh.getRange(1, 1, lr, Math.max(7, sh.getLastColumn())).getValues(), inList = false;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i][0] === 'Name' && all[i][5] === 'E-Mail') { inList = true; continue; }
+      if (inList && all[i][0] && all[i][6]) notes[all[i][5] || all[i][0]] = all[i][6];
+    }
+  }
+  clearSheet(sh);
+  sh.getRange('A1').setValue('Kündigungsrisiko: Mitglieder ohne Besuch').setFontSize(16).setFontWeight('bold');
+  sh.getRange('A2').setValue('Laufende Abos (ohne pausierte und erst geplante) aus "Active Subscriptions", Check-ins aus "Itemized Visits" (exercise.com). Ohne Besuch = im Monat kein einziger abgeschlossener Check-in, egal an welchem Standort. CHF = Netto-Abobetrag pro Monat (ohne MwSt, nach Coupon; Jahres- und Halbjahresabos auf Monate umgerechnet). Importiert ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm') + ' aus ' + fileName + '.').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2:I2').merge();
+  // ---- Statistik pro Monat (aus RisikoHistorie) + Total je Monat
+  var hist = ss.getSheetByName(RISK_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 8).getValues() : [];
+  sh.getRange(4, 1).setValue('Statistik pro Monat').setFontWeight('bold').setFontSize(12);
+  var head = ['Monat', 'Standort', 'Abos', 'mit Besuch', 'ohne Besuch', 'Quote ohne Besuch', 'CHF Abos/Monat', 'CHF ohne Besuch', 'Anteil CHF ohne Besuch'];
+  sh.getRange(5, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
+  var byM = {}, order = [];
+  hv.forEach(function (r) { if (!(r[0] instanceof Date)) return; var k = Utilities.formatDate(r[0], TZ, 'yyyy-MM'); if (!byM[k]) { byM[k] = { d: r[0], rows: [] }; order.push(k); } byM[k].rows.push(r); });
+  order.sort(); var out = [], piv = [];
+  order.forEach(function (k) {
+    var b = byM[k], t = [b.d, 'Total', 0, 0, 0, '', 0, 0, ''], q = { Monat: b.d };
+    b.rows.forEach(function (r) { out.push([r[0], r[1], r[2], r[3], r[4], r[2] ? r[4] / r[2] : '', r[6], r[7], r[6] ? r[7] / r[6] : '']); t[2] += r[2]; t[3] += r[3]; t[4] += r[4]; t[6] += r[6]; t[7] += r[7]; q[r[1]] = r[2] ? r[4] / r[2] : ''; });
+    t[5] = t[2] ? t[4] / t[2] : ''; t[8] = t[6] ? t[7] / t[6] : ''; out.push(t);
+    piv.push([b.d, q.Zurich === undefined ? '' : q.Zurich, q.Winterthur === undefined ? '' : q.Winterthur]);
+  });
+  var r = 6;
+  if (out.length) {
+    sh.getRange(r, 1, out.length, head.length).setValues(out);
+    sh.getRange(r, 1, out.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 6, out.length, 1).setNumberFormat('0%'); sh.getRange(r, 9, out.length, 1).setNumberFormat('0%'); sh.getRange(r, 7, out.length, 2).setNumberFormat('#,##0');
+    for (var t2 = 0; t2 < out.length; t2++) if (out[t2][1] === 'Total') sh.getRange(r + t2, 1, 1, head.length).setFontWeight('bold');
+    // Pivot fuer das Diagramm (rechts, ab Spalte K)
+    sh.getRange(5, 11, 1, 3).setValues([['Monat', 'Zurich', 'Winterthur']]).setFontWeight('bold').setBackground('#f3f3f3');
+    sh.getRange(6, 11, piv.length, 3).setValues(piv); sh.getRange(6, 11, piv.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(6, 12, piv.length, 2).setNumberFormat('0%');
+    sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).addRange(sh.getRange(5, 11, piv.length + 1, 3)).setPosition(4, 15, 0, 0)
+      .setOption('title', 'Quote Mitglieder ohne Besuch').setOption('colors', ['#e2c210', '#1a73e8']).setOption('width', 560).setOption('height', 280)
+      .setOption('legend', { position: 'bottom' }).setOption('vAxis', { format: 'percent', minValue: 0 }).build());
+    r += out.length;
+  }
+  // ---- Namensliste des aktuellen Monats
+  var list = rv.novisit || [];
+  r += 2;
+  sh.getRange(r, 1).setValue('Mitglieder ohne Besuch im ' + Utilities.formatDate(mk.month, TZ, 'MMMM yyyy') + ' (' + list.length + ' Personen, sortiert nach Standort und Abobetrag)').setFontWeight('bold').setFontSize(12); r++;
+  var lh = ['Name', 'Standort', 'Abo', 'CHF/Monat', 'Mitglied seit', 'E-Mail', 'Notiz (manuell, bleibt beim Import erhalten)'];
+  sh.getRange(r, 1, 1, lh.length).setValues([lh]).setFontWeight('bold').setBackground('#1F3864').setFontColor('#ffffff'); r++;
+  if (list.length) {
+    var rows = list.map(function (m) {
+      var since = /^\d{4}-\d{2}-\d{2}/.test(m.since || '') ? new Date(m.since.slice(0, 10) + 'T00:00:00') : (m.since || '');
+      return [m.name, m.location, m.package, m.chf, since, m.email, notes[m.email || m.name] || ''];
+    });
+    sh.getRange(r, 1, rows.length, lh.length).setValues(rows);
+    sh.getRange(r, 4, rows.length, 1).setNumberFormat('#,##0'); sh.getRange(r, 5, rows.length, 1).setNumberFormat('dd.mm.yyyy');
+    sh.getRange(r - 1, 1, rows.length + 1, lh.length).createFilter();
+  }
+  sh.setColumnWidth(1, 200); sh.setColumnWidth(3, 260); sh.setColumnWidth(6, 240); sh.setColumnWidth(7, 300);
+  sh.setFrozenRows(0);
 }
