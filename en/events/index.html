@@ -510,7 +510,7 @@ function load(){return fetch('/api/events',{cache:'no-cache'}).then(function(r){
 load().then(function(all){
   var lo=document.getElementById('evload');if(lo)lo.remove();
   var today=new Date();today.setHours(0,0,0,0);
-  EV=all.filter(function(e){return new Date(e.date+'T23:59:59')>=today}).sort(function(a,b){return a.date<b.date?-1:1});
+  var seenIds={};EV=all.filter(function(e){if(seenIds[e.id])return false;seenIds[e.id]=true;return new Date(e.date+'T23:59:59')>=today}).sort(function(a,b){return a.date<b.date?-1:1});
   if(!EV.length){document.getElementById('evnone').hidden=false;box.hidden=true;return}
   box.hidden=!EV.some(function(e){return e.registration});
   var h='';EV.forEach(function(e){var t=e[LANG]||e.de;

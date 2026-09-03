@@ -10,7 +10,8 @@ async function fetchUpstream(env) {
   const r = await fetch(u, { redirect: "follow", headers: { "Accept": "application/json" } });
   const t = await r.text(); let js = null; try { js = JSON.parse(t); } catch {}
   if (!js || !js.ok || !Array.isArray(js.events)) throw new Error("upstream");
-  return js.events.map(pub);
+  const seen = {}; // gleiche ID kann in mehreren Jahres-Tabs stehen (Tab-Kopie): erste gewinnt
+  return js.events.filter((x) => { const k = x.id || (x.activity + x.start); if (seen[k]) return false; seen[k] = true; return true; }).map(pub);
 }
 function respond(events, fetchedAt) {
   return new Response(JSON.stringify({ ok: true, events, fetched_at: fetchedAt }), { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60", "X-Fetched-At": String(fetchedAt) } });

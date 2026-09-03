@@ -915,6 +915,7 @@ function ensureIds(ps) {
 function readEvents() {
   var all = [];
   planSheets().forEach(function (ps) { all = all.concat(readEventsFrom(ps)); });
+  var seen = {}; all = all.filter(function (x) { var k = x.id || (x.activity + x.start); if (seen[k]) return false; seen[k] = true; return true; }); // Tab-Kopien (2026/2027) mit gleichen IDs
   all.sort(function (a, b) { return a.start < b.start ? -1 : a.start > b.start ? 1 : 0; });
   return all;
 }
