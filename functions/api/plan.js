@@ -72,10 +72,17 @@ export async function onRequestPost(context) {
               const user = ur.ok ? await ur.json() : null;
               const pf = (user && Array.isArray(user.profile_fields)) ? user.profile_fields.filter((f) => f && f.label).map((f) => ({ label: f.label, value: f.value == null ? "" : String(f.value) })) : [];
               const stamp = new Date().toLocaleDateString("de-CH", { timeZone: "Europe/Zurich" });
-              const note = "TRAININGSPLAN " + stamp + ": " + [arts, data.goal, data.level, data.freq ? data.freq + " Tage/Woche" : "", win ? "Zeiten " + win : ""].filter(Boolean).join(", ") +
-                (plan ? " | Stunden: " + plan : "") + (share ? " | Plan: " + share : "");
+              // Kurz und zeilenweise (Entscheid Ruben 03.09.2026): Link zuerst, dann je Punkt eine Zeile.
+              const note = ["TRAININGSPLAN " + stamp + (share ? ": " + share : ""),
+                "Ziel: " + data.goal, "Kampfkunst: " + (arts || "-"), "Level: " + (data.level || "-"),
+                "Tage/Woche: " + (data.freq || "-"), "Zeiten: " + (win || "-")]
+                .concat((Array.isArray(p.plan) ? p.plan : []).slice(0, 12).map((x) => "- " + (DAYS[Number(x.d)] || "?") + " " + s(x.s, 5) + " " + s(x.disc, 30) + (x.lv ? " (" + s(x.lv, 20) + ")" : "") + (x.coach ? ", " + s(x.coach, 40) : "")))
+                .join("\n");
+              // Fruehere Trainingsplan-Notizen entfernen (mehrfaches Klicken im Tool), Rest der Nachricht behalten
               const f = pf.find((x) => x.label === "Message");
-              if (f) f.value = (f.value ? f.value + " || " : "") + note; else pf.push({ label: "Message", value: note });
+              const cleaned = f ? String(f.value || "").split(/\s*\|\|\s*|\n{2,}/).filter((seg) => seg.trim() && !/^TRAININGSPLAN\b/.test(seg.trim())).join("\n\n") : "";
+              const merged = (cleaned ? cleaned + "\n\n" : "") + note;
+              if (f) f.value = merged; else pf.push({ label: "Message", value: merged });
               const put = await fetch(API + "/api/v4/users/" + uid, { method: "PUT", headers: H, body: JSON.stringify({ user: { profile_fields: pf } }) });
               crm = put.ok ? "CRM-Notiz gesetzt" : "CRM-Notiz fehlgeschlagen (" + put.status + ")";
             } else crm = "CRM: keine User-ID";

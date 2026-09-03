@@ -101,7 +101,7 @@ def discipline(service):
     x = re.sub(r'\s*-\s*(Basics|All Levels|Competition)\s*$', '', x, flags=re.I).strip()
     if re.match(r'^BJJ \(No-Gi\)', x, re.I): return 'BJJ No-Gi'
     if re.match(r'^BJJ \(Gi\)', x, re.I): return 'BJJ Gi'
-    if re.match(r'^BJJ$', x, re.I): return 'BJJ Gi'          # "BJJ - Competition" laeuft im Gi
+    if re.match(r'^BJJ$', x, re.I): return 'BJJ Competition'  # "BJJ - Competition": zaehlt in der Hitlist zu Gi UND No-Gi (Entscheid Ruben 03.09.2026)
     if re.match(r'^Striking', x, re.I): return 'Muay Thai'    # "Striking - Competition" = Muay-Thai-Kader
     return x
 
@@ -135,11 +135,15 @@ def hitlist(rows, key):
     per = collections.defaultdict(lambda: collections.defaultdict(lambda: dict(w=0, wr=0, ev=0, att=0, cap=0, evn=0, uniq=0, n=0)))
     for r in rows:
         if r['segment'] == 'Gratis' or EXCL_HIT.search(r['service']): continue
-        g = per[key(r)][r['location']]
-        g['ev'] += r['events']; g['att'] += r['attended']; g['cap'] += r['capacity']; g['uniq'] += r['uniq']; g['n'] += 1
-        if r.get('slot_ratio') is not None:
-            g['w'] += r['events']; g['wr'] += r['events'] * r['slot_ratio']
-            if r.get('has_neighbor'): g['evn'] += r['events']
+        k = key(r)
+        # BJJ Competition (ohne Gi-Angabe) zaehlt zu beiden BJJ-Listen
+        keys = [k.replace('BJJ Competition', 'BJJ Gi'), k.replace('BJJ Competition', 'BJJ No-Gi')] if 'BJJ Competition' in k else [k]
+        for kk in keys:
+            g = per[kk][r['location']]
+            g['ev'] += r['events']; g['att'] += r['attended']; g['cap'] += r['capacity']; g['uniq'] += r['uniq']; g['n'] += 1
+            if r.get('slot_ratio') is not None:
+                g['w'] += r['events']; g['wr'] += r['events'] * r['slot_ratio']
+                if r.get('has_neighbor'): g['evn'] += r['events']
     out = []
     for name, locs in per.items():
         row = dict(name=name); vals = []
