@@ -232,7 +232,8 @@ function buildPlanDaten(ss) {
   sh.getRange('B2').setFormula('=ARRAYFORMULA(' + blank + 'DATE(YEAR(' + A + '),MONTH(' + A + '),1)))');
   // Schluessel = Person: CRM-Kennung (Lead-ID, Spalte P) wenn bekannt, sonst die Sitzung (Spalte B). Gezaehlt wird nur der letzte Plan je Schluessel (Entscheid Ruben 03.09.2026).
   sh.getRange('N2').setFormula('=ARRAYFORMULA(' + blank + 'IF(Trainingsplan!P2:P<>"","L"&Trainingsplan!P2:P,"S"&Trainingsplan!B2:B)))');
-  sh.getRange('C2').setFormula('=ARRAYFORMULA(' + blank + 'IF(COUNTIFS(N2:N,N2:N&"",Trainingsplan!A2:A,">"&Trainingsplan!A2:A)=0,1,0)))');
+  // Nur Bereiche aus dem Tab Trainingsplan vergleichen (gleiche Laenge), sonst #VALUE!
+  sh.getRange('C2').setFormula('=ARRAYFORMULA(' + blank + 'IF(IF(Trainingsplan!P2:P<>"",COUNTIFS(Trainingsplan!P2:P,Trainingsplan!P2:P&"",Trainingsplan!A2:A,">"&Trainingsplan!A2:A),COUNTIFS(Trainingsplan!B2:B,Trainingsplan!B2:B&"",Trainingsplan!A2:A,">"&Trainingsplan!A2:A))=0,1,0)))');
   sh.getRange('D2').setFormula('=ARRAYFORMULA(' + blank + 'IF((C2:C=1)*(LOWER(Trainingsplan!C2:C&"")<>"share")*(NOT(REGEXMATCH(LOWER(Trainingsplan!Q2:Q&""),"^test"))),1,0)))');
   var copy = { E: 'D', F: 'E', G: 'F', H: 'G', I: 'H', J: 'I', K: 'J', L: 'K', M: 'P' }; // Ziel <- Quelle (Trainingsplan)
   for (var c in copy) sh.getRange(c + '2').setFormula('=ARRAYFORMULA(' + blank + 'Trainingsplan!' + copy[c] + '2:' + copy[c] + '&""))');
@@ -334,7 +335,7 @@ function buildPlanAnalyse(ss) {
   var base = 'PlanDaten!$D:$D,1';
   var r = 4;
   sh.getRange(r, 1, 1, 4).setValues([['Erstellte Pläne', 'Gesamt', 'Dieser Monat', 'Letzter Monat']]).setFontWeight('bold').setBackground('#f3f3f3');
-  sh.getRange(r + 1, 1).setValue('Pläne (letzte Version je Sitzung)');
+  sh.getRange(r + 1, 1).setValue('Pläne (letzter Plan je Person)');
   sh.getRange(r + 1, 2).setFormula('=COUNTIFS(' + base + ')');
   sh.getRange(r + 1, 3).setFormula('=COUNTIFS(' + base + ',PlanDaten!$B:$B,' + cur + ')');
   sh.getRange(r + 1, 4).setFormula('=COUNTIFS(' + base + ',PlanDaten!$B:$B,' + prev + ')');
