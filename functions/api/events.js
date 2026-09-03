@@ -4,7 +4,7 @@
 // damit Besucher nie auf Google warten. Nur der allererste Aufruf nach einem Deploy ist langsam.
 const FRESH_MS = 5 * 60 * 1000;
 function pub(e) { return { id: e.id, type: e.type, start: e.start, end: e.end, location: e.location, owner: e.owner || '', title: e.title || e.title_de || e.activity || '',
-  text: e.text || e.text_de || '', registration: !!e.registration, rewards: !!e.rewards, link: e.link || '', image: e.image || '', signups: e.signups || 0 }; }
+  text: e.text || e.text_de || '', registration: !!e.registration, friends: !!e.friends, rewards: !!e.rewards, link: e.link || '', image: e.image || '', signups: e.signups || 0 }; }
 async function fetchUpstream(env) {
   const u = env.LEADLOG_URL + "?token=" + encodeURIComponent(env.LEADLOG_TOKEN) + "&what=events";
   const r = await fetch(u, { redirect: "follow", headers: { "Accept": "application/json" } });

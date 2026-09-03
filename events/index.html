@@ -409,7 +409,7 @@ section.deep{background:#12100b}
 .fbox input:focus,.fbox select:focus,.fbox textarea:focus,.steps input:focus,.steps textarea:focus{outline:none;border-color:var(--gold)}
 .fbox select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23e2c210' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
 .fbox .cta,.steps .cta{display:flex;justify-content:center;width:100%;margin-top:18px;cursor:pointer}
-.fmsg{margin-top:12px;font-size:14px;color:var(--grey);min-height:18px}.fmsg.err{color:#ff8a66}.fnote{margin-top:12px;font-size:12.5px;color:#7d786c;line-height:1.5}
+.fhint{margin-top:8px;font-size:13px;line-height:1.5;color:var(--gold)}.fmsg{margin-top:12px;font-size:14px;color:var(--grey);min-height:18px}.fmsg.err{color:#ff8a66}.fnote{margin-top:12px;font-size:12.5px;color:#7d786c;line-height:1.5}
 .fdone{display:none;text-align:center;padding:16px 0}.fdone.on{display:block}.fdone h3{font-size:26px}.fdone p{color:var(--grey);margin-top:12px;line-height:1.6}.fdone .fb{width:26px;height:56px;margin:0 auto 14px}.fdone .fb path{stroke:var(--gold);stroke-width:4;fill:none}
 .hp{position:absolute;left:-9999px;opacity:0;height:0;width:0}
 .steps{border:1px solid var(--hair);background:#0d0c0a;padding:28px;max-width:780px;margin:0 var(--mx) 100px}
@@ -441,7 +441,7 @@ section.deep{background:#12100b}
 <div class="frow"><label for="f_name">Name</label><input id="f_name" name="name" type="text" autocomplete="name" placeholder="Vor- und Nachname" required></div>
 <div class="frow"><label for="f_email">E-Mail</label><input id="f_email" name="email" type="email" autocomplete="email" required></div>
 <div class="frow"><label for="f_phone">Telefon</label><input id="f_phone" name="phone" type="tel" autocomplete="tel"></div>
-<div class="frow"><label for="f_friends">Bringst du Freunde mit? Wie viele?</label><input id="f_friends" name="friends" type="number" min="0" max="20" inputmode="numeric" placeholder="0"></div>
+<div class="frow" id="frow_friends" hidden><label for="f_friends">Bringst du Freunde mit? Wie viele?</label><input id="f_friends" name="friends" type="number" min="0" max="20" inputmode="numeric" placeholder="0"><p class="fhint" id="f_friends_hint" hidden></p></div>
 <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off">
 <button class="cta" type="submit" id="evbtn">Platz reservieren<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
 <div class="fmsg" id="evmsg"></div>
@@ -487,7 +487,7 @@ section.deep{background:#12100b}
 </footer>
 <script>
 (function(){
-var LANG='de',L={date:'Datum',time:'Zeit',loc:'Ort',cta:'Jetzt anmelden',sel:'Bitte wählen',sending:'Wird gesendet …',err:'Das hat nicht geklappt. Bitte versuch es nochmals oder schreib an support@impact-martialarts.com.',btn:'Platz reservieren'};
+var LANG='de',L={date:'Datum',time:'Zeit',loc:'Ort',cta:'Jetzt anmelden',sel:'Bitte wählen',sending:'Wird gesendet …',err:'Das hat nicht geklappt. Bitte versuch es nochmals oder schreib an support@impact-martialarts.com.',btn:'Platz reservieren',hint3:'Ab drei Freunden bitte vorher kurz mit {{m}} absprechen, damit wir genug Platz auf der Matte haben.',mgr_z:'Abdallah (Studio Manager Zürich)',mgr_w:'Bogdan (Studio Manager Winterthur)'};
 var list=document.getElementById('evlist'),sel=document.getElementById('f_event'),form=document.getElementById('evform'),box=document.getElementById('fbox');
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fmt(d){var p=d.split('-');return LANG==='de'?p[2]+'.'+p[1]+'.'+p[0]:new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
@@ -505,8 +505,8 @@ function norm(e){var k=kind(e),loc=String(e.location||''),lz=/winterthur/i.test(
   var st=String(e.start||''),en=String(e.end||'');var tm='';if(st.length>=16&&st.slice(11)!=='00:00'){tm=st.slice(11)+(en.length>=16&&en.slice(11)!=='00:00'?(LANG==='de'?' bis ':' to ')+en.slice(11):'')}
   var studio=/impact/i.test(loc)||/^(z(u|ü)rich|winterthur)$/i.test(loc.trim());var addr=studio&&/winterthur/i.test(loc)?'Technoparkstrasse 3, 8406 Winterthur':studio&&/z(u|ü)rich/i.test(loc)?'Walchestrasse 15, 8006 Zürich':loc;
   var t={title:e.title||e.activity||'',teaser:e.text||'',points:[],points_title:'',rewards:e.rewards?RW[LANG].items:[],rewards_title:e.rewards?RW[LANG].title:''};
-  return {id:e.id,date:st.slice(0,10),time:tm,time_en:tm,location:/winterthur/i.test(loc)?'Winterthur':/z(u|ü)rich/i.test(loc)?'Zürich':loc,address:addr,image:img,imgdef:def,kind:k,registration:!!e.registration,link:e.link||'',signups:e.signups||0,coaches:coaches(e.owner),de:t,en:t}}
-function load(){return fetch('/api/events',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok||!Array.isArray(j.events))throw 0;return j.events.map(norm)}).catch(function(){return fetch('/data/events.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(all){return all.map(function(e){e.kind='community';e.registration=true;return e})})})}
+  return {id:e.id,date:st.slice(0,10),time:tm,time_en:tm,location:/winterthur/i.test(loc)?'Winterthur':/z(u|ü)rich/i.test(loc)?'Zürich':loc,address:addr,image:img,imgdef:def,kind:k,registration:!!e.registration,friends:!!e.friends,link:e.link||'',signups:e.signups||0,coaches:coaches(e.owner),de:t,en:t}}
+function load(){return fetch('/api/events',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok||!Array.isArray(j.events))throw 0;return j.events.map(norm)}).catch(function(){return fetch('/data/events.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(all){return all.map(function(e){e.kind='community';e.registration=true;e.friends=true;return e})})})}
 load().then(function(all){
   var lo=document.getElementById('evload');if(lo)lo.remove();
   var today=new Date();today.setHours(0,0,0,0);
@@ -523,14 +523,20 @@ load().then(function(all){
     if(e.registration){var o=document.createElement('option');o.value=e.id;o.textContent=t.title+' · '+fmt(e.date)+' · '+e.location;sel.appendChild(o);}
   });
   list.insertAdjacentHTML('afterbegin',h);
-  list.querySelectorAll('[data-ev]').forEach(function(a){a.addEventListener('click',function(){sel.value=a.getAttribute('data-ev')})});
+  list.querySelectorAll('[data-ev]').forEach(function(a){a.addEventListener('click',function(){sel.value=a.getAttribute('data-ev');syncFriends()})});
+  sel.addEventListener('change',syncFriends);syncFriends();
 }).catch(function(){var lo=document.getElementById('evload');if(lo)lo.remove();document.getElementById('evnone').hidden=false;box.hidden=true});
+var fr=document.getElementById('frow_friends'),fi=document.getElementById('f_friends'),fh=document.getElementById('f_friends_hint');
+function curEv(){return EV.filter(function(x){return x.id===sel.value})[0]||null}
+function syncFriends(){var e=curEv();var on=!!(e&&e.friends);fr.hidden=!on;if(!on)fi.value='';hintFriends()}
+function hintFriends(){var e=curEv();var n=parseInt(fi.value,10)||0;var show=!!(e&&e.friends)&&n>=3;fh.hidden=!show;if(show)fh.textContent=L.hint3.replace('{m}',/winterthur/i.test(e.location||'')?L.mgr_w:L.mgr_z)}
+fi.addEventListener('input',hintFriends);
 form.addEventListener('submit',function(ev){ev.preventDefault();
   var msg=document.getElementById('evmsg'),btn=document.getElementById('evbtn');msg.className='fmsg';msg.textContent='';
   var name=form.name.value.trim(),email=form.email.value.trim();
   if(!sel.value||!name||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.className='fmsg err';msg.textContent=LANG==='de'?'Bitte Event, Name und eine gültige E-Mail angeben.':'Please choose an event and enter your name and a valid email.';return}
   var e=EV.filter(function(x){return x.id===sel.value})[0]||{},t=(e[LANG]||e.de||{});
-  var payload={kind:'event',event_id:sel.value,event_title:t.title||'',event_date:e.date||'',location:e.location||'',name:name,email:email,phone:form.phone.value.trim(),friends:form.friends.value,lang:LANG,page:location.pathname,hp:form.website.value};
+  var payload={kind:'event',event_id:sel.value,event_title:t.title||'',event_date:e.date||'',location:e.location||'',name:name,email:email,phone:form.phone.value.trim(),friends:(e.friends?form.friends.value:''),lang:LANG,page:location.pathname,hp:form.website.value};
   btn.disabled=true;btn.firstChild.textContent=L.sending;
   fetch('/api/form',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json()}).then(function(j){
     if(!j.ok)throw 0;form.hidden=true;document.getElementById('evdone').classList.add('on');
