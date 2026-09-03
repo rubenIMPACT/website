@@ -340,6 +340,11 @@ function whyNot(spec, json) { return { refreshing: json.refreshing, error: json.
 async function monat(H, p, start, end) {
   const cohortStart = String(p.cohort_start || start), today = String(p.today || end);
   const U = monatUrls(start, end, cohortStart, today), phase = String(p.phase || "");
+  if (phase === "dbg") {
+    const k = String(p.report || "started"), r = await getJson(H, U[k].url + (p.refresh ? "&refresh=true" : ""));
+    const cs = r.json && r.json.cached_stats;
+    return { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error, meta: r.json && r.json.meta, csType: Array.isArray(cs) ? "array" + cs.length : typeof cs, keys: cs && !Array.isArray(cs) ? Object.keys(cs).slice(0, 8) : (Array.isArray(cs) && cs[0] ? Object.keys(cs[0]).slice(0, 8) : []), filters: filtersText(r.json || {}).slice(0, 160), url: U[k].url.replace(API, "") };
+  }
   if (phase === "m1") {
     const out = {};
     for (const k of ["life", "visits", "started", "cancelled", "subs", "fvZH", "salesZH"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
