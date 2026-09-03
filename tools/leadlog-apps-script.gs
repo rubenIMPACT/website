@@ -168,13 +168,14 @@ function logForm(ss, p) {
   var d = p.data || {};
   var isEv = p.kind === 'event';
   var name = isEv ? 'Events' : 'Kündigungen';
-  var head = isEv ? ['Zeitpunkt', 'Event', 'Datum', 'Standort', 'Name', 'E-Mail', 'Telefon', 'Freunde', 'Sprache', 'Seite']
+  var head = isEv ? ['Zeitpunkt', 'Event', 'Datum', 'Standort', 'Name', 'E-Mail', 'Telefon', 'Freunde', 'Sprache', 'Seite', 'Event-ID']
                   : ['Zeitpunkt', 'Anonym', 'Vorname', 'Nachname', 'Grund', 'Erwartungen nicht erfüllt', 'Details Erwartungen', 'Zufriedenheit Trainer', 'Details Trainer', 'Pause/Timing', 'Details Timing', 'Preis Einfluss', 'Preis zum Bleiben', 'Preis maximal', 'Verbesserungen', 'Wiedereinstieg', 'Details Wiedereinstieg', 'Sprache'];
   var sh = ss.getSheetByName(name); if (!sh) { sh = ss.insertSheet(name); }
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); }
-  var row = isEv ? [new Date(), s(d.event_title), s(d.event_date), s(d.location), asText(d.name), asText(d.email), asText(d.phone), s(d.friends), s(d.lang), s(d.page)]
+  var row = isEv ? [new Date(), s(d.event_title), s(d.event_date), s(d.location), asText(d.name), asText(d.email), asText(d.phone), s(d.friends), s(d.lang), s(d.page), s(d.event_id)]
                  : [new Date(), d.anonymous ? 'Ja' : 'Nein', asText(d.first_name), asText(d.last_name), asText(d.reason), s(d.expectations), asText(d.expectations_text), s(d.satisfaction), asText(d.satisfaction_text), s(d.timing), asText(d.timing_text), s(d.price), s(d.price_stay), s(d.price_max), asText(d.suggestions), s(d.rejoin), asText(d.rejoin_text), s(d.lang)];
   sh.appendRow(row);
+  if (isEv) updateSignupCount(ss, d.event_id);
   return { ok: true };
 }
 
@@ -816,4 +817,97 @@ function dropTestRows() {
     total += del.length;
   });
   Logger.log('Testzeilen entfernt: ' + total);
+}
+
+
+/* ===== Events aus dem Planungs-Sheet (Website /events/) – Events-Chat 03.09.2026 =====
+   doGet?token=...&what=events  -> JSON der Zeilen mit Haken "Website" (nie Company events)
+   doGet?what=setup -> legt die Website-Spalten im Planungs-Sheet an; what=seed -> fuellt Open Doors 26.09.
+   logForm (kind=event) schreibt zusaetzlich die Event-ID und zaehlt Anmeldungen in Spalte "Anmeldungen" des Planungs-Sheets. */
+var PLAN_ID = '1cjW80tiosj7-STr-9qsi5CFHesVEoURRj_RAmXIS4S0';
+var PLAN_COLS = ['ID','Website','Anmeldung','Rewards','Titel DE','Titel EN','Text DE','Text EN','Kurzort','Link','Bild-URL','Anmeldungen'];
+function planSheet() {
+  var ss = SpreadsheetApp.openById(PLAN_ID);
+  var sh = ss.getSheets()[0];
+  var lastCol = Math.max(sh.getLastColumn(), 1);
+  var head = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+  var col = {};
+  head.forEach(function (h, i) { if (h.trim()) col[h.trim()] = i + 1; });
+  var need = PLAN_COLS.filter(function (c) { return !col[c]; });
+  if (need.length) {
+    var start = lastCol + 1;
+    sh.getRange(1, start, 1, need.length).setValues([need]).setFontWeight('bold');
+    need.forEach(function (c, i) { col[c] = start + i; });
+    var last = Math.max(sh.getLastRow(), 2);
+    ['Website', 'Anmeldung', 'Rewards'].forEach(function (c) { if (need.indexOf(c) >= 0) sh.getRange(2, col[c], last - 1, 1).insertCheckboxes(); });
+  }
+  return { sh: sh, col: col };
+}
+function slugify(s) { return String(s || '').toLowerCase().replace(/[äöü]/g, function (c) { return { 'ä': 'ae', 'ö': 'oe', 'ü': 'ue' }[c]; }).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40); }
+function fmtDate(d) { return (d instanceof Date && !isNaN(d)) ? Utilities.formatDate(d, 'Europe/Zurich', "yyyy-MM-dd'T'HH:mm") : ''; }
+function ensureIds(ps) {
+  var sh = ps.sh, col = ps.col, last = sh.getLastRow(); if (last < 2) return;
+  var acts = sh.getRange(2, 1, last - 1, 3).getValues();
+  var ids = sh.getRange(2, col['ID'], last - 1, 1).getValues();
+  var changed = false;
+  for (var i = 0; i < acts.length; i++) {
+    if (String(ids[i][0] || '').trim() || !String(acts[i][0] || '').trim()) continue;
+    var d = acts[i][2]; var ds = (d instanceof Date && !isNaN(d)) ? Utilities.formatDate(d, 'Europe/Zurich', 'yyyyMMdd') : 'tbd';
+    ids[i][0] = 'ev-' + ds + '-' + slugify(acts[i][0]); changed = true;
+  }
+  if (changed) sh.getRange(2, col['ID'], last - 1, 1).setValues(ids);
+}
+function readEvents() {
+  var ps = planSheet(); ensureIds(ps);
+  var sh = ps.sh, col = ps.col, last = sh.getLastRow(); if (last < 2) return [];
+  var rows = sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
+  var g = function (r, name) { return col[name] ? r[col[name] - 1] : ''; };
+  var out = [];
+  rows.forEach(function (r) {
+    var type = String(r[1] || '').trim();
+    if (!String(r[0] || '').trim() || !type || /company/i.test(type)) return;
+    if (g(r, 'Website') !== true) return;
+    out.push({ id: String(g(r, 'ID') || ''), activity: String(r[0]), type: type, start: fmtDate(r[2]), end: fmtDate(r[3]),
+      location: String(g(r, 'Kurzort') || r[4] || ''), title_de: String(g(r, 'Titel DE') || ''), title_en: String(g(r, 'Titel EN') || ''),
+      text_de: String(g(r, 'Text DE') || ''), text_en: String(g(r, 'Text EN') || ''), registration: g(r, 'Anmeldung') === true, rewards: g(r, 'Rewards') === true,
+      link: String(g(r, 'Link') || ''), image: String(g(r, 'Bild-URL') || ''), signups: Number(g(r, 'Anmeldungen') || 0) });
+  });
+  return out;
+}
+function updateSignupCount(ss, eventId) {
+  try {
+    if (!eventId) return;
+    var ev = ss.getSheetByName('Events'); if (!ev || ev.getLastRow() < 2) return;
+    var head = ev.getRange(1, 1, 1, ev.getLastColumn()).getValues()[0].map(String);
+    var idCol = head.indexOf('Event-ID'); if (idCol < 0) return;
+    var vals = ev.getRange(2, 1, ev.getLastRow() - 1, ev.getLastColumn()).getValues();
+    var n = 0; vals.forEach(function (r) { if (String(r[idCol]) === String(eventId)) n++; });
+    var ps = planSheet(); var last = ps.sh.getLastRow(); if (last < 2) return;
+    var ids = ps.sh.getRange(2, ps.col['ID'], last - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) { if (String(ids[i][0]) === String(eventId)) { ps.sh.getRange(i + 2, ps.col['Anmeldungen']).setValue(n); break; } }
+  } catch (e) {}
+}
+function seedOpenDoors() {
+  var ps = planSheet(); ensureIds(ps); var sh = ps.sh, col = ps.col, last = sh.getLastRow();
+  var ids = sh.getRange(2, col['ID'], last - 1, 1).getValues(); var done = [];
+  for (var i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) !== 'ev-20260926-community-event-open-doors-zuerich') continue;
+    var r = i + 2;
+    sh.getRange(r, col['Website']).setValue(true); sh.getRange(r, col['Anmeldung']).setValue(true); sh.getRange(r, col['Rewards']).setValue(true);
+    sh.getRange(r, col['Titel DE']).setValue('Community Event: Open Doors Zürich'); sh.getRange(r, col['Titel EN']).setValue('Community Event: Open Doors Zurich');
+    sh.getRange(r, col['Text DE']).setValue('Ein Nachmittag voller Action: Open Mat, BJJ, Muay Thai und MMA. Exklusive Angebote, lerne die Coaches kennen, Snacks und Drinks. Verbring ein paar Stunden mit uns auf der Matte und erlebe die Energie unserer Community.');
+    sh.getRange(r, col['Text EN']).setValue('An action-packed afternoon: Open Mat, BJJ, Muay Thai and MMA. Exclusive offers, meet the coaches, snacks and drinks. Spend a few hours on the mats with us and experience the energy of our community.');
+    sh.getRange(r, col['Kurzort']).setValue('Zürich'); done.push(r);
+  }
+  return done;
+}
+function doGet(e) {
+  var q = (e && e.parameter) || {};
+  if (q.token !== TOKEN) return out({ error: 'unauthorized' });
+  try {
+    if (q.what === 'events') return out({ ok: true, events: readEvents() });
+    if (q.what === 'seed') return out({ ok: true, rows: seedOpenDoors() });
+    if (q.what === 'setup') { planSheet(); return out({ ok: true }); }
+  } catch (err) { return out({ error: String(err) }); }
+  return out({ ok: true });
 }
