@@ -13,6 +13,10 @@ CASES=[
  'loc=w&g=defense&a=muaythai&l=beginner&f=3&w=evening&o=nothing',
  'loc=z&g=defense&a=mma&l=beginner&f=6&w=evening&o=strength&of=3',
  'loc=w&g=compete&a=fitnesskickboxing&l=beginner&f=3&w=evening&o=nothing',
+ 'loc=z&g=defense&a=mma&l=beginner&f=1&w=morning,midday,early,late&o=nothing',
+ 'loc=w&g=learn&a=mma&l=beginner&f=2&w=early,late&o=nothing',
+ 'loc=z&g=compete&a=fitnesskickboxing&l=intermediate&f=3&w=early,late&o=nothing',
+ 'loc=w&g=learn&a=boxing&l=beginner&f=2&w=early,late&o=nothing',
  # Randfaelle
  'loc=w&g=defense&a=explore&l=beginner&f=2&w=early,late&o=nothing',
  'loc=z&g=defense&a=explore&l=beginner&f=2&w=morning,midday&o=nothing',
