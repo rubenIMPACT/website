@@ -403,6 +403,9 @@ section.deep{background:#12100b}
 .evcard .evbtn{margin-top:22px}.evcoach{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:20px}.evcoach b{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);font-weight:800}.evcoach .cc{display:inline-flex;align-items:center;gap:10px;font-size:15px;color:#e6e2d8}.evcoach .cc img,.evcoach .cc i{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:top;border:1px solid var(--hair);background:#1a1813;display:inline-block}.evtype{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);font-weight:800;margin-bottom:10px}.evnote{margin-top:18px;color:var(--grey);font-size:14.5px}.evcard.k-training img,.evcard.k-competition img{aspect-ratio:21/9}.evcard img.portrait{aspect-ratio:auto;max-height:720px;object-fit:contain;background:#000}
 .evnone{margin:0 var(--mx);padding:30px;border:1px solid var(--hair);color:var(--grey);font-size:16px}.evload{padding:30px 0;color:var(--grey);font-size:15px;letter-spacing:1px;text-transform:uppercase}.evload:after{content:"";display:inline-block;width:10px;height:10px;margin-left:10px;border-radius:50%;background:var(--gold);animation:evpulse 1s infinite alternate}@keyframes evpulse{to{opacity:.2}}
 .fbox{border:1px solid var(--hair);padding:28px;background:#0d0c0a}@media(min-width:900px){.fbox{position:sticky;top:120px}}
+.fbd{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(3px);z-index:129;display:none}.fbd.on{display:block}
+.fbox.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:130;width:min(560px,92vw);max-height:90vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6);border-color:rgba(226,194,16,.5)}
+.fbox .fclose{display:none;position:absolute;top:10px;right:12px;background:none;border:0;color:var(--gold);font-size:26px;cursor:pointer;line-height:1}.fbox.modal .fclose{display:block}
 .fbox h3{font-size:24px;line-height:1.05}.fbox .sub{color:var(--grey);font-size:14.5px;margin:8px 0 6px}
 .frow{margin-top:14px}.frow label{display:block;font-size:11.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--grey);margin-bottom:6px}
 .fbox input,.fbox select,.fbox textarea,.steps input[type=text],.steps textarea{background:var(--black);border:1px solid #2a261e;border-radius:4px;color:var(--white);font-family:inherit;font-size:16px;padding:14px 16px;width:100%}
@@ -434,7 +437,9 @@ section.deep{background:#12100b}
 <header class="pagehero"><div class="kick rev">IMPACT Martial Arts</div><h1 class="rev">Events.</h1><p class="lead rev">Community events, open mats and seminars in Zurich and Winterthur. Find the next dates here and reserve your spot right away.</p></header>
 <section class="evgrid" id="events">
 <div id="evlist"><div class="evload" id="evload">Loading events …</div><div class="evnone" id="evnone" hidden>No event is scheduled right now. Follow us on Instagram, that is where we announce new dates first.</div></div>
+<div class="fbd" id="fbd"></div>
 <div class="fbox" id="fbox" hidden>
+<button type="button" class="fclose" id="fclose" aria-label="Schliessen">&times;</button>
 <form id="evform" novalidate>
 <h3>Reserve your spot</h3><p class="sub">Free of charge. We only get in touch if something about the event changes.</p>
 <div class="frow"><label for="f_event">Event</label><select id="f_event" name="event_id" required></select></div>
@@ -523,9 +528,12 @@ load().then(function(all){
     if(e.registration){var o=document.createElement('option');o.value=e.id;o.textContent=t.title+' · '+fmt(e.date)+' · '+e.location;sel.appendChild(o);}
   });
   list.insertAdjacentHTML('afterbegin',h);
-  list.querySelectorAll('[data-ev]').forEach(function(a){a.addEventListener('click',function(){sel.value=a.getAttribute('data-ev');syncFriends()})});
+  list.querySelectorAll('[data-ev]').forEach(function(a){a.addEventListener('click',function(ev){ev.preventDefault();sel.value=a.getAttribute('data-ev');syncFriends();openModal()})});
   sel.addEventListener('change',syncFriends);syncFriends();
 }).catch(function(){var lo=document.getElementById('evload');if(lo)lo.remove();document.getElementById('evnone').hidden=false;box.hidden=true});
+var bd=document.getElementById('fbd');function openModal(){box.hidden=false;box.classList.add('modal');bd.classList.add('on');document.body.style.overflow='hidden';var f=document.getElementById('f_name');if(f)setTimeout(function(){f.focus()},50)}
+function closeModal(){box.classList.remove('modal');bd.classList.remove('on');document.body.style.overflow=''}
+bd.addEventListener('click',closeModal);document.getElementById('fclose').addEventListener('click',closeModal);document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
 var fr=document.getElementById('frow_friends'),fi=document.getElementById('f_friends'),fh=document.getElementById('f_friends_hint');
 function curEv(){return EV.filter(function(x){return x.id===sel.value})[0]||null}
 function syncFriends(){var e=curEv();var on=!!(e&&e.friends);fr.hidden=!on;if(!on)fi.value='';hintFriends()}
