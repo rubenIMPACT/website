@@ -743,3 +743,77 @@ function buildRisiko(ss, data, fileName) {
   var hs = ss.getSheetByName(RISK_HIST); if (hs && !hs.isSheetHidden()) hs.hideSheet();
   var an = ss.getSheetByName('Leads-Analyse'); if (an) ss.setActiveSheet(an);
 }
+
+// ------------------------------------------------------------ Klassenanalyse serverseitig (seit 03.09.2026)
+// Holt die fertige Import-Struktur von der Cloudflare-Funktion /api/klassen (exercise.com-Reports per API-Login,
+// Rechnung dort), legt eine Archivkopie in den Drive-Ordner und baut die Tabs. Kein Browser, kein Cowork mehr noetig.
+var KLASSEN_URL = 'https://www.impact-martialarts.com/api/klassen';
+function klassenCall(body) {
+  body.token = TOKEN;
+  var r = UrlFetchApp.fetch(KLASSEN_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true });
+  var t = r.getContentText(), j;
+  try { j = JSON.parse(t); } catch (e) { j = { error: 'bad_json', text: String(t).slice(0, 200) }; }
+  j.http = r.getResponseCode();
+  return j;
+}
+function runKlassenanalyse(start, end) {
+  var p1 = klassenCall({ phase: 1, start: start, end: end });
+  if (p1.error) throw new Error('Phase 1: ' + JSON.stringify(p1).slice(0, 300));
+  Logger.log('Phase 1 gestartet: ' + JSON.stringify(p1.started));
+  var p2 = null, p3 = null, i;
+  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p2 = klassenCall({ phase: 2, start: start, end: end }); if (p2.error) throw new Error('Phase 2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
+  if (!p2 || !p2.ready) throw new Error('Phase 2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
+  Logger.log('Phase 2: Popular Zuerich ' + (p2.popular_zh || []).length + ' Services');
+  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p3 = klassenCall({ phase: 3, start: start, end: end, popular_zh: p2.popular_zh }); if (p3.error) throw new Error('Phase 3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  if (!p3 || !p3.ready) throw new Error('Phase 3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
+  var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID), name = 'klassenanalyse-' + start.slice(0, 7) + '.json';
+  // Archivkopie (ersetzt eine aeltere Datei desselben Monats); der Drive-Import ueberspringt sie per Stempel
+  var it = DriveApp.getFoldersByName(KA_FOLDER);
+  if (it.hasNext()) {
+    var folder = it.next(), old = folder.getFilesByName(name);
+    while (old.hasNext()) old.next().setTrashed(true);
+    var f = folder.createFile(name, JSON.stringify(data), 'application/json');
+    PropertiesService.getScriptProperties().setProperty('KA_LAST', f.getId() + '@' + f.getLastUpdated().getTime());
+  }
+  updateKlassenHistorie(ss, data);
+  buildKlassenanalyse(ss, data, name + ' (API)');
+  if (data.revenue) { updateRisikoHistorie(ss, data); buildRisiko(ss, data, name + ' (API)'); }
+  var sum = data.summary || {}, mem = (data.revenue || {}).members || {}, lines = [];
+  Object.keys(sum).sort().forEach(function (loc) { var x = sum[loc], m = mem[loc] || {}; lines.push(loc + ': ' + x.classes + ' Klassen, ' + x.events + ' Termine, ' + x.attended + ' Besuche, Auslastung ' + Math.round(100 * x.attended / x.capacity) + '%, Umsatz auf Klassen ' + Math.round(x.revenue) + ' CHF, ohne Besuch ' + (m.novisit || 0) + ' von ' + (m.subs || 0) + ' Abos (' + (m.chf_novisit || 0) + ' CHF)'); });
+  Logger.log('Klassenanalyse ' + start + ' bis ' + end + ' fertig. ' + lines.join(' | '));
+  return lines.join('\n');
+}
+// Monatlich am 1. (Zeit-Trigger installMonthlyTrigger): letzter voller Kalendermonat, Kurzbericht an Ruben
+function runKlassenanalyseMonthly() {
+  var now = new Date(), firstThis = new Date(now.getFullYear(), now.getMonth(), 1), lastPrev = new Date(firstThis.getTime() - 86400000);
+  var start = Utilities.formatDate(new Date(lastPrev.getFullYear(), lastPrev.getMonth(), 1), TZ, 'yyyy-MM-dd'), end = Utilities.formatDate(lastPrev, TZ, 'yyyy-MM-dd');
+  try {
+    var report = runKlassenanalyse(start, end);
+    MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Klassenanalyse ' + start.slice(0, 7) + ' ist da', body: 'Die Klassenanalyse fuer ' + start + ' bis ' + end + ' steht im Sheet (Tabs Klassenanalyse und Kuendigungsrisiko).\n\n' + report + '\n\nhttps://docs.google.com/spreadsheets/d/' + SHEET_ID });
+  } catch (e) {
+    MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Klassenanalyse ' + start.slice(0, 7) + ' FEHLGESCHLAGEN', body: 'Fehler: ' + String(e && e.message ? e.message : e) + '\n\nNaechster Versuch: im Script-Editor runKlassenanalyseMonthly ausfuehren oder Fenster manuell mit runKlassenanalyse(start, end).' });
+    throw e;
+  }
+}
+function installMonthlyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'runKlassenanalyseMonthly') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('runKlassenanalyseMonthly').timeBased().onMonthDay(1).atHour(6).inTimezone(TZ).create();
+  Logger.log('Monats-Trigger angelegt: runKlassenanalyseMonthly am 1. um 06:00');
+}
+// Einmalig: Testeintraege aus Events und Kuendigungen entfernen (Kriterien Ruben 03.09.2026: "test" in Name/Vorname/Nachname/E-Mail oder Rubens Adresse)
+function dropTestRows() {
+  var ss = SpreadsheetApp.openById(SHEET_ID), total = 0;
+  ['Events', 'Kündigungen'].forEach(function (name) {
+    var sh = ss.getSheetByName(name); if (!sh || sh.getLastRow() < 2) return;
+    var v = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues(), head = v[0], cols = [], mail = -1;
+    head.forEach(function (h, i) { if (['Name', 'Vorname', 'Nachname', 'E-Mail'].indexOf(String(h)) >= 0) cols.push(i); if (String(h) === 'E-Mail') mail = i; });
+    var del = [];
+    for (var r = 1; r < v.length; r++) {
+      var hit = cols.some(function (c) { return /test/i.test(String(v[r][c] || '')); }) || (mail >= 0 && String(v[r][mail] || '').toLowerCase() === MAIL.fallback);
+      if (hit) { del.push(r + 1); Logger.log(name + ' geloescht: ' + cols.map(function (c) { return v[r][c]; }).join(' / ')); }
+    }
+    for (var j = del.length - 1; j >= 0; j--) sh.deleteRow(del[j]);
+    total += del.length;
+  });
+  Logger.log('Testzeilen entfernt: ' + total);
+}
