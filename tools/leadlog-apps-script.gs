@@ -473,7 +473,7 @@ function hitlistBlock(sh, r, title, list) {
   });
   if (vals.length) {
     sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
-    sh.getRange(r, 3, vals.length, 3).setNumberFormat('0.00'); sh.getRange(r, 6, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 10, vals.length, 1).setNumberFormat('0.0');
+    sh.getRange(r, 3, vals.length, 3).setNumberFormat('0.00'); sh.getRange(r, 6, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 7, vals.length, 3).setNumberFormat('0'); sh.getRange(r, 10, vals.length, 1).setNumberFormat('0.0'); sh.getRange(r, 11, vals.length, 1).setNumberFormat('0');
     var rg = sh.getRange(r, 5, vals.length, 1), rules = sh.getConditionalFormatRules();
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThanOrEqualTo(1.1).setBackground('#C6E0B4').setRanges([rg]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.8).setBackground('#F8CBAD').setRanges([rg]).build());
