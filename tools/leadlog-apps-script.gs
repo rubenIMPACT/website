@@ -860,8 +860,16 @@ function migratePlanSheet() {
   var head = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
   var changed = [];
   head.forEach(function (h, i) { var t = h.trim(); if (PLAN_RENAME[t]) { sh.getRange(1, i + 1).setValue(PLAN_RENAME[t]); changed.push(t + '>' + PLAN_RENAME[t]); } });
+  SpreadsheetApp.flush(); // sonst liefert das erneute Lesen der Kopfzeile alte Werte (hat am 03.09. doppelte Titel/Text-Spalten erzeugt)
   head = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
   for (var i = head.length - 1; i >= 0; i--) { if (PLAN_DROP.indexOf(head[i].trim()) >= 0) { sh.deleteColumn(i + 1); changed.push('-' + head[i].trim()); } }
+  SpreadsheetApp.flush();
+  // leere Duplikat-Spalten (gleicher Kopf, keine Daten) entfernen
+  head = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
+  var seen = {}; var last = sh.getLastRow();
+  for (var j = head.length - 1; j >= 0; j--) { var t = head[j].trim(); if (!t) continue; var dup = head.slice(0, j).some(function (x) { return x.trim() === t; }); if (!dup) continue;
+    var vals = last > 1 ? sh.getRange(2, j + 1, last - 1, 1).getValues() : []; var empty = vals.every(function (v) { return String(v[0] || '') === '' || v[0] === false; });
+    if (empty) { sh.deleteColumn(j + 1); changed.push('-dup:' + t); } }
   planSheet();
   return changed;
 }
@@ -871,7 +879,7 @@ function planSheet() {
   var lastCol = Math.max(sh.getLastColumn(), 1);
   var head = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
   var col = {};
-  head.forEach(function (h, i) { if (h.trim()) col[h.trim()] = i + 1; });
+  head.forEach(function (h, i) { var t = h.trim(); if (t && !col[t]) col[t] = i + 1; }); // erste Spalte gewinnt bei Duplikaten
   var need = PLAN_COLS.filter(function (c) { return !col[c]; });
   if (need.length) {
     var start = lastCol + 1;
