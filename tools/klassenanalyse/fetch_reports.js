@@ -6,8 +6,8 @@
 // Ablauf (jeder Schritt ist ein eigener javascript_tool-Aufruf, weil ein Aufruf nach 45 s abbricht):
 //   1) window.__ka = KA('2026-08-01','2026-08-31'); await __ka.refreshAll()      -> stoesst 3 Generierungen an
 //   2) await __ka.poll()   -> wiederholen, bis {done:true}; dauert pro Report ~10-30 s
-//   3) await __ka.collect() -> gibt {window, generated, recurring:[...], popular:{Zurich:{reports}, Winterthur:{reports}}}
-// Das Ergebnis als JSON in eine Datei schreiben und mit build_import.py weiterverarbeiten.
+//   3) __ka.dump(1) -> reports.json (Reports), __ka.dump(2) -> revenue.json (Umsatz/Risiko); jeweils per get_page_text auslesen
+// Dann: python build_import.py reports.json --revenue revenue.json -o klassenanalyse-YYYY-MM.json
 //
 // Refresh = GET auf /api/v4/reports/<report>?...&refresh=true; danach ohne refresh pollen, bis "refreshing" leer ist
 // und der Filtertext das neue Startdatum enthaelt. Standort-Filter nur bei Popular Services: location_id (2508 Zurich, 2222 Winterthur).
@@ -59,6 +59,22 @@ function KA(startStr, endStr) {
         popular: { Zurich: { reports: (state.data.Zurich || {}).reports || [] }, Winterthur: { reports: (state.data.Winterthur || {}).reports || [] } },
         revenue: (state.data.visits && state.data.subs) ? REVENUE(state.data.visits, state.data.subs) : null,
       };
+    },
+    // Kompakt: Recurring-Zeilen nur mit den Feldern, die build_import.py liest (spart ~30 KB)
+    collectCompact() {
+      const c = this.collect();
+      const keep = ['Service', 'Location', 'Start Time', 'Days', 'Total Unique Users', 'Total Visits', 'Total Sessions', 'Primary Staff', 'Secondary Staff'];
+      c.recurring = c.recurring.map((r) => { const o = {}; keep.forEach((k) => { o[k] = r[k]; }); return o; });
+      return c;
+    },
+    // Transfer in zwei Teilen, weil get_page_text nur ~50 KB am Stueck sauber liefert:
+    // dump(1) = Reports (reports.json), dump(2) = Umsatz + Kuendigungsrisiko (revenue.json)
+    dump(part) {
+      const c = this.collectCompact();
+      const obj = part === 2 ? { window: c.window, revenue: c.revenue } : { window: c.window, generated: c.generated, recurring: c.recurring, popular: c.popular };
+      const j = JSON.stringify(obj);
+      document.body.innerHTML = ''; const p = document.createElement('pre'); p.textContent = 'KA_JSON_BEGIN' + j + 'KA_JSON_END'; document.body.appendChild(p);
+      return 'Teil ' + part + ': ' + j.length + ' Zeichen';
     },
   };
 }

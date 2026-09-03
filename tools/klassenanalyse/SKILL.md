@@ -25,10 +25,11 @@ Rotation, Gratisklassen, Kids vs. Erwachsene) sind im Ablauf eingebaut, nicht op
 Wenn Ruben ein anderes Fenster nennt, das nehmen. Format YYYY-MM-DD.
 
 **1. Reports per API neu generieren.** In einem exercise.com-Tab mit `javascript_tool` zuerst den Inhalt von
-`scripts/fetch_reports.js` ausfuehren (definiert `KA`), dann:
+`scripts/fetch_reports.js` ausfuehren (definiert `KA` und `REVENUE`), dann:
 
 ```js
-window.__ka = KA('2026-08-01', '2026-08-31'); await __ka.refreshOne('recurring')   // Recurring Sessions
+window.__ka = KA('2026-08-01', '2026-08-31');
+await __ka.refreshOne('recurring'); await __ka.refreshOne('visits'); await __ka.refreshOne('subs')
 ```
 
 Popular Services teilt sich EINEN Server-Cache, darum Zuerich und Winterthur nacheinander:
@@ -36,42 +37,58 @@ Popular Services teilt sich EINEN Server-Cache, darum Zuerich und Winterthur nac
 ```js
 await __ka.refreshOne('Zurich');  await __ka.poll('Zurich')      // wiederholen bis 'done', dann
 await __ka.refreshOne('Winterthur'); await __ka.poll('Winterthur') // wiederholen bis 'done'
-await __ka.poll('recurring')                                        // bis 'done'
+await __ka.poll()                                                   // alle fuenf bis {done:true}
 ```
 
 Jeder Aufruf muss unter 45 Sekunden bleiben (Tool-Limit), deshalb kein Warten in einer Schleife im selben Aufruf.
 Ein Poll gilt als fertig, wenn `refreshing` leer ist UND der Filtertext das Startdatum und (bei Popular) den
-Standort enthaelt. Ohne diesen Check liest man die alte Generierung.
+Standort enthaelt. Ohne diesen Check liest man die alte Generierung. `visits` (Itemized Visits, alle Check-ins
+des Monats) und `subs` (Active Subscriptions) sind die Basis fuer Umsatz und Kuendigungsrisiko.
 
-**2. Daten aus dem Tab holen.** `javascript_tool` kuerzt Rueckgaben auf rund 1000 Zeichen. Der Weg, der
-funktioniert: das JSON in die Seite schreiben und mit `get_page_text` auslesen (bis ~50 KB in einem Stueck):
+**2. Daten aus dem Tab holen, in zwei Teilen.** `javascript_tool` kuerzt Rueckgaben auf rund 1000 Zeichen und
+`get_page_text` liefert nur ~50 KB sauber am Stueck. Deshalb:
 
 ```js
-const j = JSON.stringify(__ka.collect());
-document.body.innerHTML = ''; const p = document.createElement('pre'); p.textContent = 'KA_JSON_BEGIN' + j + 'KA_JSON_END'; document.body.appendChild(p); j.length
+__ka.dump(1)   // schreibt die Reports als Text in die Seite
 ```
 
-Dann `get_page_text`, den Text zwischen den Markern als `reports.json` speichern. Danach die Seite neu laden
-(navigate), damit der exercise.com-Tab wieder normal aussieht.
+`get_page_text`, den Text zwischen `KA_JSON_BEGIN` und `KA_JSON_END` als `reports.json` speichern. Dann
+
+```js
+__ka.dump(2)   // Umsatz + Mitglieder ohne Besuch
+```
+
+und den Text als `revenue.json` speichern. Wird die Ausgabe von `get_page_text` in eine Datei ausgelagert
+(passiert bei grossen Seiten), diese Datei mit Python oeffnen und den Text zwischen den Markern
+herausschneiden, NICHT von Hand abtippen. Danach die Seite neu laden (navigate), damit der exercise.com-Tab
+wieder normal aussieht.
 
 **3. Import-Datei bauen.**
 
 ```bash
-python scripts/build_import.py reports.json -o klassenanalyse-2026-08.json
+python scripts/build_import.py reports.json --revenue revenue.json -o klassenanalyse-2026-08.json
 ```
 
 Das Script fasst Schedule-Fragmente auf Standort + Kurs + Wochentag + Startzeit zusammen, nimmt Termine, Besuche,
 Plaetze aus Popular Services (nur "(Class)"-Zeilen), Unique Users, Buchungen, Trainer aus Recurring Sessions,
-und meldet Auslastung je Standort. Pruefe die Ausgabe: Zuerich lag im Sommer 2026 bei rund 32 Prozent,
-Winterthur bei rund 25 Prozent. Weicht das um mehr als 10 Punkte ab, stimmt etwas mit dem Fenster oder dem
-Standortfilter nicht.
+haengt den verteilten Abo-Umsatz an und meldet Auslastung, Umsatz und Mitglieder ohne Besuch je Standort.
+Pruefe die Ausgabe: Zuerich lag im Sommer 2026 bei rund 32 Prozent Auslastung, Winterthur bei rund 25 Prozent;
+Umsatz auf Klassen im August 2026 rund 99'000 CHF netto (ZH 68'000, WT 32'000), Mitglieder ohne Besuch rund ein
+Drittel. Weicht etwas um mehr als 10 Punkte ab, stimmt etwas mit dem Fenster oder dem Standortfilter nicht.
+"rows ohne revenue" darf leer sein; steht dort eine Klasse, passt ein Kursname nicht (Leerzeichen, Umbenennung).
 
-**4. Hochladen.** Mit dem Drive-Connector (`create_file`) die JSON-Datei in den Ordner **Klassenanalyse-Import**
-(ID 1PY7xvkRQlo19r9ARp6_95-MG3bIi1lPI) legen: `contentMimeType: application/json`,
-`disableConversionToGoogleType: true`, Dateiname `klassenanalyse-YYYY-MM.json`.
+**4. Hochladen.** Die Datei ist rund 90 KB (Namensliste). Erster Versuch: Drive-Connector (`create_file`) in den
+Ordner **Klassenanalyse-Import** (ID 1PY7xvkRQlo19r9ARp6_95-MG3bIi1lPI), `contentMimeType: application/json`,
+`disableConversionToGoogleType: true`, Dateiname `klassenanalyse-YYYY-MM.json`. Schlaegt das wegen der Groesse
+fehl, ueber Chrome hochladen: den Drive-Ordner im Browser oeffnen, per `javascript_tool` ein
+`<input type=file id=__ka_upload aria-label="KA upload input">` an `document.body` haengen, mit `find` die Referenz
+holen, mit `file_upload` die lokale Datei setzen, dann per JS ein `DragEvent('drop')` mit einem `DataTransfer`, der
+`input.files[0]` enthaelt, auf `document.querySelector('c-wiz')` und `document` dispatchen; im Dialog
+"Replace existing file" bzw. Upload klicken. Eine aeltere Datei desselben Monats vorher in den Papierkorb (Drive-
+Connector `trash_file`), damit das Script die neueste nimmt.
 
 **5. Import ausloesen.** Das Apps-Script "IMPACT Website Lead Log" (Funktion `importKlassenanalyse`) liest die
-neueste Datei aus dem Ordner und baut den Tab neu. Es laeuft per Zeit-Trigger (stuendlich, im Trigger-Menue
+neueste Datei aus dem Ordner und baut die Tabs Klassenanalyse und Kuendigungsrisiko neu. Es laeuft per Zeit-Trigger (stuendlich, im Trigger-Menue
 des Scripts angelegt) oder sofort: im Script-Editor die Funktion `importKlassenanalyseForce` ausfuehren.
 Spalte "Aktion" im Tab bleibt beim Neuaufbau erhalten (Schluessel Standort + Klasse + Tag + Zeit).
 

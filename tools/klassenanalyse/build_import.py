@@ -16,7 +16,7 @@ Logik identisch mit dem Skill impact-class-analysis (build_workbook.py):
 Ausgabe: JSON fuer das Apps-Script (importKlassenanalyse), Zeilen bereits sortiert wie der Stundenplan.
 
 Aufruf:
-    python build_import.py reports.json -o klassenanalyse-2026-08.json
+    python build_import.py reports.json --revenue revenue.json -o klassenanalyse-2026-08.json
 """
 import argparse, collections, json, re, sys
 
@@ -223,8 +223,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('input')
     ap.add_argument('-o', '--output', required=True)
+    ap.add_argument('--revenue', help='revenue.json aus __ka.dump(2) (Umsatz + Kuendigungsrisiko); optional, sonst muss "revenue" im Input stecken')
     a = ap.parse_args()
     data = json.load(open(a.input, encoding='utf-8'))
+    if a.revenue:
+        rv = json.load(open(a.revenue, encoding='utf-8'))
+        data['revenue'] = rv.get('revenue', rv)
     rows = load(data)
     if not rows:
         sys.exit('Keine Klassen erkannt. Popular-Services-Daten pruefen.')
