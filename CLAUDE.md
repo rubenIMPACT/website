@@ -34,6 +34,23 @@ Im Leads-Log: Tab "Wochenreport" (ersetzt Leads-Analyse; buildWochenreport(main,
 Leads je Standort/Kanal/Interesse aus Daten, Trials/No-Shows/Verkauft (Vertragswoche)/Kohorten-Quote/Anrufe aus dem Team-Sheet; laeuft mit
 jedem Probetrainings-Lauf). "Leads Historie" geloescht: HISTORY liegt als leads_web in MonatsHistorie (migrateHistorie), Monatsabschluss zeigt
 Monate ab Januar 2026 und unten Bloecke "Website-Leads nach Kanal/Interesse" (COUNTIFS auf Daten, Spalte J = Kanal: Klick-ID > UTM > Referrer).
+TEAM-SHEET LAYOUT AB 04.09. ABENDS (Entscheid Ruben): Personenliste hat KEINE manuellen Spalten mehr. Aufbau je Tab:
+A..G Tagesblock LINKS, auf Hoehe der Personen dieses Tages (erste Zeile der Gruppe traegt die Werte; Tage ohne Personen bekommen
+eine eigene Zeile): Tag, Anrufe versucht*, Anrufe gefuehrt*, Placed Trials, Trials, No-Shows, Verkauft (* = einzige Eingaben).
+H..Z Personen (CI, 19 Spalten): Trial-Datum, Name, Art, Klasse, Trainer, Gebucht von, Kanal, Personen, Lifecycle-Stage, Pruefen,
+Abschluss am, Verkaeufer, Paket, Letzte Notiz, CRM, Buchung erstellt am, UID (versteckt), NS (versteckt), Stand.
+AB..AE "Zahlung offen": Stage "Signed but no payment", unabhaengig vom Trial-Fenster, aelteste zuerst, ab 30 Tagen rot.
+No-Shows werden aus der versteckten NS-Spalte gezaehlt, nicht aus Art: wer nach einem No-Show neu bucht, zeigt "Gebucht (kommend)",
+der No-Show bleibt in der Tageszahl und als Notiz auf der Art-Zelle (Fall Ghulam Reza Kazimi, 02.09. No-Show, 16.09. neu gebucht).
+Placed Trials = an dem Tag angelegte Buchungen (Re-Buchung verschiebt die Zaehlung auf den neuen Tag, bewusst so).
+Abschluss am = Waiver-Unterschrift, NICHT Abo-Start: seit 01.08. weichen 20 von 79 Faellen ab, 7 davon im Monat (Beispiel Gianna
+Kling 13.08. unterschrieben, Abo ab 01.09.). Monatsabschluss fuehrt deshalb "Verkaeufe (Vertrag unterschrieben)" + "davon Zahlung
+noch offen" getrennt von "Abos gestartet". Mail: 12:00 mittags (Sales-Start), vorerst nur an Ruben (TR_MAIL_TEAM=false), Inhalt:
+Heute, Gestern, Pruefen, Zahlung offen ab 7 Tagen, Monatsstand. Trigger-Umstellung laeuft ueber TR_TRIG_VER + ScriptProperties,
+der naechste Stundenlauf zieht sie selbst nach. Stand "Zahlung offen" 04.09.: 19 Faelle, 8 davon aelter als 30 Tage (aeltester
+Obada Aljabawi seit 04.06.).
+LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
+im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
 "&"/"+" im Namen; Kein Trial = Stage "Non-Client" = Assistant Coach / Friends & Family; Kommentare nur in exercise.com-Notizen). Spalten (CI,
 19): Trial-Datum, Name, Art, Klasse, Trainer, Gebucht von, Kanal, Personen, Lifecycle-Stage (exercise.com "Current"), Pruefen
