@@ -216,6 +216,8 @@ function setupAnalyse() {
   var order = ['Monatsabschluss', 'Probetrainings ZH', 'Probetrainings WT', 'Leads-Analyse', 'Klassenanalyse', 'Kündigungsrisiko', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin', 'RisikoHistorie', 'MonatsHistorie', 'Kohorten'];
   var pos = 1;
   for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
+  // Roh-Logs verstecken (Ruben 04.09.2026): ueber Ansicht > Ausgeblendete Tabellen jederzeit wieder einblendbar
+  ['Leads', 'Trainingsplan'].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
   ss.setActiveSheet(ss.getSheetByName('Leads-Analyse'));
 }
 function getOrCreate(ss, name) { return ss.getSheetByName(name) || ss.insertSheet(name); }
