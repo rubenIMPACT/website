@@ -34,9 +34,15 @@ Im Leads-Log: Tab "Wochenreport" (ersetzt Leads-Analyse; buildWochenreport(main,
 Leads je Standort/Kanal/Interesse aus Daten, Trials/No-Shows/Verkauft (Vertragswoche)/Kohorten-Quote/Anrufe aus dem Team-Sheet; laeuft mit
 jedem Probetrainings-Lauf). "Leads Historie" geloescht: HISTORY liegt als leads_web in MonatsHistorie (migrateHistorie), Monatsabschluss zeigt
 Monate ab Januar 2026 und unten Bloecke "Website-Leads nach Kanal/Interesse" (COUNTIFS auf Daten, Spalte J = Kanal: Klick-ID > UTM > Referrer).
-Probetrainings-Spalten (CI-Indizes im Script): Trial-Datum, Name, Art, Klasse, Trainer, Gebucht von, Kanal, Wie gehoert, Personen*, Gespraech*,
-Kommentar*, Vertrag am, Verkaeufer, Paket, Tage bis Vertrag, Status, Buchung erstellt am, UID, Stand (* = Verkaeufer-Spalten); Monatsuebersicht
-U..AD, Tagestabelle AF..AL (AK/AL Anrufe manuell). Kanal/Wie gehoert per E-Mail-Abgleich (Fallback Name) mit dem Leads-Log (trLeadMap).
+Probetrainings-Spalten (CI-Indizes im Script): Trial-Datum, Name, Art ("Trial stattgefunden"/"Gebucht (kommend)"/No-Show/...), Klasse,
+Trainer, Gebucht von, Kanal, Wie gehoert, Personen*, Gespraech*, Kommentar*, Vertrag am, Verkaeufer, Paket, Tage bis Vertrag, Status
+(unser Verkaufsergebnis), Lifecycle-Stage (exercise.com "Current" aus dem Lifecycle-Report, per E-Mail), Buchung erstellt am, UID (versteckt),
+Stand (* = Verkaeufer-Spalten); Monatsuebersicht V..AE, Tagestabelle AG..AM (AL/AM Anrufe manuell). Kopfzeile != TR_T.head -> Tab wird neu
+aufgebaut (manuelle Eintraege gehen dann verloren, also Layout nur bewusst aendern). Kanaele (Ruben 04.09.): Google Ads, Meta Ads (= Instagram),
+TikTok Ads, Google organisch, Instagram/Facebook organisch, TikTok organisch, Direkt, Andere; kein X. Leads nach Kanal/Interesse stehen im
+Monatsabschluss je Standort direkt unter "Leads Website (Log)" (keine eigene Sektion). LEHRE Editor: Tastatur-Paste kam am 04.09. nachmittags
+nicht mehr im Monaco an -> Diff als pushEditOperations per javascript_tool (tools: scratchpad editor_ops.js aus difflib), speichern ueber den
+Toolbar-Knopf "Save project to Drive" (find), nicht cmd+s. Kanal/Wie gehoert per E-Mail-Abgleich (Fallback Name) mit dem Leads-Log (trLeadMap).
 PROBETRAININGS-LISTE (04.09.2026, Entscheid Ruben nach Abgleich mit Bogdans Strichliste 50 vs. 84): Tabs "Probetrainings ZH" und
 "Probetrainings WT" (seit mittags im Team-Sheet, s.o.), eine Zeile pro Erstbesucher (UID), stuendlich 09-22 Uhr (Trigger runProbetrainingsHourly,
 Tagesmail trDailyMail 21:45 an TR_MAIL = Ruben; Abdi/Bogdan erst nach Freigabe). Server: functions/api/klassen.js action 'trials'
