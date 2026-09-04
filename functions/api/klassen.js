@@ -28,6 +28,7 @@ export async function onRequestPost(context) {
     if (!H) return j({ error: "signin_failed" }, 502);
     const q = query(start, end);
     if (p.action === "monat") return j(await monat(H, p, start, end));
+    if (p.action === "trials") return j(await trials(H, p));
     if (phase === 1) {
       const out = {};
       for (const k of ["recurring", "visits", "subs", "Zurich"]) { const r = await getJson(H, reportUrl(k, q) + "&refresh=true"); out[k] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error }; }
@@ -457,5 +458,140 @@ function computeMonat(inp) {
     L.rev_total_gross = sum(sa, "gross"); L.rev_total_net = sum(sa, "net");
     out.locations[loc] = L;
   }
+  return out;
+}
+
+// ================================================================ Probetrainings-Liste (seit 04.09.2026, Entscheid Ruben)
+// Laufende Liste je Standort fuer die Tabs "Probetrainings ZH/WT" im Sheet: eine Zeile pro Erstbesucher (User-ID) mit
+// erstem Check-in, Klasse, Trainer, Buchung, Verkaufsstatus. Regel (Ruben 04.09.2026): Trial = erster Check-in ueberhaupt,
+// egal welches Paket exercise.com dranhaengt; ohne Staff, Gaeste, Altkunden (Abo-Start vor dem Check-in); Events, Seminare,
+// Open Mat sind keine Trials; zwei Kinder auf einem Account = 2 Personen; Wiederholer = Check-in ohne Paket und ohne Abo,
+// ohne Besuch in den 30 Tagen davor (wird zur Pruefung markiert); Ex-Mitglieder (gekuendigtes Abo) = Rueckkehrer.
+// Abschluss = Datum der Vertragsunterschrift (Report "Waivers and Contracts", Signed) oder sonst Abo-Start; Personal
+// Training zaehlt nicht als Verkauf. Phasen wie beim Monatsabschluss (Erstbesuche je Standort teilen einen Cache):
+//   t1: Generierung anstossen (fvZH, visits, subs, cancelled, waiver)  -> {ok}
+//   t2: fvZH abholen (kompakt), fvWT anstossen                        -> {ready, fv_zh}
+//   t3: Rest abholen, rechnen (fv_zh und open_uids mitgeben)           -> {ready, data:{rows:{Zurich,Winterthur}, sales}}
+// Zeitstempel: Besuche/Kuendigungen kommen in CH-Zeit ("2026/08/04 06:09 PM CEST"), Abos und Waiver in UTC
+// ("2026-08-31 22:00:02 +0000" = 01.09. 00:00 CEST) -> chDate() rechnet alles auf das Datum in Europe/Zurich um.
+function trialUrls(p) {
+  const start = String(p.start), end = String(p.end), vStart = String(p.visits_start || start), sStart = String(p.sales_start || start), today = String(p.today || end);
+  const qW = query(start, end), qV = query(vStart, end), qS = query(sStart, today);
+  return {
+    fvZH: { url: API + "/api/v4/reports/clients_first_visit?" + qW + "&per=3000&location_id=2508", start, loc: "Zurich" },
+    fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qW + "&per=3000&location_id=2222", start, loc: "Winterthur" },
+    visits: { url: API + "/api/v4/reports/detailed_visits?" + qV + "&per=20000", start: vStart },
+    subs: { url: API + "/api/v4/reports/active_subscription?" + qW + "&per=3000&only_active=true", start },
+    cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qS + "&per=3000", start: sStart },
+    waiver: { url: API + "/api/v4/reports/waiver?" + qS + "&per=3000", start: sStart },
+  };
+}
+const fvCompact = (rows) => rows.map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10).replace(/\//g, "-"), cls: String(r["First Session Visit"] || "").replace(/\s+/g, " ").trim() }));
+async function trials(H, p) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(p.start || "")) || !/^\d{4}-\d{2}-\d{2}$/.test(String(p.end || ""))) return { error: "window" };
+  const U = trialUrls(p), phase = String(p.phase || "");
+  if (phase === "dbg") {
+    const out = {};
+    for (const k of Object.keys(U)) { const r = await getJson(H, U[k].url); out[k] = { status: r.status, ready: !!(r.json && readyFor(U[k], r.json)), why: r.json ? whyNot(U[k], r.json) : null }; }
+    return out;
+  }
+  if (phase === "t1") {
+    const out = {};
+    for (const k of ["fvZH", "visits", "subs", "cancelled", "waiver"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    return { ok: true, started: out };
+  }
+  if (phase === "t2") {
+    const fv = await getJson(H, U.fvZH.url);
+    if (!fv.json) return { error: "fetch_fvZH_" + fv.status };
+    if (!readyFor(U.fvZH, fv.json)) return { ready: false, waiting: "fvZH", why: whyNot(U.fvZH, fv.json) };
+    const fvC = fvCompact(rowsOf(fv.json.cached_stats));
+    await getJson(H, U.fvWT.url + "&refresh=true");
+    return { ready: true, fv_zh: fvC };
+  }
+  if (phase === "t3") {
+    const got = {};
+    for (const k of ["fvWT", "visits", "subs", "cancelled", "waiver"]) {
+      const r = await getJson(H, U[k].url);
+      if (!r.json) return { error: k + "_" + r.status };
+      if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
+      got[k] = r.json.cached_stats;
+    }
+    const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: fvCompact(rowsOf(got.fvWT)) };
+    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), vStart: String(p.visits_start || p.start), fv, visits: got.visits, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
+  }
+  return { error: "phase" };
+}
+const CH_FMT = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich", year: "numeric", month: "2-digit", day: "2-digit" });
+function chDate(v) {
+  const s = String(v || "").trim(); if (!s) return "";
+  let m = /^(\d{4})[\/-](\d{2})[\/-](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?\s*(?:\+0000|UTC|Z)$/.exec(s);
+  if (m) return CH_FMT.format(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0))));
+  m = /(\d{4})[\/-](\d{2})[\/-](\d{2})/.exec(s);
+  return m ? m[1] + "-" + m[2] + "-" + m[3] : "";
+}
+function addDaysStr(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
+const TR_EVENT = /seminar|event|open mat|camp|workshop/i;
+function computeTrials(inp) {
+  const { start, end, today } = inp, isPT = (s) => /personal training/i.test(String(s || ""));
+  const vH = (inp.visits && inp.visits.headers) || [], vi = (n) => vH.indexOf(n), V = [];
+  (((inp.visits || {}).reports) || []).forEach((g) => (g.items || []).forEach((it) => V.push(it)));
+  const vis = V.map((x) => ({ uid: String(x[vi("User ID")]), name: ((x[vi("First Name")] || "") + " " + (x[vi("Last Name")] || "")).trim(), email: String(x[vi("Email")] || "").toLowerCase(), date: chDate(x[vi("Start Time")]), time: String(x[vi("Start Time")] || "").slice(11, 19), cls: String(x[vi("Service")] || "").replace(/\s+/g, " ").trim(), loc: String(x[vi("Location")] || ""), status: String(x[vi("Status")] || ""), staff: String(x[vi("Primary Staff")] || ""), bookedBy: String(x[vi("Booked By")] || ""), bookedAt: chDate(x[vi("Booked At")]), pkg: String(x[vi("Client Package Used")] || ""), guest: String(x[vi("Guest From Visit ID")] || "").replace(/null/i, "") }));
+  const staff = new Set(); V.forEach((x) => [x[vi("Primary Staff")], x[vi("Secondary Staff")]].forEach((s) => { if (s) String(s).split(",").forEach((n) => staff.add(n.trim().toLowerCase())); }));
+  const byUser = {}; vis.forEach((v) => { (byUser[v.uid] = byUser[v.uid] || []).push(v); });
+  const srt = (a, b) => (a.date + a.time < b.date + b.time ? -1 : 1);
+  Object.keys(byUser).forEach((u) => byUser[u].sort(srt));
+  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), date: chDate(r["Start Date"]), type: String(r["Active Subscription Type"] || ""), pkg: String(r["Subscribed To"] || "") }));
+  const subsBy = {}; subs.forEach((s) => { (subsBy[s.uid] = subsBy[s.uid] || []).push(s); });
+  const canc = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), ended: chDate(r["Ended At"]), pkg: String(r["Subscribeable"] || ""), converted: /yes/i.test(String(r["Converted"] || "")) }));
+  const cancBy = {}; canc.forEach((c) => { (cancBy[c.uid] = cancBy[c.uid] || []).push(c); });
+  const waiv = inp.waiver.map((r) => ({ uid: String(r["User ID"]), date: chDate(r["Signed"]), by: String(r["Signed By"] || "") }));
+  const waivBy = {}; waiv.forEach((w) => { (waivBy[w.uid] = waivBy[w.uid] || []).push(w); });
+  const saleOf = (uid, trialDate) => {
+    const ws = (waivBy[uid] || []).filter((w) => w.date && w.date >= trialDate).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const ss = (subsBy[uid] || []).filter((s) => !isPT(s.pkg) && s.date && s.date >= trialDate).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const cs = (cancBy[uid] || []).filter((c) => !isPT(c.pkg) && c.ended && c.ended >= trialDate);
+    if (!ws.length && !ss.length && !cs.length) return { status: "Offen", date: "", by: "", pkg: "", days: "", start: "" };
+    const date = ws.length ? ws[0].date : (ss.length ? ss[0].date : "");
+    const days = date ? Math.round((Date.parse(date) - Date.parse(trialDate)) / 86400000) : "";
+    const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (cs.length ? "Verkauft, wieder gekündigt" : "Unterschrieben, kein Abo aktiv");
+    return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (cs.length ? cs[0].pkg : ""), days, start: ss.length ? ss[0].date : "" };
+  };
+  const out = { window: { start, end, today }, generated: new Date().toISOString(), rows: { Zurich: [], Winterthur: [] }, sales: {} };
+  const fvAll = new Set();
+  for (const loc of ["Zurich", "Winterthur"]) {
+    const seen = new Set();
+    (inp.fv[loc] || []).forEach((f) => {
+      if (seen.has(f.uid)) return; seen.add(f.uid); fvAll.add(f.uid);
+      if (staff.has(f.name.toLowerCase())) return;
+      const vs = byUser[f.uid] || [];
+      const comp = vs.filter((v) => v.status === "Completed" && v.date >= start && v.date <= end);
+      const base = { uid: f.uid, name: f.name, email: f.email, loc, personen: /&|\+| und /i.test(f.name) ? 2 : 1 };
+      if (comp.length) {
+        const v = comp[0];
+        if ((subsBy[f.uid] || []).some((s) => s.date && s.date < v.date && !isPT(s.pkg))) return; // Altkunde
+        out.rows[loc].push(Object.assign(base, { date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: TR_EVENT.test(v.cls) ? "Event (kein Trial)" : "Trial", visits: comp.length, sale: saleOf(f.uid, v.date) }));
+      } else {
+        const fut = vs.filter((v) => v.date > today && !/cancel/i.test(v.status)), ns = vs.filter((v) => /noshow/i.test(v.status)), cn = vs.filter((v) => /cancel/i.test(v.status));
+        const b = fut[0] || ns[ns.length - 1] || cn[cn.length - 1];
+        if (!b) return;
+        out.rows[loc].push(Object.assign(base, { date: b.date, cls: b.cls, trainer: b.staff, bookedBy: b.bookedBy, bookedAt: b.bookedAt, art: fut.length ? "Gebucht" : (ns.length ? "No-Show" : "Storniert"), visits: 0, sale: saleOf(f.uid, b.date) }));
+      }
+    });
+  }
+  // Wiederholer / Rueckkehrer: Check-in ohne Paket von jemandem, der kein Erstbesucher ist, kein Abo hat und 30 Tage nicht da war
+  Object.keys(byUser).forEach((uid) => {
+    if (fvAll.has(uid)) return;
+    const comp = byUser[uid].filter((v) => v.status === "Completed");
+    const cand = comp.filter((v) => v.date >= start && v.date <= end && !v.pkg && !v.guest && !TR_EVENT.test(v.cls));
+    if (!cand.length) return;
+    const v = cand[0];
+    if (staff.has(v.name.toLowerCase())) return;
+    if ((subsBy[uid] || []).some((s) => s.date && s.date <= v.date)) return;
+    if (comp.some((c) => c.date < v.date && c.date >= addDaysStr(v.date, -30))) return;
+    const loc = /winterthur/i.test(v.loc) ? "Winterthur" : "Zurich";
+    const ex = (cancBy[uid] || []).some((c) => c.ended && c.ended < v.date);
+    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
+  });
+  (inp.open || []).forEach((o) => { if (o && o.uid && o.date) out.sales[String(o.uid)] = saleOf(String(o.uid), String(o.date)); });
   return out;
 }

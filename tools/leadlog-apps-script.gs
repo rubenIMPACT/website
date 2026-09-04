@@ -213,7 +213,7 @@ function setupAnalyse() {
   var ka = ss.getSheetByName('Klassenanalyse');
   if (!ka) { ka = ss.insertSheet('Klassenanalyse'); ka.getRange('A1').setValue('Klassenanalyse: wird monatlich vom Skill impact-class-analysis aus den exercise.com-Reports befuellt (Popular Services + Itemized Recurring Sessions).').setFontColor('#666666'); }
   // Reihenfolge von Ruben (03.09.2026). Tab-Namen: Analyse, Trainingsplan-Analyse, Leads Historie duerfen umbenannt werden (dann hier nachziehen); Leads, Trainingsplan, Events, Kündigungen, Klassenanalyse und die Hilfstabs NIE umbenennen (Webapp schreibt per Name).
-  var order = ['Monatsabschluss', 'Leads-Analyse', 'Klassenanalyse', 'Kündigungsrisiko', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin', 'RisikoHistorie', 'MonatsHistorie', 'Kohorten'];
+  var order = ['Monatsabschluss', 'Probetrainings ZH', 'Probetrainings WT', 'Leads-Analyse', 'Klassenanalyse', 'Kündigungsrisiko', 'Trainingsplan', 'Events', 'Trainingsplan-Analyse', 'Kündigungen', 'Leads Historie', 'Leads', 'Daten', 'PlanDaten', 'KlassenHistorie', 'KlassenHistorieDisziplin', 'RisikoHistorie', 'MonatsHistorie', 'Kohorten'];
   var pos = 1;
   for (var i = 0; i < order.length; i++) { var sh = ss.getSheetByName(order[i]); if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); pos++; } }
   ss.setActiveSheet(ss.getSheetByName('Leads-Analyse'));
@@ -1261,3 +1261,153 @@ function buildMonatsabschluss(ss) {
   var ma = ss.getSheetByName(MA_SHEET); if (ma) { ss.setActiveSheet(ma); ss.moveActiveSheet(1); }
   [MA_HIST, MA_COHORT].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
 }
+
+// ------------------------------------------------------------ Probetrainings-Liste (seit 04.09.2026, Entscheid Ruben)
+// Tabs "Probetrainings ZH" und "Probetrainings WT": eine Zeile pro Erstbesucher (User-ID), stuendlich 09-22 Uhr aus der
+// Cloudflare-Funktion (action 'trials', Regel siehe TR_RULE und functions/api/klassen.js). Zeilen werden per UID
+// nachgefuehrt; die Spalten Personen, Gespraech und Kommentar gehoeren dem Verkaeufer und bleiben bei jedem Lauf erhalten.
+// Aeltere offene Zeilen (vor dem Fenster) bekommen ihren Verkaufsstatus ueber open_uids nachgeliefert.
+// Rechts daneben: Monatsuebersicht (S..AA) und Tagestabelle (AC..AI) mit den manuellen Anruf-Spalten (per Datum erhalten).
+var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
+var TR_MAIL = [MAIL.fallback]; // spaeter je Standort (Abdi ZH, Bogdan WT), sobald Ruben die Tabs freigibt
+var TR_HEAD = ['Datum', 'Name', 'Art', 'Klasse', 'Trainer', 'Gebucht von', 'Personen', 'Gespräch', 'Kommentar', 'Abschluss', 'Verkauft von', 'Paket', 'Tage bis Abschluss', 'Status', 'Gebucht am', 'UID', 'Stand'];
+var TR_TALK = ['Gespräch geführt', 'Gespräch verpasst', 'Kein Interesse', 'Kein Trial'];
+var TR_ROW0 = 5, TR_SUM_COL = 19, TR_DAY_COL = 29;
+var TR_RULE = 'Regel (Ruben, 04.09.2026): Trial = erster Check-in überhaupt bei IMPACT, egal welches Paket exercise.com dranhängt; ohne Staff, Gäste und Altkunden. Events, Seminare und Open Mat sind keine Trials. Zwei Kinder auf einem Account = 2 Personen (Spalte Personen anpassen). Wiederholer (prüfen) = Check-in ohne Paket und ohne Abo, 30 Tage nicht da gewesen: bitte Gespräch setzen oder "Kein Trial" wählen, sonst zählt die Zeile nicht. Rückkehrer = Ex-Mitglied, zählt nicht. No-Show = gebucht, nicht erschienen. Gebucht = Termin liegt in der Zukunft. Abschluss = Vertragsunterschrift (exercise.com Waiver) oder Abo-Start; Personal Training zählt nicht. Automatisch stündlich 09–22 Uhr; nur Personen, Gespräch, Kommentar und die Anruf-Spalten rechts sind eure Felder. "Kein Trial" nimmt die Zeile aus der Zählung.';
+function fmtD(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
+function addD(d, n) { var t = new Date(d.getTime()); t.setDate(t.getDate() + n); return t; }
+function trCall(body) { body.action = 'trials'; return klassenCall(body); }
+function trIsTrial(r) { return (r[2] === 'Trial' && r[7] !== 'Kein Trial') || (String(r[2]).indexOf('Wiederholer') === 0 && r[7] && r[7] !== 'Kein Trial'); }
+function trPers(r) { var n = Number(r[6]); return n > 0 ? n : 1; }
+function runProbetrainings(startOpt) {
+  var now = new Date(), today = fmtD(now), end = fmtD(addD(now, 14));
+  var start = startOpt || fmtD(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  var base = { start: start, end: end, today: today, visits_start: fmtD(addD(new Date(start + 'T12:00:00'), -30)), sales_start: fmtD(addD(now, -180)) };
+  var ss = SpreadsheetApp.openById(SHEET_ID), open = [];
+  Object.keys(TR_SHEETS).forEach(function (loc) { open = open.concat(trOpenRows(ss, loc, start)); });
+  var p1 = trCall(Object.assign({ phase: 't1' }, base)); if (p1.error) throw new Error('Trials t1: ' + JSON.stringify(p1).slice(0, 300));
+  var p2 = null, p3 = null, i;
+  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p2 = trCall(Object.assign({ phase: 't2' }, base)); if (p2.error) throw new Error('Trials t2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
+  if (!p2 || !p2.ready) throw new Error('Trials t2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
+  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, open_uids: open }, base)); if (p3.error) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  if (!p3 || !p3.ready) throw new Error('Trials t3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
+  var data = p3.data, lines = [];
+  Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, start, today)); });
+  Logger.log('Probetrainings ' + start + '..' + end + ': ' + lines.join(' | '));
+  return lines.join('\n');
+}
+function trOpenRows(ss, loc, start) {
+  var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return [];
+  var v = sh.getRange(TR_ROW0, 1, sh.getLastRow() - TR_ROW0 + 1, TR_HEAD.length).getValues(), out = [];
+  v.forEach(function (r) { var d = dOfCell(r[0]); if (d && d < start && r[15] && !/^Verkauft/.test(String(r[13]))) out.push({ uid: String(r[15]), date: d }); });
+  return out.slice(0, 600);
+}
+function trInit(ss, sh, loc) {
+  clearSheet(sh);
+  sh.getRange('A1').setValue('Probetrainings ' + (loc === 'Zurich' ? 'Zürich' : 'Winterthur')).setFontSize(16).setFontWeight('bold');
+  sh.getRange('A2').setValue(TR_RULE).setFontColor('#666666').setWrap(true).setVerticalAlignment('top');
+  sh.getRange('A2:Q2').merge(); sh.setRowHeight(2, 80);
+  sh.getRange(4, 1, 1, TR_HEAD.length).setValues([TR_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
+  sh.setFrozenRows(4);
+  [95, 200, 150, 200, 150, 150, 70, 150, 220, 95, 150, 220, 70, 200, 95, 90, 100].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  sh.setColumnWidth(18, 30); sh.setColumnWidth(28, 30);
+  ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 2 : 3);
+}
+function trUpsert(ss, loc, rows, sales, start, today) {
+  var sh = getOrCreate(ss, TR_SHEETS[loc]);
+  if (sh.getLastRow() < 4 || String(sh.getRange(4, 1).getValue()) !== 'Datum') trInit(ss, sh, loc);
+  var n = Math.max(0, sh.getLastRow() - TR_ROW0 + 1), old = n ? sh.getRange(TR_ROW0, 1, n, TR_HEAD.length).getValues() : [];
+  var byUid = {}; old.forEach(function (r) { if (r[15]) byUid[String(r[15])] = r; });
+  var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm');
+  var toDate = function (s) { return s ? new Date(s + 'T12:00:00') : ''; };
+  var seen = {};
+  rows.forEach(function (x) {
+    var o = byUid[x.uid], s = x.sale || {};
+    var r = [toDate(x.date), x.name, x.art, x.cls || '', x.trainer || '', x.bookedBy || '', o && o[6] !== '' ? o[6] : x.personen, o ? o[7] : '', o ? o[8] : '', toDate(s.date), s.by || '', s.pkg || '', (s.days === '' || s.days === undefined) ? '' : s.days, s.status || 'Offen', toDate(x.bookedAt), String(x.uid), stamp];
+    byUid[x.uid] = r; seen[x.uid] = true;
+  });
+  Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[9] = toDate(s.date); o[10] = s.by || ''; o[11] = s.pkg || ''; o[12] = (s.days === '' || s.days === undefined) ? '' : s.days; o[13] = s.status || 'Offen'; o[16] = stamp; });
+  var all = Object.keys(byUid).map(function (k) { return byUid[k]; });
+  all.sort(function (a, b) { var da = dOfCell(a[0]), db = dOfCell(b[0]); return da < db ? 1 : da > db ? -1 : String(a[1]).localeCompare(String(b[1])); });
+  if (n) { sh.getRange(TR_ROW0, 1, n, TR_HEAD.length).clearContent().clearDataValidations().setBackground(null); }
+  if (all.length) {
+    sh.getRange(TR_ROW0, 1, all.length, TR_HEAD.length).setValues(all);
+    [1, 10, 15].forEach(function (c) { sh.getRange(TR_ROW0, c, all.length, 1).setNumberFormat('dd.MM.yyyy'); });
+    sh.getRange(TR_ROW0, 16, all.length, 1).setNumberFormat('@');
+    sh.getRange(TR_ROW0, 8, all.length, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(TR_TALK, true).setAllowInvalid(false).build());
+    sh.getRange(TR_ROW0, 7, all.length, 3).setBackground('#fff8e1');
+  }
+  trFormat(sh, all.length);
+  trSummary(sh, all, start, today);
+  return (loc === 'Zurich' ? 'Zürich' : 'Winterthur') + ': ' + all.length + ' Zeilen, davon neu/aktualisiert ' + rows.length;
+}
+function trFormat(sh, n) {
+  var rules = [];
+  if (n) {
+    var rng = sh.getRange(TR_ROW0, 1, n, TR_HEAD.length), r0 = TR_ROW0;
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$H' + r0 + '="Kein Trial"').setFontColor('#9e9e9e').setStrikethrough(true).setRanges([rng]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=LEFT($N' + r0 + ',8)="Verkauft"').setBackground('#e6f4ea').setRanges([rng]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=OR($C' + r0 + '="No-Show",$C' + r0 + '="Storniert",$C' + r0 + '="Gebucht")').setFontColor('#9e9e9e').setRanges([rng]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=OR(LEFT($C' + r0 + ',11)="Wiederholer",LEFT($C' + r0 + ',5)="Event",LEFT($C' + r0 + ',10)="Rückkehrer")').setBackground('#fce8b2').setRanges([rng]).build());
+  }
+  sh.setConditionalFormatRules(rules);
+}
+function trSummary(sh, all, start, today) {
+  // Monatsuebersicht (S4..) und Tagestabelle (AC4..); Anruf-Spalten der Tagestabelle werden per Datum erhalten
+  var dayHead = ['Tag', 'Trials', 'No-Shows', 'Verkauft', 'Gebucht (kommend)', 'Anrufe versucht', 'Anrufe geführt'];
+  var oldCalls = {};
+  var lr = sh.getLastRow();
+  if (lr >= TR_ROW0) { sh.getRange(TR_ROW0, TR_DAY_COL, lr - TR_ROW0 + 1, dayHead.length).getValues().forEach(function (r) { var d = dOfCell(r[0]); if (d) oldCalls[d] = [r[5], r[6]]; }); }
+  var mon = {}, day = {};
+  all.forEach(function (r) {
+    var d = dOfCell(r[0]); if (!d) return; var mk = d.slice(0, 7), p = trPers(r);
+    var m = mon[mk] = mon[mk] || { trials: 0, wdh: 0, noshow: 0, sold: 0, sameday: 0, open: 0, signed: 0 };
+    var dd = day[d] = day[d] || { trials: 0, noshow: 0, sold: 0, booked: 0 };
+    if (trIsTrial(r)) {
+      m.trials += p; dd.trials += p; if (String(r[2]).indexOf('Wiederholer') === 0) m.wdh += p;
+      var st = String(r[13]);
+      if (/^Verkauft/.test(st)) { m.sold += p; dd.sold += p; if (st === 'Verkauft am Trial-Tag') m.sameday += p; }
+      else if (st === 'Offen') m.open += p; else if (/^Unterschrieben/.test(st)) m.signed += p;
+    }
+    if (r[2] === 'No-Show') { m.noshow += 1; dd.noshow += 1; }
+    if (r[2] === 'Gebucht') dd.booked += 1;
+  });
+  var mHead = ['Monat', 'Trials', 'davon Wiederholer', 'No-Shows', 'Verkauft', 'am Trial-Tag', 'Quote', 'Offen', 'Unterschrieben ohne Abo'];
+  var mRows = Object.keys(mon).sort().reverse().map(function (k) { var m = mon[k]; return [k, m.trials, m.wdh, m.noshow, m.sold, m.sameday, m.trials ? m.sold / m.trials : 0, m.open, m.signed]; });
+  var maxR = Math.max(lr, TR_ROW0 + 1) - 3;
+  sh.getRange(4, TR_SUM_COL, maxR, mHead.length).clearContent().setBackground(null);
+  sh.getRange(4, TR_SUM_COL, 1, mHead.length).setValues([mHead]).setFontWeight('bold').setBackground('#f3f3f3');
+  if (mRows.length) { sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, mHead.length).setValues(mRows).setNumberFormat('0'); sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, 1).setNumberFormat('@'); sh.getRange(TR_ROW0, TR_SUM_COL + 6, mRows.length, 1).setNumberFormat('0%'); }
+  var days = [], d = new Date(today + 'T12:00:00'), s0 = new Date(start + 'T12:00:00');
+  while (d >= s0) { var k = fmtD(d), x = day[k] || { trials: 0, noshow: 0, sold: 0, booked: 0 }, oc = oldCalls[k] || ['', '']; days.push([new Date(k + 'T12:00:00'), x.trials, x.noshow, x.sold, x.booked, oc[0], oc[1]]); d = addD(d, -1); }
+  sh.getRange(4, TR_DAY_COL, maxR, dayHead.length).clearContent().setBackground(null);
+  sh.getRange(4, TR_DAY_COL, 1, dayHead.length).setValues([dayHead]).setFontWeight('bold').setBackground('#f3f3f3');
+  if (days.length) { sh.getRange(TR_ROW0, TR_DAY_COL, days.length, dayHead.length).setValues(days); sh.getRange(TR_ROW0, TR_DAY_COL, days.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(TR_ROW0, TR_DAY_COL + 5, days.length, 2).setBackground('#fff8e1'); }
+  [110, 60, 120, 70, 70, 90, 60, 60, 150].forEach(function (w, i) { sh.setColumnWidth(TR_SUM_COL + i, w); });
+  [95, 60, 70, 70, 120, 110, 110].forEach(function (w, i) { sh.setColumnWidth(TR_DAY_COL + i, w); });
+}
+function trDailyMail() {
+  var ss = SpreadsheetApp.openById(SHEET_ID), today = fmtD(new Date()), parts = [];
+  Object.keys(TR_SHEETS).forEach(function (loc) {
+    var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return;
+    var v = sh.getRange(TR_ROW0, 1, sh.getLastRow() - TR_ROW0 + 1, TR_HEAD.length).getValues();
+    var td = v.filter(function (r) { return dOfCell(r[0]) === today; }), mk = today.slice(0, 7), mv = v.filter(function (r) { return dOfCell(r[0]).slice(0, 7) === mk; });
+    var cnt = function (rows, f) { return rows.reduce(function (a, r) { return a + (f(r) ? trPers(r) : 0); }, 0); };
+    var sold = function (r) { return trIsTrial(r) && /^Verkauft/.test(String(r[13])); };
+    parts.push((loc === 'Zurich' ? 'ZÜRICH' : 'WINTERTHUR') + ' heute: ' + cnt(td, trIsTrial) + ' Trials, ' + td.filter(function (r) { return r[2] === 'No-Show'; }).length + ' No-Shows, ' + cnt(td, sold) + ' verkauft | Monat: ' + cnt(mv, trIsTrial) + ' Trials, ' + cnt(mv, sold) + ' verkauft, ' + mv.filter(function (r) { return trIsTrial(r) && !r[7]; }).length + ' ohne Gesprächsstatus');
+    td.forEach(function (r) { parts.push('  - ' + r[1] + ' | ' + r[2] + ' | ' + r[3] + ' | ' + r[13] + (r[7] ? ' | ' + r[7] : '')); });
+    parts.push('');
+  });
+  MailApp.sendEmail({ to: TR_MAIL.join(','), subject: '[Sheet] Probetrainings ' + today, body: parts.join('\n') + '\nhttps://docs.google.com/spreadsheets/d/' + SHEET_ID });
+}
+function runProbetrainingsHourly() {
+  var h = Number(Utilities.formatDate(new Date(), TZ, 'H')); if (h < 9 || h > 22) return;
+  try { runProbetrainings(); } catch (e) { Logger.log('Probetrainings Fehler: ' + e); if (h === 22) MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Probetrainings FEHLGESCHLAGEN', body: String(e && e.message ? e.message : e) }); }
+}
+function installTrialTriggers() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('runProbetrainingsHourly').timeBased().everyHours(1).create();
+  ScriptApp.newTrigger('trDailyMail').timeBased().atHour(21).nearMinute(45).everyDays(1).inTimezone(TZ).create();
+  Logger.log('Trigger installiert: runProbetrainingsHourly (stuendlich, 09-22), trDailyMail (21:45)');
+}
+
