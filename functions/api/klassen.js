@@ -489,6 +489,7 @@ function trialUrls(p) {
     waiver: { url: API + "/api/v4/reports/waiver?" + qS + "&per=3000", start: sStart },
     tot: { url: API + "/api/v4/reports/total_visits_per_client?" + query(tStart, tEnd) + "&per=5000", start: tStart },
     life: { url: API + "/api/v4/reports/lifecycle?" + qW + "&per=8000", start }, // "Current" = aktuelle Lifecycle-Stage je Person (per E-Mail)
+    notes: { url: API + "/api/v4/reports/account_notes?" + qW + "&per=6000", start }, // letzte Notiz je Person (Date, Title)
   };
   if (c2Start <= end) U.v2 = { url: API + "/api/v4/reports/detailed_visits?" + query(c2Start, end) + "&per=8000", start: c2Start };
   return U;
@@ -509,7 +510,7 @@ async function trials(H, p) {
   }
   if (phase === "t1") {
     const out = {};
-    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "life"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "life", "notes"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
     return { ok: true, started: out };
   }
   if (phase === "t2") {
@@ -523,7 +524,7 @@ async function trials(H, p) {
     return { ready: true, fv_zh: fvC, v1: vC };
   }
   if (phase === "t3") {
-    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "life"].concat(U.v2 ? ["v2"] : []);
+    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "life", "notes"].concat(U.v2 ? ["v2"] : []);
     for (const k of keys) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
@@ -533,7 +534,7 @@ async function trials(H, p) {
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: fvCompact(rowsOf(got.fvWT)) };
     const vis = (Array.isArray(p.v1) ? p.v1 : []).concat(U.v2 ? visCompact(got.v2) : []);
     const prior = new Set(rowsOf(got.tot).filter((r) => num(r["Total Completed"]) > 0).map((r) => String(r["User ID"] || "")).filter(Boolean));
-    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), life: rowsOf(got.life), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
+    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), life: rowsOf(got.life), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
   }
   return { error: "phase" };
 }
@@ -563,6 +564,9 @@ function computeTrials(inp) {
   // Lifecycle-Stage (exercise.com "Current") je E-Mail, letzter Uebergang im Fenster gewinnt
   const lifeBy = {}; (inp.life || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (!e) return; if (!lifeBy[e] || lifeBy[e].date <= d) lifeBy[e] = { date: d, cur: String(r["Current"] || "") }; });
   const lifeOf = (email) => { const l = lifeBy[String(email || "").toLowerCase().trim()]; return l ? l.cur : ""; };
+  // Letzte Notiz je User-ID (Report "Account Notes": Date, Title, Created By)
+  const noteBy = {}; (inp.notes || []).forEach((r) => { const u = String(r["User ID"] || ""), d = chDate(r["Date"]); if (!u || !d) return; if (!noteBy[u] || noteBy[u].date <= d) noteBy[u] = { date: d, type: String(r["Title"] || "").slice(0, 40), by: String(r["Created By"] || "") }; });
+  const noteOf = (uid) => noteBy[String(uid)] || null;
   const saleOf = (uid, trialDate) => {
     const ws = (waivBy[uid] || []).filter((w) => w.date && w.date >= trialDate).sort((a, b) => (a.date < b.date ? -1 : 1));
     const ss = (subsBy[uid] || []).filter((s) => !isPT(s.pkg) && s.date && s.date >= trialDate).sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -582,7 +586,7 @@ function computeTrials(inp) {
       if (staff.has(f.name.toLowerCase())) return;
       const vs = byUser[f.uid] || [];
       const comp = vs.filter((v) => v.status === "Completed" && v.date >= start && v.date <= end);
-      const base = { uid: f.uid, name: f.name, email: f.email, loc, personen: /&|\+| und /i.test(f.name) ? 2 : 1, lifecycle: lifeOf(f.email) };
+      const base = { uid: f.uid, name: f.name, email: f.email, loc, personen: /&|\+| und /i.test(f.name) ? 2 : 1, lifecycle: lifeOf(f.email), lastNote: noteOf(f.uid) };
       if (comp.length) {
         const v = comp[0];
         if ((subsBy[f.uid] || []).some((s) => s.date && s.date < v.date && !isPT(s.pkg))) return; // Altkunde
@@ -607,7 +611,7 @@ function computeTrials(inp) {
     if (prior.has(uid) || comp.some((c) => c.date < v.date)) return;
     const loc = /winterthur/i.test(v.loc) ? "Winterthur" : "Zurich";
     const ex = (cancBy[uid] || []).some((c) => c.ended && c.ended < v.date);
-    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, lifecycle: lifeOf(v.email), date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
+    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, lifecycle: lifeOf(v.email), lastNote: noteOf(uid), date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
   });
   (inp.open || []).forEach((o) => { if (o && o.uid && o.date) out.sales[String(o.uid)] = saleOf(String(o.uid), String(o.date)); });
   return out;
