@@ -784,7 +784,7 @@ nav .logo img{height:32px}
 .navwrap:before{content:"";position:absolute;left:0;right:0;bottom:100%;height:150px;background:#0a0908}
 }
 </style>
-<script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
+<script>if(/[?&](gclid|fbclid|ttclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Ist Boxen schwer zu lernen?", "acceptedAnswer": {"@type": "Answer", "text": "Die Boxen-Lektionen sind etwas fortgeschrittener, aber für alle geeignet, die sportlich sind. Der Inhalt kann von jedem erlernt werden."}}, {"@type": "Question", "name": "Muss ich sparren?", "acceptedAnswer": {"@type": "Answer", "text": "Nein. Sparring ist freiwillig und streng kontrolliert – der Kopf wird nicht hart getroffen. Wir legen grössten Wert darauf, uns nicht gegenseitig zu verletzen."}}, {"@type": "Question", "name": "Passe ich dazu?", "acceptedAnswer": {"@type": "Answer", "text": "Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen, die jeden willkommen heisst. Auch du passt gut zu uns!"}}, {"@type": "Question", "name": "Wie melde ich mich an?", "acceptedAnswer": {"@type": "Answer", "text": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an."}}, {"@type": "Question", "name": "Wo findet das Training statt?", "acceptedAnswer": {"@type": "Answer", "text": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns."}}]}</script>
 <style>/*solidnav*/@media(max-width:899px){.navwrap nav{background:#0a0908!important}}</style>
@@ -907,7 +907,7 @@ Walchestrasse 15, Zürich
 <div><label for="phone">Telefon *</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
 <div><label for="email">E-Mail *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
 <button type="button" class="msgtoggle">+ Nachricht hinzufügen</button><div class="msgwrap"><div><label for="fmsg">Nachricht</label><input id="fmsg" name="message" type="text" placeholder="Optional – z.B. wenn ihr zu zweit kommt"></div></div>
-<input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
+<input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="ttclid" id="t_tt"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
 <button class="cta" type="submit">Gratis Probetraining<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
 </form>
 <div id="formsuccess" style="display:none">
@@ -1011,8 +1011,8 @@ Walchestrasse 15, Zürich
 (function(){
 (function(){try{
 var p=new URLSearchParams(location.search);
-var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc'};
-Object.keys(m).forEach(function(k){var v=p.get(k);if(v){var el=document.getElementById(m[k]);if(el)el.value=v;try{sessionStorage.setItem('imp_'+k,v)}catch(e){}}else{try{var s=sessionStorage.getItem('imp_'+k);if(s){var el2=document.getElementById(m[k]);if(el2)el2.value=s}}catch(e){}}});
+var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc',ttclid:'t_tt'};
+Object.keys(m).forEach(function(k){var v=p.get(k);if(v){var el=document.getElementById(m[k]);if(el)el.value=v;try{localStorage.setItem('imp_'+k,JSON.stringify({v:v,t:Date.now()}))}catch(e){}}else{try{var s=JSON.parse(localStorage.getItem('imp_'+k)||'null');if(s&&s.v&&Date.now()-s.t<2592e6){var el2=document.getElementById(m[k]);if(el2)el2.value=s.v}}catch(e){}}});
 var lp=document.getElementById('t_lp');if(lp)lp.value=location.href.split('?')[0];
 var rf=document.getElementById('t_rf');if(rf)rf.value=document.referrer||'';
 }catch(e){}})();

@@ -537,7 +537,7 @@ nav .logo img{height:32px}
 .navwrap:before{content:"";position:absolute;left:0;right:0;bottom:100%;height:150px;background:#0a0908}
 }
 </style>
-<script>if(/[?&](gclid|fbclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
+<script>if(/[?&](gclid|fbclid|ttclid|utm_|ad=1)/.test(location.search)){document.documentElement.classList.add('admode')}</script>
 <link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I sign up?", "acceptedAnswer": {"@type": "Answer", "text": "Just sign up for your trial class via the form. You can come in for free to get to know us and the classes – we'll give you a quick call beforehand."}}, {"@type": "Question", "name": "I'm not fit enough. Is that a problem?", "acceptedAnswer": {"@type": "Answer", "text": "No. Every drill can be scaled and you set your own pace. Most people here started exactly where you are."}}, {"@type": "Question", "name": "Will I embarrass myself rolling as a beginner?", "acceptedAnswer": {"@type": "Answer", "text": "No. Everyone on the mats was a white belt once. There is no room for ego here – making mistakes is part of learning."}}, {"@type": "Question", "name": "Is the risk of injury high?", "acceptedAnswer": {"@type": "Answer", "text": "BJJ works without strikes. We take great care not to hurt each other – controlled, technical training is at the core."}}, {"@type": "Question", "name": "Do I need my own gear?", "acceptedAnswer": {"@type": "Answer", "text": "No. Everything you need for your trial is here. Sportswear and water are enough."}}, {"@type": "Question", "name": "Can I shower after training?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, the studio has showers – head straight to work or into your day feeling fresh and energised."}}, {"@type": "Question", "name": "Where does training take place?", "acceptedAnswer": {"@type": "Answer", "text": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site)."}}]}</script>
 <style>/*solidnav*/@media(max-width:899px){.navwrap nav{background:#0a0908!important}}</style>
@@ -664,7 +664,7 @@ Technoparkstrasse 3, Winterthur
 <div><label for="phone">Phone *</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
 <div><label for="email">Email *</label><input id="email" name="email" type="email" autocomplete="email" required></div>
 <button type="button" class="msgtoggle">+ Add a message</button><div class="msgwrap"><div><label for="fmsg">Message</label><input id="fmsg" name="message" type="text" placeholder="Optional – e.g. if two of you are coming"></div></div>
-<input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
+<input type="hidden" name="utm_source" id="t_us"><input type="hidden" name="utm_medium" id="t_um"><input type="hidden" name="utm_campaign" id="t_uc"><input type="hidden" name="utm_content" id="t_uct"><input type="hidden" name="utm_term" id="t_ut"><input type="hidden" name="fbclid" id="t_fb"><input type="hidden" name="gclid" id="t_gc"><input type="hidden" name="ttclid" id="t_tt"><input type="hidden" name="landing_page" id="t_lp"><input type="hidden" name="referrer" id="t_rf">
 <button class="cta" type="submit">Free Trial Class<svg class="sweep" viewBox="30 12 40 76" aria-hidden="true"><path d="M50.4 16.4 L37.4 50"/><path d="M56.7 16.4 L43.7 50"/><path d="M62.9 16.4 L37 83.5"/><path d="M56.2 50.1 L43.3 83.5"/></svg></button>
 </form>
 <div id="formsuccess" style="display:none">
@@ -772,8 +772,8 @@ Technoparkstrasse 3, Winterthur
 (function(){
 (function(){try{
 var p=new URLSearchParams(location.search);
-var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc'};
-Object.keys(m).forEach(function(k){var v=p.get(k);if(v){var el=document.getElementById(m[k]);if(el)el.value=v;try{sessionStorage.setItem('imp_'+k,v)}catch(e){}}else{try{var s=sessionStorage.getItem('imp_'+k);if(s){var el2=document.getElementById(m[k]);if(el2)el2.value=s}}catch(e){}}});
+var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc',ttclid:'t_tt'};
+Object.keys(m).forEach(function(k){var v=p.get(k);if(v){var el=document.getElementById(m[k]);if(el)el.value=v;try{localStorage.setItem('imp_'+k,JSON.stringify({v:v,t:Date.now()}))}catch(e){}}else{try{var s=JSON.parse(localStorage.getItem('imp_'+k)||'null');if(s&&s.v&&Date.now()-s.t<2592e6){var el2=document.getElementById(m[k]);if(el2)el2.value=s.v}}catch(e){}}});
 var lp=document.getElementById('t_lp');if(lp)lp.value=location.href.split('?')[0];
 var rf=document.getElementById('t_rf');if(rf)rf.value=document.referrer||'';
 }catch(e){}})();
