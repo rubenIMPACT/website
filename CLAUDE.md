@@ -34,7 +34,18 @@ Im Leads-Log: Tab "Wochenreport" (ersetzt Leads-Analyse; buildWochenreport(main,
 Leads je Standort/Kanal/Interesse aus Daten, Trials/No-Shows/Verkauft (Vertragswoche)/Kohorten-Quote/Anrufe aus dem Team-Sheet; laeuft mit
 jedem Probetrainings-Lauf). "Leads Historie" geloescht: HISTORY liegt als leads_web in MonatsHistorie (migrateHistorie), Monatsabschluss zeigt
 Monate ab Januar 2026 und unten Bloecke "Website-Leads nach Kanal/Interesse" (COUNTIFS auf Daten, Spalte J = Kanal: Klick-ID > UTM > Referrer).
-Probetrainings-Spalten (CI-Indizes im Script): Trial-Datum, Name, Art ("Trial stattgefunden"/"Gebucht (kommend)"/No-Show/...), Klasse,
+LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50): Team-Sheet fuehrt keinen eigenen Status/Gespraech mehr. Spalten (CI): Trial-Datum, Name,
+Art, Klasse, Trainer, Gebucht von, Kanal, Personen*, Kein Trial* (Checkbox), Kommentar*, Lifecycle-Stage (exercise.com "Current"), Pruefen
+(Fakt vs. Stage ab 1 Tag nach Termin, rot; Texte TR_T.*.chk), Vertrag am, Verkaeufer, Paket, Tage bis Vertrag, Letzte Notiz (Report
+account_notes: Datum + Titel), CRM (HYPERLINK auf /ex4/clients/<uid>/notes), Buchung erstellt am, UID (versteckt), Stand. Stages: LC_POST =
+Client, Dependant client, Signed but no payment, Pending Decision, Missed the talk (neu 04.09.), Not Interested (Lost); LC_CLIENT = die ersten drei.
+Regeln: Trial stattgefunden -> Stage muss in LC_POST sein; No-Show -> re-engage no-shows; Storniert -> re-engage cancelled trial; Gebucht ->
+Trial Booked; Wiederholer zaehlt erst mit LC_POST-Stage. Verkauft = Vertragsdatum vorhanden. Abendmail trDailyMail je Standort an abdi@/bogdan@,
+Ruben cc: Trials heute, Pruefungen, Buchungen morgen, Monatsstand. Wochenreport Kennzahlen: "Offene Pruefungen ZH/WT". Offen (Ruben-Task):
+Kinder sauber auf "Dependant client". LEHRE Editor 04.09. nachmittags: Tastatur-Paste/cmd+s kommen nicht mehr an; Diff als Monaco-Ops
+(scratchpad editor_ops*.js aus difflib gegen die Editor-Basisversion), speichern per Klick auf das Disketten-Symbol (331,73) NACH dem
+Wegklicken des Konto-Popups (1445,202); find/screenshot melden zeitweise "Page still loading", javascript_tool geht trotzdem.
+Probetrainings-Spalten (Stand mittags, ueberholt): Trial-Datum, Name, Art ("Trial stattgefunden"/"Gebucht (kommend)"/No-Show/...), Klasse,
 Trainer, Gebucht von, Kanal, Wie gehoert, Personen*, Gespraech*, Kommentar*, Vertrag am, Verkaeufer, Paket, Tage bis Vertrag, Status
 (unser Verkaufsergebnis), Lifecycle-Stage (exercise.com "Current" aus dem Lifecycle-Report, per E-Mail), Buchung erstellt am, UID (versteckt),
 Stand (* = Verkaeufer-Spalten); Monatsuebersicht V..AE, Tagestabelle AG..AM (AL/AM Anrufe manuell). Kopfzeile != TR_T.head -> Tab wird neu
