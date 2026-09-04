@@ -26,8 +26,19 @@ Statischer Rebuild von impact-martialarts.com (weg von Webflow). Deploy: Cloudfl
 
 - **Danke-Seiten + Training-Plan-Block (02.09.2026):** `/probetraining/danke/` und `/en/trial/thanks/` haben unter den drei Schritten den Block `#plan` (Kicker/Titel/Text/CTA `#planlink`, DE mit Hinweis 'Das Tool ist auf Englisch'). Alle 38 Formulare (probetraining, en/trial, 36 Kurs-LPs) leiten nach dem Submit mit `?loc=<Standort>&dis=<Disziplin>` (Formularwerte, keine Personendaten) auf die Danke-Seite; das `/*planlink*/`-Script mappt das auf `/training-plan/?loc=z|w&a=<art>` (Street Defense -> `g=defense&a=explore`, Personal Training -> nur loc) und blendet den Block bei Little Ninjas aus (Tool ist nur fuer Erwachsene). Body der Danke-Seiten scrollt jetzt (overflow-x:hidden statt overflow:hidden). Marker-Regel: `/*tiktok*/` gehoert INNERHALB des Script-Tags (stand nach dem TikTok-Pixel-Commit ausserhalb und war auf 84 Seiten als Text sichtbar, 02.09. gefixt).
 
+TEAM-SHEET (04.09.2026 mittags, Entscheid Ruben): eigene Datei "IMPACT Team" (ID 1mU0eQbnn02JoH6yg1v-o8-ACei44mLiirWNTP1-avjg, gleicher
+Drive-Ordner wie das Leads-Log), weil Google nur pro Datei teilt. Tabs: Events (Werte-Spiegel des Events-Tabs aus dem Leads-Log, stuendlich,
+nur Ruben editiert), Probetrainings ZH (Schutz: nur Ruben + abdi@), Probetrainings WT (nur Ruben + bogdan@). Freigabe per teamShare():
+Editoren abdi@/bogdan@, Leser support@. setupTeam() einmalig ausgefuehrt (Backfill ab 01.08., Tabs aus dem Leads-Log geloescht, setupAnalyse).
+Im Leads-Log: Tab "Wochenreport" (ersetzt Leads-Analyse; buildWochenreport(main, team) baut den ganzen Funnel pro Woche als Werte:
+Leads je Standort/Kanal/Interesse aus Daten, Trials/No-Shows/Verkauft (Vertragswoche)/Kohorten-Quote/Anrufe aus dem Team-Sheet; laeuft mit
+jedem Probetrainings-Lauf). "Leads Historie" geloescht: HISTORY liegt als leads_web in MonatsHistorie (migrateHistorie), Monatsabschluss zeigt
+Monate ab Januar 2026 und unten Bloecke "Website-Leads nach Kanal/Interesse" (COUNTIFS auf Daten, Spalte J = Kanal: Klick-ID > UTM > Referrer).
+Probetrainings-Spalten (CI-Indizes im Script): Trial-Datum, Name, Art, Klasse, Trainer, Gebucht von, Kanal, Wie gehoert, Personen*, Gespraech*,
+Kommentar*, Vertrag am, Verkaeufer, Paket, Tage bis Vertrag, Status, Buchung erstellt am, UID, Stand (* = Verkaeufer-Spalten); Monatsuebersicht
+U..AD, Tagestabelle AF..AL (AK/AL Anrufe manuell). Kanal/Wie gehoert per E-Mail-Abgleich (Fallback Name) mit dem Leads-Log (trLeadMap).
 PROBETRAININGS-LISTE (04.09.2026, Entscheid Ruben nach Abgleich mit Bogdans Strichliste 50 vs. 84): Tabs "Probetrainings ZH" und
-"Probetrainings WT" im Leads-Log-Sheet, eine Zeile pro Erstbesucher (UID), stuendlich 09-22 Uhr (Trigger runProbetrainingsHourly,
+"Probetrainings WT" (seit mittags im Team-Sheet, s.o.), eine Zeile pro Erstbesucher (UID), stuendlich 09-22 Uhr (Trigger runProbetrainingsHourly,
 Tagesmail trDailyMail 21:45 an TR_MAIL = Ruben; Abdi/Bogdan erst nach Freigabe). Server: functions/api/klassen.js action 'trials'
 (Phasen t1/t2/t3, Reports clients_first_visit je Standort, detailed_visits ab Fenster-30 Tage, active_subscription, cancelled_subscriptions,
 waiver = "Waivers and Contracts" mit Signed/Signed By = Vertragsabschluss und Verkaeufer). Regel (TR_RULE im Script): Trial = erster
