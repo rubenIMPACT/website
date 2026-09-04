@@ -1259,6 +1259,7 @@ function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
   var hist = ss.getSheetByName(MA_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 4).getValues() : [];
   var months = {}; hv.forEach(function (r) { months[mkOf(r[0])] = 1; });
+  months[Utilities.formatDate(new Date(), TZ, 'yyyy-MM')] = 1; // laufender Monat immer dabei (Leads Website, Kanal, Interesse live)
   var keys = Object.keys(months).sort().slice(-12);
   var val = {}; hv.forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
   sh.getRange('A1').setValue('IMPACT Monatsabschluss').setFontSize(16).setFontWeight('bold');
