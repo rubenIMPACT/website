@@ -1329,6 +1329,7 @@ var TR_ROW0 = 5, TR_NCOL = 21, TR_SUM_COL = 23, TR_DAY_COL = 35, TR_CHECK_DAYS =
 var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, pers: 7, notrial: 8, cmt: 9, lifecycle: 10, check: 11, contract: 12, seller: 13, pkg: 14, days: 15, note: 16, crm: 17, created: 18, uid: 19, stamp: 20 };
 var LC_POST = ['Client', 'Dependant client', 'Signed but no payment', 'Pending Decision', 'Missed the talk', 'Not Interested (Lost)'];
 var LC_CLIENT = ['Client', 'Dependant client', 'Signed but no payment'];
+var LC_NOSHOW_OK = ['re-engage no-shows', 're-engage cancelled trial'].concat(LC_POST); // nach No-Show/Storno: Re-Engage oder ein Ergebnis (z.B. Not Interested) ist in Ordnung
 var TR_T = {
   de: {
     title: 'Probetrainings Zürich',
@@ -1379,8 +1380,8 @@ function trCheck(r, today, T) {
   if (art === 'Trial') {
     if (due) { if (!lc) msg = f('nolc'); else if (LC_POST.indexOf(lc) < 0) msg = f('stuck'); else if (lc === 'Client' && !contract && today > addDs(d, 2)) msg = f('clientNoContract'); }
     if (!msg && contract && LC_CLIENT.indexOf(lc) < 0 && today > addDs(contract, 2)) msg = f('contractNoClient', deD(contract));
-  } else if (art === 'No-Show') { if (due && lc !== 're-engage no-shows' && LC_CLIENT.indexOf(lc) < 0) msg = f('noshow'); }
-  else if (art === 'Storniert') { if (due && lc !== 're-engage cancelled trial' && LC_CLIENT.indexOf(lc) < 0) msg = f('canc'); }
+  } else if (art === 'No-Show') { if (due && LC_NOSHOW_OK.indexOf(lc) < 0) msg = f('noshow'); }
+  else if (art === 'Storniert') { if (due && LC_NOSHOW_OK.indexOf(lc) < 0) msg = f('canc'); }
   else if (art === 'Gebucht') { if (lc && lc !== 'Trial Booked' && LC_CLIENT.indexOf(lc) < 0) msg = f('booked'); }
   else if (art.indexOf('Wiederholer') === 0) { if (LC_POST.indexOf(lc) < 0) msg = f('wdh'); }
   if (msg && (art === 'Trial' || art === 'No-Show' || art === 'Storniert')) msg += (noteIso && noteIso >= d) ? T.chk.noteYes.replace('{n}', noteD) : T.chk.noteNo;
