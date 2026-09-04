@@ -1029,13 +1029,21 @@ function installCalendarTrigger() {
 }
 function syncCalendar() {
   var cal = CalendarApp.getDefaultCalendar(); var log = []; var today = new Date(); today.setHours(0, 0, 0, 0);
-  planSheets().forEach(function (ps) {
+  // Gleiche ID in mehreren Jahres-Tabs (Tab-Kopien): nur der Tab, dessen Name das Jahr des Events ist, legt Termine an
+  var sheets = planSheets(); var owner = {};
+  sheets.forEach(function (ps) { var sh = ps.sh, col = ps.col, last = sh.getLastRow(); if (last < 2 || !col['ID']) return;
+    sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues().forEach(function (r) { var id = String(r[col['ID'] - 1] || '').trim(); if (!id) return;
+      var st = r[(col['Start time'] || 3) - 1]; var yr = (st instanceof Date && !isNaN(st)) ? String(st.getFullYear()) : ''; var tab = String(sh.getName()).trim();
+      if (!owner[id] || tab === yr) owner[id] = tab; }); });
+  sheets.forEach(function (ps) {
     var sh = ps.sh, col = ps.col, last = sh.getLastRow(); if (last < 2 || !col['Google event'] || !col['CalId']) return;
     var rows = sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
     var g = function (r, name) { return col[name] ? r[col[name] - 1] : ''; };
     rows.forEach(function (r, i) {
       var act = String(g(r, 'Activity') || '').trim(); if (!act) return;
-      var want = g(r, 'Google event') === true; var calId = String(g(r, 'CalId') || '').trim();
+      var id = String(g(r, 'ID') || '').trim(); var canonical = !id || owner[id] === String(sh.getName()).trim();
+      var want = canonical && g(r, 'Google event') === true; var calId = String(g(r, 'CalId') || '').trim();
+      if (!canonical && !calId) return;
       var st = g(r, 'Start time'), en = g(r, 'End time');
       var okDate = st instanceof Date && !isNaN(st);
       if (want && !okDate) return;
