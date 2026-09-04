@@ -168,13 +168,15 @@ function logPlan(ss, p) {
 function logForm(ss, p) {
   var d = p.data || {};
   var isEv = p.kind === 'event';
-  var name = isEv ? 'Events' : 'Kündigungen';
-  var head = isEv ? ['Zeitpunkt', 'Event', 'Datum', 'Standort', 'Name', 'E-Mail', 'Telefon', 'Freunde', 'Sprache', 'Seite', 'Event-ID']
-                  : ['Zeitpunkt', 'Anonym', 'Vorname', 'Nachname', 'Grund', 'Erwartungen nicht erfüllt', 'Details Erwartungen', 'Zufriedenheit Trainer', 'Details Trainer', 'Pause/Timing', 'Details Timing', 'Preis Einfluss', 'Preis zum Bleiben', 'Preis maximal', 'Verbesserungen', 'Wiedereinstieg', 'Details Wiedereinstieg', 'Sprache'];
+  var name = isEv ? 'Events' : 'Cancellations';
+  if (!isEv && !ss.getSheetByName('Cancellations') && ss.getSheetByName('Kündigungen')) ss.getSheetByName('Kündigungen').setName('Cancellations'); // 04.09.: English
+  var head = isEv ? ['Timestamp', 'Event', 'Date', 'Location', 'Name', 'Email', 'Phone', 'Friends', 'Language', 'Page', 'Event ID']
+                  : ['Timestamp', 'Anonymous', 'First name', 'Last name', 'Reason', 'Expectations not met', 'Details expectations', 'Coach satisfaction', 'Details coaches', 'Break/timing', 'Details timing', 'Price influenced', 'Price to stay', 'Max price', 'Suggestions', 'Would rejoin', 'Details rejoin', 'Language'];
   var sh = ss.getSheetByName(name); if (!sh) { sh = ss.insertSheet(name); }
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); }
+  else if (String(sh.getRange(1, 1).getValue()) === 'Zeitpunkt') { sh.getRange(1, 1, 1, head.length).setValues([head]); } // alte deutsche Kopfzeile auf Englisch umstellen
   var row = isEv ? [new Date(), s(d.event_title), s(d.event_date), s(d.location), asText(d.name), asText(d.email), asText(d.phone), s(d.friends), s(d.lang), s(d.page), s(d.event_id)]
-                 : [new Date(), d.anonymous ? 'Ja' : 'Nein', asText(d.first_name), asText(d.last_name), asText(d.reason), s(d.expectations), asText(d.expectations_text), s(d.satisfaction), asText(d.satisfaction_text), s(d.timing), asText(d.timing_text), s(d.price), s(d.price_stay), s(d.price_max), asText(d.suggestions), s(d.rejoin), asText(d.rejoin_text), s(d.lang)];
+                 : [new Date(), d.anonymous ? 'Yes' : 'No', asText(d.first_name), asText(d.last_name), asText(d.reason), s(d.expectations), asText(d.expectations_text), s(d.satisfaction), asText(d.satisfaction_text), s(d.timing), asText(d.timing_text), s(d.price), s(d.price_stay), s(d.price_max), asText(d.suggestions), s(d.rejoin), asText(d.rejoin_text), s(d.lang)];
   sh.appendRow(row);
   if (isEv) updateSignupCount(ss, d.event_id);
   return { ok: true };
@@ -855,9 +857,9 @@ function dropTestRows() {
    doGet?what=setup -> legt die Website-Spalten im Planungs-Sheet an; what=seed -> fuellt Open Doors 26.09.
    logForm (kind=event) schreibt zusaetzlich die Event-ID und zaehlt Anmeldungen in Spalte "Anmeldungen" des Planungs-Sheets. */
 var PLAN_ID = '1cjW80tiosj7-STr-9qsi5CFHesVEoURRj_RAmXIS4S0';
-var PLAN_COLS = ['ID','Website','Anmeldung','Freunde','Rewards','Text','Bild-URL','Anmeldungen','CalId','Einladen']; // Titel = Spalte Notes (Rubens Wunsch 03.09.)
+var PLAN_COLS = ['ID','Website','Registration','Friends','Rewards','Text','Image URL','Sign-ups','CalId','Invite']; // English (company default) // Titel = Spalte Notes (Rubens Wunsch 03.09.)
 var PLAN_DROP = ['Titel EN','Text EN','Kurzort','Link']; // 03.09.: auf Rubens Wunsch entfernt, Ort kommt aus Location, Link aus Notes
-var PLAN_RENAME = { 'Titel DE': 'Titel', 'Text DE': 'Text' };
+var PLAN_RENAME = { 'Titel DE': 'Titel', 'Text DE': 'Text', 'Anmeldung': 'Registration', 'Freunde': 'Friends', 'Bild-URL': 'Image URL', 'Anmeldungen': 'Sign-ups', 'Einladen': 'Invite' };
 function migratePlanSheet() {
   var changedAll = [];
   SpreadsheetApp.openById(PLAN_ID).getSheets().forEach(function (sh) { if (String(sh.getRange(1, 1).getValue() || '').trim().toLowerCase() === 'activity') changedAll = changedAll.concat(migrateOne(sh)); });
@@ -895,18 +897,18 @@ function migrateOne(sh) {
     }
     moveColTo('Text', 'Notes');
     moveColTo('Google event', 'Text');
-    moveColTo('Einladen', 'Google event');
-    moveColTo('Freunde', 'Anmeldung');
+    moveColTo('Invite', 'Google event');
+    moveColTo('Friends', 'Registration');
     var cI = planSheet(sh).col; if (cI['ID']) { sh.hideColumns(cI['ID']); changed.push('hide:ID'); } if (cI['CalId']) { sh.hideColumns(cI['CalId']); changed.push('hide:CalId'); }
-    if (cI['Location']) sh.getRange(1, cI['Location']).setNote('ORT / ADRESSE\nEinfach die Adresse eintippen oder einfuegen, mehrzeilig ist ok, z.B.\nWaldmannhalle\nNeugasse 55, 6340 Baar\n\nFuer unsere Studios reicht "Zürich" oder "Winterthur" (bei Trainings und Community Events setzt die Website automatisch die Studio-Adresse).\nDie Website zeigt die Adresse mit Link auf Google Maps.');
-    if (cI['Einladen']) sh.getRange(1, cI['Einladen']).setNote('EINLADEN (optional)\nLeer = alle Mitarbeitenden bekommen die Kalender-Einladung.\nSonst Kurznamen mit Komma, z.B. "Abdi, Bogdan, Nate".\nMoeglich: Abdi, Bogdan, Ruben, Info, Joao, Laszlo, Sergei, Nate (oder direkt E-Mail-Adressen).\nAenderungen werden innerhalb von 10 Minuten in den Termin uebernommen.');
-    if (cI['Google event']) sh.getRange(1, cI['Google event']).setNote('GOOGLE-KALENDER\nHaken setzen = das Script legt innerhalb von 10 Minuten einen Kalendertermin an (Titel aus Notes, Zeit, Adresse, Text) und verschickt die Einladung an alle Mitarbeitenden (oder nur an die in Spalte "Einladen"). Das Script ist die einzige Quelle: bitte keine Termine mehr manuell im Kalender anlegen. Haken entfernen = Termin wird wieder geloescht.');
+    if (cI['Location']) sh.getRange(1, cI['Location']).setNote('LOCATION / ADDRESS\nJust type or paste the address, multiple lines are fine, e.g.\nWaldmannhalle\nNeugasse 55, 6340 Baar\n\nFor our studios "Zürich" or "Winterthur" is enough (for trainings and community events the website adds the studio address automatically).\nThe website shows the address with a Google Maps link.');
+    if (cI['Invite']) sh.getRange(1, cI['Invite']).setNote('INVITE (optional)\nEmpty = the whole team gets the calendar invitation.\nOtherwise first names separated by commas, e.g. "Abdi, Bogdan, Nate".\nPossible: Abdi, Bogdan, Ruben, Sam, Joao, Laszlo, Sergei, Nate (or email addresses).\nChanges are applied to the calendar event within 10 minutes.');
+    if (cI['Google event']) sh.getRange(1, cI['Google event']).setNote('GOOGLE CALENDAR\nTick = within 10 minutes the script creates a calendar event (title from Notes, time, address, Text) and sends the invitation to the whole team (or only to the people in the "Invite" column). The script is the single source: please do not create these events manually in the calendar. Untick = the event is deleted again.');
   } catch (mv) { changed.push('move-fehler:' + mv); }
   // Bild-URL: Kopfzeile verlinkt auf den Drive-Ordner + Notiz mit Anleitung
   try {
-    var ps1 = planSheet(sh); if (ps1.col['Bild-URL']) {
-      var hc = sh.getRange(1, ps1.col['Bild-URL']); // Kopfzeile einer Google-"Tabelle": keine Formeln erlaubt, darum nur Notiz
-      hc.setNote('EVENT-BILDER\nOrdner "' + IMG_FOLDER_NAME + '": ' + IMG_FOLDER_URL + '\n\nSo geht es: 1) Bild in den Ordner legen. 2) Rechtsklick auf die Datei > Freigeben > Link kopieren. 3) Link hier in die Zelle einfuegen.\nKeine Freigabe-Einstellung noetig, die Website holt das Bild selbst. Hochkant-Flyer werden komplett gezeigt.');
+    var ps1 = planSheet(sh); if (ps1.col['Image URL']) {
+      var hc = sh.getRange(1, ps1.col['Image URL']); // Kopfzeile einer Google-"Tabelle": keine Formeln erlaubt, darum nur Notiz
+      hc.setNote('EVENT IMAGES\nFolder "' + IMG_FOLDER_NAME + '": ' + IMG_FOLDER_URL + '\n\nHow to: 1) Put the image in the folder. 2) Right-click the file > Share > Copy link. 3) Paste the link into this cell.\nNo sharing settings needed, the website fetches the image itself. Portrait flyers are shown in full.');
       SpreadsheetApp.flush();
     }
   } catch (nt) { changed.push('note-fehler:' + nt); }
@@ -932,7 +934,7 @@ function planSheet(sheet) {
     sh.getRange(1, start, 1, need.length).setValues([need]).setFontWeight('bold');
     need.forEach(function (c, i) { col[c] = start + i; });
     var last = Math.max(sh.getLastRow(), 2);
-    ['Website', 'Anmeldung', 'Freunde', 'Rewards'].forEach(function (c) { if (need.indexOf(c) >= 0) sh.getRange(2, col[c], last - 1, 1).insertCheckboxes(); });
+    ['Website', 'Registration', 'Friends', 'Rewards'].forEach(function (c) { if (need.indexOf(c) >= 0) sh.getRange(2, col[c], last - 1, 1).insertCheckboxes(); });
   }
   return { sh: sh, col: col };
 }
@@ -976,8 +978,8 @@ function readEventsFrom(ps) {
     var title = notes.replace(/https?:\/\/[^\s)]+/g, '').replace(/\s+/g, ' ').trim(); // Notes = Titel, Links werden herausgenommen
     out.push({ id: String(g(r, 'ID') || ''), tab: sh.getName(), activity: String(g(r, 'Activity')), type: type, start: fmtDate(g(r, 'Start time')), end: fmtDate(g(r, 'End time')),
       location: String(g(r, 'Location') || ''), owner: String(g(r, 'Owner') || ''), title: title, text: String(g(r, 'Text') || ''),
-      registration: g(r, 'Anmeldung') === true, friends: g(r, 'Freunde') === true, rewards: g(r, 'Rewards') === true,
-      link: lm ? lm[0] : '', image: String(g(r, 'Bild-URL') || ''), signups: Number(g(r, 'Anmeldungen') || 0) });
+      registration: g(r, 'Registration') === true, friends: g(r, 'Friends') === true, rewards: g(r, 'Rewards') === true,
+      link: lm ? lm[0] : '', image: String(g(r, 'Image URL') || ''), signups: Number(g(r, 'Sign-ups') || 0) });
   });
   return out;
 }
@@ -987,7 +989,7 @@ function updateSignupCount(ss, eventId) {
     var ev = ss.getSheetByName('Events'); if (!ev || ev.getLastRow() < 2) return;
     var head = ev.getRange(1, 1, 1, ev.getLastColumn()).getValues()[0].map(String);
     var idCol = 10; // Position von Event-ID in der Zeile aus logForm (11. Spalte)
-    if (String(head[idCol] || '') !== 'Event-ID') { ev.getRange(1, idCol + 1).setValue('Event-ID').setFontWeight('bold'); var stray = head.indexOf('Event-ID'); if (stray >= 0 && stray !== idCol) ev.getRange(1, stray + 1).setValue(''); }
+    if (String(head[idCol] || '') !== 'Event ID') { ev.getRange(1, idCol + 1).setValue('Event ID').setFontWeight('bold'); var stray = head.indexOf('Event-ID'); if (stray < 0) stray = head.indexOf('Event ID'); if (stray >= 0 && stray !== idCol) ev.getRange(1, stray + 1).setValue(''); }
     var vals = ev.getRange(2, 1, ev.getLastRow() - 1, ev.getLastColumn()).getValues();
     var n = 0; vals.forEach(function (r) { if (String(r[idCol]) === String(eventId)) n++; });
     var yr = String(eventId).match(/^ev-(\d{4})/); var list = planSheets(); if (yr) list.sort(function (a, b) { return (String(a.sh.getName()).trim() === yr[1] ? -1 : 0) - (String(b.sh.getName()).trim() === yr[1] ? -1 : 0); });
@@ -995,7 +997,7 @@ function updateSignupCount(ss, eventId) {
       var ids = ps.sh.getRange(2, ps.col['ID'], last - 1, 1).getValues();
       for (var i = 0; i < ids.length; i++) { if (String(ids[i][0]) === String(eventId)) {
         var link = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit#gid=' + ev.getSheetId();
-        ps.sh.getRange(i + 2, ps.col['Anmeldungen']).setFormula('=HYPERLINK("' + link + '";' + n + ')'); return; } } });
+        ps.sh.getRange(i + 2, ps.col['Sign-ups']).setFormula('=HYPERLINK("' + link + '";' + n + ')'); return; } } });
   } catch (e) {}
 }
 function seedOpenDoors() {
@@ -1004,7 +1006,7 @@ function seedOpenDoors() {
   for (var i = 0; i < ids.length; i++) {
     if (String(ids[i][0]) !== 'ev-20260926-community-event-open-doors-zuerich') continue;
     var r = i + 2;
-    sh.getRange(r, col['Website']).setValue(true); sh.getRange(r, col['Anmeldung']).setValue(true); sh.getRange(r, col['Rewards']).setValue(true);
+    sh.getRange(r, col['Website']).setValue(true); sh.getRange(r, col['Registration']).setValue(true); sh.getRange(r, col['Rewards']).setValue(true);
     sh.getRange(r, col['Titel']).setValue('Community Event: Open Doors Zürich');
     sh.getRange(r, col['Text']).setValue('Ein Nachmittag voller Action: Open Mat, BJJ, Muay Thai und MMA. Exklusive Angebote, lerne die Coaches kennen, Snacks und Drinks. Verbring ein paar Stunden mit uns auf der Matte und erlebe die Energie unserer Community.'); done.push(r);
   }
@@ -1024,7 +1026,7 @@ function authDrive() { return DriveApp.getRootFolder().getName(); } // einmal im
 // Verteiler aller Mitarbeitenden (Ruben, 04.09.2026). Kurzname -> E-Mail; Spalte "Einladen" im Sheet: leer = alle, sonst Kurznamen/E-Mails mit Komma
 var STAFF = { abdi: 'abdi@impact-martialarts.com', bogdan: 'bogdan@impact-martialarts.com', ruben: 'ruben@impact-martialarts.com', info: 'info@impact-martialarts.com',
   joao: 'joao@impact-martialarts.com', laszlo: 'lasz.simo7@gmail.com', sergei: 'surgejlubcenko@gmail.com', nate: 'nathan@thomasmelliger.ch' };
-var STAFF_ALIAS = { 'joão': 'joao', jo: 'joao', lasz: 'laszlo', laszlo: 'laszlo', sergey: 'sergei', sergei: 'sergei', nathan: 'nate', nate: 'nate', abdallah: 'abdi', abdi: 'abdi', bogdan: 'bogdan', ruben: 'ruben', info: 'info', joao: 'joao' };
+var STAFF_ALIAS = { sam: 'info', samuel: 'info', 'joão': 'joao', jo: 'joao', lasz: 'laszlo', laszlo: 'laszlo', sergey: 'sergei', sergei: 'sergei', nathan: 'nate', nate: 'nate', abdallah: 'abdi', abdi: 'abdi', bogdan: 'bogdan', ruben: 'ruben', info: 'info', joao: 'joao' };
 var INVITE_LIST = Object.keys(STAFF).map(function (k) { return STAFF[k]; });
 function guestsFor(spec) { // "Abdi, Bogdan, nate" oder E-Mails -> Liste; leer = alle
   var txt = String(spec || '').trim(); if (!txt) return INVITE_LIST.slice();
@@ -1069,13 +1071,13 @@ function syncCalendar() {
       if (/^winterthur$/i.test(loc.trim())) loc = 'IMPACT Martial Arts, Technoparkstrasse 3, 8406 Winterthur';
       if (/impact martial arts z/i.test(loc)) loc = 'IMPACT Martial Arts, Walchestrasse 15, 8006 Zürich';
       if (/impact martial arts w/i.test(loc)) loc = 'IMPACT Martial Arts, Technoparkstrasse 3, 8406 Winterthur';
-      var desc = [String(g(r, 'Text') || ''), 'Typ: ' + String(g(r, 'Activity type') || ''), 'Owner: ' + String(g(r, 'Owner') || ''), 'Website: https://www.impact-martialarts.com/events/', CAL_TAG].filter(Boolean).join('\n');
+      var desc = [String(g(r, 'Text') || ''), 'Type: ' + String(g(r, 'Activity type') || ''), 'Owner: ' + String(g(r, 'Owner') || ''), 'Website: https://www.impact-martialarts.com/events/', CAL_TAG].filter(Boolean).join('\n');
       var allDay = okDate && st.getHours() === 0 && st.getMinutes() === 0 && (!(en instanceof Date) || isNaN(en) || (en.getHours() === 0 && en.getMinutes() === 0));
       var endOk = en instanceof Date && !isNaN(en) && en > st;
       try {
         var ev = calId ? (function () { try { return cal.getEventById(calId); } catch (x) { return null; } })() : null;
         if (want && !ev) {
-          var gl = guestsFor(g(r, 'Einladen'));
+          var gl = guestsFor(g(r, 'Invite'));
           ev = allDay ? cal.createAllDayEvent(title, st, { location: loc, description: desc, guests: gl.join(','), sendInvites: true })
                       : cal.createEvent(title, st, endOk ? en : new Date(st.getTime() + 90 * 60000), { location: loc, description: desc, guests: gl.join(','), sendInvites: true });
           sh.getRange(i + 2, col['CalId']).setValue(ev.getId()); log.push('+' + title);
@@ -1083,7 +1085,7 @@ function syncCalendar() {
           if (ev.getTitle() !== title) ev.setTitle(title);
           if (ev.getLocation() !== loc) ev.setLocation(loc);
           if (!allDay && endOk && (ev.getStartTime().getTime() !== st.getTime() || ev.getEndTime().getTime() !== en.getTime())) ev.setTime(st, en);
-          var want2 = guestsFor(g(r, 'Einladen')); var have = ev.getGuestList().map(function (x) { return x.getEmail().toLowerCase(); });
+          var want2 = guestsFor(g(r, 'Invite')); var have = ev.getGuestList().map(function (x) { return x.getEmail().toLowerCase(); });
           want2.forEach(function (m) { if (have.indexOf(m) < 0 && m !== 'ruben@impact-martialarts.com') { ev.addGuest(m); log.push('gast+' + m + ':' + title); } });
           have.forEach(function (m) { if (want2.indexOf(m) < 0) { ev.removeGuest(m); log.push('gast-' + m + ':' + title); } });
         } else if (!want && ev) { ev.deleteEvent(); sh.getRange(i + 2, col['CalId']).setValue(''); log.push('-' + title); }
