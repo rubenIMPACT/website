@@ -1,3 +1,100 @@
+# ===== Nachtrag 04.09.2026: alte Webflow-Slugs aus 12 Monaten GSC (198 URLs waren 404) =====
+# Standort-/Uebersichtsseiten (alt: EN an der Wurzel, DE mit -de)
+/winterthur-de /winterthur/ 301
+/zurich-de /zurich/ 301
+/zurich-classes /en/zurich/classes/ 301
+/winterthur-classes /en/winterthur/classes/ 301
+/timetable /en/zurich/schedule/ 301
+/timetable-witherthur /en/winterthur/schedule/ 301
+/zh-coaches /en/zurich/team/ 301
+/wt-coaches /en/winterthur/team/ 301
+/coaches /en/zurich/team/ 301
+/en/zurich/kids-training /en/zurich/classes/little-ninjas/ 301
+/en/winterthur/kids-training /en/winterthur/classes/little-ninjas/ 301
+/en/zurich/timetable /en/zurich/schedule/ 301
+/en/winterthur/timetable /en/winterthur/schedule/ 301
+/en/zurich/coaches /en/zurich/team/ 301
+/en/winterthur/coaches /en/winterthur/team/ 301
+/en/kids-training-zurich /en/zurich/classes/little-ninjas/ 301
+/en/kids-training-winterthur /en/winterthur/classes/little-ninjas/ 301
+/en/zh/littleninjas-6-9 /en/zurich/classes/little-ninjas/ 301
+/en/zh/* /en/zurich/ 301
+/en/littleninjas /en/zurich/classes/little-ninjas/ 301
+/en/littleninjas/* /en/zurich/classes/little-ninjas/ 301
+/littleninjas /zurich/kurse/little-ninjas/ 301
+/en/terms-and-conditions /en/terms/ 301
+/trial-session-winterthur /en/trial/ 301
+/thank-you /en/ 301
+/thank-you-wt /en/ 301
+# Seminare -> Events
+/seminars /en/events/ 301
+/seminars-4 /en/events/ 301
+/seminars/* /en/events/ 301
+/en/seminars /en/events/ 301
+/en-seminars/* /en/events/ 301
+/seminare /events/ 301
+/seminare/* /events/ 301
+/de-seminars/* /events/ 301
+# Alte EN-Kursseiten /class/... (Winterthur mit Prefix, sonst Zuerich)
+/class/winterthur-fitness-kickboxing /en/winterthur/classes/fitness-kickboxing/ 301
+/class/winterthur-mma /en/winterthur/classes/mma/ 301
+/class/winterthur-bjj /en/winterthur/classes/bjj/ 301
+/class/winterthur-thai-boxing-muay-thai /en/winterthur/classes/muay-thai/ 301
+/class/winterthur-mma-street-defense /en/winterthur/classes/street-defense/ 301
+/class/winterthur-self-defense-for-women /en/winterthur/classes/street-defense/ 301
+/class/winterthur-boxing /en/winterthur/classes/boxing/ 301
+/class/winterthur-personal-training /en/winterthur/classes/personal-training/ 301
+/class/winterthur-wrestling /en/winterthur/classes/wrestling/ 301
+/class/winterthur-little-ninjas /en/winterthur/classes/little-ninjas/ 301
+/class/wrestling /en/zurich/classes/wrestling/ 301
+/class/boxing /en/zurich/classes/boxing/ 301
+/class/mma /en/zurich/classes/mma/ 301
+/class/thai-boxing-muay-thai /en/zurich/classes/muay-thai/ 301
+/class/kickboxing /en/zurich/classes/fitness-kickboxing/ 301
+/class/fitness-kickboxing /en/zurich/classes/fitness-kickboxing/ 301
+/class/mma-street-defense /en/zurich/classes/street-defense/ 301
+/class/self-defense-for-women /en/zurich/classes/street-defense/ 301
+/class/personal-training /en/zurich/classes/personal-training/ 301
+/class/bjj /en/zurich/classes/bjj/ 301
+/class/little-ninjas /en/zurich/classes/little-ninjas/ 301
+/class/* /en/zurich/classes/ 301
+# Alte DE-Kursseiten, die die :slug-Regel nicht trifft
+/kurse/mma-street-defense /zurich/kurse/street-defense/ 301
+/kurse/winterthur-mma-street-defense /winterthur/kurse/street-defense/ 301
+/kurse/kickboxen /zurich/kurse/fitness-kickboxen/ 301
+/kurse/winterthur-kickboxen /winterthur/kurse/fitness-kickboxen/ 301
+# Alte Trainer-/Coach-Profile (trainer = DE, coach = EN; -wt = Winterthur)
+/trainer/joao-wt /winterthur/team/ 301
+/trainer/sergei-wt /winterthur/team/ 301
+/trainer/ruben-crawford-wt /winterthur/team/ 301
+/trainer/laszlo-simo-wt /winterthur/team/ 301
+/trainer/sam-wt /winterthur/team/ 301
+/trainer/samuel-s-bauer-wt /winterthur/team/ 301
+/trainer/* /zurich/team/ 301
+/coach/joao-wt /en/winterthur/team/ 301
+/coach/sergei-wt /en/winterthur/team/ 301
+/coach/ruben-crawford-wt /en/winterthur/team/ 301
+/coach/laszlo-simo-wt /en/winterthur/team/ 301
+/coach/sam-wt /en/winterthur/team/ 301
+/coach/samuel-s-bauer-wt /en/winterthur/team/ 301
+/coach/* /en/zurich/team/ 301
+# Blog-Kategorien, Instagram-Feed, Karriere-Altlasten
+/blog-category/* /articles/ 301
+/instagram-v2-0/* / 301
+/career/martial-arts-coach /karriere/ 301
+/career/* /karriere/ 301
+/karriere/verkaufsprofi1 /karriere/ 301
+/karriere/martial-arts-trainer /karriere/ 301
+# Shop/Account (Webflow Ecommerce, bis Shop-Entscheid 302)
+/product/* / 302
+/checkout / 302
+/user-account / 302
+/sign-up / 302
+/reset-password / 302
+/log-in / 302
+/401 / 302
+/access-denied / 302
+
 /probetraining/bjj/ /winterthur/kurse/bjj/ 301
 /probetraining/bjj /winterthur/kurse/bjj/ 301
 /probetraining/muay-thai/ /winterthur/kurse/muay-thai/ 301
@@ -44,7 +141,6 @@
 /cancellation /en/cancellation/ 301
 /cancellation/ /en/cancellation/ 301
 /kuendigung /kuendigung/ 301
-/seminare/ / 302
 
 # ===== Cutover: alte Webflow-URLs -> neue Struktur (aktiv ab DNS-Flip, harmlos vorher) =====
 /home / 301
