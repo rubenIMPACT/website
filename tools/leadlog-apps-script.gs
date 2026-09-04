@@ -1324,6 +1324,7 @@ function buildMonatsabschluss(ss) {
 var TEAM_ID = '1mU0eQbnn02JoH6yg1v-o8-ACei44mLiirWNTP1-avjg';
 var TEAM_VIEWERS = ['support@impact-martialarts.com'];
 var TR_ACCESS = { Zurich: [MAIL.zh], Winterthur: [MAIL.wt] };
+var TR_MAIL_TEAM = false; // Abendmail an Abdi/Bogdan erst nach der Einfuehrung (Ruben 04.09.); bis dahin nur an Ruben
 var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
 var TR_LANG = { Zurich: 'de', Winterthur: 'en' };
 var TR_ROW0 = 5, TR_NCOL = 19, TR_SUM_COL = 21, TR_DAY_COL = 33, TR_CHECK_DAYS = 1;
@@ -1588,7 +1589,8 @@ function trDailyMail() {
     lines.push(''); lines.push(T.mail.tomorrow + ' (' + tm.length + '):'); if (!tm.length) lines.push('  ' + T.mail.none); tm.forEach(function (r) { lines.push('  - ' + r[CI.name] + ' | ' + r[CI.cls]); });
     lines.push(''); lines.push(T.mail.month.replace('{t}', cnt(mv, trIsTrial)).replace('{s}', cnt(mv, trSold)).replace('{c}', mv.filter(function (r) { return !!r[CI.check]; }).length));
     lines.push(''); lines.push('https://docs.google.com/spreadsheets/d/' + TEAM_ID);
-    MailApp.sendEmail({ to: (TR_ACCESS[loc] || [MAIL.fallback]).join(','), cc: MAIL.fallback, subject: T.mail.subject.replace('{d}', deD(today) + today.slice(0, 4)), body: lines.join('\n') });
+    var mailTo = TR_MAIL_TEAM ? (TR_ACCESS[loc] || [MAIL.fallback]).join(',') : MAIL.fallback; // bis zur Einfuehrung nur Ruben (04.09.)
+    MailApp.sendEmail(TR_MAIL_TEAM ? { to: mailTo, cc: MAIL.fallback, subject: T.mail.subject.replace('{d}', deD(today) + today.slice(0, 4)), body: lines.join('\n') } : { to: mailTo, subject: T.mail.subject.replace('{d}', deD(today) + today.slice(0, 4)), body: lines.join('\n') });
   });
 }
 function runProbetrainingsHourly() {
