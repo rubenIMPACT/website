@@ -52,6 +52,20 @@ export async function onRequestGet(context) {
   const cache = caches.default;
   const key = new Request(new URL("/api/events", request.url).toString(), { method: "GET" });
   const store = async (events) => { const at = Date.now(); const res = respond(events, at); const c = new Response(res.body, res); c.headers.set("Cache-Control", "public, max-age=86400"); await cache.put(key, c); return res; };
+  if (new URL(request.url).searchParams.get("debug") === "1") { // Schrittweise Diagnose ohne Cache
+    const log = []; const t0 = Date.now();
+    try {
+      log.push("start");
+      const r = await fetch(env.LEADLOG_URL + "?token=" + encodeURIComponent(env.LEADLOG_TOKEN) + "&what=events", { redirect: "follow", headers: { "Accept": "application/json" } });
+      log.push("script " + r.status + " " + (Date.now() - t0) + "ms");
+      const js = JSON.parse(await r.text()); log.push("events " + (js.events || []).length);
+      const up = await fetch(CAL_UPSTREAM, { headers: { "Accept": "application/json", "User-Agent": "Mozilla/5.0", "Referer": APP_BASE + "/" } });
+      log.push("calendar " + up.status + " " + (Date.now() - t0) + "ms");
+      const all = await up.json(); log.push("sessions " + (Array.isArray(all) ? all.length : typeof all));
+      const out = await attachApp(js.events); log.push("attach ok " + JSON.stringify(out.filter((e) => e.app).map((e) => ({ id: e.id, link: e.app_link, spots: e.spots }))));
+      return new Response(JSON.stringify({ ok: true, log }), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+    } catch (e) { return new Response(JSON.stringify({ ok: false, log, error: String(e && e.stack || e) }), { status: 500, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }); }
+  }
   if (new URL(request.url).searchParams.get("refresh") === "1") { // Debug/Force: Cache sofort neu fuellen, Fehler sichtbar machen
     try { return await store(await fetchUpstream(env)); }
     catch (e) { return new Response(JSON.stringify({ error: "upstream", message: String(e && e.message || e) }), { status: 502, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }); }
