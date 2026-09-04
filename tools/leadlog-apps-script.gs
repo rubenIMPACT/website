@@ -1268,12 +1268,12 @@ function buildMonatsabschluss(ss) {
 // Cloudflare-Funktion (action 'trials', Regel siehe TR_RULE und functions/api/klassen.js). Zeilen werden per UID
 // nachgefuehrt; die Spalten Personen, Gespraech und Kommentar gehoeren dem Verkaeufer und bleiben bei jedem Lauf erhalten.
 // Aeltere offene Zeilen (vor dem Fenster) bekommen ihren Verkaufsstatus ueber open_uids nachgeliefert.
-// Rechts daneben: Monatsuebersicht (S..AA) und Tagestabelle (AC..AI) mit den manuellen Anruf-Spalten (per Datum erhalten).
+// Rechts daneben: Monatsuebersicht (S..AB) und Tagestabelle (AD..AJ) mit den manuellen Anruf-Spalten (per Datum erhalten).
 var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
 var TR_MAIL = [MAIL.fallback]; // spaeter je Standort (Abdi ZH, Bogdan WT), sobald Ruben die Tabs freigibt
 var TR_HEAD = ['Datum', 'Name', 'Art', 'Klasse', 'Trainer', 'Gebucht von', 'Personen', 'Gespräch', 'Kommentar', 'Abschluss', 'Verkauft von', 'Paket', 'Tage bis Abschluss', 'Status', 'Gebucht am', 'UID', 'Stand'];
 var TR_TALK = ['Gespräch geführt', 'Gespräch verpasst', 'Kein Interesse', 'Kein Trial'];
-var TR_ROW0 = 5, TR_SUM_COL = 19, TR_DAY_COL = 29;
+var TR_ROW0 = 5, TR_SUM_COL = 19, TR_DAY_COL = 30;
 var TR_RULE = 'Regel (Ruben, 04.09.2026): Trial = erster Check-in überhaupt bei IMPACT, egal welches Paket exercise.com dranhängt; ohne Staff, Gäste und Altkunden. Events, Seminare und Open Mat sind keine Trials. Zwei Kinder auf einem Account = 2 Personen (Spalte Personen anpassen). Wiederholer (prüfen) = Check-in ohne Paket und ohne Abo, 30 Tage nicht da gewesen: bitte Gespräch setzen oder "Kein Trial" wählen, sonst zählt die Zeile nicht. Rückkehrer = Ex-Mitglied, zählt nicht. No-Show = gebucht, nicht erschienen. Gebucht = Termin liegt in der Zukunft. Abschluss = Vertragsunterschrift (exercise.com Waiver) oder Abo-Start; Personal Training zählt nicht. Automatisch stündlich 09–22 Uhr; nur Personen, Gespräch, Kommentar und die Anruf-Spalten rechts sind eure Felder. "Kein Trial" nimmt die Zeile aus der Zählung.';
 function fmtD(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
 function addD(d, n) { var t = new Date(d.getTime()); t.setDate(t.getDate() + n); return t; }
@@ -1308,11 +1308,11 @@ function trInit(ss, sh, loc) {
   if (sh.getMaxColumns() < 36) sh.insertColumnsAfter(sh.getMaxColumns(), 36 - sh.getMaxColumns());
   sh.getRange('A1').setValue('Probetrainings ' + (loc === 'Zurich' ? 'Zürich' : 'Winterthur')).setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue(TR_RULE).setFontColor('#666666').setWrap(true).setVerticalAlignment('top');
-  sh.getRange('A2:Q2').merge(); sh.setRowHeight(2, 80);
+  sh.getRange('A2:Q2').merge(); sh.setRowHeight(2, 110);
   sh.getRange(4, 1, 1, TR_HEAD.length).setValues([TR_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
   sh.setFrozenRows(4);
   [95, 200, 150, 200, 150, 150, 70, 150, 220, 95, 150, 220, 70, 200, 95, 90, 100].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
-  sh.setColumnWidth(18, 30); sh.setColumnWidth(28, 30);
+  sh.setColumnWidth(18, 30); sh.setColumnWidth(29, 30);
   ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 2 : 3);
 }
 function trUpsert(ss, loc, rows, sales, start, today) {
@@ -1363,7 +1363,7 @@ function trSummary(sh, all, start, today) {
   var mon = {}, day = {};
   all.forEach(function (r) {
     var d = dOfCell(r[0]); if (!d) return; var mk = d.slice(0, 7), p = trPers(r);
-    var m = mon[mk] = mon[mk] || { trials: 0, wdh: 0, noshow: 0, sold: 0, sameday: 0, open: 0, signed: 0 };
+    var m = mon[mk] = mon[mk] || { trials: 0, wdh: 0, noshow: 0, canc: 0, sold: 0, sameday: 0, open: 0, signed: 0 };
     var dd = day[d] = day[d] || { trials: 0, noshow: 0, sold: 0, booked: 0 };
     if (trIsTrial(r)) {
       m.trials += p; dd.trials += p; if (String(r[2]).indexOf('Wiederholer') === 0) m.wdh += p;
@@ -1372,20 +1372,21 @@ function trSummary(sh, all, start, today) {
       else if (st === 'Offen') m.open += p; else if (/^Unterschrieben/.test(st)) m.signed += p;
     }
     if (r[2] === 'No-Show') { m.noshow += 1; dd.noshow += 1; }
+    if (r[2] === 'Storniert') m.canc += 1;
     if (r[2] === 'Gebucht') dd.booked += 1;
   });
-  var mHead = ['Monat', 'Trials', 'davon Wiederholer', 'No-Shows', 'Verkauft', 'am Trial-Tag', 'Quote', 'Offen', 'Unterschrieben ohne Abo'];
-  var mRows = Object.keys(mon).sort().reverse().map(function (k) { var m = mon[k]; return [k, m.trials, m.wdh, m.noshow, m.sold, m.sameday, m.trials ? m.sold / m.trials : 0, m.open, m.signed]; });
+  var mHead = ['Monat', 'Trials', 'davon Wiederholer', 'No-Shows', 'Storniert', 'Verkauft', 'am Trial-Tag', 'Quote', 'Offen', 'Unterschrieben ohne Abo'];
+  var mRows = Object.keys(mon).sort().reverse().map(function (k) { var m = mon[k]; return [k, m.trials, m.wdh, m.noshow, m.canc, m.sold, m.sameday, m.trials ? m.sold / m.trials : 0, m.open, m.signed]; });
   var maxR = Math.max(lr, TR_ROW0 + 1) - 3;
   sh.getRange(4, TR_SUM_COL, maxR, mHead.length).clearContent().setBackground(null);
   sh.getRange(4, TR_SUM_COL, 1, mHead.length).setValues([mHead]).setFontWeight('bold').setBackground('#f3f3f3');
-  if (mRows.length) { sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, 1).setNumberFormat('@'); sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, mHead.length).setValues(mRows); sh.getRange(TR_ROW0, TR_SUM_COL + 1, mRows.length, mHead.length - 1).setNumberFormat('0'); sh.getRange(TR_ROW0, TR_SUM_COL + 6, mRows.length, 1).setNumberFormat('0%'); }
+  if (mRows.length) { sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, 1).setNumberFormat('@'); sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, mHead.length).setValues(mRows); sh.getRange(TR_ROW0, TR_SUM_COL + 1, mRows.length, mHead.length - 1).setNumberFormat('0'); sh.getRange(TR_ROW0, TR_SUM_COL + 7, mRows.length, 1).setNumberFormat('0%'); }
   var days = [], d = new Date(today + 'T12:00:00'), s0 = new Date(start + 'T12:00:00');
   while (d >= s0) { var k = fmtD(d), x = day[k] || { trials: 0, noshow: 0, sold: 0, booked: 0 }, oc = oldCalls[k] || ['', '']; days.push([new Date(k + 'T12:00:00'), x.trials, x.noshow, x.sold, x.booked, oc[0], oc[1]]); d = addD(d, -1); }
   sh.getRange(4, TR_DAY_COL, maxR, dayHead.length).clearContent().setBackground(null);
   sh.getRange(4, TR_DAY_COL, 1, dayHead.length).setValues([dayHead]).setFontWeight('bold').setBackground('#f3f3f3');
   if (days.length) { sh.getRange(TR_ROW0, TR_DAY_COL, days.length, dayHead.length).setValues(days); sh.getRange(TR_ROW0, TR_DAY_COL, days.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(TR_ROW0, TR_DAY_COL + 5, days.length, 2).setBackground('#fff8e1'); }
-  [110, 60, 120, 70, 70, 90, 60, 60, 150].forEach(function (w, i) { sh.setColumnWidth(TR_SUM_COL + i, w); });
+  [80, 60, 120, 70, 70, 70, 90, 60, 60, 150].forEach(function (w, i) { sh.setColumnWidth(TR_SUM_COL + i, w); });
   [95, 60, 70, 70, 120, 110, 110].forEach(function (w, i) { sh.setColumnWidth(TR_DAY_COL + i, w); });
 }
 function trDailyMail() {
