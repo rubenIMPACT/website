@@ -260,7 +260,7 @@ function buildDaten(ss) {
   sh.getRange('I2').setFormula('=ARRAYFORMULA(' + blank + 'IF(REGEXMATCH(' + B + ',"^error")*(F2:F=0),1,0)))');
   // Kanal (seit 04.09.2026): Klick-IDs schlagen UTM, UTM schlaegt Referrer; gleiche Logik wie kanalOf() im Script
   var V = 'LOWER(Leads!V2:V&"")', Q = 'LOWER(Leads!Q2:Q&"")';
-  sh.getRange('J2').setFormula('=ARRAYFORMULA(' + blank + 'IF(Leads!U2:U<>"","TikTok Ads",IF(Leads!O2:O<>"","Google Ads",IF(Leads!P2:P<>"","Meta Ads",IF(REGEXMATCH(' + V + ',"twitter|^x$|x\\.com"),"X Ads",IF(REGEXMATCH(' + V + ',"tiktok"),"TikTok Ads",IF(REGEXMATCH(' + V + ',"google"),"Google Ads",IF(REGEXMATCH(' + V + ',"facebook|meta|instagram|ig$"),"Meta Ads",IF(Leads!V2:V<>"","Andere",IF(REGEXMATCH(' + Q + ',"google"),"Google organisch",IF(REGEXMATCH(' + Q + ',"instagram"),"Instagram",IF(REGEXMATCH(' + Q + ',"facebook|fb\\.com"),"Facebook",IF(REGEXMATCH(' + Q + ',"tiktok"),"TikTok organisch",IF((Leads!Q2:Q="")+REGEXMATCH(' + Q + ',"impact-martialarts"),"Direkt","Andere")))))))))))))))');
+  sh.getRange('J2').setFormula('=ARRAYFORMULA(' + blank + 'IF(Leads!U2:U<>"","TikTok Ads",IF(Leads!O2:O<>"","Google Ads",IF(Leads!P2:P<>"","Meta Ads",IF(REGEXMATCH(' + V + ',"tiktok"),"TikTok Ads",IF(REGEXMATCH(' + V + ',"google"),"Google Ads",IF(REGEXMATCH(' + V + ',"facebook|meta|instagram|ig$"),"Meta Ads",IF(Leads!V2:V<>"","Andere",IF(REGEXMATCH(' + Q + ',"google"),"Google organisch",IF(REGEXMATCH(' + Q + ',"instagram|facebook|fb\\.com"),"Instagram/Facebook organisch",IF(REGEXMATCH(' + Q + ',"tiktok"),"TikTok organisch",IF((Leads!Q2:Q="")+REGEXMATCH(' + Q + ',"impact-martialarts"),"Direkt","Andere")))))))))))))');
   sh.getRange('A2:C').setNumberFormat('dd.mm.yyyy');
   sh.getRange(1, 1, 1, 10).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
 }
@@ -287,12 +287,12 @@ function buildPlanDaten(ss) {
 // Wochenreport (seit 04.09.2026, ersetzt Leads-Analyse): der ganze Funnel pro Woche und Standort, als Werte aus Daten (Leads)
 // und den Probetrainings-Tabs im Team-Sheet (Trials, No-Shows, Verkaeufe, Anrufe). Wird bei jedem Probetrainings-Lauf neu gebaut.
 var WR_SHEET = 'Wochenreport', WR_WEEKS = 16, LEAD_WEEK0 = '2026-08-31';
-var KANAL_ORDER = ['Google Ads', 'Meta Ads', 'TikTok Ads', 'X Ads', 'Google organisch', 'Instagram', 'Facebook', 'TikTok organisch', 'Direkt', 'Andere'];
+var KANAL_ORDER = ['Google Ads', 'Meta Ads', 'TikTok Ads', 'Google organisch', 'Instagram/Facebook organisch', 'TikTok organisch', 'Direkt', 'Andere']; // Ruben 04.09.: kein X, Meta = Instagram
 function kanalOf(gclid, fbclid, ttclid, utm, ref) {
   var u = String(utm || '').toLowerCase(), r = String(ref || '').toLowerCase();
   if (ttclid) return 'TikTok Ads'; if (gclid) return 'Google Ads'; if (fbclid) return 'Meta Ads';
-  if (/twitter|^x$|x\.com/.test(u)) return 'X Ads'; if (/tiktok/.test(u)) return 'TikTok Ads'; if (/google/.test(u)) return 'Google Ads'; if (/facebook|meta|instagram|ig$/.test(u)) return 'Meta Ads'; if (u) return 'Andere';
-  if (/google/.test(r)) return 'Google organisch'; if (/instagram/.test(r)) return 'Instagram'; if (/facebook|fb\.com/.test(r)) return 'Facebook'; if (/tiktok/.test(r)) return 'TikTok organisch';
+  if (/tiktok/.test(u)) return 'TikTok Ads'; if (/google/.test(u)) return 'Google Ads'; if (/facebook|meta|instagram|ig$/.test(u)) return 'Meta Ads'; if (u) return 'Andere';
+  if (/google/.test(r)) return 'Google organisch'; if (/instagram|facebook|fb\.com/.test(r)) return 'Instagram/Facebook organisch'; if (/tiktok/.test(r)) return 'TikTok organisch';
   if (!r || /impact-martialarts/.test(r)) return 'Direkt'; return 'Andere';
 }
 function mondayOf(d) { var t = new Date(d.getTime()); t.setHours(12, 0, 0, 0); t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); return t; }
@@ -1263,7 +1263,7 @@ function buildMonatsabschluss(ss) {
   var keys = Object.keys(months).sort().slice(-12);
   var val = {}; hv.forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
   sh.getRange('A1').setValue('IMPACT Monatsabschluss').setFontSize(16).setFontWeight('bold');
-  sh.getRange('A2').setValue('Automatisch am 1. des Monats aus exercise.com (Lifecycle, Erstbesuche, Check-ins, gestartete und gekündigte Abos, Sales by Category). Probetraining stattgefunden = Erstbesucher mit Check-in im Monat, ohne Altkunden und Staff. Neukunden = gestartete Abos ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026). Unten: Website-Leads nach Kanal und Interesse ab September 2026.').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2').setValue('Automatisch am 1. des Monats aus exercise.com (Lifecycle, Erstbesuche, Check-ins, gestartete und gekündigte Abos, Sales by Category). Probetraining stattgefunden = Erstbesucher mit Check-in im Monat, ohne Altkunden und Staff. Neukunden = gestartete Abos ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026). Website-Leads nach Kanal (Klick-ID, UTM oder Referrer der Anfrage) und Interesse je Standort ab September 2026.').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:N2').merge();
   var r = 4;
   ['Zurich', 'Winterthur'].forEach(function (loc) {
@@ -1274,15 +1274,21 @@ function buildMonatsabschluss(ss) {
     sh.getRange(r, 2, 1, keys.length).setNumberFormat('mmm yyyy');
     var hdr = r; r++;
     var rowIdx = {};
-    MA_ROWS.forEach(function (def) {
+    var rowsDef = [];
+    MA_ROWS.forEach(function (def) { rowsDef.push(def); if (def[0] === 'leads_web') { KANAL_ORDER.forEach(function (kn) { rowsDef.push(['kanal:' + kn, '   davon ' + kn, '0']); }); INTERESTS.forEach(function (it) { rowsDef.push(['int:' + it, '   Interesse ' + it, '0']); }); } });
+    rowsDef.forEach(function (def) {
       var row = [def[1]];
       keys.forEach(function (k, ci) {
         if (def[0] === 'leads_web' && k >= LOG_START.slice(0, 7)) {
           var col = String.fromCharCode(66 + ci);
           row.push('=COUNTIFS(Daten!$C:$C,' + col + '$' + hdr + ',Daten!$D:$D,"' + locDE + '",Daten!$G:$G,1)');
+        } else if (def[0].indexOf('kanal:') === 0 || def[0].indexOf('int:') === 0) {
+          var colK = String.fromCharCode(66 + ci), dcol = def[0].indexOf('kanal:') === 0 ? 'J' : 'E', nm = def[0].split(':')[1];
+          row.push(k < LOG_START.slice(0, 7) ? '' : '=COUNTIFS(Daten!$C:$C,' + colK + '$' + hdr + ',Daten!$D:$D,"' + locDE + '",Daten!$' + dcol + ':$' + dcol + ',"' + nm + '",Daten!$G:$G,1)');
         } else { var v = val[k + '|' + loc + '|' + def[0]]; row.push(v === undefined ? '' : v); }
       });
       sh.getRange(r, 1, 1, row.length).setValues([row]);
+      if (def[0].indexOf('kanal:') === 0 || def[0].indexOf('int:') === 0) sh.getRange(r, 1).setFontColor('#666666');
       if (keys.length) sh.getRange(r, 2, 1, keys.length).setNumberFormat(def[2]);
       if (['trial_attended', 'new_customers', 'net_growth', 'rev_total_gross'].indexOf(def[0]) >= 0) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
       rowIdx[def[0]] = r; r++;
@@ -1296,19 +1302,6 @@ function buildMonatsabschluss(ss) {
       sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).addRange(sh.getRange(hdr, hc, piv.length, 4))
         .setPosition(hdr, hc + 5, 0, 0).setOption('title', 'Funnel ' + locDE + ': Probetrainings, Neukunden, Kündigungen').setOption('colors', ['#9e9e9e', '#1a73e8', '#e2c210']).setOption('width', 620).setOption('height', 320).setOption('legend', { position: 'bottom' }).build());
     }
-    r += 2;
-  });
-  // Website-Leads nach Kanal und Interesse (ab LOG_START aus Daten; Entscheid Ruben 04.09.2026, ersetzt die Monatstabelle der Leads-Analyse)
-  [['Website-Leads nach Kanal', KANAL_ORDER, 'J'], ['Website-Leads nach Interesse', INTERESTS, 'E']].forEach(function (blk) {
-    sh.getRange(r, 1).setValue(blk[0]).setFontWeight('bold').setFontSize(13); r++;
-    var head2 = ['Kanal / Interesse'].concat(keys.map(function (k) { return new Date(k + '-01T00:00:00'); }));
-    sh.getRange(r, 1, 1, head2.length).setValues([head2]).setFontWeight('bold').setBackground('#f3f3f3'); sh.getRange(r, 2, 1, keys.length).setNumberFormat('mmm yyyy');
-    var h2 = r; r++;
-    blk[1].forEach(function (name) {
-      var row = [name];
-      keys.forEach(function (k, ci) { var col = String.fromCharCode(66 + ci); row.push(k < LOG_START.slice(0, 7) ? '' : '=COUNTIFS(Daten!$C:$C,' + col + '$' + h2 + ',Daten!$' + blk[2] + ':$' + blk[2] + ',"' + name + '",Daten!$G:$G,1)'); });
-      sh.getRange(r, 1, 1, row.length).setValues([row]); r++;
-    });
     r += 2;
   });
   sh.setColumnWidth(1, 330); // keine fixierte Spalte: A2:N2 ist verbunden, Google erlaubt das Einfrieren dann nicht
@@ -1331,34 +1324,34 @@ var TR_ACCESS = { Zurich: [MAIL.zh], Winterthur: [MAIL.wt] };
 var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
 var TR_LANG = { Zurich: 'de', Winterthur: 'en' }; // Entscheid Ruben 04.09.2026: Abdi deutsch, Bogdan englisch
 var TR_MAIL = [MAIL.fallback]; // Tagesmail; Abdi/Bogdan spaeter, wenn Ruben es will
-var TR_ROW0 = 5, TR_NCOL = 19, TR_SUM_COL = 21, TR_DAY_COL = 32;
-var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, heard: 7, pers: 8, talk: 9, cmt: 10, contract: 11, seller: 12, pkg: 13, days: 14, status: 15, created: 16, uid: 17, stamp: 18 };
+var TR_ROW0 = 5, TR_NCOL = 20, TR_SUM_COL = 22, TR_DAY_COL = 33;
+var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, heard: 7, pers: 8, talk: 9, cmt: 10, contract: 11, seller: 12, pkg: 13, days: 14, status: 15, lifecycle: 16, created: 17, uid: 18, stamp: 19 };
 var TR_T = {
   de: {
     title: 'Probetrainings Zürich',
-    head: ['Trial-Datum', 'Name', 'Art', 'Klasse', 'Trainer', 'Gebucht von', 'Kanal', 'Wie gehört', 'Personen', 'Gespräch', 'Kommentar', 'Vertrag am', 'Verkäufer', 'Paket', 'Tage bis Vertrag', 'Status', 'Buchung erstellt am', 'UID', 'Stand'],
-    notes: ['Datum des ersten Check-ins. Bei No-Show, Storniert oder Gebucht: Datum des gebuchten Termins. Automatisch aus exercise.com.', 'Name in exercise.com. Automatisch.', 'Trial = erster Check-in überhaupt. No-Show / Storniert / Gebucht (Zukunft) / Wiederholer (prüfen) / Rückkehrer / Event. Automatisch.', 'Klasse des ersten Check-ins. Automatisch.', 'Trainer dieser Klasse. Automatisch.', 'Wer die Buchung in exercise.com angelegt hat. Automatisch.', 'Herkunft der Website-Anfrage: Klick-ID (Google Ads, Meta Ads, TikTok Ads), sonst UTM, sonst verweisende Seite. "ohne Website-Lead" = kein Formular auf der Website gefunden. Automatisch.', 'Selbstauskunft im Formular "Wie hast du von uns gehört?". Automatisch.', 'EURE SPALTE: Anzahl Personen, z.B. 2 bei Geschwistern auf einem Account.', 'EURE SPALTE: Gesprächsstatus nach dem Trial. "Kein Trial" nimmt die Zeile aus der Zählung.', 'EURE SPALTE: freier Kommentar.', 'Datum der Vertragsunterschrift in exercise.com (Waiver), sonst Abo-Start. Automatisch.', 'Wer den Vertrag unterschreiben liess. Automatisch.', 'Abgeschlossenes Paket. Automatisch.', 'Tage zwischen Trial und Vertrag. Automatisch.', 'Offen / Verkauft am Trial-Tag / Verkauft / Verkauft, wieder gekündigt / Unterschrieben, kein Abo aktiv. Automatisch.', 'Wann die Trial-Buchung in exercise.com erstellt wurde. Automatisch.', 'exercise.com User-ID, der Schlüssel der Zeile. Nicht ändern.', 'Letzte Aktualisierung (stündlich 09–22 Uhr).'],
+    head: ['Trial-Datum', 'Name', 'Art', 'Klasse', 'Trainer', 'Gebucht von', 'Kanal', 'Wie gehört', 'Personen', 'Gespräch', 'Kommentar', 'Vertrag am', 'Verkäufer', 'Paket', 'Tage bis Vertrag', 'Status', 'Lifecycle-Stage', 'Buchung erstellt am', 'UID', 'Stand'],
+    notes: ['Datum des ersten Check-ins. Bei No-Show, Storniert oder Gebucht: Datum des gebuchten Termins. Automatisch aus exercise.com.', 'Name in exercise.com. Automatisch.', 'Trial stattgefunden = die Person war da (erster Check-in überhaupt). Gebucht (kommend) = Termin liegt noch vor uns. No-Show = nicht erschienen. Storniert. Wiederholer (prüfen). Rückkehrer. Event (kein Trial). Automatisch.', 'Klasse des ersten Check-ins. Automatisch.', 'Trainer dieser Klasse. Automatisch.', 'Wer die Buchung in exercise.com angelegt hat. Automatisch.', 'Herkunft der Website-Anfrage: Klick-ID (Google Ads, Meta Ads, TikTok Ads), sonst UTM, sonst verweisende Seite. "ohne Website-Lead" = kein Formular auf der Website gefunden. Automatisch.', 'Selbstauskunft im Formular "Wie hast du von uns gehört?". Automatisch.', 'EURE SPALTE: Anzahl Personen, z.B. 2 bei Geschwistern auf einem Account.', 'EURE SPALTE: Gesprächsstatus nach dem Trial. "Kein Trial" nimmt die Zeile aus der Zählung.', 'EURE SPALTE: freier Kommentar.', 'Datum der Vertragsunterschrift in exercise.com (Waiver), sonst Abo-Start. Automatisch.', 'Wer den Vertrag unterschreiben liess. Automatisch.', 'Abgeschlossenes Paket. Automatisch.', 'Tage zwischen Trial und Vertrag. Automatisch.', 'Verkaufsergebnis aus Vertrag und Abo: Offen / Verkauft am Trial-Tag / Verkauft / Verkauft, wieder gekündigt / Unterschrieben, kein Abo aktiv. Automatisch.', 'Aktuelle Lifecycle-Stage der Person in exercise.com (z.B. Trial Booked, Client, Signed but no payment). Automatisch, nachgeführt bei jedem Übergang.', 'Wann die Trial-Buchung in exercise.com erstellt wurde. Automatisch.', 'exercise.com User-ID, der Schlüssel der Zeile. Nicht ändern.', 'Letzte Aktualisierung (stündlich 09–22 Uhr).'],
     talk: ['Gespräch geführt', 'Gespräch verpasst', 'Kein Interesse', 'Kein Trial'],
-    art: {}, status: {}, kanal: {},
+    art: { 'Trial': 'Trial stattgefunden', 'Gebucht': 'Gebucht (kommend)' }, status: {}, kanal: {},
     mHead: ['Monat', 'Trials', 'davon Wiederholer', 'No-Shows', 'Storniert', 'Verkauft', 'am Trial-Tag', 'Quote', 'Offen', 'Unterschrieben ohne Abo'],
     dHead: ['Tag', 'Trials', 'No-Shows', 'Verkauft', 'Gebucht (kommend)', 'Anrufe versucht', 'Anrufe geführt'],
     rule: 'Regel (Ruben, 04.09.2026): Trial = erster Check-in überhaupt bei IMPACT, egal welches Paket exercise.com dranhängt; ohne Staff, Gäste und Altkunden. Events, Seminare und Open Mat sind keine Trials. Zwei Kinder auf einem Account = 2 Personen (Spalte Personen anpassen). Wiederholer (prüfen) = Check-in ohne Paket und ohne Abo, 30 Tage nicht da gewesen: bitte Gespräch setzen oder "Kein Trial" wählen, sonst zählt die Zeile nicht. Rückkehrer = Ex-Mitglied, zählt nicht. No-Show = gebucht, nicht erschienen. Gebucht = Termin liegt in der Zukunft. Vertrag am = Vertragsunterschrift in exercise.com (Waiver), sonst Abo-Start; Personal Training zählt nicht. Alles ausser Personen, Gespräch, Kommentar und den Anruf-Spalten rechts kommt automatisch stündlich 09–22 Uhr aus exercise.com. "Kein Trial" nimmt die Zeile aus der Zählung. Spaltenerklärungen: Notiz auf der Überschrift.'
   },
   en: {
     title: 'Trials Winterthur',
-    head: ['Trial date', 'Name', 'Type', 'Class', 'Coach', 'Booked by', 'Channel', 'Heard via', 'People', 'Sales talk', 'Comment', 'Contract date', 'Sold by', 'Package', 'Days to contract', 'Status', 'Booking created', 'UID', 'Updated'],
-    notes: ['Date of the first check-in. For No-show, Cancelled or Booked: date of the booked session. Automatic from exercise.com.', 'Name in exercise.com. Automatic.', 'Trial = first ever check-in. No-show / Cancelled / Booked (upcoming) / Repeat visitor (check) / Returning ex-member / Event. Automatic.', 'Class of the first check-in. Automatic.', 'Coach of that class. Automatic.', 'Who created the booking in exercise.com. Automatic.', 'Origin of the website enquiry: click ID (Google Ads, Meta Ads, TikTok Ads), otherwise UTM, otherwise referring site. "no website lead" = no form found on the website. Automatic.', 'Self-reported answer in the form "How did you hear about us?". Automatic.', 'YOUR COLUMN: number of people, e.g. 2 for siblings on one account.', 'YOUR COLUMN: sales talk status after the trial. "Not a trial" removes the row from the count.', 'YOUR COLUMN: free comment.', 'Date the contract was signed in exercise.com (waiver), otherwise subscription start. Automatic.', 'Who had the contract signed. Automatic.', 'Package sold. Automatic.', 'Days between trial and contract. Automatic.', 'Open / Sold on trial day / Sold / Sold, cancelled since / Signed, no active subscription. Automatic.', 'When the trial booking was created in exercise.com. Automatic.', 'exercise.com user ID, the key of the row. Do not change.', 'Last update (hourly 9am-10pm).'],
+    head: ['Trial date', 'Name', 'Type', 'Class', 'Coach', 'Booked by', 'Channel', 'Heard via', 'People', 'Sales talk', 'Comment', 'Contract date', 'Sold by', 'Package', 'Days to contract', 'Status', 'Lifecycle stage', 'Booking created', 'UID', 'Updated'],
+    notes: ['Date of the first check-in. For No-show, Cancelled or Booked: date of the booked session. Automatic from exercise.com.', 'Name in exercise.com. Automatic.', 'Trial done = the person came (first ever check-in). Booked (upcoming) = session still ahead. No-show. Cancelled. Repeat visitor (check). Returning ex-member. Event (no trial). Automatic.', 'Class of the first check-in. Automatic.', 'Coach of that class. Automatic.', 'Who created the booking in exercise.com. Automatic.', 'Origin of the website enquiry: click ID (Google Ads, Meta Ads, TikTok Ads), otherwise UTM, otherwise referring site. "no website lead" = no form found on the website. Automatic.', 'Self-reported answer in the form "How did you hear about us?". Automatic.', 'YOUR COLUMN: number of people, e.g. 2 for siblings on one account.', 'YOUR COLUMN: sales talk status after the trial. "Not a trial" removes the row from the count.', 'YOUR COLUMN: free comment.', 'Date the contract was signed in exercise.com (waiver), otherwise subscription start. Automatic.', 'Who had the contract signed. Automatic.', 'Package sold. Automatic.', 'Days between trial and contract. Automatic.', 'Sales outcome from contract and subscription: Open / Sold on trial day / Sold / Sold, cancelled since / Signed, no active subscription. Automatic.', 'Current lifecycle stage of the person in exercise.com (e.g. Trial Booked, Client, Signed but no payment). Automatic, updated on every transition.', 'When the trial booking was created in exercise.com. Automatic.', 'exercise.com user ID, the key of the row. Do not change.', 'Last update (hourly 9am-10pm).'],
     talk: ['Talk done', 'Talk missed', 'Not interested', 'Not a trial'],
-    art: { 'No-Show': 'No-show', 'Storniert': 'Cancelled', 'Gebucht': 'Booked (upcoming)', 'Wiederholer (prüfen)': 'Repeat visitor (check)', 'Rückkehrer (Ex-Mitglied)': 'Returning ex-member', 'Event (kein Trial)': 'Event (no trial)' },
+    art: { 'Trial': 'Trial done', 'No-Show': 'No-show', 'Storniert': 'Cancelled', 'Gebucht': 'Booked (upcoming)', 'Wiederholer (prüfen)': 'Repeat visitor (check)', 'Rückkehrer (Ex-Mitglied)': 'Returning ex-member', 'Event (kein Trial)': 'Event (no trial)' },
     status: { 'Verkauft am Trial-Tag': 'Sold on trial day', 'Verkauft': 'Sold', 'Verkauft, wieder gekündigt': 'Sold, cancelled since', 'Unterschrieben, kein Abo aktiv': 'Signed, no active subscription', 'Offen': 'Open' },
-    kanal: { 'Google organisch': 'Google organic', 'TikTok organisch': 'TikTok organic', 'Direkt': 'Direct', 'Andere': 'Other', 'ohne Website-Lead': 'no website lead' },
+    kanal: { 'Google organisch': 'Google organic', 'Instagram/Facebook organisch': 'Instagram/Facebook organic', 'TikTok organisch': 'TikTok organic', 'Direkt': 'Direct', 'Andere': 'Other', 'ohne Website-Lead': 'no website lead' },
     mHead: ['Month', 'Trials', 'of which repeat', 'No-shows', 'Cancelled', 'Sold', 'on trial day', 'Rate', 'Open', 'Signed, no subscription'],
     dHead: ['Day', 'Trials', 'No-shows', 'Sold', 'Booked (upcoming)', 'Calls attempted', 'Calls conducted'],
     rule: 'Rule (Ruben, 4 Sep 2026): Trial = first ever check-in at IMPACT, whatever package exercise.com attaches; no staff, guests or existing members. Events, seminars and open mat are not trials. Two kids on one account = 2 people (adjust the People column). Repeat visitor (check) = check-in without package and without subscription, not seen for 30 days: set the sales talk or choose "Not a trial", otherwise the row does not count. Returning ex-member does not count. No-show = booked, did not show up. Booked (upcoming) = future session. Contract date = signature in exercise.com (waiver), otherwise subscription start; personal training does not count. Everything except People, Sales talk, Comment and the call columns on the right comes automatically from exercise.com every hour 9am-10pm. "Not a trial" removes the row from the count. Column explanations: note on the header cell.'
   }
 };
 var TR_REV = {};
-(function () { var e = TR_T.en, d = TR_T.de; ['art', 'status', 'kanal'].forEach(function (kind) { Object.keys(e[kind]).forEach(function (k) { TR_REV[e[kind][k]] = k; }); }); e.talk.forEach(function (v, i) { TR_REV[v] = d.talk[i]; }); })();
+(function () { var e = TR_T.en, d = TR_T.de; ['art', 'status', 'kanal'].forEach(function (kind) { Object.keys(e[kind]).forEach(function (k) { TR_REV[e[kind][k]] = k; }); Object.keys(d[kind]).forEach(function (k) { TR_REV[d[kind][k]] = k; }); }); e.talk.forEach(function (v, i) { TR_REV[v] = d.talk[i]; }); })();
 function trC(v) { v = String(v || ''); return TR_REV[v] || v; }
 function trT(loc) { return TR_T[TR_LANG[loc] || 'de']; }
 function trL(loc, kind, v) { var T = trT(loc); return (T[kind] && T[kind][v]) || v; }
@@ -1425,14 +1418,15 @@ function trProtect(sh, editors, desc) {
 function trInit(ss, sh, loc) {
   var T = trT(loc);
   clearSheet(sh);
-  if (sh.getMaxColumns() < 40) sh.insertColumnsAfter(sh.getMaxColumns(), 40 - sh.getMaxColumns());
+  if (sh.getMaxColumns() < 42) sh.insertColumnsAfter(sh.getMaxColumns(), 42 - sh.getMaxColumns());
   sh.getRange('A1').setValue(T.title).setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue(T.rule).setFontColor('#666666').setWrap(true).setVerticalAlignment('top');
-  sh.getRange('A2:S2').merge(); sh.setRowHeight(2, 110);
+  sh.getRange('A2:T2').merge(); sh.setRowHeight(2, 110);
   sh.getRange(4, 1, 1, TR_NCOL).setValues([T.head]).setNotes([T.notes]).setFontWeight('bold').setBackground('#f3f3f3');
   sh.setFrozenRows(4);
-  [95, 200, 150, 200, 150, 150, 130, 160, 70, 150, 220, 95, 150, 220, 70, 200, 110, 90, 100].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  [95, 200, 150, 200, 150, 150, 130, 160, 70, 150, 220, 95, 150, 220, 70, 200, 150, 110, 90, 100].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
   sh.setColumnWidth(TR_NCOL + 1, 30); sh.setColumnWidth(TR_DAY_COL - 1, 30);
+  sh.hideColumns(CI.uid + 1); // UID ist nur der Schluessel (Ruben 04.09.)
   trProtect(sh, TR_ACCESS[loc] || [], 'Nur Ruben und ' + (TR_ACCESS[loc] || []).join(', '));
   ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 2 : 3);
 }
@@ -1450,7 +1444,7 @@ function trUpsert(ss, loc, rows, sales, start, today, leadMap) {
     r[CI.kanal] = trL(loc, 'kanal', lead ? lead.kanal : 'ohne Website-Lead'); r[CI.heard] = lead ? lead.heard : '';
     r[CI.pers] = (o && o[CI.pers] !== '') ? o[CI.pers] : x.personen; r[CI.talk] = o ? o[CI.talk] : ''; r[CI.cmt] = o ? o[CI.cmt] : '';
     r[CI.contract] = toDate(s.date); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || ''; r[CI.days] = (s.days === '' || s.days === undefined) ? '' : s.days; r[CI.status] = trL(loc, 'status', s.status || 'Offen');
-    r[CI.created] = toDate(x.bookedAt); r[CI.uid] = String(x.uid); r[CI.stamp] = stamp;
+    r[CI.lifecycle] = x.lifecycle || (o ? o[CI.lifecycle] : ''); r[CI.created] = toDate(x.bookedAt); r[CI.uid] = String(x.uid); r[CI.stamp] = stamp;
     byUid[x.uid] = r; seen[x.uid] = true;
   });
   Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.date); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.days] = (s.days === '' || s.days === undefined) ? '' : s.days; o[CI.status] = trL(loc, 'status', s.status || 'Offen'); o[CI.stamp] = stamp; });
