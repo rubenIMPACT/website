@@ -323,6 +323,7 @@ function monatUrls(start, end, cohortStart, today) {
     fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
     salesZH: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
     salesWT: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
+    waiver: { url: API + "/api/v4/reports/waiver?" + qM + "&per=3000", start }, // Vertragsunterschriften des Monats
   };
 }
 function rowsOf(cs) {
@@ -347,7 +348,7 @@ async function monat(H, p, start, end) {
   }
   if (phase === "m1") {
     const out = {};
-    for (const k of ["life", "visits", "cancelled", "subs", "fvZH", "salesZH"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    for (const k of ["life", "visits", "cancelled", "subs", "fvZH", "salesZH", "waiver"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
     return { ok: true, started: out };
   }
   if (phase === "m2") {
@@ -362,7 +363,7 @@ async function monat(H, p, start, end) {
   }
   if (phase === "m3") {
     const got = {};
-    for (const k of ["fvWT", "salesWT", "life", "visits", "cancelled", "subs"]) {
+    for (const k of ["fvWT", "salesWT", "life", "visits", "cancelled", "subs", "waiver"]) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
       if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
@@ -370,7 +371,7 @@ async function monat(H, p, start, end) {
     }
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: rowsOf(got.fvWT).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) })) };
     const sales = { Zurich: Array.isArray(p.sales_zh) ? p.sales_zh : [], Winterthur: rowsOf(got.salesWT).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) })) };
-    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), fv, sales }) };
+    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), waiver: rowsOf(got.waiver), fv, sales }) };
   }
   return { error: "phase" };
 }
@@ -402,6 +403,11 @@ function computeMonat(inp) {
   const preExisting = new Set(subs.filter((s) => s.date && s.date < start).map((s) => s.uid));
   // Lifecycle
   const life = inp.life.map((r) => ({ loc: locOf(r["Location"]), from: String(r["Transitioned From"] || ""), to: String(r["Transitioned To"] || "") }));
+  // Verkaeufe = Vertragsunterschriften im Monat (Waiver); Standort ueber Abo, sonst ueber den Check-in
+  const lifeCur = {}; inp.life.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) lifeCur[e] = String(r["Current"] || ""); });
+  const uidLoc = {}; subs.forEach((s) => { uidLoc[s.uid] = s.loc; });
+  comp.forEach((x) => { const u = String(x[vix("User ID")]); if (!uidLoc[u]) uidLoc[u] = /winterthur/i.test(String(x[vix("Location")] || "")) ? "Winterthur" : "Zurich"; });
+  const signedBy = {}; (inp.waiver || []).forEach((r) => { const u = String(r["User ID"] || ""), d = chDate(r["Signed"]), e = String(r["Email"] || "").toLowerCase().trim(); if (!u || !d || !inMonth(d)) return; if (!signedBy[u] || signedBy[u].date > d) signedBy[u] = { date: d, email: e }; });
   const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
   for (const loc of LOCS) {
     const L = {};
@@ -440,6 +446,9 @@ function computeMonat(inp) {
     L.cancellations = caL.filter((c) => !c.converted && !startedUids.has(c.uid)).length;
     L.cancellations_converted = caL.length - L.cancellations;
     const reasons = {}; caL.forEach((c) => { const k = c.reason || "ohne Grund"; reasons[k] = (reasons[k] || 0) + 1; }); L.cancel_reasons = reasons;
+    const sg = Object.keys(signedBy).filter((u) => (uidLoc[u] || "Zurich") === loc);
+    L.sales_signed = sg.length;
+    L.sales_open = sg.filter((u) => lifeCur[signedBy[u].email] === "Signed but no payment").length;
     L.net_growth = L.new_customers - L.cancellations;
     // Abos (Stand Lauf)
     const sL = subs.filter((s) => s.loc === loc && s.type !== "Scheduled");
@@ -488,7 +497,7 @@ function trialUrls(p) {
     cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qS + "&per=3000", start: sStart },
     waiver: { url: API + "/api/v4/reports/waiver?" + qS + "&per=3000", start: sStart },
     tot: { url: API + "/api/v4/reports/total_visits_per_client?" + query(tStart, tEnd) + "&per=5000", start: tStart },
-    life: { url: API + "/api/v4/reports/lifecycle?" + qW + "&per=8000", start }, // "Current" = aktuelle Lifecycle-Stage je Person (per E-Mail)
+    life: { url: API + "/api/v4/reports/lifecycle?" + qS + "&per=20000", start: sStart }, // "Current" = aktuelle Stage je Person (per E-Mail); langes Fenster fuer "Zahlung offen"
     notes: { url: API + "/api/v4/reports/account_notes?" + qW + "&per=6000", start }, // letzte Notiz je Person (Date, Title)
   };
   if (c2Start <= end) U.v2 = { url: API + "/api/v4/reports/detailed_visits?" + query(c2Start, end) + "&per=8000", start: c2Start };
@@ -577,7 +586,20 @@ function computeTrials(inp) {
     const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (cs.length ? "Verkauft, wieder gekündigt" : "Unterschrieben, kein Abo aktiv");
     return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (cs.length ? cs[0].pkg : ""), days, start: ss.length ? ss[0].date : "" };
   };
-  const out = { window: { start, end, today }, generated: new Date().toISOString(), rows: { Zurich: [], Winterthur: [] }, sales: {}, stats: { visits: vis.length, prior: prior.size } };
+  // Zahlung offen: Personen, deren aktuelle Stage "Signed but no payment" ist, mit dem Datum des Uebergangs in diese Stage
+  const payInto = {}; (inp.life || []).forEach((r) => { if (String(r["Transitioned To"] || "") !== "Signed but no payment") return; const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (e && d && (!payInto[e] || payInto[e] < d)) payInto[e] = d; });
+  const uidOf = {}; vis.forEach((v) => { if (v.email) uidOf[v.email] = v.uid; }); inp.subs.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) uidOf[e] = String(r["User ID"]); }); inp.waiver.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) uidOf[e] = String(r["User ID"]); });
+  const payopen = { Zurich: [], Winterthur: [] };
+  const seenPay = {};
+  (inp.life || []).forEach((r) => {
+    const e = String(r["Email"] || "").toLowerCase().trim();
+    if (!e || seenPay[e] || String(r["Current"] || "") !== "Signed but no payment") return;
+    seenPay[e] = 1;
+    const loc = /winterthur/i.test(String(r["Location"] || "")) ? "Winterthur" : "Zurich";
+    payopen[loc].push({ name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), email: e, uid: uidOf[e] || "", since: payInto[e] || chDate(r["Date"]) });
+  });
+  ["Zurich", "Winterthur"].forEach((l) => payopen[l].sort((a, b) => (a.since < b.since ? -1 : 1)));
+  const out = { window: { start, end, today }, generated: new Date().toISOString(), rows: { Zurich: [], Winterthur: [] }, sales: {}, payopen, stats: { visits: vis.length, prior: prior.size } };
   const fvAll = new Set();
   for (const loc of ["Zurich", "Winterthur"]) {
     const seen = new Set();
@@ -586,7 +608,10 @@ function computeTrials(inp) {
       if (staff.has(f.name.toLowerCase())) return;
       const vs = byUser[f.uid] || [];
       const comp = vs.filter((v) => v.status === "Completed" && v.date >= start && v.date <= end);
-      const base = { uid: f.uid, name: f.name, email: f.email, loc, personen: /&|\+| und /i.test(f.name) ? 2 : 1, lifecycle: lifeOf(f.email), lastNote: noteOf(f.uid) };
+      const vsAll = byUser[f.uid] || [];
+      const nsD = vsAll.filter((v) => /noshow/i.test(v.status)).map((v) => v.date);          // alle No-Shows im Fenster (auch wenn die Zeile etwas anderes zeigt)
+      const bkD = Array.from(new Set(vsAll.filter((v) => !/cancel/i.test(v.status)).map((v) => v.bookedAt).filter(Boolean))); // Placed Trials: wann wurde gebucht
+      const base = { uid: f.uid, name: f.name, email: f.email, loc, personen: /&|\+| und /i.test(f.name) ? 2 : 1, lifecycle: lifeOf(f.email), lastNote: noteOf(f.uid), ns: nsD, bk: bkD };
       if (comp.length) {
         const v = comp[0];
         if ((subsBy[f.uid] || []).some((s) => s.date && s.date < v.date && !isPT(s.pkg))) return; // Altkunde
@@ -611,7 +636,7 @@ function computeTrials(inp) {
     if (prior.has(uid) || comp.some((c) => c.date < v.date)) return;
     const loc = /winterthur/i.test(v.loc) ? "Winterthur" : "Zurich";
     const ex = (cancBy[uid] || []).some((c) => c.ended && c.ended < v.date);
-    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, lifecycle: lifeOf(v.email), lastNote: noteOf(uid), date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
+    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, lifecycle: lifeOf(v.email), lastNote: noteOf(uid), ns: byUser[uid].filter((z) => /noshow/i.test(z.status)).map((z) => z.date), bk: Array.from(new Set(byUser[uid].filter((z) => !/cancel/i.test(z.status)).map((z) => z.bookedAt).filter(Boolean))), date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
   });
   (inp.open || []).forEach((o) => { if (o && o.uid && o.date) out.sales[String(o.uid)] = saleOf(String(o.uid), String(o.date)); });
   return out;
