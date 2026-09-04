@@ -1381,7 +1381,7 @@ function trSummary(sh, all, start, today) {
   sh.getRange(4, TR_SUM_COL, maxR, mHead.length).clearContent().setBackground(null);
   sh.getRange(4, TR_SUM_COL, 1, mHead.length).setValues([mHead]).setFontWeight('bold').setBackground('#f3f3f3');
   if (mRows.length) { sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, 1).setNumberFormat('@'); sh.getRange(TR_ROW0, TR_SUM_COL, mRows.length, mHead.length).setValues(mRows); sh.getRange(TR_ROW0, TR_SUM_COL + 1, mRows.length, mHead.length - 1).setNumberFormat('0'); sh.getRange(TR_ROW0, TR_SUM_COL + 7, mRows.length, 1).setNumberFormat('0%'); }
-  var days = [], d = new Date(today + 'T12:00:00'), s0 = new Date(start + 'T12:00:00');
+  var days = [], d = addD(new Date(today + 'T12:00:00'), 14), s0 = new Date(start + 'T12:00:00'); // kommende 14 Tage zeigen die gebuchten Trials
   while (d >= s0) { var k = fmtD(d), x = day[k] || { trials: 0, noshow: 0, sold: 0, booked: 0 }, oc = oldCalls[k] || ['', '']; days.push([new Date(k + 'T12:00:00'), x.trials, x.noshow, x.sold, x.booked, oc[0], oc[1]]); d = addD(d, -1); }
   sh.getRange(4, TR_DAY_COL, maxR, dayHead.length).clearContent().setBackground(null);
   sh.getRange(4, TR_DAY_COL - 1, maxR, 1).clearContent().setBackground(null); sh.setColumnWidth(TR_DAY_COL - 1, 30);
