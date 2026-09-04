@@ -34,12 +34,13 @@ Im Leads-Log: Tab "Wochenreport" (ersetzt Leads-Analyse; buildWochenreport(main,
 Leads je Standort/Kanal/Interesse aus Daten, Trials/No-Shows/Verkauft (Vertragswoche)/Kohorten-Quote/Anrufe aus dem Team-Sheet; laeuft mit
 jedem Probetrainings-Lauf). "Leads Historie" geloescht: HISTORY liegt als leads_web in MonatsHistorie (migrateHistorie), Monatsabschluss zeigt
 Monate ab Januar 2026 und unten Bloecke "Website-Leads nach Kanal/Interesse" (COUNTIFS auf Daten, Spalte J = Kanal: Klick-ID > UTM > Referrer).
-LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50): Team-Sheet fuehrt keinen eigenen Status/Gespraech mehr. Spalten (CI): Trial-Datum, Name,
-Art, Klasse, Trainer, Gebucht von, Kanal, Personen*, Kein Trial* (Checkbox), Kommentar*, Lifecycle-Stage (exercise.com "Current"), Pruefen
+LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
+"&"/"+" im Namen; Kein Trial = Stage "Non-Client" = Assistant Coach / Friends & Family; Kommentare nur in exercise.com-Notizen). Spalten (CI,
+19): Trial-Datum, Name, Art, Klasse, Trainer, Gebucht von, Kanal, Personen, Lifecycle-Stage (exercise.com "Current"), Pruefen
 (Fakt vs. Stage ab 1 Tag nach Termin, rot; Texte TR_T.*.chk), Vertrag am, Verkaeufer, Paket, Tage bis Vertrag, Letzte Notiz (Report
 account_notes: Datum + Titel), CRM (HYPERLINK auf /ex4/clients/<uid>/notes), Buchung erstellt am, UID (versteckt), Stand. Stages: LC_POST =
 Client, Dependant client, Signed but no payment, Pending Decision, Missed the talk (neu 04.09.), Not Interested (Lost); LC_CLIENT = die ersten drei.
-Regeln: Trial stattgefunden -> Stage muss in LC_POST sein; No-Show -> re-engage no-shows; Storniert -> re-engage cancelled trial; Gebucht ->
+Regeln: Trial stattgefunden -> Stage muss in LC_POST sein; No-Show/Storniert -> re-engage-Stage oder eine LC_POST-Stage (LC_NOSHOW_OK); Gebucht ->
 Trial Booked; Wiederholer zaehlt erst mit LC_POST-Stage. Verkauft = Vertragsdatum vorhanden. Abendmail trDailyMail je Standort an abdi@/bogdan@,
 Ruben cc: Trials heute, Pruefungen, Buchungen morgen, Monatsstand. Wochenreport Kennzahlen: "Offene Pruefungen ZH/WT". Offen (Ruben-Task):
 Kinder sauber auf "Dependant client". LEHRE Editor 04.09. nachmittags: Tastatur-Paste/cmd+s kommen nicht mehr an; Diff als Monaco-Ops
