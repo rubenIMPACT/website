@@ -1282,15 +1282,15 @@ function trIsTrial(r) { return (r[2] === 'Trial' && r[7] !== 'Kein Trial') || (S
 function trPers(r) { var n = Number(r[6]); return n > 0 ? n : 1; }
 function runProbetrainings(startOpt) {
   var now = new Date(), today = fmtD(now), end = fmtD(addD(now, 14));
-  var start = startOpt || fmtD(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-  var base = { start: start, end: end, today: today, visits_start: fmtD(addD(new Date(start + 'T12:00:00'), -30)), sales_start: fmtD(addD(now, -180)) };
+  var start = startOpt || fmtD(addD(now, -33)); // Fenster ~47 Tage (2 Besuche-Bloecke); aeltere Zeilen bleiben im Tab stehen
+  var base = { start: start, end: end, today: today, sales_start: fmtD(addD(now, -180)) };
   var ss = SpreadsheetApp.openById(SHEET_ID), open = [];
   Object.keys(TR_SHEETS).forEach(function (loc) { open = open.concat(trOpenRows(ss, loc, start)); });
   var p1 = trCall(Object.assign({ phase: 't1' }, base)); if (p1.error) throw new Error('Trials t1: ' + JSON.stringify(p1).slice(0, 300));
   var p2 = null, p3 = null, i;
   for (i = 0; i < 9; i++) { Utilities.sleep(20000); p2 = trCall(Object.assign({ phase: 't2' }, base)); if (p2.error) throw new Error('Trials t2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Trials t2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
-  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, open_uids: open }, base)); if (p3.error) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open }, base)); if (p3.error) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Trials t3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
   var data = p3.data, lines = [];
   Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, start, today)); });

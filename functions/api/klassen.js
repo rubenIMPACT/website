@@ -475,18 +475,29 @@ function computeMonat(inp) {
 // Zeitstempel: Besuche/Kuendigungen kommen in CH-Zeit ("2026/08/04 06:09 PM CEST"), Abos und Waiver in UTC
 // ("2026-08-31 22:00:02 +0000" = 01.09. 00:00 CEST) -> chDate() rechnet alles auf das Datum in Europe/Zurich um.
 function trialUrls(p) {
-  const start = String(p.start), end = String(p.end), vStart = String(p.visits_start || start), sStart = String(p.sales_start || start), today = String(p.today || end);
-  const qW = query(start, end), qV = query(vStart, end), qS = query(sStart, today);
-  return {
+  // Besuche in 4-Wochen-Bloecken (ein Fenster ueber ~2 Monate liefert "too_large"); Vorgeschichte fuer Wiederholer aus
+  // "Visit Totals Per Client" (eine Zeile je Kunde) fuer die 30 Tage vor dem Fenster.
+  const start = String(p.start), end = String(p.end), sStart = String(p.sales_start || start), today = String(p.today || end);
+  const c1End = addDaysStr(start, 27) < end ? addDaysStr(start, 27) : end, c2Start = addDaysStr(c1End, 1);
+  const qW = query(start, end), qS = query(sStart, today), tStart = addDaysStr(start, -30), tEnd = addDaysStr(start, -1);
+  const U = {
     fvZH: { url: API + "/api/v4/reports/clients_first_visit?" + qW + "&per=3000&location_id=2508", start, loc: "Zurich" },
     fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qW + "&per=3000&location_id=2222", start, loc: "Winterthur" },
-    visits: { url: API + "/api/v4/reports/detailed_visits?" + qV + "&per=20000", start: vStart },
+    v1: { url: API + "/api/v4/reports/detailed_visits?" + query(start, c1End) + "&per=8000", start },
     subs: { url: API + "/api/v4/reports/active_subscription?" + qW + "&per=3000&only_active=true", start },
     cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qS + "&per=3000", start: sStart },
     waiver: { url: API + "/api/v4/reports/waiver?" + qS + "&per=3000", start: sStart },
+    tot: { url: API + "/api/v4/reports/total_visits_per_client?" + query(tStart, tEnd) + "&per=5000", start: tStart },
   };
+  if (c2Start <= end) U.v2 = { url: API + "/api/v4/reports/detailed_visits?" + query(c2Start, end) + "&per=8000", start: c2Start };
+  return U;
 }
 const fvCompact = (rows) => rows.map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10).replace(/\//g, "-"), cls: String(r["First Session Visit"] || "").replace(/\s+/g, " ").trim() }));
+function visCompact(cs) {
+  const H = (cs && cs.headers) || [], vi = (n) => H.indexOf(n), out = [];
+  ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((x) => out.push({ uid: String(x[vi("User ID")]), name: ((x[vi("First Name")] || "") + " " + (x[vi("Last Name")] || "")).trim(), email: String(x[vi("Email")] || "").toLowerCase(), date: chDate(x[vi("Start Time")]), time: String(x[vi("Start Time")] || "").slice(11, 19), cls: String(x[vi("Service")] || "").replace(/\s+/g, " ").trim(), loc: String(x[vi("Location")] || ""), status: String(x[vi("Status")] || ""), staff: String(x[vi("Primary Staff")] || ""), staff2: String(x[vi("Secondary Staff")] || ""), bookedBy: String(x[vi("Booked By")] || ""), bookedAt: chDate(x[vi("Booked At")]), pkg: String(x[vi("Client Package Used")] || ""), guest: String(x[vi("Guest From Visit ID")] || "").replace(/null/i, "") })));
+  return out;
+}
 async function trials(H, p) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(p.start || "")) || !/^\d{4}-\d{2}-\d{2}$/.test(String(p.end || ""))) return { error: "window" };
   const U = trialUrls(p), phase = String(p.phase || "");
@@ -497,27 +508,31 @@ async function trials(H, p) {
   }
   if (phase === "t1") {
     const out = {};
-    for (const k of ["fvZH", "visits", "subs", "cancelled", "waiver"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
     return { ok: true, started: out };
   }
   if (phase === "t2") {
-    const fv = await getJson(H, U.fvZH.url);
-    if (!fv.json) return { error: "fetch_fvZH_" + fv.status };
+    const fv = await getJson(H, U.fvZH.url), v1 = await getJson(H, U.v1.url);
+    if (!fv.json || !v1.json) return { error: "fetch_t2" };
     if (!readyFor(U.fvZH, fv.json)) return { ready: false, waiting: "fvZH", why: whyNot(U.fvZH, fv.json) };
-    const fvC = fvCompact(rowsOf(fv.json.cached_stats));
+    if (!readyFor(U.v1, v1.json)) return { ready: false, waiting: "v1", why: whyNot(U.v1, v1.json) };
+    const fvC = fvCompact(rowsOf(fv.json.cached_stats)), vC = visCompact(v1.json.cached_stats);
     await getJson(H, U.fvWT.url + "&refresh=true");
-    return { ready: true, fv_zh: fvC };
+    if (U.v2) await getJson(H, U.v2.url + "&refresh=true");
+    return { ready: true, fv_zh: fvC, v1: vC };
   }
   if (phase === "t3") {
-    const got = {};
-    for (const k of ["fvWT", "visits", "subs", "cancelled", "waiver"]) {
+    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot"].concat(U.v2 ? ["v2"] : []);
+    for (const k of keys) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
       if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
       got[k] = r.json.cached_stats;
     }
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: fvCompact(rowsOf(got.fvWT)) };
-    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), vStart: String(p.visits_start || p.start), fv, visits: got.visits, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
+    const vis = (Array.isArray(p.v1) ? p.v1 : []).concat(U.v2 ? visCompact(got.v2) : []);
+    const prior = new Set(rowsOf(got.tot).filter((r) => num(r["Total Completed"]) > 0).map((r) => String(r["User ID"] || "")).filter(Boolean));
+    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
   }
   return { error: "phase" };
 }
@@ -533,10 +548,8 @@ function addDaysStr(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t
 const TR_EVENT = /seminar|event|open mat|camp|workshop/i;
 function computeTrials(inp) {
   const { start, end, today } = inp, isPT = (s) => /personal training/i.test(String(s || ""));
-  const vH = (inp.visits && inp.visits.headers) || [], vi = (n) => vH.indexOf(n), V = [];
-  (((inp.visits || {}).reports) || []).forEach((g) => (g.items || []).forEach((it) => V.push(it)));
-  const vis = V.map((x) => ({ uid: String(x[vi("User ID")]), name: ((x[vi("First Name")] || "") + " " + (x[vi("Last Name")] || "")).trim(), email: String(x[vi("Email")] || "").toLowerCase(), date: chDate(x[vi("Start Time")]), time: String(x[vi("Start Time")] || "").slice(11, 19), cls: String(x[vi("Service")] || "").replace(/\s+/g, " ").trim(), loc: String(x[vi("Location")] || ""), status: String(x[vi("Status")] || ""), staff: String(x[vi("Primary Staff")] || ""), bookedBy: String(x[vi("Booked By")] || ""), bookedAt: chDate(x[vi("Booked At")]), pkg: String(x[vi("Client Package Used")] || ""), guest: String(x[vi("Guest From Visit ID")] || "").replace(/null/i, "") }));
-  const staff = new Set(); V.forEach((x) => [x[vi("Primary Staff")], x[vi("Secondary Staff")]].forEach((s) => { if (s) String(s).split(",").forEach((n) => staff.add(n.trim().toLowerCase())); }));
+  const vis = inp.vis || [], prior = inp.prior || new Set();
+  const staff = new Set(); vis.forEach((v) => [v.staff, v.staff2].forEach((s) => { if (s) String(s).split(",").forEach((n) => staff.add(n.trim().toLowerCase())); }));
   const byUser = {}; vis.forEach((v) => { (byUser[v.uid] = byUser[v.uid] || []).push(v); });
   const srt = (a, b) => (a.date + a.time < b.date + b.time ? -1 : 1);
   Object.keys(byUser).forEach((u) => byUser[u].sort(srt));
@@ -556,7 +569,7 @@ function computeTrials(inp) {
     const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (cs.length ? "Verkauft, wieder gekündigt" : "Unterschrieben, kein Abo aktiv");
     return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (cs.length ? cs[0].pkg : ""), days, start: ss.length ? ss[0].date : "" };
   };
-  const out = { window: { start, end, today }, generated: new Date().toISOString(), rows: { Zurich: [], Winterthur: [] }, sales: {} };
+  const out = { window: { start, end, today }, generated: new Date().toISOString(), rows: { Zurich: [], Winterthur: [] }, sales: {}, stats: { visits: vis.length, prior: prior.size } };
   const fvAll = new Set();
   for (const loc of ["Zurich", "Winterthur"]) {
     const seen = new Set();
@@ -587,7 +600,7 @@ function computeTrials(inp) {
     const v = cand[0];
     if (staff.has(v.name.toLowerCase())) return;
     if ((subsBy[uid] || []).some((s) => s.date && s.date <= v.date)) return;
-    if (comp.some((c) => c.date < v.date && c.date >= addDaysStr(v.date, -30))) return;
+    if (prior.has(uid) || comp.some((c) => c.date < v.date)) return;
     const loc = /winterthur/i.test(v.loc) ? "Winterthur" : "Zurich";
     const ex = (cancBy[uid] || []).some((c) => c.ended && c.ended < v.date);
     out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
