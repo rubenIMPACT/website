@@ -37,6 +37,15 @@ Verkaufsstatus: Verkauft am Trial-Tag / Verkauft / Verkauft, wieder gekuendigt /
 Waiver Signed >= Trialdatum, sonst Abo-Start; PT zaehlt nicht. Editierbare Spalten (bleiben bei Upsert erhalten): Personen, Gespraech
 (Dropdown TR_TALK, "Kein Trial" nimmt Zeile aus der Zaehlung), Kommentar, Anruf-Spalten der Tagestabelle (AC..AI, per Datum).
 Monatsuebersicht S..AA wird pro Lauf in JS berechnet. Aeltere offene Zeilen bekommen den Verkaufsstatus ueber open_uids (t3).
+SPRACHE (Ruben 04.09.): Tab ZH deutsch (Abdi), Tab WT englisch (Bogdan): TR_LANG/TR_T im Script, intern bleiben Werte deutsch,
+trL() uebersetzt beim Schreiben, trC()/TR_REV beim Lesen; Spaltennotizen erklaeren jede Spalte (Notiz auf der Ueberschrift). Spalten:
+Trial-Datum (erster Check-in bzw. gebuchter Termin), ..., Vertrag am (Waiver), Verkaeufer, Paket, Tage bis Vertrag, Status, Buchung
+erstellt am, UID, Stand. Tabs Leads und Trainingsplan sind seit 04.09. versteckt (setupAnalyse haelt sie versteckt).
+FUNNEL-ATTRIBUTION (04.09.2026): Website-Snippet speichert utm_*, gclid, fbclid, ttclid 30 Tage in localStorage (imp_<key>
+= {v,t}); hidden input t_tt/ttclid in allen 38 Lead-Formularen + 2 Templates; lead.js schreibt ttclid in die exercise.com-Notiz;
+Leads-Tab hat neue Spalten U..X ttclid, utm_source, utm_medium, utm_campaign. Geplant: Kanal-Spalte in Daten/Probetrainings
+(gclid=Google Ads, fbclid=Meta, ttclid=TikTok, sonst utm_source/Referrer/direkt), Wochenreport statt Leads-Analyse, Leads
+Historie in den Monatsabschluss. TikTok-Pixel-ID D8ON10BC77UDGOQMBTHG ist die Pixel-ID (Script im Head), NICHT die Click-ID.
 Bogdans "Probetrainings" im Sheet "Sales KPIs WIN" = Sales Talks + Missed (48+2); die Sales-KPI-Sheets (ZH/WIN, Drive) sollen nach einem
 Parallelmonat eingefroren werden. LEHRE: Abo-Startdatum ist nicht das Abschlussdatum (geplante Starts), darum Waiver-Report; Zeitstempel
 der Abo-/Waiver-Reports sind UTC (22:00:02 +0000 = Mitternacht CEST) -> chDate(). Backfill: runProbetrainings('2026-08-01').
