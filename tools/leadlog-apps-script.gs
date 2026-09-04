@@ -1432,7 +1432,7 @@ function trInit(ss, sh, loc) {
 }
 function trUpsert(ss, loc, rows, sales, start, today, leadMap) {
   var T = trT(loc), sh = getOrCreate(ss, TR_SHEETS[loc]);
-  if (sh.getLastRow() < 4 || String(sh.getRange(4, 1).getValue()) !== T.head[0] || String(sh.getRange(4, CI.kanal + 1).getValue()) !== T.head[CI.kanal]) trInit(ss, sh, loc);
+  if (sh.getLastRow() < 4 || sh.getRange(4, 1, 1, TR_NCOL).getValues()[0].join('|') !== T.head.join('|')) trInit(ss, sh, loc); // jede Layout-Aenderung baut das Tab neu auf
   var n = Math.max(0, sh.getLastRow() - TR_ROW0 + 1), old = n ? sh.getRange(TR_ROW0, 1, n, TR_NCOL).getValues() : [];
   var byUid = {}; old.forEach(function (r) { if (r[CI.uid]) byUid[String(r[CI.uid])] = r; });
   var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm');
