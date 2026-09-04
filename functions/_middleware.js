@@ -82,7 +82,6 @@ const EXACT = {
   "/en-team/joao-wt": ["/en/winterthur/team/", 301],
   "/en-team/ruben-crawford-wt": ["/en/winterthur/team/", 301],
   "/en-team/sam-wt": ["/en/winterthur/team/", 301],
-  "/en/events": ["/en/events/", 301],
   "/en/kids-training-winterthur": ["/en/winterthur/classes/little-ninjas/", 301],
   "/en/kids-training-zurich": ["/en/zurich/classes/little-ninjas/", 301],
   "/en/littleninjas": ["/en/zurich/classes/little-ninjas/", 301],
@@ -97,7 +96,6 @@ const EXACT = {
   "/en/zurich/coaches": ["/en/zurich/team/", 301],
   "/en/zurich/kids-training": ["/en/zurich/classes/little-ninjas/", 301],
   "/en/zurich/timetable": ["/en/zurich/schedule/", 301],
-  "/events": ["/events/", 301],
   "/events-2": ["/events/", 301],
   "/feedback-survey": ["/en/cancellation/", 301],
   "/gear": ["/", 302],
@@ -123,7 +121,6 @@ const EXACT = {
   "/home": ["/", 301],
   "/karriere/martial-arts-trainer": ["/karriere/", 301],
   "/karriere/verkaufsprofi1": ["/karriere/", 301],
-  "/kuendigung": ["/kuendigung/", 301],
   "/kurse/fitness-boxen-kickboxen": ["/zurich/kurse/fitness-kickboxen/", 301],
   "/kurse/kickboxen": ["/zurich/kurse/fitness-kickboxen/", 301],
   "/kurse/mma-street-defense": ["/zurich/kurse/street-defense/", 301],
@@ -230,7 +227,7 @@ export async function onRequest(context) {
   if (p.startsWith("/api/") || p.startsWith("/assets/")) return next();
   const key = (p.length > 1 && p.endsWith("/")) ? p.slice(0, -1) : p;
   const hit = EXACT[key] || EXACT[key.toLowerCase()];
-  if (hit) return go(url, hit[0], hit[1]);
+  if (hit && hit[0] !== p) return go(url, hit[0], hit[1]); // nie auf sich selbst (Schleife)
   for (const [src, base, fallback] of SLUG) {
     if (key.startsWith(src) && key.length > src.length) {
       const slug = key.slice(src.length).split("/")[0].toLowerCase();
