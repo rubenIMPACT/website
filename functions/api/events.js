@@ -52,6 +52,10 @@ export async function onRequestGet(context) {
   const cache = caches.default;
   const key = new Request(new URL("/api/events", request.url).toString(), { method: "GET" });
   const store = async (events) => { const at = Date.now(); const res = respond(events, at); const c = new Response(res.body, res); c.headers.set("Cache-Control", "public, max-age=86400"); await cache.put(key, c); return res; };
+  if (new URL(request.url).searchParams.get("refresh") === "1") { // Debug/Force: Cache sofort neu fuellen, Fehler sichtbar machen
+    try { return await store(await fetchUpstream(env)); }
+    catch (e) { return new Response(JSON.stringify({ error: "upstream", message: String(e && e.message || e) }), { status: 502, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }); }
+  }
   const hit = await cache.match(key);
   if (hit) {
     const at = Number(hit.headers.get("X-Fetched-At") || 0);
