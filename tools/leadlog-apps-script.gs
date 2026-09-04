@@ -1305,6 +1305,7 @@ function trOpenRows(ss, loc, start) {
 }
 function trInit(ss, sh, loc) {
   clearSheet(sh);
+  if (sh.getMaxColumns() < 36) sh.insertColumnsAfter(sh.getMaxColumns(), 36 - sh.getMaxColumns());
   sh.getRange('A1').setValue('Probetrainings ' + (loc === 'Zurich' ? 'Zürich' : 'Winterthur')).setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue(TR_RULE).setFontColor('#666666').setWrap(true).setVerticalAlignment('top');
   sh.getRange('A2:Q2').merge(); sh.setRowHeight(2, 80);
