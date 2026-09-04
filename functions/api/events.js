@@ -51,7 +51,7 @@ export async function onRequestGet(context) {
   if (!env.LEADLOG_URL || !env.LEADLOG_TOKEN) return new Response(JSON.stringify({ error: "config" }), { status: 500, headers: { "Content-Type": "application/json" } });
   const cache = caches.default;
   const key = new Request(new URL("/api/events", request.url).toString(), { method: "GET" });
-  const store = async (events) => { const at = Date.now(); const res = respond(events, at); const c = new Response(res.body, res); c.headers.set("Cache-Control", "public, max-age=86400"); await cache.put(key, c); return res; };
+  const store = async (events) => { const at = Date.now(); const c = respond(events, at); c.headers.set("Cache-Control", "public, max-age=86400"); await cache.put(key, c); return respond(events, at); }; // zwei getrennte Responses: new Response(res.body, res) verbrauchte den Body -> 1101 beim Senden (04.09.)
   if (new URL(request.url).searchParams.get("debug") === "1") { // Schrittweise Diagnose ohne Cache
     const log = []; const t0 = Date.now();
     try {
