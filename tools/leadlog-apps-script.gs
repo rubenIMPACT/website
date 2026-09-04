@@ -1384,6 +1384,7 @@ function trSummary(sh, all, start, today) {
   var days = [], d = new Date(today + 'T12:00:00'), s0 = new Date(start + 'T12:00:00');
   while (d >= s0) { var k = fmtD(d), x = day[k] || { trials: 0, noshow: 0, sold: 0, booked: 0 }, oc = oldCalls[k] || ['', '']; days.push([new Date(k + 'T12:00:00'), x.trials, x.noshow, x.sold, x.booked, oc[0], oc[1]]); d = addD(d, -1); }
   sh.getRange(4, TR_DAY_COL, maxR, dayHead.length).clearContent().setBackground(null);
+  sh.getRange(4, TR_DAY_COL - 1, maxR, 1).clearContent().setBackground(null); sh.setColumnWidth(TR_DAY_COL - 1, 30);
   sh.getRange(4, TR_DAY_COL, 1, dayHead.length).setValues([dayHead]).setFontWeight('bold').setBackground('#f3f3f3');
   if (days.length) { sh.getRange(TR_ROW0, TR_DAY_COL, days.length, dayHead.length).setValues(days); sh.getRange(TR_ROW0, TR_DAY_COL, days.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(TR_ROW0, TR_DAY_COL + 5, days.length, 2).setBackground('#fff8e1'); }
   [80, 60, 120, 70, 70, 70, 90, 60, 60, 150].forEach(function (w, i) { sh.setColumnWidth(TR_SUM_COL + i, w); });
