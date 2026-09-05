@@ -49,6 +49,24 @@ noch offen" getrennt von "Abos gestartet". Mail: 12:00 mittags (Sales-Start), vo
 Heute, Gestern, Pruefen, Zahlung offen ab 7 Tagen, Monatsstand. Trigger-Umstellung laeuft ueber TR_TRIG_VER + ScriptProperties,
 der naechste Stundenlauf zieht sie selbst nach. Stand "Zahlung offen" 04.09.: 19 Faelle, 8 davon aelter als 30 Tage (aeltester
 Obada Aljabawi seit 04.06.).
+LEHRE 05.09. 09:10: Der Stundenlauf stand seit 04.09. 20:36 still (Mails "[Team] Probetrainings FEHLGESCHLAGEN"): das Lifecycle-
+Fenster ueber 180 Tage (fuer "Zahlung offen") liefert `too_large`. Reports haben ein Groessenlimit pro Fenster - lifecycle laeuft
+jetzt in 45-Tage-Bloecken (life1..life4, `lifeKeys(U)` in klassen.js), detailed_visits weiter in 4-Wochen-Bloecken. Bei jeder
+Fenster-Vergroesserung eines Reports also zuerst an too_large denken.
+EDITOR-PASTE NEU (05.09., viel einfacher als Zwischenablage/Diff): das Repo ist oeffentlich, also im Editor
+`fetch('https://raw.githubusercontent.com/rubenIMPACT/website/main/tools/leadlog-apps-script.gs')`, Token-Zeile vorher aus dem
+Modell sichern (`window.__tk`), im geholten Text den Platzhalter per `.replace(/^var TOKEN = .*$/m, () => tk)` ersetzen, dann
+`model.pushEditOperations([], [{range: model.getFullModelRange(), text: next}], () => null)` und synthetisches Cmd+S. Keine
+Umlaut-Probleme, kein Token im Kontext.
+MONATSABSCHLUSS-UMBAU (Ruben 05.09.): Spalte A eingefroren (Methodiktext liegt deshalb in B2:N2, A2 nur "Methodik" - eine
+Verbindung ueber die Einfrier-Grenze verbietet setFrozenColumns). Interessen stehen nicht mehr als Zeilen in der Liste, sondern
+nur noch im Diagramm; Kanaele bleiben als Zeilen unter den Standorten. Vier Diagramme je Standort rechts ab Spalte O
+(Funnel Leads/Probetrainings/Abos/Kuendigungen, Quoten, Kanal gestapelt, Interesse gestapelt), Diagrammdaten grau unter den
+Bloecken (Tabellen sind nur 13 Zeilen hoch, deshalb keine Kollision zwischen den Standorten). Neue Kennzahlen: "Quote Verkaeufe /
+Probetrainings" und "Quote Verkaeufe / Leads (alle Quellen)". "Leads" im Diagramm = leads_all, fuer Monate ohne diesen Wert
+(vor August 2026) die Website-Leads. Nachberechnung ganzer Monate laeuft ueber MA_CATCHUP/maQueueCatchUp: der Stundenlauf legt
+einen Einmal-Trigger `maCatchUp` an, der die Monate aus MA_CATCHUP_MONTHS einzeln abarbeitet (ein Monat je Ausfuehrung wegen des
+6-Minuten-Limits). Marke aendern = Nachlauf laeuft erneut.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
