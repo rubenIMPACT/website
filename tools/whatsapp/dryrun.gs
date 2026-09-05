@@ -31,6 +31,18 @@ var TEXT = {
   D1: { de: 'Hi {name}, wie hat dir das Probetraining am {date} gefallen? Gibt es etwas, das für dich noch offen ist?',
         en: 'Hi {name}, how did you like your trial on {date}? Is there anything still open for you?' }
 };
+var CF_URL = 'https://www.impact-martialarts.com/api/wa', CF_TOKEN = 'PASTE_LEADLOG_TOKEN_HERE'; // Token = Zeile "var TOKEN" im Leads-Log-Script; nur im Editor eintragen, nie ins Repo
+var RULE_E = { W2_D: 2, W3_D: 12, DAYS: 30 }; // W1 sofort, W2 nach 2 Tagen, W3 nach 12 Tagen, W4 einen Tag nach der naechsten Faelligkeit
+var TEXT_E = {
+  W1: { de: 'Hey {name} 👋 wir haben gesehen, dass die letzte Zahlung bei deinem Abo leider nicht durchgegangen ist. Kannst du bitte kurz deine Zahlungsdaten prüfen/aktualisieren und uns Bescheid geben, sobald das erledigt ist, damit wir es erneut abbuchen können? Wenn du Hilfe brauchst, sag kurz Bescheid 🙏 Danke dir!',
+        en: "Hey {name} 👋 We noticed that the last payment for your membership didn't go through. Could you please take a moment to check or update your payment details and let us know once it's done, so we can retry the charge? If you need any help, just let us know – we're happy to assist! 🙏 Thanks so much! Your IMPACT Support Team" },
+  W2: { de: 'Hey {name}, leider konnten wir deine offenen Zahlungen weiterhin nicht abbuchen. Deshalb haben wir deinen Zugang/Check-in vorläufig pausiert, bis die Zahlung erfolgreich abgeschlossen ist. Sobald die Zahlungsdaten aktualisiert sind, aktivieren wir alles sofort wieder. Danke für dein Verständnis.',
+        en: 'Hi {name}, unfortunately we were still unable to collect your outstanding payments. For this reason we have temporarily paused your access/check-in until the payment has been completed. Please take care of this today by updating your payment details. As soon as they are updated, we will reactivate everything immediately. Thank you for your understanding.' },
+  W3: { de: 'Hey {name}, wir melden uns nochmals wegen der weiterhin offenen Zahlung (seit über 10 Tagen). Bitte bring das heute in Ordnung (Zahlungsdaten aktualisieren), damit wir dein Abo wieder aktivieren können. Falls es gerade schwierig ist: melde dich kurz, dann finden wir eine Lösung.',
+        en: "Hi {name}, we're reaching out again regarding the payment that is still outstanding, which has been due since {due_date}. Please take care of this today by updating your payment details so we can reactivate your membership. If things are difficult at the moment, just send us a quick message and we'll find a solution together. Thanks for your attention to this!" },
+  W4: { de: 'Hey {name}, leider sind inzwischen mehrere Zahlungen offen und auch die neue Zahlung ist erneut fehlgeschlagen. Wenn wir bis morgen keinen Zahlungseingang bzw. keine Rückmeldung erhalten, müssen wir den offenen Betrag an unser Inkasso-/Mahnverfahren weitergeben. Bitte melde dich heute kurz oder aktualisiere die Zahlungsdaten direkt, damit wir das vermeiden können.',
+        en: "Hi {name}, unfortunately several payments are still overdue, and the most recent payment attempt has failed again. If we don't receive an update or payment from you by tomorrow, we'll need to move forward with our debt collection process. Please update your payment details or contact us today so we can avoid taking further steps. Thank you for your prompt attention." }
+};
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
 function waDryRunHourly() {
@@ -41,11 +53,12 @@ function waDryRunHourly() {
   var trialNames = {};
   ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { trialNames[t.nname] = true; }); });
   var leadLang = {}; leads.forEach(function (l) { if (l.nname && !leadLang[l.nname]) leadLang[l.nname] = l.lang; });
-  function push(flow, msg, loc, name, lang, trigger, key, vars) {
+  function pushRow(flow, msg, loc, name, lang, trigger, key, vars, table) {
     if (keys[key]) return; keys[key] = true;
-    var text = fill(TEXT[msg][lang], Object.assign({ name: name.split(' ')[0], sender: SENDER[loc], studio: STUDIO[lang][loc] }, vars || {}));
-    out.push([today, fmtT(now), fmtDT(sendAt(now, flow)), flow, msg, loc === 'Zurich' ? 'Zürich' : 'Winterthur', name, lang.toUpperCase(), trigger, text, key]);
+    var isE = flow === 'E', text = fill((table || TEXT)[msg][lang], Object.assign({ name: name.split(' ')[0], sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}));
+    out.push([today, fmtT(now), fmtDT(sendAt(now, flow)), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key]);
   }
+  function push(flow, msg, loc, name, lang, trigger, key, vars) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT); }
   // Flow A: website lead, no trial booking, chain 48 h / 6 d / 12 d. "Due" = the mark fell into the last 24 h (true daily rate, no backlog).
   var h = 3600000, marks = [['A1', RULE.A1_H * h], ['A2', RULE.A2_D * 24 * h], ['A3', RULE.A3_D * 24 * h]];
   leads.forEach(function (l) {
@@ -66,8 +79,27 @@ function waDryRunHourly() {
       if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) push('D', 'D1', loc, t.name, lang, 'D1: trial on ' + t.date + ', no contract, stage "' + (t.lifecycle || '-') + '"', 'D:D1:' + t.uid + ':' + t.date, { date: deDate(t.date, lang) });
     });
   });
+  // Flow E: failed payments (Waseem). First sighting = W1; still failing after 2 / 12 days = W2 / W3; W4 one day after the next due date.
+  var pay = readFailedPayments(), payNote = '';
+  if (pay === null) payNote = ' Flow E skipped (no token / endpoint error).';
+  else {
+    var seen = firstSeenE(sh);
+    pay.forEach(function (c) {
+      if (!c.uid || c.cancel_pending) return; // cancelled: stop
+      var lang = leadLang[nname(c.name)] || 'de', first = seen[c.uid];
+      var vars = { due_date: c.next_payment ? deDate(c.next_payment, lang) : '' };
+      function pushE(msg, key, trig) { pushRow('E', msg, 'Waseem', c.name, lang, trig, key, vars, TEXT_E); }
+      if (!first) pushE('W1', 'E:W1:' + c.uid + ':' + today, 'W1: failed payment seen today, billing "' + c.billing + '", stage "' + c.lifecycle + '"');
+      else {
+        var age = Math.round((new Date(today + 'T12:00:00') - new Date(first + 'T12:00:00')) / 86400000);
+        if (age >= RULE_E.W2_D) pushE('W2', 'E:W2:' + c.uid + ':' + first, 'W2: still failing ' + age + ' days after first sighting (' + first + ')');
+        if (age >= RULE_E.W3_D) pushE('W3', 'E:W3:' + c.uid + ':' + first, 'W3: still failing ' + age + ' days after first sighting');
+        if (c.next_payment && c.next_payment > first && today >= addDs(c.next_payment, 1)) pushE('W4', 'E:W4:' + c.uid + ':' + c.next_payment, 'W4: next payment ' + c.next_payment + ' passed, still failing');
+      }
+    });
+  }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
-  sh.getRange('A3').setValue('Last run ' + fmtDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + '.');
+  sh.getRange('A3').setValue('Last run ' + fmtDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', failed payments: ' + (pay ? pay.length : 'n/a') + '.' + payNote);
   Logger.log('Dry run ' + fmtDT(now) + ': ' + out.length + ' new rows');
   return out.length;
 }
@@ -132,12 +164,29 @@ function fmtDT(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd HH:mm'); }
 function addD(d, n) { var t = new Date(d.getTime()); t.setDate(t.getDate() + n); return t; }
 function addDs(s, n) { return fmtD(addD(new Date(s + 'T12:00:00'), n)); }
 
+function readFailedPayments() { // null = not available (no token or endpoint error); [] = none
+  if (!CF_TOKEN || /^PASTE/.test(CF_TOKEN)) return null;
+  try {
+    var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'failed_payments', days: RULE_E.DAYS }), muteHttpExceptions: true });
+    var b = JSON.parse(r.getContentText() || '{}');
+    if (r.getResponseCode() !== 200 || !b.ok) { Logger.log('wa failed_payments: ' + r.getResponseCode() + ' ' + String(r.getContentText()).slice(0, 200)); return null; }
+    return b.rows || [];
+  } catch (e) { Logger.log('wa failed_payments: ' + e); return null; }
+}
+function firstSeenE(sh) { // uid -> date of the W1 row (first sighting of the failed payment)
+  var seen = {}, n = sh.getLastRow();
+  if (n < TR_ROW0) return seen;
+  sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) {
+    if (r[3] === 'E' && r[4] === 'W1') { var uid = String(r[10] || '').split(':')[2], d = dOf(r[0]); if (uid && d && (!seen[uid] || d < seen[uid])) seen[uid] = d; }
+  });
+  return seen;
+}
 function ensureSheets(ss) {
   var sh = ss.getSheetByName('Dry run');
   if (!sh) {
     sh = ss.getSheets()[0]; sh.setName('Dry run');
     sh.getRange('A1').setValue('WhatsApp Automation, Phase 0 dry run').setFontSize(16).setFontWeight('bold');
-    sh.getRange('A2').setValue('Every row is a message the automation WOULD have sent (nothing is sent in Phase 0). Runs hourly, reads the Leads Log and the Probetrainings tabs in Team KPIs. Not checked yet: whether a human already wrote to the person or the person replied (needs the WhatsApp connection), so this is the upper bound. Flow A = lead without trial booking (48 h / 6 d / 12 d), B = reminder 3 h before the trial, C = no-show, D = trial without contract after 3 days. Texts are drafts; the approved texts live in the Google Doc "WhatsApp Messages IMPACT".').setFontColor('#666666').setWrap(true);
+    sh.getRange('A2').setValue('Every row is a message the automation WOULD have sent (nothing is sent in Phase 0). Runs hourly, reads the Leads Log and the Probetrainings tabs in Team KPIs. Not checked yet: whether a human already wrote to the person or the person replied (needs the WhatsApp connection), so this is the upper bound. Flow A = lead without trial booking (48 h / 6 d / 12 d), B = reminder 3 h before the trial, C = no-show, D = trial without contract after 3 days, E = failed payment (Waseem, W1 to W4). Texts are drafts; the approved texts live in the Google Doc "WhatsApp Messages IMPACT".').setFontColor('#666666').setWrap(true);
     sh.getRange('A2:K2').merge(); sh.setRowHeight(2, 90);
     sh.getRange(4, 1, 1, HEAD.length).setValues([HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
     sh.setFrozenRows(4);
