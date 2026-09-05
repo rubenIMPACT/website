@@ -89,6 +89,30 @@ STUNDENLAUF-MINUTE: installTrialTriggers legt everyHours(1) neu an, Google waehl
 Lauf um :52 (vorher :32). Beim Pruefen eines Laufs also erst die letzte Fehlermail bzw. den Stand-Stempel im Tab anschauen.
 EDITOR-TAB HAENGT (05.09. 09:47): nach dem zweiten fetch/pushEditOperations reagierte der Tab nicht mehr (Script injection timed out,
 selbst setTimeout lief nicht weiter). Ausweg: neuen Tab oeffnen, Editor dort laden, gleiche Prozedur, alten Tab schliessen.
+WERBEKOSTEN + LTV (05.09.2026 vormittags, Entscheide Ruben: alles automatisch, keine Handeingabe; Agentur 3'800 EUR/Monat mit und
+ohne ausweisen, weil sie gekuendigt wird; LTV auf Netto-Umsatz mit allem; Kohorten nur aus nicht migrierten Kunden):
+- Supermetrics-Trial ist am 20.07.2026 abgelaufen (Meta + TikTok verbunden, Google Ads nicht) - NICHT nutzen. Stattdessen:
+  Google Ads = Google-Ads-Skript `tools/google-ads-spend-script.js` (Ruben fuegt es im Konto 831-058-5625 unter Tools > Skripte ein,
+  taeglich 06:00, schreibt Upsert der letzten 14 Tage direkt in den versteckten Tab WerbekostenDaten); Meta = klassen.js action `ads`
+  (Graph API v23, Konten act_1029100348842658 IMPACT + act_744755113940510 Little Ninjas, Env META_ADS_TOKEN = System-User-Token
+  ohne Ablauf mit ads_read, legt Ruben im Business Manager an), Apps Script runWerbekostenDaily 06:30; TikTok noch offen
+  (Vorschlag: Report-Mail aus dem Ads Manager parsen). Kampagnennamen tragen bei Meta und Google den Standort (Zuerich/Zürich/
+  Winterthur), wkLocOf() ordnet zu, sonst "Beide" und Split nach Tab Einstellungen.
+- Tabs: WerbekostenDaten (versteckt: Datum|Plattform|Konto|Kampagne|Standort|Kosten CHF|Klicks|Impressionen|Stand), Werbekosten
+  (Monatsmatrix je Standort + Kampagnen 30 Tage), Einstellungen (persistent, nie geloescht: Agentur EUR/Monat, von, bis, EUR in CHF
+  0.94 = ANNAHME, Split ohne Standort 0.5). Agenturkosten werden nach Media-Anteil auf die Standorte verteilt.
+- Monatsabschluss je Standort Block "Werbung und Kundenwert": Media (davon je Plattform), Agentur, CPL gesamt und je Kanal (Leads
+  nach Klick-ID), Kosten je Probetraining, Verkaeufe je Lead-Kanal (Metrik sales_kanal:<Kanal>, E-Mail der Vertragsunterschrift
+  gegen trLeadMap), CAC Media, CAC inkl. Agentur, CAC je Kanal, LTV-Prognose (Metrik ltv_forecast), LTV:CAC, Payback. Quoten sind
+  Sheet-Formeln auf die Zeilen des Blocks; leere Zellen zaehlen in Sheets als 0, deshalb IF(OR(...="")) statt IFERROR.
+- LTV: klassen.js action `ltv` (Report charges je Monat, Phasen cr/cg, Netto = Betrag - Refund - anteilige MwSt aus Spalte Tax; "Net
+  After Refunds" des Reports ist nach Stripe-Gebuehr, nicht nach MwSt). Apps Script: Tab ZahlungenMonat (versteckt, je Monat/Kunde/
+  Kaufart), runLTV in Etappen (max. 4 Monate je Ausfuehrung, Kette ueber Einmal-Trigger runLTVChain, Script-Lock), Nachladen ab
+  LTV_START 2025-06 ueber LTV_INIT-Marke im Stundenlauf, monatlich runLTVMonthly am 1. um 05:00. Tab LTV: je Standort Kennzahlen
+  (ARPU letzte 3 Monate, Retention letzte 6 Monate, Dauer 1/(1-r), Prognose-LTV, realisierter Umsatz Abgesprungener) + Kohorten
+  (Startmonat, kumuliert nach 3/6/9/12 Monaten, noch zahlend). Migration = erster Monat mit Zahlungen, bis Folgemonat = migriert.
+- Probe-Aktion `probe` in klassen.js + PROBE_REPORTS im Apps Script (Ergebnis per Mail) fuer kuenftige Report-Erkundungen.
+  Reports mit 403 fuer den API-User: payments, transactions, invoices, client_charges, revenue, refunds, started_subscription.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
