@@ -1557,7 +1557,7 @@ function runMonatsabschluss(start, end) {
 // Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
 // reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
-var MA_CATCHUP = '2026-09-05 Verkaufsquoten'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP = '2026-09-05 Verkaeufe je Kanal'; // Marke aendern = Nachlauf laeuft erneut
 var MA_CATCHUP_MONTHS = ['2026-08', '2026-09'];
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;

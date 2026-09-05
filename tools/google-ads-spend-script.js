@@ -13,7 +13,11 @@ function main() {
   var ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(TAB) || ss.insertSheet(TAB);
   if (sh.getLastRow() === 0) { sh.appendRow(HEAD); sh.getRange(1, 1, 1, HEAD.length).setFontWeight('bold'); sh.setFrozenRows(1); }
   var acc = AdsApp.currentAccount(), tz = acc.getTimeZone(), name = acc.getName(), cur = acc.getCurrencyCode();
-  var end = new Date(), start = new Date(end.getTime() - DAYS * 86400000);
+  // Erstlauf: solange keine Google-Zeile aelter als 60 Tage im Tab liegt, 400 Tage nachladen (Historie fuer den Monatsabschluss)
+  var days = DAYS, old = new Date(Date.now() - 60 * 86400000), hasOld = false;
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().forEach(function (r) { if (r[1] === 'Google Ads' && dOf(r[0]) < Utilities.formatDate(old, 'Europe/Zurich', 'yyyy-MM-dd')) hasOld = true; });
+  if (!hasOld) days = 400;
+  var end = new Date(), start = new Date(end.getTime() - days * 86400000);
   var f = function (d) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); };
   var q = "SELECT segments.date, campaign.name, metrics.cost_micros, metrics.clicks, metrics.impressions FROM campaign " +
     "WHERE segments.date BETWEEN '" + f(start) + "' AND '" + f(end) + "' AND metrics.cost_micros > 0";
