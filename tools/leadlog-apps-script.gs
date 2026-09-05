@@ -334,7 +334,9 @@ function buildWochenreport(ss, team) {
   });
   var weeks = [], m0 = mondayOf(new Date()); for (var i = WR_WEEKS - 1; i >= 0; i--) weeks.push(fmtD(addD(m0, -7 * i)));
   var dt = function (k) { return new Date(k + 'T12:00:00'); }, pre = function (k) { return k < LEAD_WEEK0; };
-  var G = function (k) { return wk[k] || blankW(); };
+  var G = function (k) { return wk[k] || blankW(); }, wkW = wkWeekAgg(ss);
+  var mediaW = function (k, loc) { var o = wkW[k]; if (!o) return ''; return Math.round(loc ? o[loc].media : o.Zurich.media + o.Winterthur.media); };
+  var cplW = function (k, loc) { var m = mediaW(k, loc), l = leadsOf(k, loc); return (m === '' || l === '' || !l) ? '' : Math.round(m / l); };
   var sum = function (k, f) { var o = G(k); return o[f].Zurich + o[f].Winterthur; };
   var leadsOf = function (k, loc) { return pre(k) ? '' : (loc ? G(k).leads[loc] : sum(k, 'leads')); };
   // Kopf
@@ -357,13 +359,17 @@ function buildWochenreport(ss, team) {
       ['Anrufe geführt', G(w0).calls[loc], G(w1).calls[loc], G(w2).calls[loc]],
       ['Trials', G(w0).t[loc], G(w1).t[loc], G(w2).t[loc], undefined, true],
       ['Verkauft', G(w0).sold[loc], G(w1).sold[loc], G(w2).sold[loc], undefined, true],
-      ['Offene Prüfungen (Stand jetzt)', chkOpen[loc], '', '', '']]);
+      ['Offene Prüfungen (Stand jetzt)', chkOpen[loc], '', '', ''],
+      ['Werbekosten Media (CHF)', mediaW(w0, loc), mediaW(w1, loc), mediaW(w2, loc)],
+      ['Kosten pro Website-Lead (CHF)', cplW(w0, loc), cplW(w1, loc), cplW(w2, loc)]]);
   });
   kBlock('Gesamt', [
     ['Leads', leadsOf(w0), leadsOf(w1), leadsOf(w2)],
     ['Anrufe geführt', sum(w0, 'calls'), sum(w1, 'calls'), sum(w2, 'calls')],
     ['Trials', sum(w0, 't'), sum(w1, 't'), sum(w2, 't'), undefined, true],
-    ['Verkauft', sum(w0, 'sold'), sum(w1, 'sold'), sum(w2, 'sold'), undefined, true]]);
+    ['Verkauft', sum(w0, 'sold'), sum(w1, 'sold'), sum(w2, 'sold'), undefined, true],
+    ['Werbekosten Media (CHF)', mediaW(w0), mediaW(w1), mediaW(w2)],
+    ['Kosten pro Website-Lead (CHF)', cplW(w0), cplW(w1), cplW(w2)]]);
   // Funnel pro Woche: Wochen als Spalten, je Standort ein Block
   r += 1;
   sh.getRange(r, 1).setValue('Funnel pro Woche (letzte ' + WR_WEEKS + ' Wochen, Woche ab Montag)').setFontWeight('bold').setFontSize(12); r++;
@@ -384,6 +390,8 @@ function buildWochenreport(ss, team) {
     fRow('No-Shows', function (k) { return G(k).ns[loc]; });
     fRow('Verkauft', function (k) { return G(k).sold[loc]; }, null, { bold: true });
     fRow('Quote (Trials der Woche, bis heute abgeschlossen)', function (k) { var o = G(k); return o.t[loc] ? o.csold[loc] / o.t[loc] : ''; }, '0%');
+    fRow('Werbekosten Media (CHF)', function (k) { return mediaW(k, loc); }, '#,##0');
+    fRow('Kosten pro Website-Lead (CHF)', function (k) { return cplW(k, loc); }, '#,##0');
   });
   sh.getRange(r, 1).setValue('Gesamt').setFontWeight('bold'); r++;
   fRow('Leads', function (k) { return leadsOf(k); });
@@ -394,6 +402,8 @@ function buildWochenreport(ss, team) {
   fRow('No-Shows', function (k) { return sum(k, 'ns'); });
   fRow('Verkauft', function (k) { return sum(k, 'sold'); }, null, { bold: true });
   fRow('Quote (Trials der Woche, bis heute abgeschlossen)', function (k) { var T = sum(k, 't'); return T ? sum(k, 'csold') / T : ''; }, '0%');
+  fRow('Werbekosten Media (CHF)', function (k) { return mediaW(k); }, '#,##0');
+  fRow('Kosten pro Website-Lead (CHF)', function (k) { return cplW(k); }, '#,##0');
   // Diagrammdaten (Wochen als Zeilen) unten, Diagramme rechts: links Zuerich, rechts Winterthur
   var d = r + 2;
   sh.getRange(d, 1).setValue('Diagrammdaten – automatisch, bitte nicht bearbeiten').setFontWeight('bold').setFontColor('#999999'); d += 2;
@@ -1211,6 +1221,122 @@ function doGet(e) {
 }
 
 // ------------------------------------------------------------ Monatsabschluss (seit 03.09.2026, Entscheid Ruben)
+// ------------------------------------------------------------ Werbekosten (05.09.2026, Entscheid Ruben: alles automatisch, keine Handeingabe)
+// Quellen: Google Ads ueber ein Google-Ads-Skript direkt in den versteckten Tab WerbekostenDaten (tools/google-ads-spend-script.js),
+// Meta ueber die Cloudflare-Funktion (action 'ads', Token META_ADS_TOKEN) taeglich 06:30 (runWerbekostenDaily); TikTok folgt.
+// Standort aus dem Kampagnennamen; ohne Standort = "Beide", Aufteilung nach Einstellung. Agenturkosten (3'800 EUR/Monat, Ruben
+// 05.09., Agentur wird gekuendigt) stehen im Tab Einstellungen und werden nach Media-Anteil auf die Standorte verteilt; CAC gibt
+// es deshalb mit und ohne Agentur. CPL/CAC/LTV stehen je Standort im Monatsabschluss (Block "Werbung und Kundenwert").
+var WK_SHEET = 'WerbekostenDaten', WK_VIEW = 'Werbekosten', WK_HEAD = ['Datum', 'Plattform', 'Konto', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks', 'Impressionen', 'Stand'];
+var WK_PLATFORMS = ['Google Ads', 'Meta Ads', 'TikTok Ads']; // gleiche Namen wie die Lead-Kanaele (KANAL_ORDER)
+var ST_SHEET = 'Einstellungen';
+var ST_DEFAULTS = [
+  ['Agentur EUR/Monat', '3800', 'Monatliche Agenturkosten in EUR (Ruben 05.09.2026). 0 oder leer = keine.'],
+  ['Agentur von', '2026-01', 'Erster Monat mit Agenturkosten (yyyy-MM).'],
+  ['Agentur bis', '', 'Letzter Monat mit Agenturkosten (yyyy-MM). Leer = laeuft noch.'],
+  ['EUR in CHF', '0.94', 'Kurs fuer die Umrechnung der Agenturkosten - bitte pruefen.'],
+  ['Werbekosten-Split ohne Standort', '0.5', 'Anteil Zuerich fuer Kampagnen ohne Standort im Namen (Rest Winterthur).'],
+];
+function stGet(ss) {
+  var sh = ss.getSheetByName(ST_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(ST_SHEET); sh.getRange(2, 2, ST_DEFAULTS.length, 1).setNumberFormat('@');
+    sh.getRange(1, 1, 1, 3).setValues([['Einstellung', 'Wert', 'Hinweis']]).setFontWeight('bold'); sh.getRange(2, 1, ST_DEFAULTS.length, 3).setValues(ST_DEFAULTS);
+    sh.setColumnWidth(1, 240); sh.setColumnWidth(3, 500); sh.setFrozenRows(1);
+  }
+  var o = {}; sh.getRange(2, 1, Math.max(1, sh.getLastRow() - 1), 2).getValues().forEach(function (r) { if (r[0]) o[String(r[0])] = r[1]; });
+  return o;
+}
+function wkLocOf(name) { var s = String(name || ''); if (/winterthur|\bWT\b|winti/i.test(s)) return 'Winterthur'; if (/z[üu]e?rich|\bZH\b/i.test(s)) return 'Zurich'; return 'Beide'; }
+function wkRead(ss) {
+  var sh = ss.getSheetByName(WK_SHEET); if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().map(function (r) { return { d: dOfCell(r[0]), plat: String(r[1] || ''), acct: String(r[2] || ''), camp: String(r[3] || ''), loc: String(r[4] || ''), cost: Number(r[5]) || 0, clicks: Number(r[6]) || 0, imp: Number(r[7]) || 0 }; }).filter(function (x) { return x.d && x.plat; });
+}
+function wkUpsert(ss, rows) {
+  var sh = getOrCreate(ss, WK_SHEET);
+  if (sh.getLastRow() === 0) { sh.appendRow(WK_HEAD); sh.getRange(1, 1, 1, WK_HEAD.length).setFontWeight('bold'); sh.setFrozenRows(1); }
+  if (!sh.isSheetHidden()) sh.hideSheet();
+  var n = Math.max(0, sh.getLastRow() - 1), ex = n ? sh.getRange(2, 1, n, WK_HEAD.length).getValues() : [], idx = {};
+  ex.forEach(function (r, i) { idx[dOfCell(r[0]) + '|' + r[1] + '|' + r[2] + '|' + r[3]] = i; });
+  var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm'), add = [], upd = 0;
+  rows.forEach(function (x) {
+    if (!x.date) return;
+    var row = [x.date, x.platform, x.account, x.campaign, wkLocOf(x.campaign), Math.round(x.spend * 100) / 100, x.clicks, x.impressions, stamp], k = x.date + '|' + x.platform + '|' + x.account + '|' + x.campaign;
+    if (k in idx) { ex[idx[k]] = row; upd++; } else add.push(row);
+  });
+  if (n) sh.getRange(2, 1, n, WK_HEAD.length).setValues(ex);
+  if (add.length) sh.getRange(n + 2, 1, add.length, WK_HEAD.length).setValues(add);
+  sh.getRange(2, 1, Math.max(1, n + add.length), 1).setNumberFormat('yyyy-MM-dd');
+  return upd + ' aktualisiert, ' + add.length + ' neu';
+}
+function wkBlank() { return { media: 0, plat: {}, clicks: 0 }; }
+// Kosten je Schluessel (Monat oder Woche) und Standort; "Beide" wird nach Einstellung aufgeteilt
+function wkAgg(ss, keyFn) {
+  var st = stGet(ss), share = Number(st['Werbekosten-Split ohne Standort']); if (!(share >= 0 && share <= 1)) share = 0.5;
+  var out = {};
+  wkRead(ss).forEach(function (x) {
+    var k = keyFn(x.d); if (!k) return;
+    var o = out[k] = out[k] || { Zurich: wkBlank(), Winterthur: wkBlank() };
+    var parts = x.loc === 'Zurich' ? [['Zurich', 1]] : x.loc === 'Winterthur' ? [['Winterthur', 1]] : [['Zurich', share], ['Winterthur', 1 - share]];
+    parts.forEach(function (pt) { var L = o[pt[0]], c = x.cost * pt[1]; L.media += c; L.plat[x.plat] = (L.plat[x.plat] || 0) + c; L.clicks += x.clicks * pt[1]; });
+  });
+  return out;
+}
+function wkMonthAgg(ss) { return wkAgg(ss, function (d) { return d.slice(0, 7); }); }
+function wkWeekAgg(ss) { return wkAgg(ss, function (d) { return fmtD(mondayOf(new Date(d + 'T12:00:00'))); }); }
+// Agenturkosten CHF eines Monats je Standort (Aufteilung nach Media-Anteil, ohne Media 50/50)
+function wkAgency(ss, mk, agg) {
+  var st = stGet(ss), eur = Number(st['Agentur EUR/Monat']) || 0, rate = Number(st['EUR in CHF']) || 1;
+  var von = st['Agentur von'] ? mkOf(st['Agentur von']) : '', bis = st['Agentur bis'] ? mkOf(st['Agentur bis']) : '';
+  if (!eur || (von && mk < von) || (bis && mk > bis)) return { Zurich: 0, Winterthur: 0 };
+  var chf = eur * rate, o = agg[mk], mz = o ? o.Zurich.media : 0, mw = o ? o.Winterthur.media : 0, tot = mz + mw, sz = tot ? mz / tot : 0.5;
+  return { Zurich: chf * sz, Winterthur: chf * (1 - sz) };
+}
+function buildWerbekosten(ss) {
+  var sh = getOrCreate(ss, WK_VIEW); clearSheet(sh);
+  var agg = wkMonthAgg(ss), months = Object.keys(agg).sort().slice(-12), now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+  if (months.indexOf(now) < 0) months.push(now);
+  sh.getRange('A1').setValue('IMPACT Werbekosten').setFontSize(16).setFontWeight('bold');
+  sh.getRange('A2').setValue('Media-Kosten je Monat und Standort aus dem versteckten Tab WerbekostenDaten (Google Ads: Google-Ads-Skript täglich; Meta: Marketing API täglich 06:30; TikTok folgt). Standort aus dem Kampagnennamen, Kampagnen ohne Standort nach dem Split im Tab Einstellungen aufgeteilt. Agenturkosten aus dem Tab Einstellungen, nach Media-Anteil auf die Standorte verteilt. Kosten pro Lead, CAC und LTV stehen im Monatsabschluss.').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2:H2').merge(); sh.setRowHeight(2, 64);
+  var r = 4;
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    sh.getRange(r, 1).setValue(loc === 'Zurich' ? 'Zürich' : 'Winterthur').setFontWeight('bold').setFontSize(13); r++;
+    var head = ['Monat'].concat(WK_PLATFORMS).concat(['Media gesamt', 'Agentur', 'Gesamt', 'Klicks']);
+    sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+    var rows = months.map(function (mk) { var o = (agg[mk] || {})[loc] || wkBlank(), ag = wkAgency(ss, mk, agg)[loc]; return [new Date(mk + '-01T00:00:00')].concat(WK_PLATFORMS.map(function (pn) { return Math.round(o.plat[pn] || 0); })).concat([Math.round(o.media), Math.round(ag), Math.round(o.media + ag), Math.round(o.clicks)]); });
+    sh.getRange(r, 1, rows.length, head.length).setValues(rows); sh.getRange(r, 1, rows.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 2, rows.length, head.length - 1).setNumberFormat('#,##0');
+    r += rows.length + 2;
+  });
+  var since = fmtD(addD(new Date(), -30)), by = {};
+  wkRead(ss).forEach(function (x) { if (x.d < since) return; var k = x.plat + '|' + x.camp, o = by[k] = by[k] || { plat: x.plat, camp: x.camp, loc: x.loc, cost: 0, clicks: 0 }; o.cost += x.cost; o.clicks += x.clicks; });
+  var list = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return b.cost - a.cost; });
+  sh.getRange(r, 1).setValue('Kampagnen der letzten 30 Tage (ab ' + since + ')').setFontWeight('bold').setFontSize(13); r++;
+  sh.getRange(r, 1, 1, 5).setValues([['Plattform', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks']]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+  if (list.length) { sh.getRange(r, 1, list.length, 5).setValues(list.map(function (o) { return [o.plat, o.camp, o.loc === 'Zurich' ? 'Zürich' : o.loc, Math.round(o.cost), Math.round(o.clicks)]; })); sh.getRange(r, 4, list.length, 2).setNumberFormat('#,##0'); }
+  else sh.getRange(r, 1).setValue('noch keine Daten – Google-Ads-Skript und Meta-Token einrichten').setFontColor('#999999');
+  sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 320);
+}
+function runWerbekosten() {
+  var ss = SpreadsheetApp.openById(SHEET_ID), st = stGet(ss), now = new Date(), notes = [];
+  var r = klassenCall({ action: 'ads', start: fmtD(addD(now, -14)), end: fmtD(now) });
+  if (r.error === 'no_meta_token') notes.push('Meta: kein Token in Cloudflare (META_ADS_TOKEN)');
+  else if (r.error || !r.ok) throw new Error('Werbekosten Meta: ' + JSON.stringify(r).slice(0, 300));
+  else {
+    var rate = Number(st['EUR in CHF']) || 1;
+    (r.rows || []).forEach(function (x) { if (String(x.currency).toUpperCase() === 'EUR') x.spend = x.spend * rate; });
+    notes.push('Meta: ' + wkUpsert(ss, r.rows || []));
+    if (r.errors && r.errors.length) notes.push('Meta-Fehler: ' + JSON.stringify(r.errors).slice(0, 300));
+  }
+  buildWerbekosten(ss);
+  Logger.log('Werbekosten: ' + notes.join(' | '));
+  return notes.join(' | ');
+}
+function runWerbekostenDaily() {
+  try { var t = runWerbekosten(); if (/Meta-Fehler/.test(t)) MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Werbekosten mit Fehlern', body: t }); }
+  catch (e) { MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Werbekosten FEHLGESCHLAGEN', body: String(e && e.stack ? e.stack : e) }); }
+}
+
 // Kennzahlen des Finanzplans und Funnel je Standort, Monate als Spalten. Daten aus der Cloudflare-Funktion (action 'monat'),
 // gespeichert im versteckten Tab MonatsHistorie (Monat, Standort, Kennzahl, Wert) und Kohorten (Probetrainer je Monat).
 // Kohorten-Conversion wird bei jedem Lauf fuer die letzten drei Monate neu gerechnet (Nachzuegler).
@@ -1267,7 +1393,7 @@ function runMonatsabschluss(start, end) {
   if (!p2 || !p2.ready) throw new Error('Monat m2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
   for (i = 0; i < 7; i++) { Utilities.sleep(20000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh }, base)); if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 400));
-  var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID);
+  var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID), leadMap = trLeadMap(ss);
   maStoreCohorts(ss, mk, data.cohort || {});
   var lines = [];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
@@ -1278,6 +1404,8 @@ function runMonatsabschluss(start, end) {
     m.conv_simple = L.trial_attended ? (L.new_customers || 0) / L.trial_attended : 0;
     m.conv_sales_trial = L.trial_attended ? (L.sales_signed || 0) / L.trial_attended : 0;
     m.conv_sales_lead = L.leads_all ? (L.sales_signed || 0) / L.leads_all : 0;
+    var cnt = {}; ((data.signed || {})[loc] || []).forEach(function (sg) { var ld = trFindLead(leadMap, sg.email, '', sg.date); if (ld && ld.kanal) cnt[ld.kanal] = (cnt[ld.kanal] || 0) + 1; });
+    KANAL_ORDER.forEach(function (kn) { m['sales_kanal:' + kn] = cnt[kn] || 0; });
     maStoreMetrics(ss, mk, loc, m);
     lines.push(loc + ': ' + (L.trial_attended || 0) + ' Probetrainings, ' + (L.new_customers || 0) + ' Neukunden, ' + (L.cancellations || 0) + ' Kuendigungen, netto ' + (L.net_growth || 0) + ', Abo-Umsatz brutto ' + (L.rev_membership_gross || 0) + ' CHF');
   });
@@ -1356,7 +1484,8 @@ var MA_NOTE = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, 
   + 'Probetraining stattgefunden = Erstbesucher mit Check-in im Monat, ohne Altkunden und Staff. Verkäufe = Vertragsunterschriften im Monat (Waiver), auch wenn das Abo später startet; '
   + 'Abos gestartet = Abo-Starts ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. '
   + 'Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026); Website-Leads nach Kanal je Standort ab September 2026. '
-  + 'Diagramme rechts: "Leads" = alle Quellen aus exercise.com, für Monate ohne diesen Wert (vor August 2026) die Website-Leads. Interessen stehen nur noch im Diagramm, nicht mehr in der Liste.';
+  + 'Diagramme rechts: "Leads" = alle Quellen aus exercise.com, für Monate ohne diesen Wert (vor August 2026) die Website-Leads. Interessen stehen nur noch im Diagramm, nicht mehr in der Liste. '
+  + 'Werbung: Media-Kosten aus Google Ads (Skript) und Meta (API) je Standort nach Kampagnenname, Agenturkosten aus dem Tab Einstellungen nach Media-Anteil verteilt; CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl; LTV = Prognose aus Zahlungen (Tab LTV).';
 function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
   if (sh.getMaxColumns() < 30) sh.insertColumnsAfter(sh.getMaxColumns(), 30 - sh.getMaxColumns());
@@ -1372,9 +1501,9 @@ function buildMonatsabschluss(ss) {
   sh.getRange('A2').setValue('Methodik').setFontColor('#999999');
   sh.getRange('B2').setValue(MA_NOTE).setFontColor('#666666').setWrap(true);
   sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 88);
-  var r = 4, blocks = [];
+  var r = 4, blocks = [], wkM = wkMonthAgg(ss);
   ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur';
+    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', rowIdx = {};
     sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
     var head = ['Kennzahl'].concat(keys.map(dt));
     sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
@@ -1394,8 +1523,33 @@ function buildMonatsabschluss(ss) {
       if (def[0].indexOf('kanal:') === 0) sh.getRange(r, 1).setFontColor('#666666');
       if (keys.length) sh.getRange(r, 2, 1, keys.length).setNumberFormat(def[2]);
       if (['trial_attended', 'sales_signed', 'new_customers', 'net_growth', 'rev_total_gross'].indexOf(def[0]) >= 0) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
-      r++;
+      rowIdx[def[0]] = r; r++;
     });
+    // Werbung und Kundenwert: Kosten live aus WerbekostenDaten/Einstellungen, Quoten als Formeln auf die Zeilen dieses Blocks
+    var cellOf = function (key, ci) { return String.fromCharCode(66 + ci) + rowIdx[key]; };
+    var put = function (key, label, fn, fmt, opts) {
+      var row = [label].concat(keys.map(fn)); sh.getRange(r, 1, 1, row.length).setValues([row]);
+      if (fmt && keys.length) sh.getRange(r, 2, 1, keys.length).setNumberFormat(fmt);
+      if (opts && opts.grey) sh.getRange(r, 1).setFontColor('#666666'); if (opts && opts.bold) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
+      rowIdx[key] = r; r++;
+    };
+    var ratio = function (num, den) { return function (k, ci) { return '=IFERROR(' + cellOf(num, ci) + '/' + cellOf(den, ci) + ',"")'; }; };
+    var mediaOf = function (k, pn) { var o = (wkM[k] || {})[loc]; if (!o) return ''; return Math.round(pn ? (o.plat[pn] || 0) : o.media); };
+    sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Werbung und Kundenwert').setFontWeight('bold'); r++;
+    put('wk_media', 'Werbekosten Media (CHF)', function (k) { return mediaOf(k); }, '#,##0', { bold: true });
+    WK_PLATFORMS.forEach(function (pn) { put('wk:' + pn, '   davon ' + pn, function (k) { return mediaOf(k, pn); }, '#,##0', { grey: true }); });
+    put('wk_agency', 'Agenturkosten (CHF, Anteil ' + locDE + ')', function (k) { return wkM[k] || k >= '2026-01' ? Math.round(wkAgency(ss, k, wkM)[loc]) : ''; }, '#,##0');
+    put('cpl', 'Kosten pro Website-Lead (Media)', ratio('wk_media', 'leads_web'), '#,##0');
+    WK_PLATFORMS.forEach(function (pn) { put('cpl:' + pn, '   CPL ' + pn, ratio('wk:' + pn, 'kanal:' + pn), '#,##0', { grey: true }); });
+    put('cpt', 'Kosten pro Probetraining (Media)', ratio('wk_media', 'trial_attended'), '#,##0');
+    WK_PLATFORMS.forEach(function (pn) { put('sk:' + pn, '   Verkäufe aus ' + pn + '-Leads', function (k) { return vOf(k, loc, 'sales_kanal:' + pn); }, '0', { grey: true }); });
+    put('cac', 'CAC Media (Werbekosten / Verkäufe)', ratio('wk_media', 'sales_signed'), '#,##0', { bold: true });
+    put('cac_all', 'CAC inkl. Agentur', function (k, ci) { return '=IFERROR((' + cellOf('wk_media', ci) + '+' + cellOf('wk_agency', ci) + ')/' + cellOf('sales_signed', ci) + ',"")'; }, '#,##0', { bold: true });
+    WK_PLATFORMS.forEach(function (pn) { put('cac:' + pn, '   CAC ' + pn + ' (Media / Verkäufe aus ' + pn + '-Leads)', ratio('wk:' + pn, 'sk:' + pn), '#,##0', { grey: true }); });
+    put('ltv', 'LTV netto (Prognose, Stand Lauf)', function (k) { return vOf(k, loc, 'ltv_forecast'); }, '#,##0', { bold: true });
+    put('ltv_cac', 'LTV : CAC (Media)', ratio('ltv', 'cac'), '0.0');
+    put('ltv_cac_all', 'LTV : CAC (inkl. Agentur)', ratio('ltv', 'cac_all'), '0.0');
+    put('payback', 'Payback in Monaten (CAC inkl. Agentur / Ø Abo-Wert netto)', ratio('cac_all', 'avg_sub_net'), '0.0');
     blocks.push({ loc: loc, locDE: locDE, hdr: hdr });
     r += 2;
   });
@@ -1476,7 +1630,7 @@ var LC_CLIENT = ['Client', 'Dependant client', 'Signed but no payment'];
 var LC_NOSHOW_OK = ['re-engage no-shows', 're-engage cancelled trial'].concat(LC_POST);
 var LC_EXCLUDE = ['Non-Client']; // Assistant Coach, Friends & Family: kein Trial
 var LC_PAY_OPEN = 'Signed but no payment';
-var TR_TRIG_VER = 'mail12'; // aendert sich, wenn die Trigger neu gesetzt werden muessen; der Stundenlauf zieht das selbst nach
+var TR_TRIG_VER = 'ads1'; // Marke aendern = Trigger werden beim naechsten Stundenlauf neu angelegt // aendert sich, wenn die Trigger neu gesetzt werden muessen; der Stundenlauf zieht das selbst nach
 var TR_T = {
   de: {
     title: 'Probetrainings Zürich',
@@ -1786,10 +1940,11 @@ function runProbetrainingsHourly() {
   try { runProbetrainings(); } catch (e) { Logger.log('Probetrainings Fehler: ' + e); MailApp.sendEmail({ to: MAIL.fallback, subject: '[Team] Probetrainings FEHLGESCHLAGEN ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: String(e && e.stack ? e.stack : e) }); }
 }
 function installTrialTriggers() {
-  ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail', 'runWerbekostenDaily'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('runProbetrainingsHourly').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('trDailyMail').timeBased().atHour(12).nearMinute(0).everyDays(1).inTimezone(TZ).create();
-  Logger.log('Trigger installiert: runProbetrainingsHourly (stuendlich, 09-22), trDailyMail (12:00)');
+  ScriptApp.newTrigger('runWerbekostenDaily').timeBased().atHour(6).nearMinute(30).everyDays(1).inTimezone(TZ).create();
+  Logger.log('Trigger installiert: runProbetrainingsHourly (stuendlich, 09-22), trDailyMail (12:00), runWerbekostenDaily (06:30)');
 }
 // Einmalig (04.09.2026): Team-Sheet aufbauen, Tabs aus dem Leads-Log entfernen, Analyse neu bauen
 function setupTeam() {

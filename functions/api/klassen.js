@@ -23,6 +23,7 @@ export async function onRequestPost(context) {
   const start = String(p.start || ""), end = String(p.end || "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return j({ error: "window" }, 400);
   const phase = Number(p.phase || 0);
+  if (p.action === "ads") return j(await metaAds(env, start, end)); // braucht kein exercise.com-Login
   try {
     const H = await signIn(env);
     if (!H) return j({ error: "signin_failed" }, 502);
@@ -409,7 +410,7 @@ function computeMonat(inp) {
   const uidLoc = {}; subs.forEach((s) => { uidLoc[s.uid] = s.loc; });
   comp.forEach((x) => { const u = String(x[vix("User ID")]); if (!uidLoc[u]) uidLoc[u] = /winterthur/i.test(String(x[vix("Location")] || "")) ? "Winterthur" : "Zurich"; });
   const signedBy = {}; (inp.waiver || []).forEach((r) => { const u = String(r["User ID"] || ""), d = chDate(r["Signed"]), e = String(r["Email"] || "").toLowerCase().trim(); if (!u || !d || !inMonth(d)) return; if (!signedBy[u] || signedBy[u].date > d) signedBy[u] = { date: d, email: e }; });
-  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
+  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
   for (const loc of LOCS) {
     const L = {};
     const lf = life.filter((x) => x.loc === loc);
@@ -450,6 +451,7 @@ function computeMonat(inp) {
     const sg = Object.keys(signedBy).filter((u) => (uidLoc[u] || "Zurich") === loc);
     L.sales_signed = sg.length;
     L.sales_open = sg.filter((u) => lifeCur[signedBy[u].email] === "Signed but no payment").length;
+    out.signed[loc] = sg.map((u) => ({ email: signedBy[u].email, date: signedBy[u].date }));
     L.net_growth = L.new_customers - L.cancellations;
     // Abos (Stand Lauf)
     const sL = subs.filter((s) => s.loc === loc && s.type !== "Scheduled");
@@ -528,6 +530,27 @@ function visCompact(cs) {
   ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((x) => out.push({ uid: String(x[vi("User ID")]), name: ((x[vi("First Name")] || "") + " " + (x[vi("Last Name")] || "")).trim(), email: String(x[vi("Email")] || "").toLowerCase(), date: chDate(x[vi("Start Time")]), time: String(x[vi("Start Time")] || "").slice(11, 19), cls: String(x[vi("Service")] || "").replace(/\s+/g, " ").trim(), loc: String(x[vi("Location")] || ""), status: String(x[vi("Status")] || ""), staff: String(x[vi("Primary Staff")] || ""), staff2: String(x[vi("Secondary Staff")] || ""), bookedBy: String(x[vi("Booked By")] || ""), bookedAt: chDate(x[vi("Booked At")]), pkg: String(x[vi("Client Package Used")] || ""), guest: String(x[vi("Guest From Visit ID")] || "").replace(/null/i, "") })));
   return out;
 }
+// Werbekosten Meta (Marketing API v23, System-User-Token ohne Ablauf in der Cloudflare-Env META_ADS_TOKEN, Recht ads_read):
+// Tageswerte je Kampagne fuer beide Werbekonten (Erwachsene + Little Ninjas, Entscheid Ruben 05.09.: nicht trennen).
+// Der Standort steht im Kampagnennamen, das Apps Script ordnet ihn zu. Google Ads laeuft nicht hier, sondern als
+// Google-Ads-Skript direkt ins Sheet (tools/google-ads-spend-script.js).
+const META_ACCOUNTS = { act_1029100348842658: "IMPACT Martial Arts", act_744755113940510: "Little Ninjas" };
+async function metaAds(env, start, end) {
+  if (!env.META_ADS_TOKEN) return { error: "no_meta_token" };
+  const rows = [], errors = [];
+  for (const acct of Object.keys(META_ACCOUNTS)) {
+    let url = "https://graph.facebook.com/v23.0/" + acct + "/insights?level=campaign&time_increment=1&fields=campaign_name,spend,impressions,clicks,account_currency&limit=500"
+      + "&time_range=" + encodeURIComponent(JSON.stringify({ since: start, until: end })) + "&access_token=" + encodeURIComponent(env.META_ADS_TOKEN);
+    for (let guard = 0; url && guard < 30; guard++) {
+      const r = await fetch(url); let js = null; try { js = await r.json(); } catch {}
+      if (!r.ok || !js || js.error) { errors.push({ account: META_ACCOUNTS[acct], status: r.status, error: js && js.error ? String(js.error.message || js.error.type || "") : "no_json" }); break; }
+      (js.data || []).forEach((d) => rows.push({ date: String(d.date_start || ""), platform: "Meta Ads", account: META_ACCOUNTS[acct], campaign: String(d.campaign_name || ""), spend: Number(d.spend || 0), clicks: Number(d.clicks || 0), impressions: Number(d.impressions || 0), currency: String(d.account_currency || "") }));
+      url = js.paging && js.paging.next ? js.paging.next : null;
+    }
+  }
+  return { ok: true, rows, errors };
+}
+
 // Erkundung: beliebige Reports mit Fenster abfragen (Status, Filter, Spalten, erste Zeilen). Nur fuer die Entwicklung,
 // Ergebnis geht per Apps Script als Mail an Ruben.
 async function probe(H, p) {
