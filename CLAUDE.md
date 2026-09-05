@@ -58,6 +58,9 @@ Mehrere Fenster desselben Reports gehen deshalb nur nacheinander: Phasen `lr` (r
 E-Mail: [email, letztes Datum, Current, Location, Name, Datum "Signed but no payment"]) im Apps Script zwischen t2 und t3, 8-s-Polls;
 t3 bekommt die Liste als `p.life`, `lifeExpand()` macht daraus wieder Report-Zeilen. Genau so laufen v1/v2 (v2 wird erst in t2
 nach dem Abholen von v1 angestossen).
+LEHRE 05.09. 10:10: `Sheet.clear()` laesst Zahlenformate stehen - nach dem Wochenreport-Umbau standen alte Prozent- und Datumsformate
+unter neuen Zahlen ("2700 %", "15.01.1900"). clearSheet setzt deshalb das ganze Blatt per clearFormat()+setNumberFormat('General')
+zurueck; jeder Builder setzt seine Formate danach selbst. Erster erfolgreicher Lauf mit Lifecycle-Bloecken: 05.09. 10:08.
 RUN-TRICK 05.09. 10:07: In einem FRISCHEN Editor-Tab funktioniert der Weg `function RUN_NOW() { ... }` als erste Zeile einfuegen ->
 Cmd+S -> Seite neu laden (RUN_NOW ist vorgewaehlt) -> Klick auf "Run" (Vollbild-Koordinate ca. 458,86) -> Zeile entfernen, Cmd+S.
 Die laufende Ausfuehrung nutzt den Code-Stand beim Start, das Entfernen der Zeile stoert sie nicht.
