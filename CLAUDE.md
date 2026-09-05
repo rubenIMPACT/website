@@ -52,7 +52,15 @@ Obada Aljabawi seit 04.06.).
 LEHRE 05.09. 09:10: Der Stundenlauf stand seit 04.09. 20:36 still (Mails "[Team] Probetrainings FEHLGESCHLAGEN"): das Lifecycle-
 Fenster ueber 180 Tage (fuer "Zahlung offen") liefert `too_large`. Reports haben ein Groessenlimit pro Fenster - lifecycle laeuft
 jetzt in 45-Tage-Bloecken (life1..life4, `lifeKeys(U)` in klassen.js), detailed_visits weiter in 4-Wochen-Bloecken. Bei jeder
-Fenster-Vergroesserung eines Reports also zuerst an too_large denken.
+Fenster-Vergroesserung eines Reports also zuerst an too_large denken. ZWEITE LEHRE 09:52: JEDER Report-Typ hat genau EINEN
+Server-Cache, auch ueber verschiedene Datumsfenster (Block 2 zeigte "Start Date" von Block 1) - nicht nur bei Standortfiltern.
+Mehrere Fenster desselben Reports gehen deshalb nur nacheinander: Phasen `lr` (refresh Block i) und `lg` (abholen, kompakt je
+E-Mail: [email, letztes Datum, Current, Location, Name, Datum "Signed but no payment"]) im Apps Script zwischen t2 und t3, 8-s-Polls;
+t3 bekommt die Liste als `p.life`, `lifeExpand()` macht daraus wieder Report-Zeilen. Genau so laufen v1/v2 (v2 wird erst in t2
+nach dem Abholen von v1 angestossen).
+RUN-TRICK 05.09. 10:07: In einem FRISCHEN Editor-Tab funktioniert der Weg `function RUN_NOW() { ... }` als erste Zeile einfuegen ->
+Cmd+S -> Seite neu laden (RUN_NOW ist vorgewaehlt) -> Klick auf "Run" (Vollbild-Koordinate ca. 458,86) -> Zeile entfernen, Cmd+S.
+Die laufende Ausfuehrung nutzt den Code-Stand beim Start, das Entfernen der Zeile stoert sie nicht.
 EDITOR-PASTE NEU (05.09., viel einfacher als Zwischenablage/Diff): das Repo ist oeffentlich, also im Editor
 `fetch('https://raw.githubusercontent.com/rubenIMPACT/website/main/tools/leadlog-apps-script.gs')`, Token-Zeile vorher aus dem
 Modell sichern (`window.__tk`), im geholten Text den Platzhalter per `.replace(/^var TOKEN = .*$/m, () => tk)` ersetzen, dann
