@@ -31,6 +31,7 @@ export async function onRequestPost(context) {
     if (p.action === "monat") return j(await monat(H, p, start, end));
     if (p.action === "trials") return j(await trials(H, p));
     if (p.action === "probe") return j(await probe(H, p));
+    if (p.action === "probe_clients") return j(await probeClients(H, p));
     if (p.action === "ltv") return j(await ltv(H, p));
     if (phase === 1) {
       const out = {};
@@ -574,6 +575,30 @@ async function ltv(H, p) {
   return { ready: true, month: mk, n_charges: all.length, rows: Object.keys(by).map((k) => { const o = by[k]; return [o.uid, o.email, o.loc, o.type, Math.round(o.net * 100) / 100, Math.round(o.gross * 100) / 100, o.n]; }) };
 }
 
+// Erkundung: alle Kunden mit Tags aus der v2-Clients-API (Double-Check "Trial Winterthur"/"Trial Zuerich", Ruben 05.09.2026)
+async function probeClients(H, p) {
+  const per = 200, maxPages = Number(p.pages) || 30, out = { pages: 0, n: 0, keys: [], sample: null, tags: {}, byMonth: {} };
+  for (let page = 1; page <= maxPages; page++) {
+    const r = await getJson(H, API + "/api/v2/clients?per=" + per + "&page=" + page);
+    if (!r.json) { out.error = "http_" + r.status; break; }
+    const list = r.json.client || r.json.clients || r.json.data || [];
+    if (!Array.isArray(list) || !list.length) { out.last = { status: r.status, keys: r.json ? Object.keys(r.json).slice(0, 10) : [] }; break; }
+    out.pages = page;
+    list.forEach((c) => {
+      out.n++;
+      if (!out.sample) { out.keys = Object.keys(c); out.sample = { id: c.id, created_at: c.created_at, tag_list: c.tag_list, tags: c.tags, lifecycle_stage: c.lifecycle_stage, lifecycle_stage_id: c.lifecycle_stage_id, location: c.location, location_id: c.location_id, source: c.source }; }
+      const raw = c.tag_list != null ? c.tag_list : c.tags, tags = Array.isArray(raw) ? raw.map(String) : String(raw || "").split(/,\s*/).map((t) => t.trim()).filter(Boolean);
+      const mk = String(c.created_at || "").slice(0, 7), b = out.byMonth[mk] = out.byMonth[mk] || { __all: 0 };
+      b.__all++;
+      tags.forEach((t) => { out.tags[t] = (out.tags[t] || 0) + 1; if (/trial|probetraining|lead/i.test(t)) b[t] = (b[t] || 0) + 1; });
+    });
+    if (list.length < per) break;
+  }
+  const top = {}; Object.keys(out.tags).sort((a, b) => out.tags[b] - out.tags[a]).slice(0, 60).forEach((k) => { top[k] = out.tags[k]; });
+  out.tags = top;
+  return out;
+}
+
 // Erkundung: beliebige Reports mit Fenster abfragen (Status, Filter, Spalten, erste Zeilen). Nur fuer die Entwicklung,
 // Ergebnis geht per Apps Script als Mail an Ruben.
 async function probe(H, p) {
@@ -584,7 +609,8 @@ async function probe(H, p) {
     const url = API + "/api/v4/reports/" + name + "?" + query(String(p.start), String(p.end)) + "&per=" + (Number(p.per) || 50) + extra + (p.refresh ? "&refresh=true" : "");
     const r = await getJson(H, url), cs = r.json && r.json.cached_stats, rows = r.json ? rowsOf(cs) : [];
     const heads = rows[0] ? Object.keys(rows[0]) : (cs && !Array.isArray(cs) && cs.headers ? cs.headers : []);
-    out[name] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error, filters: filtersText(r.json || {}).slice(0, 160), n: rows.length, headers: heads.slice(0, 40), sample: rows.slice(0, 3), keys: r.json ? Object.keys(r.json).slice(0, 12) : [] };
+    const statuses = {}; rows.forEach((x) => { const st = String(x["Status"] || ""); statuses[st] = (statuses[st] || 0) + 1; });
+    out[name] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error, filters: filtersText(r.json || {}).slice(0, 160), n: rows.length, statuses, headers: heads.slice(0, 40), sample: rows.slice(0, Number(p.sample) || 3), keys: r.json ? Object.keys(r.json).slice(0, 12) : [] };
   }
   return out;
 }

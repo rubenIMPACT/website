@@ -1596,6 +1596,44 @@ function PROBE_REPORTS() {
   var r2 = klassenCall(base);
   MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Reports ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify({ first: r1, second: r2 }, null, 1).slice(0, 60000) });
 }
+function PROBE_CLIENTS() {
+  var r = klassenCall({ action: 'probe_clients', start: '2026-08-01', end: '2026-08-31', pages: 40 });
+  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Clients/Tags ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify(r, null, 1).slice(0, 60000) });
+}
+function PROBE_CHARGES_STATUS() {
+  var base = { action: 'probe', start: '2026-08-01', end: '2026-08-31', per: 8000, sample: 0, reports: ['charges'] };
+  klassenCall(Object.assign({ refresh: true }, base)); Utilities.sleep(30000);
+  var r = klassenCall(base);
+  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Charges-Status August ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify(r, null, 1).slice(0, 20000) });
+}
+// LTV-Plausibilisierung (Ruben 05.09.: 9 % Verlust je Monat kommt ihm zu hoch vor): Verluste je Monat, Rueckkehrer, Luecken
+function LTV_CHECK() {
+  var ss = SpreadsheetApp.openById(SHEET_ID), rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.net >= 5; });
+  var amts = rows.filter(function (x) { return x.type === 'Abo' && x.n > 0; }).map(function (x) { return x.net / x.n; }).sort(function (a, b) { return a - b; });
+  var med = amts.length ? amts[Math.floor(amts.length / 2)] : 180;
+  var cover = function (x) { return x.type !== 'Abo' ? 0 : Math.max(1, Math.min(12, Math.round((x.net / Math.max(1, x.n)) / med))); };
+  var cust = {};
+  rows.forEach(function (x) { var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, loc: x.loc, active: {}, abo: {}, first: '' }; if (x.type === 'Abo') { c.loc = x.loc; c.abo[x.mk] = 1; if (!c.first || x.mk < c.first) c.first = x.mk; for (var i = 0, cv = cover(x); i < cv; i++) c.active[addMonths(x.mk, i)] = 1; } });
+  var list = Object.keys(cust).map(function (u) { return cust[u]; }).filter(function (c) { return c.first; });
+  var out = ['Median Abo-Zahlung ' + Math.round(med) + ', Kunden mit Abo ' + list.length];
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    var freshFrom = loc === 'Zurich' ? '2026-04' : '2025-11';
+    var L = list.filter(function (c) { return c.loc === loc && c.first >= freshFrom; }), A = list.filter(function (c) { return c.loc === loc; });
+    out.push('', '== ' + loc + ': alle Abo-Kunden ' + A.length + ', Neukunden ab ' + freshFrom + ' ' + L.length);
+    [['Neukunden', L], ['Alle', A]].forEach(function (pair) {
+      var set = pair[1], mk = loc === 'Zurich' ? '2026-01' : '2025-11';
+      out.push('-- ' + pair[0]);
+      for (var i = 0; i < 12 && mk < '2026-08'; i++, mk = nextMonth(mk)) {
+        var nx = nextMonth(mk), act = set.filter(function (c) { return c.active[mk]; }), lost = act.filter(function (c) { return !c.active[nx]; });
+        var back = lost.filter(function (c) { return Object.keys(c.abo).some(function (m) { return m > nx; }); }), gap1 = lost.filter(function (c) { return c.active[nextMonth(nx)]; });
+        out.push(mk + '->' + nx + ': aktiv ' + act.length + ', verloren ' + lost.length + ' (' + (act.length ? Math.round(1000 * lost.length / act.length) / 10 : 0) + '%), spaeter wieder Abo ' + back.length + ', davon direkt im uebernaechsten Monat ' + gap1.length);
+      }
+    });
+    var early = L.filter(function (c) { return c.first < '2026-07'; }), one = early.filter(function (c) { return Object.keys(c.abo).length === 1; });
+    out.push('Neukunden mit Start vor Juli: ' + early.length + ', davon nur EIN Abo-Zahlungsmonat: ' + one.length);
+  });
+  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] LTV-Check ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: out.join('\n') });
+}
 function maStoreCohorts(ss, mk, cohort) {
   var sh = getOrCreate(ss, MA_COHORT), head = ['Monat', 'Standort', 'UID', 'E-Mail', 'Name', 'Erstbesuch'];
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
