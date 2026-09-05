@@ -1350,43 +1350,68 @@ function runWerbekostenDaily() {
   catch (e) { MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Werbekosten FEHLGESCHLAGEN', body: String(e && e.stack ? e.stack : e) }); }
 }
 
-// ------------------------------------------------------------ LTV (05.09.2026, Entscheid Ruben: Netto-Umsatz mit allem, Kohorten nur aus
-// nicht migrierten Kunden). Zahlungen je Kunde und Monat aus dem Report "Charges" (Cloudflare action 'ltv', ein Monat je Aufruf) in den
-// versteckten Tab ZahlungenMonat; Nachladen ab LTV_START in Etappen (max. 4 Monate je Ausfuehrung, Kette ueber Einmal-Trigger), danach
-// monatlich am 1. um 05:00 der Vormonat. Migration = erster Monat mit Zahlungen; wer im Migrationsmonat oder im Monat danach zum ersten
-// Mal zahlt, gilt als migriert (Startdatum unbekannt) und bleibt aus den Kohorten draussen. Prognose-LTV = Netto je zahlendem Kunden und
-// Monat (letzte 3 Monate) x erwartete Dauer 1/(1-Retention), Retention = Anteil der Zahler eines Monats, die im Folgemonat wieder zahlen
-// (letzte 6 Monate). Achtung: Jahreszahler erscheinen nur einmal im Jahr und druecken die Retention leicht.
+// ------------------------------------------------------------ LTV (05.09.2026, Entscheide Ruben: Netto-Umsatz mit allem; VERLOREN ist nur,
+// wer offiziell gekuendigt hat (Kuendigung wirksam, Report cancelled_subscriptions ohne Converted) oder wegen Nichtzahlung rausfliegt
+// (Lifecycle-Uebergang nach "Debt collection") - Zahlungsluecken zaehlen nicht; Migrierte ueber die Tags Migrating/imported/Bexio;
+// Kohorten, ARPU, Retention und Prognose nur aus nicht migrierten Kunden).
+// Drei Monatsreihen aus der Cloudflare-Funktion (action 'ltv', kind charges/cancelled/lifecycle, ein Monat je Aufruf wegen des
+// Report-Caches) in versteckten Tabs, Nachladen ab LTV_START in Etappen (Kette ueber Einmal-Trigger, Script-Lock), monatlich am 1.
+// um 05:00 der Vormonat; Kunden-Flags (action 'clients_flags') werden bei jedem Lauf komplett neu geholt.
 var LTV_SHEET = 'LTV', LTV_DATA = 'ZahlungenMonat', LTV_START = '2025-06', LTV_HEAD = ['Monat', 'UID', 'E-Mail', 'Standort', 'Typ', 'Netto', 'Brutto', 'Anzahl'];
-var LTV_INIT = '2026-09-05 Start'; // Marke aendern = Nachladen wird beim naechsten Stundenlauf neu angestossen
+var LTV_INIT = '2026-09-05 Kuendigungen'; // Marke aendern = fehlende Monate werden beim naechsten Stundenlauf nachgeladen
+var LTV_TABS = {
+  charges: { name: LTV_DATA, head: LTV_HEAD },
+  cancelled: { name: 'KuendigungenMonat', head: ['Monat', 'UID', 'E-Mail', 'Standort', 'Ende', 'Converted', 'Paket', 'Grund'] },
+  lifecycle: { name: 'LifecycleMonat', head: ['Monat', 'E-Mail', 'Datum', 'Von', 'Nach'] },
+};
+var LTV_FLAGS = 'KundenFlags', LTV_FLAGS_HEAD = ['UID', 'E-Mail', 'Migriert', 'Erstellt', 'TrialZH', 'TrialWT', 'StageID'];
 function nextMonth(mk) { return monthKeyStr(new Date(+mk.slice(0, 4), +mk.slice(5, 7), 1)); }
 function prevMonth(mk) { return monthKeyStr(new Date(+mk.slice(0, 4), +mk.slice(5, 7) - 2, 1)); }
 function addMonths(mk, n) { return monthKeyStr(new Date(+mk.slice(0, 4), +mk.slice(5, 7) - 1 + n, 1)); }
-function ltvSheet(ss) {
-  var sh = getOrCreate(ss, LTV_DATA);
-  if (sh.getLastRow() === 0) { sh.getRange(1, 1, sh.getMaxRows(), 1).setNumberFormat('@'); sh.getRange(1, 1, 1, LTV_HEAD.length).setValues([LTV_HEAD]).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet(); }
+function ltvTab(ss, kind) {
+  var t = LTV_TABS[kind], sh = getOrCreate(ss, t.name);
+  if (sh.getLastRow() === 0) { sh.getRange(1, 1, sh.getMaxRows(), 1).setNumberFormat('@'); sh.getRange(1, 1, 1, t.head.length).setValues([t.head]).setFontWeight('bold'); sh.setFrozenRows(1); }
+  if (!sh.isSheetHidden()) sh.hideSheet();
   return sh;
 }
-function ltvRead(ss) {
-  var sh = ss.getSheetByName(LTV_DATA); if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().map(function (r) { return { mk: mkOf(r[0]), uid: String(r[1]), email: String(r[2] || ''), loc: String(r[3] || ''), type: String(r[4] || ''), net: Number(r[5]) || 0, gross: Number(r[6]) || 0, n: Number(r[7]) || 0 }; }).filter(function (x) { return /^\d{4}-\d{2}$/.test(x.mk); });
+function ltvRows(ss, kind) {
+  var t = LTV_TABS[kind], sh = ss.getSheetByName(t.name); if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, t.head.length).getValues().map(function (r) { r[0] = mkOf(r[0]); return r; }).filter(function (r) { return /^\d{4}-\d{2}$/.test(r[0]); });
 }
+function ltvRead(ss) { return ltvRows(ss, 'charges').map(function (r) { return { mk: r[0], uid: String(r[1]), email: String(r[2] || ''), loc: String(r[3] || ''), type: String(r[4] || ''), net: Number(r[5]) || 0, gross: Number(r[6]) || 0, n: Number(r[7]) || 0 }; }); }
 function ltvQueue(ss) {
-  var done = {}; ltvRead(ss).forEach(function (x) { done[x.mk] = 1; });
   var now = new Date(), last = monthKeyStr(new Date(now.getFullYear(), now.getMonth() - 1, 1)), out = [];
-  for (var mk = LTV_START; mk <= last; mk = nextMonth(mk)) if (!done[mk]) out.push(mk);
+  Object.keys(LTV_TABS).forEach(function (kind) {
+    var done = {}; ltvRows(ss, kind).forEach(function (r) { done[r[0]] = 1; });
+    for (var mk = LTV_START; mk <= last; mk = nextMonth(mk)) if (!done[mk]) out.push({ mk: mk, kind: kind });
+  });
+  out.sort(function (a, b) { return a.mk < b.mk ? -1 : a.mk > b.mk ? 1 : 0; });
   return out;
 }
-function ltvFetchMonth(ss, mk) {
-  var base = { action: 'ltv', month: mk, start: mk + '-01', end: mk + '-01' };
-  var r1 = klassenCall(Object.assign({ phase: 'cr' }, base)); if (r1.error) throw new Error('LTV ' + mk + ' cr: ' + JSON.stringify(r1).slice(0, 300));
+function ltvFetch(ss, mk, kind) {
+  var base = { action: 'ltv', month: mk, kind: kind, start: mk + '-01', end: mk + '-01' };
+  var r1 = klassenCall(Object.assign({ phase: 'cr' }, base)); if (r1.error) throw new Error('LTV ' + kind + ' ' + mk + ' cr: ' + JSON.stringify(r1).slice(0, 300));
   var r2 = null, i;
-  for (i = 0; i < 12; i++) { Utilities.sleep(8000); r2 = klassenCall(Object.assign({ phase: 'cg' }, base)); if (r2.error) throw new Error('LTV ' + mk + ' cg: ' + JSON.stringify(r2).slice(0, 300)); if (r2.ready) break; }
-  if (!r2 || !r2.ready) throw new Error('LTV ' + mk + ' nicht fertig: ' + JSON.stringify(r2).slice(0, 300));
-  var sh = ltvSheet(ss), rows = (r2.rows || []).map(function (a) { return [mk].concat(a); });
-  if (!rows.length) rows = [[mk, '-', '', '', '', 0, 0, 0]]; // Marke: Monat geprueft, keine Zahlungen
-  sh.getRange(sh.getLastRow() + 1, 1, rows.length, LTV_HEAD.length).setValues(rows);
+  for (i = 0; i < 12; i++) { Utilities.sleep(8000); r2 = klassenCall(Object.assign({ phase: 'cg' }, base)); if (r2.error) throw new Error('LTV ' + kind + ' ' + mk + ' cg: ' + JSON.stringify(r2).slice(0, 300)); if (r2.ready) break; }
+  if (!r2 || !r2.ready) throw new Error('LTV ' + kind + ' ' + mk + ' nicht fertig: ' + JSON.stringify(r2).slice(0, 300));
+  var sh = ltvTab(ss, kind), w = LTV_TABS[kind].head.length, rows = (r2.rows || []).map(function (a) { var row = [mk].concat(a); while (row.length < w) row.push(''); return row.slice(0, w); });
+  if (!rows.length) { var mark = [mk, '-']; while (mark.length < w) mark.push(''); rows = [mark]; } // Marke: Monat geprueft, leer
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, w).setValues(rows);
   return rows.length;
+}
+function ltvFlagsRefresh(ss) {
+  var r = klassenCall({ action: 'clients_flags', start: '2026-01-01', end: '2026-01-01' });
+  if (r.error || !r.ok) throw new Error('Kunden-Flags: ' + JSON.stringify(r).slice(0, 300));
+  var sh = getOrCreate(ss, LTV_FLAGS); sh.clear(); if (!sh.isSheetHidden()) sh.hideSheet();
+  sh.getRange(1, 1, 1, LTV_FLAGS_HEAD.length).setValues([LTV_FLAGS_HEAD]).setFontWeight('bold');
+  var rows = (r.rows || []).map(function (a) { return a.slice(0, LTV_FLAGS_HEAD.length); });
+  if (rows.length) { sh.getRange(2, 1, rows.length, 2).setNumberFormat('@'); sh.getRange(2, 4, rows.length, 1).setNumberFormat('@'); sh.getRange(2, 1, rows.length, LTV_FLAGS_HEAD.length).setValues(rows); }
+  return rows.length;
+}
+function ltvFlags(ss) {
+  var sh = ss.getSheetByName(LTV_FLAGS), out = {}; if (!sh || sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, LTV_FLAGS_HEAD.length).getValues().forEach(function (r) { var u = String(r[0] || ''); if (u) out[u] = { email: String(r[1] || ''), mig: Number(r[2]) === 1, created: mkOf(r[3]), stage: String(r[6] || '') }; });
+  return out;
 }
 function ltvDropChain() { ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'runLTVChain') ScriptApp.deleteTrigger(t); }); }
 function ltvQueueInit() {
@@ -1399,10 +1424,10 @@ function runLTV() {
   try {
     var ss = SpreadsheetApp.openById(SHEET_ID), q = ltvQueue(ss), done = [], t0 = Date.now();
     ltvDropChain();
-    while (q.length && done.length < 4 && Date.now() - t0 < 240000) { var mk = q.shift(); if (ltvQueue(ss).indexOf(mk) < 0) continue; done.push(mk + ': ' + ltvFetchMonth(ss, mk)); }
+    while (q.length && done.length < 8 && Date.now() - t0 < 230000) { var it = q.shift(); done.push(it.kind + ' ' + it.mk + ': ' + ltvFetch(ss, it.mk, it.kind)); }
     if (q.length) ScriptApp.newTrigger('runLTVChain').timeBased().after(60 * 1000).create();
-    else buildLTV(ss);
-    Logger.log('LTV: ' + done.join(', ') + (q.length ? ' | offen: ' + q.join(', ') : ' | fertig, Tab LTV gebaut'));
+    else { done.push('Flags: ' + ltvFlagsRefresh(ss)); buildLTV(ss); }
+    Logger.log('LTV: ' + done.join(', ') + (q.length ? ' | offen: ' + q.length : ' | fertig, Tab LTV gebaut'));
     return done;
   } finally { lock.releaseLock(); }
 }
@@ -1410,72 +1435,70 @@ function runLTVChain() { try { runLTV(); } catch (e) { ltvDropChain(); MailApp.s
 function runLTVMonthly() { runLTVChain(); }
 function buildLTV(ss) {
   var sh = getOrCreate(ss, LTV_SHEET); clearSheet(sh);
-  // Testzahlungen (CHF 1-3 aus der Einrichtung) raus; Kunde = mindestens eine Abo-Zahlung, Einmalkaeufe zaehlen zum Umsatz dazu
-  var rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.net >= 5; });
+  var rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.net >= 5; }); // Testzahlungen (CHF 1-3) raus
   sh.getRange('A1').setValue('IMPACT Kundenwert (LTV)').setFontSize(16).setFontWeight('bold');
   if (!rows.length) { sh.getRange('A2').setValue('Noch keine Zahlungsdaten – das Nachladen läuft.').setFontColor('#666666'); return; }
-  var mks = {}; rows.forEach(function (x) { mks[x.mk] = 1; }); var months = Object.keys(mks).sort(), lastFull = months[months.length - 1], cur = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
-  // Vorauszahlungen: eine Abo-Zahlung deckt round(Betrag / Median einer Abo-Zahlung) Monate (max. 12), sonst gaelte ein Jahreszahler nach einem Monat als weg
-  var amts = rows.filter(function (x) { return x.type === 'Abo' && x.n > 0; }).map(function (x) { return x.net / x.n; }).sort(function (a, b) { return a - b; });
-  var med = amts.length ? amts[Math.floor(amts.length / 2)] : 180;
-  var cover = function (x) { return x.type !== 'Abo' ? 0 : Math.max(1, Math.min(12, Math.round((x.net / Math.max(1, x.n)) / med))); };
+  var mset = {}; rows.forEach(function (x) { mset[x.mk] = 1; }); var months = Object.keys(mset).sort(), lastFull = months[months.length - 1], cur = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+  var flags = ltvFlags(ss), hasFlags = Object.keys(flags).length > 100;
+  var kMonths = {}; ltvRows(ss, 'cancelled').forEach(function (r) { kMonths[r[0]] = 1; }); var kLast = Object.keys(kMonths).sort().pop() || '';
+  // Kunde = mindestens eine Abo-Zahlung; Umsatz = alles (Abos + Einmalkaeufe)
   var cust = {};
-  rows.forEach(function (x) {
-    var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, loc: x.loc, net: 0, m: {}, active: {}, first: '' };
-    c.net += x.net; c.m[x.mk] = (c.m[x.mk] || 0) + x.net;
-    if (x.type === 'Abo') { c.loc = x.loc; if (!c.first || x.mk < c.first) c.first = x.mk; for (var i = 0, cv = cover(x); i < cv; i++) c.active[addMonths(x.mk, i)] = 1; }
-  });
+  rows.forEach(function (x) { var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, email: x.email, loc: x.loc, net: 0, m: {}, first: '', lastAbo: '', endCand: '', debt: '' }; c.net += x.net; c.m[x.mk] = (c.m[x.mk] || 0) + x.net; if (x.type === 'Abo') { c.loc = x.loc; if (!c.first || x.mk < c.first) c.first = x.mk; if (x.mk > c.lastAbo) c.lastAbo = x.mk; } });
+  var byEmail = {}; Object.keys(cust).forEach(function (u) { if (cust[u].email) byEmail[cust[u].email] = cust[u]; });
+  // Ende = wirksame Kuendigung (ohne Converted = Paketwechsel) oder Uebergang nach Debt collection; hinfaellig, wenn danach wieder Abo-Zahlungen kamen
+  ltvRows(ss, 'cancelled').forEach(function (r) { var c = cust[String(r[1])]; if (!c || String(r[1]) === '-' || Number(r[5]) === 1) return; var e = dOfCell(r[4]).slice(0, 7); if (/^\d{4}-\d{2}$/.test(e) && e > c.endCand) c.endCand = e; });
+  ltvRows(ss, 'lifecycle').forEach(function (r) { if (!/debt/i.test(String(r[4] || ''))) return; var c = byEmail[String(r[1] || '').toLowerCase().trim()]; if (!c) return; var d = dOfCell(r[2]).slice(0, 7); if (/^\d{4}-\d{2}$/.test(d) && (!c.debt || d < c.debt)) c.debt = d; });
   var list = Object.keys(cust).map(function (u) { return cust[u]; }).filter(function (c) { return c.first; });
-  sh.getRange('A2').setValue('Netto-Umsatz (ohne MwSt, nach Rückerstattungen; Abos und Einmalkäufe) je Kunde und Monat aus dem Report Charges, Stand ' + lastFull + ' (letzter voller Monat). Kunde = mindestens eine Abo-Zahlung; Testzahlungen unter CHF 5 ausgeschlossen. '
-    + 'Vorauszahlungen: eine Abo-Zahlung deckt Betrag ÷ Median einer Abo-Zahlung (CHF ' + Math.round(med) + ') Monate, damit Quartals- und Jahreszahler nicht als abgesprungen gelten. '
-    + 'Migration nach exercise.com lief gestaffelt: Monate, deren Kohorte mehr als doppelt so gross ist wie der normale Zugang (Median der letzten 5 Monate), gelten als Migrationsmonate; erst die Kohorten danach sind echte Neukunden ("Stichprobe", Entscheid Ruben 05.09.2026) und bilden ARPU, Retention und Prognose. '
-    + 'Prognose-LTV = Ø Netto je aktivem Neukunden und Monat (letzte 3 Monate) × erwartete Dauer 1/(1−Retention); Retention = Anteil der aktiven Neukunden eines Monats, die im Folgemonat noch aktiv sind (letzte 6 Monate). '
-    + 'Die Stichprobe ist jung, ihre Retention deshalb eher zu tief (Frühabspringer wiegen schwer) – der Prognose-LTV ist konservativ. Steht auch im Monatsabschluss (LTV : CAC).').setFontColor('#666666').setWrap(true);
-  sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 120);
+  list.forEach(function (c) {
+    var e = c.endCand && c.lastAbo <= c.endCand ? c.endCand : ''; if (c.debt && c.lastAbo <= c.debt && (!e || c.debt < e)) e = c.debt;
+    c.end = e; c.migrated = hasFlags ? !!(flags[c.uid] && flags[c.uid].mig) : false;
+  });
+  sh.getRange('A2').setValue('Netto-Umsatz (ohne MwSt, nach Rückerstattungen; Abos und Einmalkäufe) je Kunde und Monat aus dem Report Charges, Zahlungen bis ' + lastFull + ', Kündigungen bis ' + (kLast || '–') + '. Kunde = mindestens eine Abo-Zahlung; Testzahlungen unter CHF 5 ausgeschlossen. '
+    + 'VERLOREN ist nur, wer offiziell gekündigt hat (Kündigung wirksam, Paketwechsel zählen nicht) oder wegen Nichtzahlung in "Debt collection" ging (Entscheid Ruben 05.09.2026); Zahlungslücken zählen nicht. '
+    + (hasFlags ? 'Migrierte = Konten mit den Tags Migrating / imported / Bexio (Startdatum unbekannt) – sie bleiben aus Kohorten und Prognose draussen. ' : '⚠️ Kunden-Flags fehlen noch, Migrierte nicht ausgeschlossen. ')
+    + 'Prognose-LTV = Ø Netto je aktivem Neukunden und Monat (letzte 3 Monate) × erwartete Dauer 1/(monatliche Verlustquote), Verlustquote = wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch die aktiven Neukunden. Steht auch im Monatsabschluss (LTV : CAC).').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 110);
   var r = 4, N = [3, 6, 9, 12];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', L = list.filter(function (c) { return c.loc === loc; });
+    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', L = list.filter(function (c) { return c.loc === loc; }), fresh = L.filter(function (c) { return !c.migrated; });
     sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
     if (!L.length) { sh.getRange(r, 1).setValue('keine Abo-Zahlungen'); r += 3; return; }
-    var size = {}; L.forEach(function (c) { size[c.first] = (size[c.first] || 0) + 1; });
-    var cks = Object.keys(size).sort(), lastN = cks.filter(function (k) { return k <= lastFull; }).slice(-5).map(function (k) { return size[k]; }).sort(function (a, b) { return a - b; });
-    var ref = lastN.length ? lastN[Math.floor(lastN.length / 2)] : 0, heavy = cks.filter(function (k) { return ref && size[k] > 2 * ref; });
-    var freshFrom = heavy.length ? nextMonth(heavy[heavy.length - 1]) : nextMonth(cks[0]);
-    var fresh = L.filter(function (c) { return c.first >= freshFrom; }), migr = L.length - fresh.length;
-    var activeIn = function (mk) { return fresh.filter(function (c) { return c.active[mk]; }); };
-    var last3 = [lastFull, prevMonth(lastFull), prevMonth(prevMonth(lastFull))].filter(function (mk) { return mk >= freshFrom; });
-    var aN = 0, aS = 0; last3.forEach(function (mk) { aN += activeIn(mk).length; fresh.forEach(function (c) { aS += c.m[mk] || 0; }); });
-    var arpu = aN ? aS / aN : 0, retN = 0, retK = 0, mk = prevMonth(lastFull);
-    for (var i = 0; i < 6 && mk >= freshFrom; i++, mk = prevMonth(mk)) { var ps = activeIn(mk), nx = nextMonth(mk); retN += ps.length; retK += ps.filter(function (c) { return c.active[nx]; }).length; }
-    var ret = retN ? retK / retN : 0, life = ret > 0 && ret < 1 ? 1 / (1 - ret) : 0, ltv = Math.round(arpu * life);
-    var churned = fresh.filter(function (c) { return !c.active[lastFull] && !c.active[prevMonth(lastFull)]; });
-    var realized = churned.length ? churned.reduce(function (a, c) { return a + c.net; }, 0) / churned.length : 0;
+    var active = function (set, mk) { return set.filter(function (c) { return c.first <= mk && (!c.end || c.end >= mk); }); };
+    var lostIn = function (set, mk) { return set.filter(function (c) { return c.end === mk; }); };
+    var rate = function (set) { var aN = 0, lN = 0, mk = lastFull; for (var i = 0; i < 6 && mk >= months[0]; i++, mk = prevMonth(mk)) { aN += active(set, mk).length; lN += lostIn(set, mk).length; } return { loss: aN ? lN / aN : 0, aN: aN, lN: lN }; };
+    var rf = rate(fresh), ra = rate(L);
+    var last3 = [lastFull, prevMonth(lastFull), prevMonth(prevMonth(lastFull))], aN = 0, aS = 0;
+    last3.forEach(function (mk) { var act = active(fresh, mk); aN += act.length; act.forEach(function (c) { aS += c.m[mk] || 0; }); });
+    var arpu = aN ? aS / aN : 0, life = rf.loss > 0 ? 1 / rf.loss : 0, ltv = Math.round(arpu * life);
+    var gone = fresh.filter(function (c) { return c.end && c.end <= lastFull; }), realized = gone.length ? gone.reduce(function (a, c) { return a + c.net; }, 0) / gone.length : 0;
     var kv = [
-      ['Kunden mit Abo-Zahlungen seit ' + cks[0], L.length, '0'],
-      ['   davon aus Migrationsmonaten ' + (heavy.length ? heavy[0] + ' bis ' + heavy[heavy.length - 1] : cks[0]) + ' (Startdatum unbekannt, nicht in der Prognose)', migr, '0'],
-      ['   davon Neukunden ab ' + freshFrom + ' = Stichprobe für die Prognose', fresh.length, '0'],
+      ['Kunden mit Abo-Zahlungen seit ' + months[0], L.length, '0'],
+      ['   davon migriert (Tags, Startdatum unbekannt, nicht in der Prognose)', L.length - fresh.length, '0'],
+      ['   davon Neukunden = Stichprobe für die Prognose', fresh.length, '0'],
       ['Ø Netto je aktivem Neukunden und Monat (letzte 3 Monate, Abos + Einmalkäufe)', Math.round(arpu), '#,##0'],
-      ['Monatliche Retention der Neukunden (letzte 6 Monate)', ret, '0.0%'],
-      ['Erwartete Dauer in Monaten (1 / (1 − Retention))', Math.round(life * 10) / 10, '0.0'],
+      ['Monatliche Verlustquote Neukunden (wirksame Kündigungen + Debt collection, letzte 6 Monate: ' + rf.lN + ' von ' + rf.aN + ' Kundenmonaten)', rf.loss, '0.0%'],
+      ['   zum Vergleich: alle Kunden inkl. migriert (' + ra.lN + ' von ' + ra.aN + ')', ra.loss, '0.0%'],
+      ['Erwartete Dauer in Monaten (1 / Verlustquote)', Math.round(life * 10) / 10, '0.0'],
       ['LTV netto Prognose (Ø Monat × Dauer)', ltv, '#,##0'],
-      ['Realisierter Netto-Umsatz je abgesprungenem Neukunden (' + churned.length + ' ohne aktives Abo in ' + prevMonth(lastFull) + ' und ' + lastFull + ')', Math.round(realized), '#,##0'],
+      ['Realisierter Netto-Umsatz je verlorenem Neukunden (' + gone.length + ' mit wirksamer Kündigung oder Debt collection)', Math.round(realized), '#,##0'],
     ];
     kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); sh.getRange(r, 2).setNumberFormat(x[2]); if (/^LTV netto/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
     r++;
-    var head = ['Startmonat (erste Abo-Zahlung)', 'Kunden', 'Ø Netto 1. Monat'].concat(N.map(function (n) { return 'Ø kumuliert nach ' + n + ' Mon.'; })).concat(['noch aktiv', 'Kohorte']);
+    var size = {}; fresh.forEach(function (c) { size[c.first] = (size[c.first] || 0) + 1; }); var cks = Object.keys(size).sort();
+    var head = ['Startmonat (erste Abo-Zahlung, Neukunden)', 'Kunden', 'Ø Netto 1. Monat'].concat(N.map(function (n) { return 'Ø kumuliert nach ' + n + ' Mon.'; })).concat(['noch aktiv', 'verloren']);
     sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
     var age = function (ck) { return (+lastFull.slice(0, 4) - +ck.slice(0, 4)) * 12 + (+lastFull.slice(5, 7) - +ck.slice(5, 7)) + 1; };
     var cum = function (c, ck, n) { var s = 0; for (var i = 0; i < n; i++) s += c.m[addMonths(ck, i)] || 0; return s; };
     var crow = cks.map(function (ck) {
-      var cs = L.filter(function (c) { return c.first === ck; }), n = cs.length, a = age(ck), avg = function (fn) { return Math.round(cs.reduce(function (s, c) { return s + fn(c); }, 0) / n); };
-      return [new Date(ck + '-01T00:00:00'), n, avg(function (c) { return c.m[ck] || 0; })].concat(N.map(function (k) { return a >= k ? avg(function (c) { return cum(c, ck, k); }) : ''; })).concat([cs.filter(function (c) { return c.active[lastFull]; }).length / n, ck >= freshFrom ? 'Neukunden' : 'Migration']);
+      var cs = fresh.filter(function (c) { return c.first === ck; }), n = cs.length, a = age(ck), avg = function (fn) { return Math.round(cs.reduce(function (s, c) { return s + fn(c); }, 0) / n); };
+      var lost = cs.filter(function (c) { return c.end && c.end <= lastFull; }).length;
+      return [new Date(ck + '-01T00:00:00'), n, avg(function (c) { return c.m[ck] || 0; })].concat(N.map(function (k) { return a >= k ? avg(function (c) { return cum(c, ck, k); }) : ''; })).concat([(n - lost) / n, lost]);
     });
-    sh.getRange(r, 1, crow.length, head.length).setValues(crow); sh.getRange(r, 1, crow.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 3, crow.length, N.length + 1).setNumberFormat('#,##0'); sh.getRange(r, head.length - 1, crow.length, 1).setNumberFormat('0%');
-    crow.forEach(function (x, i) { if (x[head.length - 1] === 'Migration') sh.getRange(r + i, 1, 1, head.length).setFontColor('#999999'); });
-    r += crow.length + 2;
-    maStoreMetrics(ss, cur, loc, { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_retention: ret, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length });
+    if (crow.length) { sh.getRange(r, 1, crow.length, head.length).setValues(crow); sh.getRange(r, 1, crow.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 3, crow.length, N.length + 1).setNumberFormat('#,##0'); sh.getRange(r, head.length - 1, crow.length, 1).setNumberFormat('0%'); r += crow.length; }
+    r += 2;
+    maStoreMetrics(ss, cur, loc, { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_retention: 1 - rf.loss, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length });
   });
-  sh.setColumnWidth(1, 460);
+  sh.setColumnWidth(1, 520);
   buildMonatsabschluss(ss);
 }
 
@@ -1749,9 +1772,9 @@ function buildMonatsabschluss(ss) {
         var at = d; d += rows.length + 2; return at;
       };
       var num = function (v) { return v === '' || v === null || v === undefined ? 0 : Number(v); };
-      var fun = tbl([b.locDE + ' Funnel', 'Leads', 'Probetrainings', 'Abos gestartet', 'Kündigungen'], keys.map(function (k) {
+      var fun = tbl([b.locDE + ' Funnel', 'Leads', 'Probetrainings gebucht', 'Probetrainings', 'Abos gestartet', 'Kündigungen'], keys.map(function (k) {
         var la = vOf(k, b.loc, 'leads_all'), lw = vOf(k, b.loc, 'leads_web');
-        return [dt(k), num(la) || num(lw), num(vOf(k, b.loc, 'trial_attended')), num(vOf(k, b.loc, 'new_customers')), num(vOf(k, b.loc, 'cancellations'))];
+        return [dt(k), num(la) || num(lw), num(vOf(k, b.loc, 'trial_booked_transitions')), num(vOf(k, b.loc, 'trial_attended')), num(vOf(k, b.loc, 'new_customers')), num(vOf(k, b.loc, 'cancellations'))];
       }));
       var quo = tbl([b.locDE + ' Quoten', 'No-Show', 'Verkäufe / Probetrainings', 'Verkäufe / Leads', 'Kohorten-Conversion'], keys.map(function (k) {
         return [dt(k), num(vOf(k, b.loc, 'noshow_rate')), num(vOf(k, b.loc, 'conv_sales_trial')), num(vOf(k, b.loc, 'conv_sales_lead')), num(vOf(k, b.loc, 'conv_cohort_rate'))];
@@ -1769,7 +1792,7 @@ function buildMonatsabschluss(ss) {
         Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
         sh.insertChart(ch.build());
       };
-      C(Charts.ChartType.COLUMN, fun, 5, b.hdr, 15, 'Funnel ' + b.locDE + ': Leads, Probetrainings, Abos, Kündigungen', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'] });
+      C(Charts.ChartType.COLUMN, fun, 6, b.hdr, 15, 'Funnel ' + b.locDE + ': Leads, gebucht, Probetrainings, Abos, Kündigungen', { colors: ['#9e9e9e', '#f6d55c', '#e2c210', '#1a73e8', '#d93025'] });
       C(Charts.ChartType.LINE, quo, 5, b.hdr, 22, 'Quoten ' + b.locDE, { colors: ['#d93025', '#1a73e8', '#34a853', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 } });
       C(Charts.ChartType.COLUMN, kan, KANAL_ORDER.length + 1, b.hdr + 16, 15, 'Website-Leads ' + b.locDE + ' nach Kanal', { isStacked: true });
       C(Charts.ChartType.COLUMN, inr, INTERESTS.length + 1, b.hdr + 16, 22, 'Website-Leads ' + b.locDE + ' nach Interesse', { isStacked: true });

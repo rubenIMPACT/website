@@ -33,6 +33,7 @@ export async function onRequestPost(context) {
     if (p.action === "probe") return j(await probe(H, p));
     if (p.action === "probe_clients") return j(await probeClients(H, p));
     if (p.action === "ltv") return j(await ltv(H, p));
+    if (p.action === "clients_flags") return j(await clientsFlags(H, p));
     if (phase === 1) {
       const out = {};
       for (const k of ["recurring", "visits", "subs", "Zurich"]) { const r = await getJson(H, reportUrl(k, q) + "&refresh=true"); out[k] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error }; }
@@ -558,21 +559,53 @@ async function metaAds(env, start, end) {
 // nach MwSt. Ein Monat je Aufruf (ein Report-Cache), Phasen cr (refresh) / cg (abholen, verdichtet je Kunde und Kaufart).
 async function ltv(H, p) {
   const mk = String(p.month || ""); if (!/^\d{4}-\d{2}$/.test(mk)) return { error: "month" };
-  const start = mk + "-01", end = new Date(Date.UTC(+mk.slice(0, 4), +mk.slice(5, 7), 0)).toISOString().slice(0, 10);
-  const url = API + "/api/v4/reports/charges?" + query(start, end) + "&per=8000", spec = { start };
+  const start = mk + "-01", end = new Date(Date.UTC(+mk.slice(0, 4), +mk.slice(5, 7), 0)).toISOString().slice(0, 10), kind = String(p.kind || "charges");
+  // Drei Monatsreihen (Entscheid Ruben 05.09.: verloren ist nur, wer offiziell gekuendigt hat oder wegen Nichtzahlung rausfliegt):
+  // charges = Umsatz je Kunde, cancelled = wirksame Kuendigungen (Ended At), lifecycle = Uebergaenge nach Debt collection etc.
+  const urls = { charges: API + "/api/v4/reports/charges?" + query(start, end) + "&per=8000", cancelled: API + "/api/v4/reports/cancelled_subscriptions?" + query(start, end) + "&per=3000", lifecycle: API + "/api/v4/reports/lifecycle?" + query(start, end) + "&per=8000" };
+  const url = urls[kind]; if (!url) return { error: "kind" };
+  const spec = { start };
   if (p.phase === "cr") { const r = await getJson(H, url + "&refresh=true"); return { ok: true, status: r.status }; }
-  const r = await getJson(H, url); if (!r.json) return { error: "charges_" + r.status };
+  const r = await getJson(H, url); if (!r.json) return { error: kind + "_" + r.status };
   if (!readyFor(spec, r.json)) return { ready: false, why: whyNot(spec, r.json) };
-  const all = rowsOf(r.json.cached_stats), by = {};
+  const all = rowsOf(r.json.cached_stats), locOf = (v) => (/winterthur/i.test(String(v || "")) ? "Winterthur" : "Zurich"), destLoc = (v) => (/z[uü]rich/i.test(String(v || "")) ? "Zurich" : "Winterthur");
+  if (kind === "cancelled") {
+    return { ready: true, month: mk, kind, n: all.length, rows: all.map((x) => [String(x["User ID"] || ""), String(x["Email"] || "").toLowerCase().trim(), x["Location"] ? locOf(x["Location"]) : destLoc(x["Destination"]), chDate(x["Ended At"]), /yes/i.test(String(x["Converted"] || "")) ? 1 : 0, String(x["Subscribeable"] || "").slice(0, 60), String(x["Reason"] || "").slice(0, 60)]).filter((a) => a[0]) };
+  }
+  if (kind === "lifecycle") {
+    const keep = /debt|inactive|^client$|dependant|non-client/i;
+    return { ready: true, month: mk, kind, n: all.length, rows: all.filter((x) => keep.test(String(x["Transitioned To"] || ""))).map((x) => [String(x["Email"] || "").toLowerCase().trim(), chDate(x["Date"]), String(x["Transitioned From"] || "").slice(0, 40), String(x["Transitioned To"] || "").slice(0, 40)]).filter((a) => a[0]) };
+  }
+  const by = {};
   all.forEach((x) => {
     if (!/succeeded/i.test(String(x["Status"] || ""))) return;
     const uid = String(x["User ID"] || ""), amt = num(x["Amount"]), ref = num(x["Amount Refund"]), tax = num(x["Tax"]);
     if (!uid || !amt) return;
     const gross = amt - ref, net = gross - tax * (gross / amt), type = /subscription/i.test(String(x["Purchase Type"] || "")) ? "Abo" : "Einmalig";
-    const k = uid + "|" + type, o = by[k] = by[k] || { uid, email: String(x["Email"] || "").toLowerCase().trim(), loc: /winterthur/i.test(String(x["Location"] || x["Destination"] || "")) ? "Winterthur" : "Zurich", type, net: 0, gross: 0, n: 0 };
+    const k = uid + "|" + type, o = by[k] = by[k] || { uid, email: String(x["Email"] || "").toLowerCase().trim(), loc: locOf(x["Location"] || x["Destination"]), type, net: 0, gross: 0, n: 0 };
     o.net += net; o.gross += gross; o.n += 1;
   });
-  return { ready: true, month: mk, n_charges: all.length, rows: Object.keys(by).map((k) => { const o = by[k]; return [o.uid, o.email, o.loc, o.type, Math.round(o.net * 100) / 100, Math.round(o.gross * 100) / 100, o.n]; }) };
+  return { ready: true, month: mk, kind, n_charges: all.length, rows: Object.keys(by).map((k) => { const o = by[k]; return [o.uid, o.email, o.loc, o.type, Math.round(o.net * 100) / 100, Math.round(o.gross * 100) / 100, o.n]; }) };
+}
+// Kunden-Flags aus der v2-Clients-API: migriert (Tags Migrating/imported/Bexio), Konto-Erstellmonat, Trial-Tags. Fuer den LTV
+// (Entscheid Ruben 05.09.: Migrierte ueber die Tags erkennen, nicht ueber Kohortengroessen).
+async function clientsFlags(H, p) {
+  const per = 200, fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich", year: "numeric", month: "2-digit" }), rows = [];
+  let pages = 0;
+  for (let page = 1; page <= 60; page++) {
+    const r = await getJson(H, API + "/api/v2/clients?per=" + per + "&page=" + page);
+    if (!r.json) return { error: "http_" + r.status, rows, pages };
+    const list = r.json.client || r.json.clients || r.json.data || [];
+    if (!Array.isArray(list) || !list.length) break;
+    pages = page;
+    list.forEach((c) => {
+      const raw = c.tags != null ? c.tags : c.tag_list, tags = Array.isArray(raw) ? raw.map(String) : String(raw || "").split(/,\s*/).map((t) => t.trim()).filter(Boolean);
+      const ts = Number(c.created_at) || 0;
+      rows.push([String(c.user_id || c.id || ""), String(c.email || c.client_email || "").toLowerCase().trim(), tags.some((t) => /migrat|imported|bexio/i.test(t)) ? 1 : 0, ts ? fmt.format(new Date(ts * 1000)) : "", tags.some((t) => /^trial z/i.test(t)) ? 1 : 0, tags.some((t) => /^trial w/i.test(t)) ? 1 : 0, String(c.lifecycle_stage_id || "")]);
+    });
+    if (list.length < per) break;
+  }
+  return { ok: true, pages, n: rows.length, rows };
 }
 
 // Erkundung: alle Kunden mit Tags aus der v2-Clients-API (Double-Check "Trial Winterthur"/"Trial Zuerich", Ruben 05.09.2026)
