@@ -118,6 +118,16 @@ ohne ausweisen, weil sie gekuendigt wird; LTV auf Netto-Umsatz mit allem; Kohort
   Abo-Zahlung) Monate (max 12), sonst gaelten Quartals-/Jahreszahler als abgesprungen. ARPU, Retention und Prognose nur aus den
   Neukunden. Erster Stand 05.09.: ZH ARPU 216, Retention 90.8 %, Dauer 10.9 Monate, LTV 2'344; WT 171 / 92.7 % / 13.8 / 2'358;
   WT-Kohorten liegen nach 9 Monaten bereits bei ~1'750 kumuliert mit 75-86 % aktiv - die Prognose ist konservativ (junge Stichprobe).
+  ENTSCHEID RUBEN 05.09. 12:00 (nach Pruefung): VERLOREN ist nur, wer offiziell gekuendigt hat (cancelled_subscriptions, Ended At,
+  ohne Converted) oder wegen Nichtzahlung rausfliegt (Lifecycle-Uebergang nach "Debt collection"). Zahlungsluecken zaehlen NICHT -
+  der LTV-Check hatte gezeigt, dass viele "Verlorene" im uebernaechsten Monat wieder zahlen (Kartenfehler, Pausen; der Charges-Report
+  enthaelt nur erfolgreiche Zahlungen). Bereinigt lag die Verlustquote bei ZH 4.1 % / WT 2.9 % je Monat statt 9 %. Migrierte werden
+  jetzt ueber die Tags erkannt (Migrating / imported 2025/11/10 / imported 2025/11/26 / Bexio; Tab KundenFlags aus der v2-Clients-API,
+  action clients_flags, 4'347 Konten). Drei Monatsreihen: ZahlungenMonat, KuendigungenMonat, LifecycleMonat (Uebergaenge nach
+  Debt collection / Inactive / Client), alle ueber action 'ltv' mit kind charges|cancelled|lifecycle. Tag-Double-Check der Trials
+  (Ruben): Konten mit Tag "Trial Winterthur" erstellt im August 2026 = 119 (ZH 102) vs. 137 Trial-Booked-Uebergaenge / 84
+  stattgefunden - die Zahlen halten. Funnel-Diagramm im Monatsabschluss hat jetzt "Probetrainings gebucht" zwischen Leads und
+  Probetrainings.
 - GOOGLE-ADS-SKRIPT LIVE (05.09. 11:03, in Rubens Chrome eingerichtet): Skript "Werbekosten -> Analytics Sheet" (scriptId 12252568)
   im Konto 831-058-5625, autorisiert (Sheets + Ads, 2FA per Gmail-Prompt durch Ruben), taeglich 06:00-07:00. Erstlauf 400 Tage:
   275 Zeilen ab 2025-08-01; Google-Spend Feb bis 21.08.2026 = 0 (Kampagnen offenbar pausiert, Neustart 22.08.), Aug 2026 nur
