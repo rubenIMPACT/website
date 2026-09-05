@@ -130,8 +130,10 @@ ohne ausweisen, weil sie gekuendigt wird; LTV auf Netto-Umsatz mit allem; Kohort
   Probetrainings.
 - GOOGLE-ADS-SKRIPT LIVE (05.09. 11:03, in Rubens Chrome eingerichtet): Skript "Werbekosten -> Analytics Sheet" (scriptId 12252568)
   im Konto 831-058-5625, autorisiert (Sheets + Ads, 2FA per Gmail-Prompt durch Ruben), taeglich 06:00-07:00. Erstlauf 400 Tage:
-  275 Zeilen ab 2025-08-01; Google-Spend Feb bis 21.08.2026 = 0 (Kampagnen offenbar pausiert, Neustart 22.08.), Aug 2026 nur
-  22.-31.08. (WT 951, ZH 298), Sep bis 05.09. WT 424 / ZH 136. Der Ads-Editor ist CodeMirror 5: `document.querySelector('.CodeMirror')
+  ab 2025-08-01 (der Drive-Export schneidet versteckte Tabs bei ~275 Zeilen ab - daraus entstand kurz die FALSCHE Aussage einer
+  Spend-Luecke Feb-Aug 2026; der Tab Werbekosten zeigt die volle Historie: WT durchgehend seit Okt 2025, 470 -> 885 Jan -> ~2'300
+  Maerz-Mai -> ~3'000 Jun-Aug; ZH Erwachsene seit Okt 2025 pausiert, ab Feb 2026 nur Little Ninjas 165-456, ab Jun plus Search,
+  Aug 946). LEHRE: Zahlen aus versteckten Daten-Tabs nie aus dem Drive-Export ableiten, immer aus dem gebauten Tab oder per Script. Der Ads-Editor ist CodeMirror 5: `document.querySelector('.CodeMirror')
   .CodeMirror.setValue(txt)` mit txt per fetch von raw.githubusercontent ersetzt den Code sauber (kein Tippen, keine Auto-Klammern);
   danach Save, Run > "Run without preview". Frequenz ueber die Scripts-Liste (Spalte Frequency, Stift).
 - Probe-Aktion `probe` in klassen.js + PROBE_REPORTS im Apps Script (Ergebnis per Mail) fuer kuenftige Report-Erkundungen.
