@@ -1381,13 +1381,17 @@ function ltvQueueInit() {
   pr.setProperty('ltvInit', LTV_INIT); ltvDropChain(); ScriptApp.newTrigger('runLTVChain').timeBased().after(3 * 60 * 1000).create();
 }
 function runLTV() {
-  var ss = SpreadsheetApp.openById(SHEET_ID), q = ltvQueue(ss), done = [], t0 = Date.now();
-  ltvDropChain();
-  while (q.length && done.length < 4 && Date.now() - t0 < 240000) { var mk = q.shift(); done.push(mk + ': ' + ltvFetchMonth(ss, mk)); }
-  if (q.length) ScriptApp.newTrigger('runLTVChain').timeBased().after(60 * 1000).create();
-  else buildLTV(ss);
-  Logger.log('LTV: ' + done.join(', ') + (q.length ? ' | offen: ' + q.join(', ') : ' | fertig, Tab LTV gebaut'));
-  return done;
+  // Sperre: Kette (Einmal-Trigger), Monats-Trigger und manueller Start duerfen nie parallel laufen (sonst doppelte Monatszeilen)
+  var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) { Logger.log('LTV: laeuft bereits, uebersprungen'); return []; }
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID), q = ltvQueue(ss), done = [], t0 = Date.now();
+    ltvDropChain();
+    while (q.length && done.length < 4 && Date.now() - t0 < 240000) { var mk = q.shift(); if (ltvQueue(ss).indexOf(mk) < 0) continue; done.push(mk + ': ' + ltvFetchMonth(ss, mk)); }
+    if (q.length) ScriptApp.newTrigger('runLTVChain').timeBased().after(60 * 1000).create();
+    else buildLTV(ss);
+    Logger.log('LTV: ' + done.join(', ') + (q.length ? ' | offen: ' + q.join(', ') : ' | fertig, Tab LTV gebaut'));
+    return done;
+  } finally { lock.releaseLock(); }
 }
 function runLTVChain() { try { runLTV(); } catch (e) { ltvDropChain(); MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] LTV FEHLGESCHLAGEN', body: String(e && e.stack ? e.stack : e) }); } }
 function runLTVMonthly() { runLTVChain(); }
