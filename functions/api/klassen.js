@@ -562,13 +562,21 @@ async function ltv(H, p) {
   const start = mk + "-01", end = new Date(Date.UTC(+mk.slice(0, 4), +mk.slice(5, 7), 0)).toISOString().slice(0, 10), kind = String(p.kind || "charges");
   // Drei Monatsreihen (Entscheid Ruben 05.09.: verloren ist nur, wer offiziell gekuendigt hat oder wegen Nichtzahlung rausfliegt):
   // charges = Umsatz je Kunde, cancelled = wirksame Kuendigungen (Ended At), lifecycle = Uebergaenge nach Debt collection etc.
-  const urls = { charges: API + "/api/v4/reports/charges?" + query(start, end) + "&per=8000", cancelled: API + "/api/v4/reports/cancelled_subscriptions?" + query(start, end) + "&per=3000", lifecycle: API + "/api/v4/reports/lifecycle?" + query(start, end) + "&per=8000" };
+  const urls = { sums: API + "/api/v4/reports/charges?" + query(start, end) + "&per=8000", charges: API + "/api/v4/reports/charges?" + query(start, end) + "&per=8000", cancelled: API + "/api/v4/reports/cancelled_subscriptions?" + query(start, end) + "&per=3000", lifecycle: API + "/api/v4/reports/lifecycle?" + query(start, end) + "&per=8000" };
   const url = urls[kind]; if (!url) return { error: "kind" };
   const spec = { start };
   if (p.phase === "cr") { const r = await getJson(H, url + "&refresh=true"); return { ok: true, status: r.status }; }
   const r = await getJson(H, url); if (!r.json) return { error: kind + "_" + r.status };
   if (!readyFor(spec, r.json)) return { ready: false, why: whyNot(spec, r.json) };
   const all = rowsOf(r.json.cached_stats), locOf = (v) => (/winterthur/i.test(String(v || "")) ? "Winterthur" : "Zurich"), destLoc = (v) => (/z[uü]rich/i.test(String(v || "")) ? "Zurich" : "Winterthur");
+  if (kind === "sums") {
+    // Abgleich mit dem Bankkonto (Ruben 05.09.): je Tag und Standort Summen aus dem Charges-Report - Betrag, Stripe-Gebuehr,
+    // Rueckerstattung, MwSt, "Net After Refunds" (= Betrag - Rueckerstattung - Gebuehr = das, was Stripe auszahlt)
+    const days = {}, loc = {}, type = {}, st = {}, add = (o, k, x) => { const a = o[k] = o[k] || [0, 0, 0, 0, 0, 0]; a[0]++; a[1] += num(x["Amount"]); a[2] += num(x["Fee"]); a[3] += num(x["Amount Refund"]); a[4] += num(x["Tax"]); a[5] += num(x["Net After Refunds"]); };
+    all.forEach((x) => { const s = String(x["Status"] || ""); st[s] = (st[s] || 0) + 1; if (!/succeeded/i.test(s)) return; add(days, chDate(x["Created"]), x); add(loc, locOf(x["Location"] || x["Destination"]), x); add(type, String(x["Purchase Type"] || "?") + "/" + String(x["Item Type"] || "?"), x); });
+    const r2 = (o) => { Object.keys(o).forEach((k) => { o[k] = o[k].map((v, i) => (i ? Math.round(v * 100) / 100 : v)); }); return o; };
+    return { ready: true, month: mk, kind, n: all.length, statuses: st, days: r2(days), byLoc: r2(loc), byType: r2(type) };
+  }
   if (kind === "cancelled") {
     return { ready: true, month: mk, kind, n: all.length, rows: all.map((x) => [String(x["User ID"] || ""), String(x["Email"] || "").toLowerCase().trim(), x["Location"] ? locOf(x["Location"]) : destLoc(x["Destination"]), chDate(x["Ended At"]), /yes/i.test(String(x["Converted"] || "")) ? 1 : 0, String(x["Subscribeable"] || "").slice(0, 60), String(x["Reason"] || "").slice(0, 60)]).filter((a) => a[0]) };
   }
