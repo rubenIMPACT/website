@@ -1392,7 +1392,8 @@ function ltvFetch(ss, mk, kind) {
   var base = { action: 'ltv', month: mk, kind: kind, start: mk + '-01', end: mk + '-01' };
   var r1 = klassenCall(Object.assign({ phase: 'cr' }, base)); if (r1.error) throw new Error('LTV ' + kind + ' ' + mk + ' cr: ' + JSON.stringify(r1).slice(0, 300));
   var r2 = null, i;
-  for (i = 0; i < 12; i++) { Utilities.sleep(8000); r2 = klassenCall(Object.assign({ phase: 'cg' }, base)); if (r2.error) throw new Error('LTV ' + kind + ' ' + mk + ' cg: ' + JSON.stringify(r2).slice(0, 300)); if (r2.ready) break; }
+  // 5xx von Cloudflare/exercise.com (grosse Reports, z. B. Lifecycle im Migrationsmonat) sind voruebergehend: weiter pollen
+  for (i = 0; i < 15; i++) { Utilities.sleep(8000); r2 = klassenCall(Object.assign({ phase: 'cg' }, base)); if (r2.error && !(Number(r2.http) >= 500)) throw new Error('LTV ' + kind + ' ' + mk + ' cg: ' + JSON.stringify(r2).slice(0, 300)); if (r2.ready) break; }
   if (!r2 || !r2.ready) throw new Error('LTV ' + kind + ' ' + mk + ' nicht fertig: ' + JSON.stringify(r2).slice(0, 300));
   var sh = ltvTab(ss, kind), w = LTV_TABS[kind].head.length, rows = (r2.rows || []).map(function (a) { var row = [mk].concat(a); while (row.length < w) row.push(''); return row.slice(0, w); });
   if (!rows.length) { var mark = [mk, '-']; while (mark.length < w) mark.push(''); rows = [mark]; } // Marke: Monat geprueft, leer
@@ -1431,7 +1432,16 @@ function runLTV() {
     return done;
   } finally { lock.releaseLock(); }
 }
-function runLTVChain() { try { runLTV(); } catch (e) { ltvDropChain(); MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] LTV FEHLGESCHLAGEN', body: String(e && e.stack ? e.stack : e) }); } }
+function runLTVChain() {
+  var pr = PropertiesService.getScriptProperties();
+  try { runLTV(); pr.deleteProperty('ltvRetry'); }
+  catch (e) {
+    // voruebergehende Fehler (502 etc.): bis zu drei neue Anlaeufe im Abstand von 5 Minuten, Mail erst beim endgueltigen Abbruch
+    var n = Number(pr.getProperty('ltvRetry') || 0) + 1; pr.setProperty('ltvRetry', String(n)); ltvDropChain();
+    if (n <= 3) { ScriptApp.newTrigger('runLTVChain').timeBased().after(5 * 60 * 1000).create(); Logger.log('LTV Fehler, Anlauf ' + n + ': ' + e); }
+    else { pr.deleteProperty('ltvRetry'); MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] LTV FEHLGESCHLAGEN (nach 3 Anlaeufen)', body: String(e && e.stack ? e.stack : e) }); }
+  }
+}
 function runLTVMonthly() { runLTVChain(); }
 function buildLTV(ss) {
   var sh = getOrCreate(ss, LTV_SHEET); clearSheet(sh);
