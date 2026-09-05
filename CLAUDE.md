@@ -110,7 +110,14 @@ ohne ausweisen, weil sie gekuendigt wird; LTV auf Netto-Umsatz mit allem; Kohort
   Kaufart), runLTV in Etappen (max. 4 Monate je Ausfuehrung, Kette ueber Einmal-Trigger runLTVChain, Script-Lock), Nachladen ab
   LTV_START 2025-06 ueber LTV_INIT-Marke im Stundenlauf, monatlich runLTVMonthly am 1. um 05:00. Tab LTV: je Standort Kennzahlen
   (ARPU letzte 3 Monate, Retention letzte 6 Monate, Dauer 1/(1-r), Prognose-LTV, realisierter Umsatz Abgesprungener) + Kohorten
-  (Startmonat, kumuliert nach 3/6/9/12 Monaten, noch zahlend). Migration = erster Monat mit Zahlungen, bis Folgemonat = migriert.
+  (Startmonat, kumuliert nach 3/6/9/12 Monaten, noch aktiv, Spalte Kohorte = Migration/Neukunden).
+  METHODE (verfeinert 05.09. 10:56, nach dem ersten Lauf): Kunde = mindestens eine Abo-Zahlung, Testzahlungen < CHF 5 raus (Waseem/
+  Ruben Aug-Sep 2025). Die Migration lief GESTAFFELT (ZH Dez 2025 bis Maerz 2026 = 515 Kunden, WT nur Okt 2025 = 53, WT ist der
+  neue Standort): Migrationsmonate = Kohorte > 2x Median der letzten 5 Monatskohorten, zusammenhaengend vom Anfang; Neukunden =
+  Kohorten danach (ZH ab Apr 2026: 239, WT ab Nov 2025: 269). Vorauszahlungen: eine Abo-Zahlung deckt round(Betrag/Median einer
+  Abo-Zahlung) Monate (max 12), sonst gaelten Quartals-/Jahreszahler als abgesprungen. ARPU, Retention und Prognose nur aus den
+  Neukunden. Erster Stand 05.09.: ZH ARPU 216, Retention 90.8 %, Dauer 10.9 Monate, LTV 2'344; WT 171 / 92.7 % / 13.8 / 2'358;
+  WT-Kohorten liegen nach 9 Monaten bereits bei ~1'750 kumuliert mit 75-86 % aktiv - die Prognose ist konservativ (junge Stichprobe).
 - Probe-Aktion `probe` in klassen.js + PROBE_REPORTS im Apps Script (Ergebnis per Mail) fuer kuenftige Report-Erkundungen.
   Reports mit 403 fuer den API-User: payments, transactions, invoices, client_charges, revenue, refunds, started_subscription.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
