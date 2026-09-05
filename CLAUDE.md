@@ -127,7 +127,11 @@ ohne ausweisen, weil sie gekuendigt wird; LTV auf Netto-Umsatz mit allem; Kohort
   Debt collection / Inactive / Client), alle ueber action 'ltv' mit kind charges|cancelled|lifecycle. Tag-Double-Check der Trials
   (Ruben): Konten mit Tag "Trial Winterthur" erstellt im August 2026 = 119 (ZH 102) vs. 137 Trial-Booked-Uebergaenge / 84
   stattgefunden - die Zahlen halten. Funnel-Diagramm im Monatsabschluss hat jetzt "Probetrainings gebucht" zwischen Leads und
-  Probetrainings.
+  Probetrainings. STAND 05.09. 13:30 (neue Definition, Kette nach zwei Neustarts durch - Lehren: 502 bei grossen Reports weiter pollen,
+  ein Abruf kann 2 Minuten dauern, deshalb Zeitbudget 150 s je Ausfuehrung plus Sicherheitstrigger VOR dem Abrufen): ZH 754 Abo-Kunden,
+  349 migriert per Tag, 405 Neukunden, ARPU 178, Verlustquote 2.6 %/Monat (alle inkl. migriert 3.2 %), Dauer 39 Monate, LTV 6'956;
+  WT 322 Kunden, 0 migriert (neuer Standort), ARPU 153, Verlust 2.0 %, Dauer 51 Monate, LTV 7'800. Vorbehalt: 80 (ZH) / 27 (WT)
+  Abos mit Kuendigung auf Periodenende sind noch nicht wirksam - die Verlustquote steigt in den naechsten Monaten.
 - GOOGLE-ADS-SKRIPT LIVE (05.09. 11:03, in Rubens Chrome eingerichtet): Skript "Werbekosten -> Analytics Sheet" (scriptId 12252568)
   im Konto 831-058-5625, autorisiert (Sheets + Ads, 2FA per Gmail-Prompt durch Ruben), taeglich 06:00-07:00. Erstlauf 400 Tage:
   ab 2025-08-01 (der Drive-Export schneidet versteckte Tabs bei ~275 Zeilen ab - daraus entstand kurz die FALSCHE Aussage einer
