@@ -1648,7 +1648,8 @@ function buildMonatsabschluss(ss) {
       if (opts && opts.grey) sh.getRange(r, 1).setFontColor('#666666'); if (opts && opts.bold) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
       rowIdx[key] = r; r++;
     };
-    var ratio = function (num, den) { return function (k, ci) { return '=IFERROR(' + cellOf(num, ci) + '/' + cellOf(den, ci) + ',"")'; }; };
+    // leere Zellen zaehlen in Sheets als 0, deshalb explizit pruefen (sonst "Kosten pro Lead 0", solange keine Werbedaten da sind)
+    var ratio = function (num, den) { return function (k, ci) { var a = cellOf(num, ci), b = cellOf(den, ci); return '=IF(OR(' + a + '="",' + b + '="",' + b + '=0),"",' + a + '/' + b + ')'; }; };
     var mediaOf = function (k, pn) { var o = (wkM[k] || {})[loc]; if (!o) return ''; return Math.round(pn ? (o.plat[pn] || 0) : o.media); };
     sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Werbung und Kundenwert').setFontWeight('bold'); r++;
     put('wk_media', 'Werbekosten Media (CHF)', function (k) { return mediaOf(k); }, '#,##0', { bold: true });
@@ -1659,7 +1660,7 @@ function buildMonatsabschluss(ss) {
     put('cpt', 'Kosten pro Probetraining (Media)', ratio('wk_media', 'trial_attended'), '#,##0');
     WK_PLATFORMS.forEach(function (pn) { put('sk:' + pn, '   Verkäufe aus ' + pn + '-Leads', function (k) { return vOf(k, loc, 'sales_kanal:' + pn); }, '0', { grey: true }); });
     put('cac', 'CAC Media (Werbekosten / Verkäufe)', ratio('wk_media', 'sales_signed'), '#,##0', { bold: true });
-    put('cac_all', 'CAC inkl. Agentur', function (k, ci) { return '=IFERROR((' + cellOf('wk_media', ci) + '+' + cellOf('wk_agency', ci) + ')/' + cellOf('sales_signed', ci) + ',"")'; }, '#,##0', { bold: true });
+    put('cac_all', 'CAC inkl. Agentur', function (k, ci) { var m = cellOf('wk_media', ci), a = cellOf('wk_agency', ci), sg = cellOf('sales_signed', ci); return '=IF(OR(' + m + '="",' + sg + '="",' + sg + '=0),"",(' + m + '+' + a + ')/' + sg + ')'; }, '#,##0', { bold: true });
     WK_PLATFORMS.forEach(function (pn) { put('cac:' + pn, '   CAC ' + pn + ' (Media / Verkäufe aus ' + pn + '-Leads)', ratio('wk:' + pn, 'sk:' + pn), '#,##0', { grey: true }); });
     put('ltv', 'LTV netto (Prognose, Stand Lauf)', function (k) { return vOf(k, loc, 'ltv_forecast'); }, '#,##0', { bold: true });
     put('ltv_cac', 'LTV : CAC (Media)', ratio('ltv', 'cac'), '0.0');
