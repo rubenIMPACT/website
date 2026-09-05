@@ -296,70 +296,123 @@ function kanalOf(gclid, fbclid, ttclid, utm, ref) {
   if (!r || /impact-martialarts/.test(r)) return 'Direkt'; return 'Andere';
 }
 function mondayOf(d) { var t = new Date(d.getTime()); t.setHours(12, 0, 0, 0); t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); return t; }
+// Aufbau (Ruben 05.09.2026): wie der Monatsabschluss - Kennzahlen als Zeilen, Zeit als Spalten, je Standort ein Block
+// (Leads, Anrufe gefuehrt, Trials, Verkauft untereinander), Spalte A eingefroren, Diagramme rechts, Diagrammdaten grau unten.
+var WR_NOTE = 'Der ganze Funnel pro Woche (Montag bis Sonntag). Website-Leads aus dem Log (Status ok, ohne Dubletten, Tests, Ausschluss; vor dem 31.08.2026 leer), '
+  + 'Anrufe geführt aus den Tagestabellen der Verkäufer (Team KPIs), Trials, No-Shows und Verkäufe aus den Probetrainings-Tabs (Verkauft = Vertragsunterschriften in dieser Woche; '
+  + 'Quote = Anteil der Trials dieser Woche, die bis heute abgeschlossen haben). Offene Prüfungen = rote Zeilen im Team-KPIs-Sheet, bei denen Fakt und Lifecycle-Stage nicht zusammenpassen (Stand jetzt). '
+  + 'Kanal = Klick-ID (Google, Meta, TikTok) oder UTM oder Referrer der Anfrage. "Diese Woche" läuft noch. Wird stündlich mit den Probetrainings aktualisiert.';
 function buildWochenreport(ss, team) {
   var old = ss.getSheetByName('Leads-Analyse'); if (old && !ss.getSheetByName(WR_SHEET)) old.setName(WR_SHEET);
   var sh = getOrCreate(ss, WR_SHEET); clearSheet(sh);
   if (sh.getMaxColumns() < 34) sh.insertColumnsAfter(sh.getMaxColumns(), 34 - sh.getMaxColumns());
-  var today = fmtD(new Date()), blankW = function () { return { lz: 0, lw: 0, dup: 0, kanal: {}, inter: {}, t: { Zurich: 0, Winterthur: 0 }, ns: { Zurich: 0, Winterthur: 0 }, sold: { Zurich: 0, Winterthur: 0 }, csold: { Zurich: 0, Winterthur: 0 }, calls: { Zurich: 0, Winterthur: 0 } }; };
+  sh.setFrozenColumns(0); sh.getRange(2, 1, 1, sh.getMaxColumns()).breakApart();
+  var LOCS = ['Zurich', 'Winterthur'], DE = { Zurich: 'Zürich', Winterthur: 'Winterthur' };
+  var today = fmtD(new Date()), perLoc = function (v) { return { Zurich: v(), Winterthur: v() }; };
+  var blankW = function () { return { dup: 0, leads: perLoc(function () { return 0; }), kanal: perLoc(function () { return {}; }), inter: perLoc(function () { return {}; }), t: perLoc(function () { return 0; }), ns: perLoc(function () { return 0; }), sold: perLoc(function () { return 0; }), csold: perLoc(function () { return 0; }), calls: perLoc(function () { return 0; }) }; };
   var chkOpen = { Zurich: 0, Winterthur: 0 };
   var wk = {}, W = function (d) { var k = fmtD(mondayOf(new Date(d + 'T12:00:00'))); return wk[k] = wk[k] || blankW(); };
   // Leads aus Daten (B Woche, D Standort, E Interesse, G Zaehlt, H Dublette, J Kanal)
   var dn = ss.getSheetByName('Daten'), dv = dn && dn.getLastRow() > 1 ? dn.getRange(2, 1, dn.getLastRow() - 1, 10).getValues() : [];
-  dv.forEach(function (r) { var d = dOfCell(r[1]); if (!d) return; var o = W(d); if (Number(r[6]) === 1) { if (r[3] === 'Zürich') o.lz++; else if (r[3] === 'Winterthur') o.lw++; var k = r[9] || 'Andere'; o.kanal[k] = (o.kanal[k] || 0) + 1; var it = r[4] || 'Andere'; o.inter[it] = (o.inter[it] || 0) + 1; } if (Number(r[7]) === 1) o.dup++; });
-  // Trials aus dem Team-Sheet
-  Object.keys(TR_SHEETS).forEach(function (loc) {
+  dv.forEach(function (r) {
+    var d = dOfCell(r[1]); if (!d) return; var o = W(d);
+    if (Number(r[6]) === 1) { var L = r[3] === 'Zürich' ? 'Zurich' : r[3] === 'Winterthur' ? 'Winterthur' : null; if (L) { o.leads[L]++; var k = r[9] || 'Andere'; o.kanal[L][k] = (o.kanal[L][k] || 0) + 1; var it = r[4] || 'Andere'; o.inter[L][it] = (o.inter[L][it] || 0) + 1; } }
+    if (Number(r[7]) === 1) o.dup++;
+  });
+  // Trials, No-Shows, Verkaeufe, Anrufe aus dem Team-KPIs-Sheet
+  LOCS.forEach(function (loc) {
     var ts = team && team.getSheetByName(TR_SHEETS[loc]); if (!ts || ts.getLastRow() < TR_ROW0) return;
     var n = ts.getLastRow() - TR_ROW0 + 1;
     ts.getRange(TR_ROW0, 1, n, TR_DAY_N).getValues().forEach(function (r) { var d = dOfCell(r[DI.day]); if (!d) return; var o = W(d); o.t[loc] += Number(r[DI.trials]) || 0; o.ns[loc] += Number(r[DI.noshow]) || 0; o.sold[loc] += Number(r[DI.sold]) || 0; o.calls[loc] += Number(r[DI.conv]) || 0; });
     ts.getRange(TR_ROW0, TR_P0, n, TR_NCOL).getValues().forEach(function (r) { if (!r[CI.uid]) return; var d = dOfCell(r[CI.date]); if (d && trIsTrial(r) && dOfCell(r[CI.contract])) W(d).csold[loc] += trPers(r); if (r[CI.check]) chkOpen[loc]++; });
   });
   var weeks = [], m0 = mondayOf(new Date()); for (var i = WR_WEEKS - 1; i >= 0; i--) weeks.push(fmtD(addD(m0, -7 * i)));
-  var dt = function (k) { return new Date(k + 'T12:00:00'); };
+  var dt = function (k) { return new Date(k + 'T12:00:00'); }, pre = function (k) { return k < LEAD_WEEK0; };
+  var G = function (k) { return wk[k] || blankW(); };
+  var sum = function (k, f) { var o = G(k); return o[f].Zurich + o[f].Winterthur; };
+  var leadsOf = function (k, loc) { return pre(k) ? '' : (loc ? G(k).leads[loc] : sum(k, 'leads')); };
+  // Kopf
   sh.getRange('A1').setValue('IMPACT Wochenreport').setFontSize(16).setFontWeight('bold');
-  sh.getRange('A2').setValue('Der ganze Funnel pro Woche (Montag bis Sonntag): Website-Leads aus dem Log (Status ok, ohne Dubletten, Tests, Ausschluss; vor dem 31.08.2026 leer), Trials, No-Shows und Verkäufe aus den Probetrainings-Tabs im Team-Sheet (Verkauft = Vertragsunterschriften in dieser Woche; Quote = Anteil der Trials dieser Woche, die bis heute abgeschlossen haben), Anrufe aus den Tagestabellen der Verkäufer; offene Prüfungen = Zeilen im Team-Sheet, bei denen Fakt und Lifecycle-Stage nicht zusammenpassen (Stand jetzt). Kanal = Klick-ID (Google, Meta, TikTok) oder UTM oder Referrer der Anfrage. Wird stündlich mit den Probetrainings aktualisiert.').setFontColor('#666666').setWrap(true);
-  sh.getRange('A2:R2').merge(); sh.setRowHeight(2, 70);
-  // Kennzahlen
-  var kh = ['Zeitraum', 'Leads ZH', 'Leads WT', 'Leads', 'Trials ZH', 'Trials WT', 'Trials', 'Verkauft ZH', 'Verkauft WT', 'Verkauft', 'Anrufe geführt ZH', 'Anrufe geführt WT', 'Offene Prüfungen ZH', 'Offene Prüfungen WT'];
-  sh.getRange(4, 1).setValue('Kennzahlen').setFontWeight('bold').setFontSize(12);
-  sh.getRange(5, 1, 1, kh.length).setValues([kh]).setFontWeight('bold').setBackground('#f3f3f3');
-  var kv = function (k) { var o = wk[k] || blankW(), pre = k < LEAD_WEEK0; return [pre ? '' : o.lz, pre ? '' : o.lw, pre ? '' : o.lz + o.lw, o.t.Zurich, o.t.Winterthur, o.t.Zurich + o.t.Winterthur, o.sold.Zurich, o.sold.Winterthur, o.sold.Zurich + o.sold.Winterthur, o.calls.Zurich, o.calls.Winterthur, '', '']; };
+  sh.getRange('A2').setValue('Methodik').setFontColor('#999999');
+  sh.getRange('B2').setValue(WR_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 74);
+  // Kennzahlen: drei Zeitraeume + Delta, je Standort untereinander
   var w0 = weeks[weeks.length - 1], w1 = weeks[weeks.length - 2], w2 = weeks[weeks.length - 3];
-  var k1 = kv(w1), k2 = kv(w2), delta = k1.map(function (v, i) { return (v === '' || k2[i] === '' || !k2[i]) ? '' : (v - k2[i]) / k2[i]; });
-  var k0 = kv(w0); k0[11] = chkOpen.Zurich; k0[12] = chkOpen.Winterthur;
-  sh.getRange(6, 1, 4, kh.length).setValues([['Diese Woche (läuft noch)'].concat(k0), ['Letzte Woche'].concat(k1), ['Vorletzte Woche'].concat(k2), ['Δ letzte vs. vorletzte Woche'].concat(delta)]);
-  sh.getRange(9, 2, 1, kh.length - 1).setNumberFormat('0%'); sh.getRange(9, 1, 1, kh.length).setFontWeight('bold');
-  sh.getRange(6, 1, 4, kh.length).setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
-  // Funnel-Tabelle
-  var fh = ['Woche ab', 'bis', 'Status', 'Leads ZH', 'Leads WT', 'Leads', 'Δ% Leads', 'Dubletten', 'Trials ZH', 'Trials WT', 'Trials', 'No-Shows', 'Verkauft ZH', 'Verkauft WT', 'Verkauft', 'Quote (Trials der Woche)', 'Anrufe geführt ZH', 'Anrufe geführt WT'];
-  var fHead = 12; sh.getRange(fHead - 1, 1).setValue('Funnel pro Woche (letzte ' + WR_WEEKS + ' Wochen)').setFontWeight('bold').setFontSize(12);
-  sh.getRange(fHead, 1, 1, fh.length).setValues([fh]).setFontWeight('bold').setBackground('#f3f3f3');
-  var frows = [], prevL = null;
-  weeks.forEach(function (k, i) {
-    var o = wk[k] || blankW(), pre = k < LEAD_WEEK0, end = fmtD(addD(dt(k), 6)), running = end >= today, L = o.lz + o.lw, T = o.t.Zurich + o.t.Winterthur, CS = o.csold.Zurich + o.csold.Winterthur;
-    var dl = (pre || running || prevL === null || !prevL) ? '' : (L - prevL) / prevL; if (!pre && !running) prevL = L;
-    frows.push([dt(k), dt(end), running ? 'läuft noch' : '', pre ? '' : o.lz, pre ? '' : o.lw, pre ? '' : L, dl, pre ? '' : o.dup, o.t.Zurich, o.t.Winterthur, T, o.ns.Zurich + o.ns.Winterthur, o.sold.Zurich, o.sold.Winterthur, o.sold.Zurich + o.sold.Winterthur, T ? CS / T : '', o.calls.Zurich, o.calls.Winterthur]);
+  var delta = function (a, b) { return (a === '' || b === '' || !b) ? '' : (a - b) / b; };
+  var r = 4;
+  sh.getRange(r, 1).setValue('Kennzahlen').setFontWeight('bold').setFontSize(12); r++;
+  sh.getRange(r, 1, 1, 5).setValues([['Kennzahl', 'Diese Woche', 'Letzte Woche', 'Vorletzte Woche', 'Δ letzte vs. vorletzte']]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+  var kBlock = function (title, rows) {
+    sh.getRange(r, 1).setValue(title).setFontWeight('bold'); r++;
+    rows.forEach(function (x) { var v = [x[0], x[1], x[2], x[3], x[4] === undefined ? delta(x[2], x[3]) : x[4]]; sh.getRange(r, 1, 1, 5).setValues([v]); sh.getRange(r, 5).setNumberFormat('0%'); if (x[5]) sh.getRange(r, 1, 1, 5).setFontWeight('bold'); r++; });
+  };
+  LOCS.forEach(function (loc) {
+    kBlock(DE[loc], [
+      ['Leads', leadsOf(w0, loc), leadsOf(w1, loc), leadsOf(w2, loc)],
+      ['Anrufe geführt', G(w0).calls[loc], G(w1).calls[loc], G(w2).calls[loc]],
+      ['Trials', G(w0).t[loc], G(w1).t[loc], G(w2).t[loc], undefined, true],
+      ['Verkauft', G(w0).sold[loc], G(w1).sold[loc], G(w2).sold[loc], undefined, true],
+      ['Offene Prüfungen (Stand jetzt)', chkOpen[loc], '', '', '']]);
   });
-  sh.getRange(fHead + 1, 1, frows.length, fh.length).setValues(frows);
-  sh.getRange(fHead + 1, 1, frows.length, 2).setNumberFormat('dd.MM.yyyy'); sh.getRange(fHead + 1, 7, frows.length, 1).setNumberFormat('0%'); sh.getRange(fHead + 1, 16, frows.length, 1).setNumberFormat('0%');
-  // Kanal-Tabelle
-  var kHead = fHead + WR_WEEKS + 4; sh.getRange(kHead - 1, 1).setValue('Website-Leads pro Woche nach Kanal').setFontWeight('bold').setFontSize(12);
-  sh.getRange(kHead, 1, 1, KANAL_ORDER.length + 1).setValues([['Woche ab'].concat(KANAL_ORDER)]).setFontWeight('bold').setBackground('#f3f3f3');
-  var krows = weeks.map(function (k) { var o = wk[k] || blankW(), pre = k < LEAD_WEEK0; return [dt(k)].concat(KANAL_ORDER.map(function (c) { return pre ? '' : (o.kanal[c] || 0); })); });
-  sh.getRange(kHead + 1, 1, krows.length, KANAL_ORDER.length + 1).setValues(krows); sh.getRange(kHead + 1, 1, krows.length, 1).setNumberFormat('dd.MM.yyyy');
-  // Interessen-Tabelle
-  var iHead = kHead + WR_WEEKS + 4; sh.getRange(iHead - 1, 1).setValue('Website-Leads pro Woche nach Interesse').setFontWeight('bold').setFontSize(12);
-  sh.getRange(iHead, 1, 1, INTERESTS.length + 1).setValues([['Woche ab'].concat(INTERESTS)]).setFontWeight('bold').setBackground('#f3f3f3');
-  var irows = weeks.map(function (k) { var o = wk[k] || blankW(), pre = k < LEAD_WEEK0; return [dt(k)].concat(INTERESTS.map(function (c) { return pre ? '' : (o.inter[c] || 0); })); });
-  sh.getRange(iHead + 1, 1, irows.length, INTERESTS.length + 1).setValues(irows); sh.getRange(iHead + 1, 1, irows.length, 1).setNumberFormat('dd.MM.yyyy');
-  sh.setColumnWidth(1, 200); sh.setColumnWidth(16, 150); sh.setFrozenRows(0);
-  // Diagramme rechts
-  var cc = 21;
-  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.LINE).setNumHeaders(1).addRange(sh.getRange(fHead, 1, WR_WEEKS + 1, 1)).addRange(sh.getRange(fHead, 6, WR_WEEKS + 1, 1)).addRange(sh.getRange(fHead, 11, WR_WEEKS + 1, 1)).addRange(sh.getRange(fHead, 15, WR_WEEKS + 1, 1))
-    .setPosition(4, cc, 0, 0).setOption('title', 'Funnel pro Woche: Leads, Trials, Verkauft').setOption('pointSize', 6).setOption('colors', ['#9e9e9e', '#e2c210', '#1a73e8']).setOption('width', 620).setOption('height', 320).setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'dd.MM' }).setOption('vAxis', { minValue: 0 }).build());
-  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).addRange(sh.getRange(kHead, 1, WR_WEEKS + 1, KANAL_ORDER.length + 1))
-    .setPosition(22, cc, 0, 0).setOption('title', 'Website-Leads pro Woche nach Kanal').setOption('isStacked', true).setOption('width', 620).setOption('height', 340).setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'dd.MM' }).setOption('vAxis', { minValue: 0 }).build());
-  sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).addRange(sh.getRange(iHead, 1, WR_WEEKS + 1, INTERESTS.length + 1))
-    .setPosition(41, cc, 0, 0).setOption('title', 'Website-Leads pro Woche nach Interesse').setOption('isStacked', true).setOption('width', 620).setOption('height', 340).setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'dd.MM' }).setOption('vAxis', { minValue: 0 }).build());
+  kBlock('Gesamt', [
+    ['Leads', leadsOf(w0), leadsOf(w1), leadsOf(w2)],
+    ['Anrufe geführt', sum(w0, 'calls'), sum(w1, 'calls'), sum(w2, 'calls')],
+    ['Trials', sum(w0, 't'), sum(w1, 't'), sum(w2, 't'), undefined, true],
+    ['Verkauft', sum(w0, 'sold'), sum(w1, 'sold'), sum(w2, 'sold'), undefined, true]]);
+  // Funnel pro Woche: Wochen als Spalten, je Standort ein Block
+  r += 1;
+  sh.getRange(r, 1).setValue('Funnel pro Woche (letzte ' + WR_WEEKS + ' Wochen, Woche ab Montag)').setFontWeight('bold').setFontSize(12); r++;
+  var fHead = r;
+  sh.getRange(r, 1, 1, weeks.length + 1).setValues([['Kennzahl'].concat(weeks.map(dt))]).setFontWeight('bold').setBackground('#f3f3f3');
+  sh.getRange(r, 2, 1, weeks.length).setNumberFormat('dd.MM.'); sh.getRange(r, weeks.length + 1).setBackground('#fff2cc').setNote('läuft noch'); r++;
+  var fRow = function (label, fn, fmt, opts) {
+    var row = [label].concat(weeks.map(fn)); sh.getRange(r, 1, 1, row.length).setValues([row]);
+    if (fmt) sh.getRange(r, 2, 1, weeks.length).setNumberFormat(fmt);
+    if (opts && opts.grey) sh.getRange(r, 1).setFontColor('#666666'); if (opts && opts.bold) sh.getRange(r, 1, 1, row.length).setFontWeight('bold'); r++;
+  };
+  LOCS.forEach(function (loc) {
+    sh.getRange(r, 1).setValue(DE[loc]).setFontWeight('bold'); r++;
+    fRow('Leads', function (k) { return leadsOf(k, loc); });
+    KANAL_ORDER.forEach(function (c) { fRow('   davon ' + c, function (k) { return pre(k) ? '' : (G(k).kanal[loc][c] || 0); }, null, { grey: true }); });
+    fRow('Anrufe geführt', function (k) { return G(k).calls[loc]; });
+    fRow('Trials', function (k) { return G(k).t[loc]; }, null, { bold: true });
+    fRow('No-Shows', function (k) { return G(k).ns[loc]; });
+    fRow('Verkauft', function (k) { return G(k).sold[loc]; }, null, { bold: true });
+    fRow('Quote (Trials der Woche, bis heute abgeschlossen)', function (k) { var o = G(k); return o.t[loc] ? o.csold[loc] / o.t[loc] : ''; }, '0%');
+  });
+  sh.getRange(r, 1).setValue('Gesamt').setFontWeight('bold'); r++;
+  fRow('Leads', function (k) { return leadsOf(k); });
+  var prevL = null; fRow('Δ% Leads zur Vorwoche', function (k) { var end = fmtD(addD(dt(k), 6)), L = leadsOf(k), d = (pre(k) || end >= today || prevL === null || !prevL) ? '' : (L - prevL) / prevL; if (!pre(k) && end < today) prevL = L; return d; }, '0%');
+  fRow('Dubletten', function (k) { return pre(k) ? '' : G(k).dup; }, null, { grey: true });
+  fRow('Anrufe geführt', function (k) { return sum(k, 'calls'); });
+  fRow('Trials', function (k) { return sum(k, 't'); }, null, { bold: true });
+  fRow('No-Shows', function (k) { return sum(k, 'ns'); });
+  fRow('Verkauft', function (k) { return sum(k, 'sold'); }, null, { bold: true });
+  fRow('Quote (Trials der Woche, bis heute abgeschlossen)', function (k) { var T = sum(k, 't'); return T ? sum(k, 'csold') / T : ''; }, '0%');
+  // Diagrammdaten (Wochen als Zeilen) unten, Diagramme rechts: links Zuerich, rechts Winterthur
+  var d = r + 2;
+  sh.getRange(d, 1).setValue('Diagrammdaten – automatisch, bitte nicht bearbeiten').setFontWeight('bold').setFontColor('#999999'); d += 2;
+  var tbl = function (headRow, rows) {
+    sh.getRange(d, 1, 1, headRow.length).setValues([headRow]).setFontWeight('bold');
+    sh.getRange(d + 1, 1, rows.length, headRow.length).setValues(rows); sh.getRange(d + 1, 1, rows.length, 1).setNumberFormat('dd.MM.yyyy');
+    sh.getRange(d, 1, rows.length + 1, headRow.length).setFontColor('#999999').setFontSize(9);
+    var at = d; d += rows.length + 2; return at;
+  };
+  var C = function (type, at, w, row, col, title, opts) {
+    var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(sh.getRange(at, 1, weeks.length + 1, w)).setPosition(row, col, 0, 0)
+      .setOption('title', title).setOption('width', 620).setOption('height', 320).setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'dd.MM' }).setOption('vAxis', { minValue: 0 });
+    Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
+    sh.insertChart(ch.build());
+  };
+  LOCS.forEach(function (loc, li) {
+    var col = 19 + li * 7;
+    var fun = tbl([DE[loc] + ' Funnel', 'Leads', 'Anrufe geführt', 'Trials', 'Verkauft'], weeks.map(function (k) { var o = G(k); return [dt(k), leadsOf(k, loc), o.calls[loc], o.t[loc], o.sold[loc]]; }));
+    var kan = tbl([DE[loc] + ' Kanal'].concat(KANAL_ORDER), weeks.map(function (k) { return [dt(k)].concat(KANAL_ORDER.map(function (c) { return pre(k) ? '' : (G(k).kanal[loc][c] || 0); })); }));
+    var inr = tbl([DE[loc] + ' Interesse'].concat(INTERESTS), weeks.map(function (k) { return [dt(k)].concat(INTERESTS.map(function (c) { return pre(k) ? '' : (G(k).inter[loc][c] || 0); })); }));
+    C(Charts.ChartType.LINE, fun, 5, 4, col, 'Funnel ' + DE[loc] + ' pro Woche: Leads, Anrufe, Trials, Verkauft', { pointSize: 6, colors: ['#9e9e9e', '#34a853', '#e2c210', '#1a73e8'] });
+    C(Charts.ChartType.COLUMN, kan, KANAL_ORDER.length + 1, 20, col, 'Website-Leads ' + DE[loc] + ' pro Woche nach Kanal', { isStacked: true });
+    C(Charts.ChartType.COLUMN, inr, INTERESTS.length + 1, 36, col, 'Website-Leads ' + DE[loc] + ' pro Woche nach Interesse', { isStacked: true });
+  });
+  sh.setColumnWidth(1, 300); sh.setColumnWidths(2, weeks.length, 86); sh.setFrozenRows(0); sh.setFrozenColumns(1);
 }
 
 // Trainingsplan-Analyse: Zaehlungen je Eingabe
@@ -1172,7 +1225,6 @@ var MA_ROWS = [
   ['conv_sales_trial', 'Quote Verkäufe / Probetrainings', '0%'],
   ['conv_sales_lead', 'Quote Verkäufe / Leads (alle Quellen)', '0%'],
   ['conv_simple', 'Quote Abos gestartet / Probetrainings', '0%'],
-  ['conv_cohort_n', 'Kohorte: Probetrainer des Monats mit Abo bis heute', '0'],
   ['conv_cohort_rate', 'Kohorten-Conversion (reift 3 Monate nach)', '0%'],
   ['switches', 'Paketwechsel', '0'],
   ['cancellations', 'Kündigungen (ohne Wechsel)', '0'],
@@ -1384,7 +1436,7 @@ function maCountLeads(monthRef, locDE, col, name) {
 }
 
 // ------------------------------------------------------------ Probetrainings-Liste (seit 04.09.2026, Entscheid Ruben)
-// Liegt im TEAM-SHEET (TEAM_ID, "IMPACT Team"): Tabs "Events" (Spiegel, nur lesen), "Probetrainings ZH" (deutsch, Abdi),
+// Liegt im TEAM-SHEET (TEAM_ID, "Team KPIs", frueher "IMPACT Team", umbenannt 05.09.): Tabs "Events" (Spiegel, nur lesen), "Probetrainings ZH" (deutsch, Abdi),
 // "Probetrainings WT" (englisch, Bogdan). Aufbau des Tabs (Entscheid Ruben 04.09. abends):
 //   A..G  Tagesblock, LINKS und auf Hoehe der Personen dieses Tages: Tag, Anrufe versucht*, Anrufe gefuehrt*, Placed Trials,
 //         Trials, No-Shows, Verkauft. Der Trichter liest sich von links nach rechts. * = einzige manuelle Felder.
