@@ -1308,14 +1308,26 @@ function buildWerbekosten(ss) {
     sh.getRange(r, 1, rows.length, head.length).setValues(rows); sh.getRange(r, 1, rows.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 2, rows.length, head.length - 1).setNumberFormat('#,##0');
     r += rows.length + 2;
   });
+  // Kampagnen je Monat: macht Pausen und Standortwechsel je Kampagne sichtbar (Ruben 05.09.: sauber getrennt beobachtbar)
+  var all = wkRead(ss), cm = {};
+  all.forEach(function (x) { var k = x.plat + '|' + x.camp, o = cm[k] = cm[k] || { plat: x.plat, camp: x.camp, loc: x.loc, m: {}, tot: 0 }; var mk = x.d.slice(0, 7); o.m[mk] = (o.m[mk] || 0) + x.cost; o.tot += x.cost; });
+  var clist = Object.keys(cm).map(function (k) { return cm[k]; }).sort(function (a, b) { return (a.loc + a.plat).localeCompare(b.loc + b.plat) || b.tot - a.tot; });
+  sh.getRange(r, 1).setValue('Kampagnen je Monat (CHF, alle geladenen Monate)').setFontWeight('bold').setFontSize(13); r++;
+  var ch = ['Standort', 'Plattform', 'Kampagne'].concat(months.map(function (mk) { return new Date(mk + '-01T00:00:00'); }));
+  sh.getRange(r, 1, 1, ch.length).setValues([ch]).setFontWeight('bold').setBackground('#f3f3f3'); sh.getRange(r, 4, 1, months.length).setNumberFormat('mmm yy'); r++;
+  if (clist.length) {
+    var crows = clist.map(function (o) { return [o.loc === 'Zurich' ? 'Zürich' : o.loc, o.plat, o.camp].concat(months.map(function (mk) { return o.m[mk] ? Math.round(o.m[mk]) : ''; })); });
+    sh.getRange(r, 1, crows.length, ch.length).setValues(crows); sh.getRange(r, 4, crows.length, months.length).setNumberFormat('#,##0'); r += crows.length;
+  }
+  r += 2;
   var since = fmtD(addD(new Date(), -30)), by = {};
-  wkRead(ss).forEach(function (x) { if (x.d < since) return; var k = x.plat + '|' + x.camp, o = by[k] = by[k] || { plat: x.plat, camp: x.camp, loc: x.loc, cost: 0, clicks: 0 }; o.cost += x.cost; o.clicks += x.clicks; });
+  all.forEach(function (x) { if (x.d < since) return; var k = x.plat + '|' + x.camp, o = by[k] = by[k] || { plat: x.plat, camp: x.camp, loc: x.loc, cost: 0, clicks: 0 }; o.cost += x.cost; o.clicks += x.clicks; });
   var list = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return b.cost - a.cost; });
   sh.getRange(r, 1).setValue('Kampagnen der letzten 30 Tage (ab ' + since + ')').setFontWeight('bold').setFontSize(13); r++;
   sh.getRange(r, 1, 1, 5).setValues([['Plattform', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks']]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
   if (list.length) { sh.getRange(r, 1, list.length, 5).setValues(list.map(function (o) { return [o.plat, o.camp, o.loc === 'Zurich' ? 'Zürich' : o.loc, Math.round(o.cost), Math.round(o.clicks)]; })); sh.getRange(r, 4, list.length, 2).setNumberFormat('#,##0'); }
   else sh.getRange(r, 1).setValue('noch keine Daten – Google-Ads-Skript und Meta-Token einrichten').setFontColor('#999999');
-  sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 320);
+  sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 320); sh.setColumnWidth(3, 320); sh.setFrozenColumns(0);
 }
 function runWerbekosten() {
   var ss = SpreadsheetApp.openById(SHEET_ID), st = stGet(ss), now = new Date(), notes = [];
