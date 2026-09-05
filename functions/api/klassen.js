@@ -31,6 +31,7 @@ export async function onRequestPost(context) {
     if (p.action === "monat") return j(await monat(H, p, start, end));
     if (p.action === "trials") return j(await trials(H, p));
     if (p.action === "probe") return j(await probe(H, p));
+    if (p.action === "ltv") return j(await ltv(H, p));
     if (phase === 1) {
       const out = {};
       for (const k of ["recurring", "visits", "subs", "Zurich"]) { const r = await getJson(H, reportUrl(k, q) + "&refresh=true"); out[k] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error }; }
@@ -549,6 +550,28 @@ async function metaAds(env, start, end) {
     }
   }
   return { ok: true, rows, errors };
+}
+
+// LTV (05.09.2026, Ruben: Netto-Umsatz mit allem): Zahlungen je Kunde und Monat aus dem Report "Charges". Netto = Betrag minus
+// Refund minus anteilige MwSt (Spalte Tax), nur Status succeeded; "Net After Refunds" des Reports waere nach Stripe-Gebuehr, nicht
+// nach MwSt. Ein Monat je Aufruf (ein Report-Cache), Phasen cr (refresh) / cg (abholen, verdichtet je Kunde und Kaufart).
+async function ltv(H, p) {
+  const mk = String(p.month || ""); if (!/^\d{4}-\d{2}$/.test(mk)) return { error: "month" };
+  const start = mk + "-01", end = new Date(Date.UTC(+mk.slice(0, 4), +mk.slice(5, 7), 0)).toISOString().slice(0, 10);
+  const url = API + "/api/v4/reports/charges?" + query(start, end) + "&per=8000", spec = { start };
+  if (p.phase === "cr") { const r = await getJson(H, url + "&refresh=true"); return { ok: true, status: r.status }; }
+  const r = await getJson(H, url); if (!r.json) return { error: "charges_" + r.status };
+  if (!readyFor(spec, r.json)) return { ready: false, why: whyNot(spec, r.json) };
+  const all = rowsOf(r.json.cached_stats), by = {};
+  all.forEach((x) => {
+    if (!/succeeded/i.test(String(x["Status"] || ""))) return;
+    const uid = String(x["User ID"] || ""), amt = num(x["Amount"]), ref = num(x["Amount Refund"]), tax = num(x["Tax"]);
+    if (!uid || !amt) return;
+    const gross = amt - ref, net = gross - tax * (gross / amt), type = /subscription/i.test(String(x["Purchase Type"] || "")) ? "Abo" : "Einmalig";
+    const k = uid + "|" + type, o = by[k] = by[k] || { uid, email: String(x["Email"] || "").toLowerCase().trim(), loc: /winterthur/i.test(String(x["Location"] || x["Destination"] || "")) ? "Winterthur" : "Zurich", type, net: 0, gross: 0, n: 0 };
+    o.net += net; o.gross += gross; o.n += 1;
+  });
+  return { ready: true, month: mk, n_charges: all.length, rows: Object.keys(by).map((k) => { const o = by[k]; return [o.uid, o.email, o.loc, o.type, Math.round(o.net * 100) / 100, Math.round(o.gross * 100) / 100, o.n]; }) };
 }
 
 // Erkundung: beliebige Reports mit Fenster abfragen (Status, Filter, Spalten, erste Zeilen). Nur fuer die Entwicklung,
