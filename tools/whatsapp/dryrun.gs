@@ -55,7 +55,7 @@ function waDryRunHourly() {
   var leadLang = {}; leads.forEach(function (l) { if (l.nname && !leadLang[l.nname]) leadLang[l.nname] = l.lang; });
   function pushRow(flow, msg, loc, name, lang, trigger, key, vars, table) {
     if (keys[key]) return; keys[key] = true;
-    var isE = flow === 'E', text = fill((table || TEXT)[msg][lang], Object.assign({ name: name.split(' ')[0], sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}));
+    var isE = flow === 'E', text = fill((table || TEXT)[msg][lang], Object.assign({ name: firstOf(name), sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}));
     out.push([today, fmtT(now), fmtDT(sendAt(now, flow)), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key]);
   }
   function push(flow, msg, loc, name, lang, trigger, key, vars) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT); }
@@ -85,7 +85,7 @@ function waDryRunHourly() {
   else {
     var seen = firstSeenE(sh);
     pay.forEach(function (c) {
-      if (!c.uid || c.cancel_pending) return; // cancelled: stop
+      if (!c.uid || c.cancel_pending || /debt|inactive|non-client|lost/i.test(c.lifecycle) || !/^billed$/i.test(c.billing)) return; // only active, billed members; debt collection, inactive and paused accounts are handled by hand
       var lang = leadLang[nname(c.name)] || 'de', first = seen[c.uid];
       var vars = { due_date: c.next_payment ? deDate(c.next_payment, lang) : '' };
       function pushE(msg, key, trig) { pushRow('E', msg, 'Waseem', c.name, lang, trig, key, vars, TEXT_E); }
@@ -99,6 +99,7 @@ function waDryRunHourly() {
     });
   }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
+  var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
   sh.getRange('A3').setValue('Last run ' + fmtDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', failed payments: ' + (pay ? pay.length : 'n/a') + '.' + payNote);
   Logger.log('Dry run ' + fmtDT(now) + ': ' + out.length + ' new rows');
   return out.length;
@@ -144,6 +145,7 @@ function langOfText(t) {
   if (en > de) return 'en'; if (de > en) return 'de'; return '';
 }
 function nname(s) { return String(s || '').toLowerCase().replace(/[^a-zäöüéèàß&+ ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function firstOf(n) { return String(n || '').split(' ')[0].replace(/[&+]/g, ' & ').replace(/\s+/g, ' ').trim(); }
 function fill(t, vars) { return String(t).replace(/\{(\w+)\}/g, function (m, k) { return vars[k] !== undefined ? vars[k] : m; }); }
 function deDate(d, lang) { var p = d.split('-'); return lang === 'en' ? (p[2] + '/' + p[1]) : (p[2] + '.' + p[1] + '.'); }
 function sendAt(now, flow) { // next moment inside the send window (Mon-Sat, 10-19; Flow B from 07)
@@ -204,6 +206,13 @@ function existingKeys(sh) {
   var keys = {}, n = sh.getLastRow();
   if (n >= TR_ROW0) sh.getRange(TR_ROW0, HEAD.length, n - TR_ROW0 + 1, 1).getValues().forEach(function (r) { if (r[0]) keys[String(r[0])] = true; });
   return keys;
+}
+function waCleanup() { // maintenance: drop dry-run rows that the current rules exclude (safe to re-run)
+  var sh = SpreadsheetApp.openById(WA_ID).getSheetByName('Dry run'), n = sh.getLastRow(), del = 0;
+  if (n < TR_ROW0) return 0;
+  var v = sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues();
+  for (var i = v.length - 1; i >= 0; i--) { if (v[i][3] === 'E' && /Debt collection|Inactive Client|billing "paused"|Non-Billed/i.test(String(v[i][8] || ''))) { sh.deleteRow(TR_ROW0 + i); del++; } }
+  Logger.log('Cleanup: ' + del + ' rows removed'); return del;
 }
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
