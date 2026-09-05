@@ -1169,7 +1169,9 @@ var MA_ROWS = [
   ['sales_signed', 'Verkäufe (Vertrag unterschrieben)', '0'],
   ['sales_open', 'davon Zahlung noch offen', '0'],
   ['new_customers', 'Abos gestartet (ohne Wechsel, ohne PT)', '0'],
-  ['conv_simple', 'Quote Neukunden / Probetrainings im Monat', '0%'],
+  ['conv_sales_trial', 'Quote Verkäufe / Probetrainings', '0%'],
+  ['conv_sales_lead', 'Quote Verkäufe / Leads (alle Quellen)', '0%'],
+  ['conv_simple', 'Quote Abos gestartet / Probetrainings', '0%'],
   ['conv_cohort_n', 'Kohorte: Probetrainer des Monats mit Abo bis heute', '0'],
   ['conv_cohort_rate', 'Kohorten-Conversion (reift 3 Monate nach)', '0%'],
   ['switches', 'Paketwechsel', '0'],
@@ -1216,6 +1218,8 @@ function runMonatsabschluss(start, end) {
     var fvNet = (L.first_visits || 0) - (L.first_visits_excluded || 0);
     m.noshow_rate = fvNet ? (L.trial_noshow || 0) / fvNet : 0;
     m.conv_simple = L.trial_attended ? (L.new_customers || 0) / L.trial_attended : 0;
+    m.conv_sales_trial = L.trial_attended ? (L.sales_signed || 0) / L.trial_attended : 0;
+    m.conv_sales_lead = L.leads_all ? (L.sales_signed || 0) / L.leads_all : 0;
     maStoreMetrics(ss, mk, loc, m);
     lines.push(loc + ': ' + (L.trial_attended || 0) + ' Probetrainings, ' + (L.new_customers || 0) + ' Neukunden, ' + (L.cancellations || 0) + ' Kuendigungen, netto ' + (L.net_growth || 0) + ', Abo-Umsatz brutto ' + (L.rev_membership_gross || 0) + ' CHF');
   });
@@ -1233,6 +1237,28 @@ function runMonatsabschluss(start, end) {
   buildMonatsabschluss(ss);
   Logger.log('Monatsabschluss ' + mk + ': ' + lines.join(' | '));
   return lines.join('\n');
+}
+// Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
+// reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
+// weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
+var MA_CATCHUP = '2026-09-05 Verkaufsquoten'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP_MONTHS = ['2026-08', '2026-09'];
+function maQueueCatchUp() {
+  var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;
+  pr.setProperty('maCatchUp', MA_CATCHUP); pr.setProperty('maQueue', JSON.stringify(MA_CATCHUP_MONTHS));
+  maDropCatchUpTriggers(); ScriptApp.newTrigger('maCatchUp').timeBased().after(5 * 60 * 1000).create(); // erst nach dem laufenden Stundenlauf
+}
+function maDropCatchUpTriggers() { ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'maCatchUp') ScriptApp.deleteTrigger(t); }); }
+function maCatchUp() {
+  var pr = PropertiesService.getScriptProperties(), q = JSON.parse(pr.getProperty('maQueue') || '[]');
+  maDropCatchUpTriggers();
+  if (!q.length) return;
+  var mk = q.shift(); pr.setProperty('maQueue', JSON.stringify(q));
+  var d = new Date(mk + '-01T12:00:00'), last = new Date(d.getFullYear(), d.getMonth() + 1, 0), now = new Date();
+  try { runMonatsabschluss(mk + '-01', fmtD(last < now ? last : now)); } catch (e) {
+    MailApp.sendEmail({ to: MAIL.fallback, subject: '[Monatsabschluss] Nachlauf ' + mk + ' FEHLGESCHLAGEN', body: String(e && e.stack ? e.stack : e) });
+  }
+  if (q.length) ScriptApp.newTrigger('maCatchUp').timeBased().after(60 * 1000).create();
 }
 function maStoreCohorts(ss, mk, cohort) {
   var sh = getOrCreate(ss, MA_COHORT), head = ['Monat', 'Standort', 'UID', 'E-Mail', 'Name', 'Erstbesuch'];
@@ -1259,58 +1285,102 @@ function maStoreMetrics(ss, mk, loc, metrics) {
   });
   sh.getRange(2, 1, rows.length, 1).setNumberFormat('@'); sh.getRange(2, 1, rows.length, 4).setValues(rows);
 }
+// Kopftext (Methodik) steht in B2, damit Spalte A eingefroren werden kann (Ruben 05.09.2026)
+var MA_NOTE = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, Vertragsunterschriften, gestartete und gekündigte Abos, Sales by Category). '
+  + 'Probetraining stattgefunden = Erstbesucher mit Check-in im Monat, ohne Altkunden und Staff. Verkäufe = Vertragsunterschriften im Monat (Waiver), auch wenn das Abo später startet; '
+  + 'Abos gestartet = Abo-Starts ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. '
+  + 'Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026); Website-Leads nach Kanal je Standort ab September 2026. '
+  + 'Diagramme rechts: "Leads" = alle Quellen aus exercise.com, für Monate ohne diesen Wert (vor August 2026) die Website-Leads. Interessen stehen nur noch im Diagramm, nicht mehr in der Liste.';
 function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
+  if (sh.getMaxColumns() < 30) sh.insertColumnsAfter(sh.getMaxColumns(), 30 - sh.getMaxColumns());
+  sh.setFrozenColumns(0); sh.getRange(2, 1, 1, sh.getMaxColumns()).breakApart();
   var hist = ss.getSheetByName(MA_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 4).getValues() : [];
   var months = {}; hv.forEach(function (r) { months[mkOf(r[0])] = 1; });
-  months[Utilities.formatDate(new Date(), TZ, 'yyyy-MM')] = 1; // laufender Monat immer dabei (Leads Website, Kanal, Interesse live)
+  months[Utilities.formatDate(new Date(), TZ, 'yyyy-MM')] = 1; // laufender Monat immer dabei (Leads Website, Kanal live)
   var keys = Object.keys(months).sort().slice(-12);
   var val = {}; hv.forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
+  var vOf = function (k, loc, name) { var v = val[k + '|' + loc + '|' + name]; return v === undefined || v === '' ? '' : v; };
+  var dt = function (k) { return new Date(k + '-01T00:00:00'); };
   sh.getRange('A1').setValue('IMPACT Monatsabschluss').setFontSize(16).setFontWeight('bold');
-  sh.getRange('A2').setValue('Automatisch am 1. des Monats aus exercise.com (Lifecycle, Erstbesuche, Check-ins, gestartete und gekündigte Abos, Sales by Category). Probetraining stattgefunden = Erstbesucher mit Check-in im Monat, ohne Altkunden und Staff. Neukunden = gestartete Abos ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026). Website-Leads nach Kanal (Klick-ID, UTM oder Referrer der Anfrage) und Interesse je Standort ab September 2026.').setFontColor('#666666').setWrap(true);
-  sh.getRange('A2:N2').merge();
-  var r = 4;
+  sh.getRange('A2').setValue('Methodik').setFontColor('#999999');
+  sh.getRange('B2').setValue(MA_NOTE).setFontColor('#666666').setWrap(true);
+  sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 88);
+  var r = 4, blocks = [];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur';
     sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
-    var head = ['Kennzahl'].concat(keys.map(function (k) { return new Date(k + '-01T00:00:00'); }));
+    var head = ['Kennzahl'].concat(keys.map(dt));
     sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
     sh.getRange(r, 2, 1, keys.length).setNumberFormat('mmm yyyy');
     var hdr = r; r++;
-    var rowIdx = {};
     var rowsDef = [];
-    MA_ROWS.forEach(function (def) { rowsDef.push(def); if (def[0] === 'leads_web') { KANAL_ORDER.forEach(function (kn) { rowsDef.push(['kanal:' + kn, '   davon ' + kn, '0']); }); INTERESTS.forEach(function (it) { rowsDef.push(['int:' + it, '   Interesse ' + it, '0']); }); } });
+    MA_ROWS.forEach(function (def) { rowsDef.push(def); if (def[0] === 'leads_web') KANAL_ORDER.forEach(function (kn) { rowsDef.push(['kanal:' + kn, '   davon ' + kn, '0']); }); });
     rowsDef.forEach(function (def) {
       var row = [def[1]];
       keys.forEach(function (k, ci) {
-        if (def[0] === 'leads_web' && k >= LOG_START.slice(0, 7)) {
-          var col = String.fromCharCode(66 + ci);
-          row.push('=COUNTIFS(Daten!$C:$C,' + col + '$' + hdr + ',Daten!$D:$D,"' + locDE + '",Daten!$G:$G,1)');
-        } else if (def[0].indexOf('kanal:') === 0 || def[0].indexOf('int:') === 0) {
-          var colK = String.fromCharCode(66 + ci), dcol = def[0].indexOf('kanal:') === 0 ? 'J' : 'E', nm = def[0].split(':')[1];
-          row.push(k < LOG_START.slice(0, 7) ? '' : '=COUNTIFS(Daten!$C:$C,' + colK + '$' + hdr + ',Daten!$D:$D,"' + locDE + '",Daten!$' + dcol + ':$' + dcol + ',"' + nm + '",Daten!$G:$G,1)');
-        } else { var v = val[k + '|' + loc + '|' + def[0]]; row.push(v === undefined ? '' : v); }
+        var col = String.fromCharCode(66 + ci);
+        if (def[0] === 'leads_web' && k >= LOG_START.slice(0, 7)) row.push(maCountLeads(col + '$' + hdr, locDE, null, null));
+        else if (def[0].indexOf('kanal:') === 0) row.push(k < LOG_START.slice(0, 7) ? '' : maCountLeads(col + '$' + hdr, locDE, 'J', def[0].split(':')[1]));
+        else row.push(vOf(k, loc, def[0]));
       });
       sh.getRange(r, 1, 1, row.length).setValues([row]);
-      if (def[0].indexOf('kanal:') === 0 || def[0].indexOf('int:') === 0) sh.getRange(r, 1).setFontColor('#666666');
+      if (def[0].indexOf('kanal:') === 0) sh.getRange(r, 1).setFontColor('#666666');
       if (keys.length) sh.getRange(r, 2, 1, keys.length).setNumberFormat(def[2]);
-      if (['trial_attended', 'new_customers', 'net_growth', 'rev_total_gross'].indexOf(def[0]) >= 0) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
-      rowIdx[def[0]] = r; r++;
+      if (['trial_attended', 'sales_signed', 'new_customers', 'net_growth', 'rev_total_gross'].indexOf(def[0]) >= 0) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
+      r++;
     });
-    if (keys.length) {
-      // Hilfstabelle fuer das Diagramm (Monate als Zeilen) rechts neben dem Block, Spalte P..S
-      var hc = 16, piv = [['Monat', 'Probetrainings', 'Neukunden', 'Kündigungen']];
-      keys.forEach(function (k) { piv.push([new Date(k + '-01T00:00:00'), val[k + '|' + loc + '|trial_attended'] || 0, val[k + '|' + loc + '|new_customers'] || 0, val[k + '|' + loc + '|cancellations'] || 0]); });
-      sh.getRange(hdr, hc, piv.length, 4).setValues(piv); sh.getRange(hdr, hc, 1, 4).setFontWeight('bold').setBackground('#f3f3f3').setFontColor('#999999');
-      sh.getRange(hdr + 1, hc, keys.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(hdr, hc, piv.length, 4).setFontColor('#999999');
-      sh.insertChart(sh.newChart().setChartType(Charts.ChartType.COLUMN).setNumHeaders(1).addRange(sh.getRange(hdr, hc, piv.length, 4))
-        .setPosition(hdr, hc + 5, 0, 0).setOption('title', 'Funnel ' + locDE + ': Probetrainings, Neukunden, Kündigungen').setOption('colors', ['#9e9e9e', '#1a73e8', '#e2c210']).setOption('width', 620).setOption('height', 320).setOption('legend', { position: 'bottom' }).build());
-    }
+    blocks.push({ loc: loc, locDE: locDE, hdr: hdr });
     r += 2;
   });
-  sh.setColumnWidth(1, 330); // keine fixierte Spalte: A2:N2 ist verbunden, Google erlaubt das Einfrieren dann nicht
+  // Diagrammdaten unten (Monate als Zeilen), Diagramme rechts neben den Zahlen ab Spalte O
+  if (keys.length) {
+    var d = r + 1;
+    sh.getRange(d, 1).setValue('Diagrammdaten – automatisch, bitte nicht bearbeiten').setFontWeight('bold').setFontColor('#999999'); d += 2;
+    blocks.forEach(function (b) {
+      var mo = keys.map(function (k) { return [dt(k)]; });
+      var tbl = function (headRow, rows, fmt) {
+        sh.getRange(d, 1, 1, headRow.length).setValues([headRow]).setFontWeight('bold');
+        sh.getRange(d + 1, 1, rows.length, headRow.length).setValues(rows);
+        sh.getRange(d + 1, 1, rows.length, 1).setNumberFormat('mmm yyyy');
+        if (fmt) sh.getRange(d + 1, 2, rows.length, headRow.length - 1).setNumberFormat(fmt);
+        sh.getRange(d, 1, rows.length + 1, headRow.length).setFontColor('#999999').setFontSize(9);
+        var at = d; d += rows.length + 2; return at;
+      };
+      var num = function (v) { return v === '' || v === null || v === undefined ? 0 : Number(v); };
+      var fun = tbl([b.locDE + ' Funnel', 'Leads', 'Probetrainings', 'Abos gestartet', 'Kündigungen'], keys.map(function (k) {
+        var la = vOf(k, b.loc, 'leads_all'), lw = vOf(k, b.loc, 'leads_web');
+        return [dt(k), num(la) || num(lw), num(vOf(k, b.loc, 'trial_attended')), num(vOf(k, b.loc, 'new_customers')), num(vOf(k, b.loc, 'cancellations'))];
+      }));
+      var quo = tbl([b.locDE + ' Quoten', 'No-Show', 'Verkäufe / Probetrainings', 'Verkäufe / Leads', 'Kohorten-Conversion'], keys.map(function (k) {
+        return [dt(k), num(vOf(k, b.loc, 'noshow_rate')), num(vOf(k, b.loc, 'conv_sales_trial')), num(vOf(k, b.loc, 'conv_sales_lead')), num(vOf(k, b.loc, 'conv_cohort_rate'))];
+      }), '0%');
+      var kan = tbl([b.locDE + ' Kanal'].concat(KANAL_ORDER), keys.map(function (k, ci) {
+        return [dt(k)].concat(KANAL_ORDER.map(function (kn) { return k < LOG_START.slice(0, 7) ? 0 : maCountLeads('$A' + (d + 1 + ci), b.locDE, 'J', kn); }));
+      }));
+      var inr = tbl([b.locDE + ' Interesse'].concat(INTERESTS), keys.map(function (k, ci) {
+        return [dt(k)].concat(INTERESTS.map(function (it) { return k < LOG_START.slice(0, 7) ? 0 : maCountLeads('$A' + (d + 1 + ci), b.locDE, 'E', it); }));
+      }));
+      var C = function (type, at, w, row, col, title, opts) {
+        var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(sh.getRange(at, 1, keys.length + 1, w))
+          .setPosition(row, col, 0, 0).setOption('title', title).setOption('width', 620).setOption('height', 320)
+          .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'MMM yy' }).setOption('vAxis', { minValue: 0 });
+        Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
+        sh.insertChart(ch.build());
+      };
+      C(Charts.ChartType.COLUMN, fun, 5, b.hdr, 15, 'Funnel ' + b.locDE + ': Leads, Probetrainings, Abos, Kündigungen', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'] });
+      C(Charts.ChartType.LINE, quo, 5, b.hdr, 22, 'Quoten ' + b.locDE, { colors: ['#d93025', '#1a73e8', '#34a853', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 } });
+      C(Charts.ChartType.COLUMN, kan, KANAL_ORDER.length + 1, b.hdr + 16, 15, 'Website-Leads ' + b.locDE + ' nach Kanal', { isStacked: true });
+      C(Charts.ChartType.COLUMN, inr, INTERESTS.length + 1, b.hdr + 16, 22, 'Website-Leads ' + b.locDE + ' nach Interesse', { isStacked: true });
+    });
+  }
+  sh.setColumnWidth(1, 330); sh.setFrozenColumns(1); // Spalte A bleibt beim seitlichen Scrollen stehen (Ruben 05.09.2026)
   var ma = ss.getSheetByName(MA_SHEET); if (ma) { ss.setActiveSheet(ma); ss.moveActiveSheet(1); }
   [MA_HIST, MA_COHORT].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
+}
+// COUNTIFS ueber den Tab Daten: C Monat, D Standort, G zaehlt, E Interesse, J Kanal
+function maCountLeads(monthRef, locDE, col, name) {
+  return '=COUNTIFS(Daten!$C:$C,' + monthRef + ',Daten!$D:$D,"' + locDE + '",Daten!$G:$G,1' + (col ? ',Daten!$' + col + ':$' + col + ',"' + name + '"' : '') + ')';
 }
 
 // ------------------------------------------------------------ Probetrainings-Liste (seit 04.09.2026, Entscheid Ruben)
@@ -1637,6 +1707,7 @@ function trDailyMail() {
 function runProbetrainingsHourly() {
   var h = Number(Utilities.formatDate(new Date(), TZ, 'H')); if (h < 9 || h > 22) return;
   try { var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('trTrigVer') !== TR_TRIG_VER) { installTrialTriggers(); pr.setProperty('trTrigVer', TR_TRIG_VER); } } catch (e0) { Logger.log('Trigger-Update: ' + e0); }
+  try { maQueueCatchUp(); } catch (e1) { Logger.log('Monats-Nachlauf: ' + e1); }
   try { runProbetrainings(); } catch (e) { Logger.log('Probetrainings Fehler: ' + e); MailApp.sendEmail({ to: MAIL.fallback, subject: '[Team] Probetrainings FEHLGESCHLAGEN ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: String(e && e.stack ? e.stack : e) }); }
 }
 function installTrialTriggers() {
