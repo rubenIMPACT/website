@@ -67,6 +67,17 @@ Probetrainings" und "Quote Verkaeufe / Leads (alle Quellen)". "Leads" im Diagram
 (vor August 2026) die Website-Leads. Nachberechnung ganzer Monate laeuft ueber MA_CATCHUP/maQueueCatchUp: der Stundenlauf legt
 einen Einmal-Trigger `maCatchUp` an, der die Monate aus MA_CATCHUP_MONTHS einzeln abarbeitet (ein Monat je Ausfuehrung wegen des
 6-Minuten-Limits). Marke aendern = Nachlauf laeuft erneut.
+WOCHENREPORT-UMBAU (Ruben 05.09. 09:45): gleiche Logik wie der Monatsabschluss - Kennzahlen als Zeilen, Zeit als Spalten, je Standort
+ein Block in der Reihenfolge Leads, Anrufe gefuehrt, Trials, Verkauft (Offene Pruefungen = rote Zeilen im Team-KPIs-Sheet, nur "Stand
+jetzt"), dann Gesamt. Funnel-Tabelle: 16 Wochen als Spalten (laufende Woche gelb markiert), je Standort Leads + Kanalzeilen grau,
+Anrufe, Trials, No-Shows, Verkauft, Quote; Gesamt zusaetzlich Delta % Leads und Dubletten. Spalte A eingefroren, Methodik in B2:N2.
+Diagramme rechts ab Spalte S, links Zuerich, rechts Winterthur (Funnel-Linien, Kanal, Interesse), Diagrammdaten grau unten.
+Die Kohorten-ANZAHL ("Kohorte: Probetrainer des Monats mit Abo bis heute") ist aus dem Monatsabschluss raus (Ruben: Zeilen 34/87
+unnoetig), die Kohorten-Quote bleibt. Das Team-Sheet heisst seit 05.09. "Team KPIs" (Datei-ID unveraendert, TEAM_ID).
+STUNDENLAUF-MINUTE: installTrialTriggers legt everyHours(1) neu an, Google waehlt dann eine neue Minute - seit 04.09. 20:36 laeuft der
+Lauf um :52 (vorher :32). Beim Pruefen eines Laufs also erst die letzte Fehlermail bzw. den Stand-Stempel im Tab anschauen.
+EDITOR-TAB HAENGT (05.09. 09:47): nach dem zweiten fetch/pushEditOperations reagierte der Tab nicht mehr (Script injection timed out,
+selbst setTimeout lief nicht weiter). Ausweg: neuen Tab oeffnen, Editor dort laden, gleiche Prozedur, alten Tab schliessen.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
