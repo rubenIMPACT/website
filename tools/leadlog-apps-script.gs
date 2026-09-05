@@ -1329,6 +1329,7 @@ function runWerbekosten() {
     if (r.errors && r.errors.length) notes.push('Meta-Fehler: ' + JSON.stringify(r.errors).slice(0, 300));
   }
   buildWerbekosten(ss);
+  buildMonatsabschluss(ss); // CPL/CAC im Monatsabschluss lesen die Werbedaten beim Bauen, deshalb taeglich mit neu bauen
   Logger.log('Werbekosten: ' + notes.join(' | '));
   return notes.join(' | ');
 }
