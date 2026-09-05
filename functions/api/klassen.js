@@ -497,12 +497,16 @@ function trialUrls(p) {
     cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qS + "&per=3000", start: sStart },
     waiver: { url: API + "/api/v4/reports/waiver?" + qS + "&per=3000", start: sStart },
     tot: { url: API + "/api/v4/reports/total_visits_per_client?" + query(tStart, tEnd) + "&per=5000", start: tStart },
-    life: { url: API + "/api/v4/reports/lifecycle?" + qS + "&per=20000", start: sStart }, // "Current" = aktuelle Stage je Person (per E-Mail); langes Fenster fuer "Zahlung offen"
     notes: { url: API + "/api/v4/reports/account_notes?" + qW + "&per=6000", start }, // letzte Notiz je Person (Date, Title)
   };
   if (c2Start <= end) U.v2 = { url: API + "/api/v4/reports/detailed_visits?" + query(c2Start, end) + "&per=8000", start: c2Start };
+  // Lifecycle ("Current" = aktuelle Stage je Person, per E-Mail) ueber das Verkaufsfenster fuer "Zahlung offen".
+  // In 45-Tage-Bloecken: ein Fenster ueber die vollen 180 Tage liefert "too_large" (Lehre 04.09.2026, Stundenlauf stand still).
+  let ls = sStart, n = 0;
+  while (ls <= today && n < 6) { const le = addDaysStr(ls, 44) < today ? addDaysStr(ls, 44) : today; U["life" + ++n] = { url: API + "/api/v4/reports/lifecycle?" + query(ls, le) + "&per=20000", start: ls }; ls = addDaysStr(le, 1); }
   return U;
 }
+const lifeKeys = (U) => Object.keys(U).filter((k) => /^life\d+$/.test(k));
 const fvCompact = (rows) => rows.map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10).replace(/\//g, "-"), cls: String(r["First Session Visit"] || "").replace(/\s+/g, " ").trim() }));
 function visCompact(cs) {
   const H = (cs && cs.headers) || [], vi = (n) => H.indexOf(n), out = [];
@@ -519,7 +523,7 @@ async function trials(H, p) {
   }
   if (phase === "t1") {
     const out = {};
-    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "life", "notes"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "notes"].concat(lifeKeys(U))) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
     return { ok: true, started: out };
   }
   if (phase === "t2") {
@@ -533,7 +537,7 @@ async function trials(H, p) {
     return { ready: true, fv_zh: fvC, v1: vC };
   }
   if (phase === "t3") {
-    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "life", "notes"].concat(U.v2 ? ["v2"] : []);
+    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "notes"].concat(lifeKeys(U)).concat(U.v2 ? ["v2"] : []);
     for (const k of keys) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
@@ -543,7 +547,7 @@ async function trials(H, p) {
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: fvCompact(rowsOf(got.fvWT)) };
     const vis = (Array.isArray(p.v1) ? p.v1 : []).concat(U.v2 ? visCompact(got.v2) : []);
     const prior = new Set(rowsOf(got.tot).filter((r) => num(r["Total Completed"]) > 0).map((r) => String(r["User ID"] || "")).filter(Boolean));
-    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), life: rowsOf(got.life), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
+    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), life: lifeKeys(U).reduce((a, k) => a.concat(rowsOf(got[k])), []), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
   }
   return { error: "phase" };
 }
