@@ -29,6 +29,7 @@ export async function onRequestPost(context) {
     const q = query(start, end);
     if (p.action === "monat") return j(await monat(H, p, start, end));
     if (p.action === "trials") return j(await trials(H, p));
+    if (p.action === "probe") return j(await probe(H, p));
     if (phase === 1) {
       const out = {};
       for (const k of ["recurring", "visits", "subs", "Zurich"]) { const r = await getJson(H, reportUrl(k, q) + "&refresh=true"); out[k] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error }; }
@@ -525,6 +526,20 @@ const fvCompact = (rows) => rows.map((r) => ({ uid: String(r["User ID"]), email:
 function visCompact(cs) {
   const H = (cs && cs.headers) || [], vi = (n) => H.indexOf(n), out = [];
   ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((x) => out.push({ uid: String(x[vi("User ID")]), name: ((x[vi("First Name")] || "") + " " + (x[vi("Last Name")] || "")).trim(), email: String(x[vi("Email")] || "").toLowerCase(), date: chDate(x[vi("Start Time")]), time: String(x[vi("Start Time")] || "").slice(11, 19), cls: String(x[vi("Service")] || "").replace(/\s+/g, " ").trim(), loc: String(x[vi("Location")] || ""), status: String(x[vi("Status")] || ""), staff: String(x[vi("Primary Staff")] || ""), staff2: String(x[vi("Secondary Staff")] || ""), bookedBy: String(x[vi("Booked By")] || ""), bookedAt: chDate(x[vi("Booked At")]), pkg: String(x[vi("Client Package Used")] || ""), guest: String(x[vi("Guest From Visit ID")] || "").replace(/null/i, "") })));
+  return out;
+}
+// Erkundung: beliebige Reports mit Fenster abfragen (Status, Filter, Spalten, erste Zeilen). Nur fuer die Entwicklung,
+// Ergebnis geht per Apps Script als Mail an Ruben.
+async function probe(H, p) {
+  const out = {}, list = Array.isArray(p.reports) ? p.reports : [];
+  for (const it of list) {
+    const name = typeof it === "string" ? it : String(it.name || ""), extra = typeof it === "string" ? "" : String(it.extra || "");
+    if (!/^[a-z_]+$/.test(name)) continue;
+    const url = API + "/api/v4/reports/" + name + "?" + query(String(p.start), String(p.end)) + "&per=" + (Number(p.per) || 50) + extra + (p.refresh ? "&refresh=true" : "");
+    const r = await getJson(H, url), cs = r.json && r.json.cached_stats, rows = r.json ? rowsOf(cs) : [];
+    const heads = rows[0] ? Object.keys(rows[0]) : (cs && !Array.isArray(cs) && cs.headers ? cs.headers : []);
+    out[name] = { status: r.status, refreshing: r.json && r.json.refreshing, error: r.json && r.json.error, filters: filtersText(r.json || {}).slice(0, 160), n: rows.length, headers: heads.slice(0, 40), sample: rows.slice(0, 3), keys: r.json ? Object.keys(r.json).slice(0, 12) : [] };
+  }
   return out;
 }
 async function trials(H, p) {

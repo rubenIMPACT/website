@@ -1318,6 +1318,14 @@ function maCatchUp() {
   }
   if (q.length) ScriptApp.newTrigger('maCatchUp').timeBased().after(60 * 1000).create();
 }
+// Entwicklungs-Helfer: Reports erkunden (Zahlungen fuer den LTV), Ergebnis als Mail. Aufruf ueber RUN_NOW.
+function PROBE_REPORTS() {
+  var base = { action: 'probe', start: '2026-08-01', end: '2026-08-07', per: 30, reports: ['charges', 'payments', 'itemized_sales', 'transactions', 'sales', 'invoices', 'client_charges', 'revenue', 'refunds', { name: 'active_subscription', extra: '&only_active=false' }] };
+  var r1 = klassenCall(Object.assign({ refresh: true }, base));
+  Utilities.sleep(30000);
+  var r2 = klassenCall(base);
+  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Reports ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify({ first: r1, second: r2 }, null, 1).slice(0, 60000) });
+}
 function maStoreCohorts(ss, mk, cohort) {
   var sh = getOrCreate(ss, MA_COHORT), head = ['Monat', 'Standort', 'UID', 'E-Mail', 'Name', 'Erstbesuch'];
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
