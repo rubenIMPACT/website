@@ -501,12 +501,26 @@ function trialUrls(p) {
   };
   if (c2Start <= end) U.v2 = { url: API + "/api/v4/reports/detailed_visits?" + query(c2Start, end) + "&per=8000", start: c2Start };
   // Lifecycle ("Current" = aktuelle Stage je Person, per E-Mail) ueber das Verkaufsfenster fuer "Zahlung offen".
-  // In 45-Tage-Bloecken: ein Fenster ueber die vollen 180 Tage liefert "too_large" (Lehre 04.09.2026, Stundenlauf stand still).
+  // In 45-Tage-Bloecken: ein Fenster ueber die vollen 180 Tage liefert "too_large" (Lehre 04.09.2026). Der Report hat EINEN
+  // Cache fuer alle Fenster (Lehre 05.09.: Block 2 zeigte die Filter von Block 1), deshalb holt das Apps Script die Bloecke
+  // nacheinander ueber die Phasen lr (refresh) / lg (abholen, kompakt je E-Mail) und gibt sie t3 als p.life mit.
   let ls = sStart, n = 0;
   while (ls <= today && n < 6) { const le = addDaysStr(ls, 44) < today ? addDaysStr(ls, 44) : today; U["life" + ++n] = { url: API + "/api/v4/reports/lifecycle?" + query(ls, le) + "&per=20000", start: ls }; ls = addDaysStr(le, 1); }
   return U;
 }
 const lifeKeys = (U) => Object.keys(U).filter((k) => /^life\d+$/.test(k));
+// kompakte Lifecycle-Zeilen aus den lg-Phasen zurueck in die Report-Form, die computeTrials liest (je E-Mail eine Zeile mit dem
+// letzten Uebergang, dazu eine Zeile fuer den Uebergang nach "Signed but no payment")
+function lifeExpand(list) {
+  const out = [];
+  (Array.isArray(list) ? list : []).forEach((a) => {
+    if (!Array.isArray(a) || !a[0]) return;
+    const base = { Email: a[0], Current: a[2] || "", Location: a[3] || "", "First Name": a[4] || "", "Last Name": "" };
+    out.push(Object.assign({ Date: a[1], "Transitioned To": "" }, base));
+    if (a[5]) out.push(Object.assign({ Date: a[5], "Transitioned To": "Signed but no payment" }, base));
+  });
+  return out;
+}
 const fvCompact = (rows) => rows.map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10).replace(/\//g, "-"), cls: String(r["First Session Visit"] || "").replace(/\s+/g, " ").trim() }));
 function visCompact(cs) {
   const H = (cs && cs.headers) || [], vi = (n) => H.indexOf(n), out = [];
@@ -523,8 +537,23 @@ async function trials(H, p) {
   }
   if (phase === "t1") {
     const out = {};
-    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "notes"].concat(lifeKeys(U))) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
-    return { ok: true, started: out };
+    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "notes"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    return { ok: true, started: out, life_blocks: lifeKeys(U).length };
+  }
+  if (phase === "lr" || phase === "lg") {
+    const k = "life" + Number(p.i || 0); if (!U[k]) return { error: "block" };
+    if (phase === "lr") { const r = await getJson(H, U[k].url + "&refresh=true"); return { ok: true, status: r.status }; }
+    const r = await getJson(H, U[k].url); if (!r.json) return { error: k + "_" + r.status };
+    if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
+    // kompakt je E-Mail: letzter Uebergang (Datum, Current, Standort, Name) und Datum des Uebergangs nach "Signed but no payment"
+    const by = {};
+    rowsOf(r.json.cached_stats).forEach((x) => {
+      const e = String(x["Email"] || "").toLowerCase().trim(), d = chDate(x["Date"]); if (!e || !d) return;
+      const o = by[e] = by[e] || { e, d: "", c: "", l: "", n: "", pay: "" };
+      if (o.d <= d) { o.d = d; o.c = String(x["Current"] || ""); o.l = String(x["Location"] || ""); o.n = ((x["First Name"] || "") + " " + (x["Last Name"] || "")).trim(); }
+      if (String(x["Transitioned To"] || "") === "Signed but no payment" && o.pay < d) o.pay = d;
+    });
+    return { ready: true, rows: Object.keys(by).map((e) => [e, by[e].d, by[e].c, by[e].l, by[e].n, by[e].pay]) };
   }
   if (phase === "t2") {
     const fv = await getJson(H, U.fvZH.url), v1 = await getJson(H, U.v1.url);
@@ -537,7 +566,7 @@ async function trials(H, p) {
     return { ready: true, fv_zh: fvC, v1: vC };
   }
   if (phase === "t3") {
-    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "notes"].concat(lifeKeys(U)).concat(U.v2 ? ["v2"] : []);
+    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "notes"].concat(U.v2 ? ["v2"] : []);
     for (const k of keys) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
@@ -547,7 +576,7 @@ async function trials(H, p) {
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: fvCompact(rowsOf(got.fvWT)) };
     const vis = (Array.isArray(p.v1) ? p.v1 : []).concat(U.v2 ? visCompact(got.v2) : []);
     const prior = new Set(rowsOf(got.tot).filter((r) => num(r["Total Completed"]) > 0).map((r) => String(r["User ID"] || "")).filter(Boolean));
-    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), life: lifeKeys(U).reduce((a, k) => a.concat(rowsOf(got[k])), []), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
+    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), life: lifeExpand(p.life), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [] }) };
   }
   return { error: "phase" };
 }

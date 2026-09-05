@@ -1557,7 +1557,16 @@ function runProbetrainings(startOpt) {
   var p2 = null, p3 = null, i;
   for (i = 0; i < 9; i++) { Utilities.sleep(20000); p2 = trCall(Object.assign({ phase: 't2' }, base)); if (p2.error) throw new Error('Trials t2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Trials t2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
-  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open }, base)); if (p3.error) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  // Lifecycle in Bloecken nacheinander (ein Cache je Report), waehrend fvWT und v2 im Hintergrund generieren
+  var life = [], nb = Number(p1.life_blocks) || 0, b, lg;
+  for (b = 1; b <= nb; b++) {
+    var lr = trCall(Object.assign({ phase: 'lr', i: b }, base)); if (lr.error) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lr).slice(0, 300));
+    lg = null;
+    for (i = 0; i < 8; i++) { Utilities.sleep(8000); lg = trCall(Object.assign({ phase: 'lg', i: b }, base)); if (lg.error) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lg).slice(0, 300)); if (lg.ready) break; }
+    if (!lg || !lg.ready) throw new Error('Trials Lifecycle-Block ' + b + ' nicht fertig: ' + JSON.stringify(lg).slice(0, 200));
+    life = life.concat(lg.rows || []);
+  }
+  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open, life: life }, base)); if (p3.error) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Trials t3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
   var data = p3.data, lines = [], leadMap = trLeadMap(main);
   Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, (data.payopen || {})[loc] || [], start, today, leadMap)); });
