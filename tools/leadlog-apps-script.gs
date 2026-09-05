@@ -1425,7 +1425,11 @@ function runLTV() {
   try {
     var ss = SpreadsheetApp.openById(SHEET_ID), q = ltvQueue(ss), done = [], t0 = Date.now();
     ltvDropChain();
-    while (q.length && done.length < 8 && Date.now() - t0 < 230000) { var it = q.shift(); done.push(it.kind + ' ' + it.mk + ': ' + ltvFetch(ss, it.mk, it.kind)); }
+    // Sicherheitsnetz: falls diese Ausfuehrung am 6-Minuten-Limit stirbt (Lehre 12:18: ein Abruf kann 2 Minuten dauern), laeuft die
+    // Kette ueber diesen Trigger trotzdem weiter; bei normalem Ende wird er unten ersetzt bzw. geloescht
+    if (q.length) ScriptApp.newTrigger('runLTVChain').timeBased().after(7 * 60 * 1000).create();
+    while (q.length && done.length < 8 && Date.now() - t0 < 150000) { var it = q.shift(); done.push(it.kind + ' ' + it.mk + ': ' + ltvFetch(ss, it.mk, it.kind)); }
+    ltvDropChain();
     if (q.length) ScriptApp.newTrigger('runLTVChain').timeBased().after(60 * 1000).create();
     else { done.push('Flags: ' + ltvFlagsRefresh(ss)); buildLTV(ss); }
     Logger.log('LTV: ' + done.join(', ') + (q.length ? ' | offen: ' + q.length : ' | fertig, Tab LTV gebaut'));
