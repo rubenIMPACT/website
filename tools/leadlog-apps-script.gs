@@ -1597,7 +1597,7 @@ function PROBE_REPORTS() {
   MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Reports ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify({ first: r1, second: r2 }, null, 1).slice(0, 60000) });
 }
 function PROBE_CLIENTS() {
-  var r = klassenCall({ action: 'probe_clients', start: '2026-08-01', end: '2026-08-31', pages: 40 });
+  var r = klassenCall({ action: 'probe_clients', start: '2026-08-01', end: '2026-08-31', pages: 40, month: '2026-08' });
   MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Clients/Tags ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify(r, null, 1).slice(0, 60000) });
 }
 function PROBE_CHARGES_STATUS() {

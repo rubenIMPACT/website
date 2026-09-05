@@ -577,25 +577,32 @@ async function ltv(H, p) {
 
 // Erkundung: alle Kunden mit Tags aus der v2-Clients-API (Double-Check "Trial Winterthur"/"Trial Zuerich", Ruben 05.09.2026)
 async function probeClients(H, p) {
-  const per = 200, maxPages = Number(p.pages) || 30, out = { pages: 0, n: 0, keys: [], sample: null, tags: {}, byMonth: {} };
+  // created_at ist ein Unix-Timestamp; Monat in Europe/Zurich. Ausgabe kompakt: je Monat Konten, Trial-Tags, Migrations-Tags,
+  // fuer den Pruefmonat (p.month) zusaetzlich Lifecycle-Stage-IDs der Trial-Konten je Standort.
+  const per = 200, maxPages = Number(p.pages) || 40, want = String(p.month || ""), fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich", year: "numeric", month: "2-digit" });
+  const out = { pages: 0, n: 0, keys: [], byMonth: {}, stagesWant: { "Trial Zurich": {}, "Trial Winterthur": {} }, tagsTop: {} };
+  const tagCount = {};
   for (let page = 1; page <= maxPages; page++) {
     const r = await getJson(H, API + "/api/v2/clients?per=" + per + "&page=" + page);
     if (!r.json) { out.error = "http_" + r.status; break; }
     const list = r.json.client || r.json.clients || r.json.data || [];
-    if (!Array.isArray(list) || !list.length) { out.last = { status: r.status, keys: r.json ? Object.keys(r.json).slice(0, 10) : [] }; break; }
+    if (!Array.isArray(list) || !list.length) break;
     out.pages = page;
     list.forEach((c) => {
-      out.n++;
-      if (!out.sample) { out.keys = Object.keys(c); out.sample = { id: c.id, created_at: c.created_at, tag_list: c.tag_list, tags: c.tags, lifecycle_stage: c.lifecycle_stage, lifecycle_stage_id: c.lifecycle_stage_id, location: c.location, location_id: c.location_id, source: c.source }; }
-      const raw = c.tag_list != null ? c.tag_list : c.tags, tags = Array.isArray(raw) ? raw.map(String) : String(raw || "").split(/,\s*/).map((t) => t.trim()).filter(Boolean);
-      const mk = String(c.created_at || "").slice(0, 7), b = out.byMonth[mk] = out.byMonth[mk] || { __all: 0 };
-      b.__all++;
-      tags.forEach((t) => { out.tags[t] = (out.tags[t] || 0) + 1; if (/trial|probetraining|lead/i.test(t)) b[t] = (b[t] || 0) + 1; });
+      out.n++; if (!out.keys.length) out.keys = Object.keys(c).slice(0, 60);
+      const raw = c.tags != null ? c.tags : c.tag_list, tags = Array.isArray(raw) ? raw.map(String) : String(raw || "").split(/,\s*/).map((t) => t.trim()).filter(Boolean);
+      const ts = Number(c.created_at) || 0, mk = ts ? fmt.format(new Date(ts * 1000)) : "?";
+      const b = out.byMonth[mk] = out.byMonth[mk] || { konten: 0, trialZH: 0, trialWT: 0, migriert: 0 };
+      b.konten++;
+      const hasZH = tags.some((t) => /^trial z/i.test(t)), hasWT = tags.some((t) => /^trial w/i.test(t)), mig = tags.some((t) => /migrat|imported|bexio/i.test(t));
+      if (hasZH) b.trialZH++; if (hasWT) b.trialWT++; if (mig) b.migriert++;
+      tags.forEach((t) => { tagCount[t] = (tagCount[t] || 0) + 1; });
+      if (want && mk === want) { const st = String(c.lifecycle_stage_id || c.lifecycle_stage || "?"); if (hasZH) out.stagesWant["Trial Zurich"][st] = (out.stagesWant["Trial Zurich"][st] || 0) + 1; if (hasWT) out.stagesWant["Trial Winterthur"][st] = (out.stagesWant["Trial Winterthur"][st] || 0) + 1; }
     });
     if (list.length < per) break;
   }
-  const top = {}; Object.keys(out.tags).sort((a, b) => out.tags[b] - out.tags[a]).slice(0, 60).forEach((k) => { top[k] = out.tags[k]; });
-  out.tags = top;
+  Object.keys(tagCount).sort((a, b) => tagCount[b] - tagCount[a]).slice(0, 25).forEach((k) => { out.tagsTop[k] = tagCount[k]; });
+  const months = Object.keys(out.byMonth).sort(); out.byMonth = months.slice(-14).reduce((o, k) => { o[k] = out.byMonth[k]; return o; }, {});
   return out;
 }
 
