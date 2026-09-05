@@ -226,7 +226,13 @@ function setupAnalyse() {
   ss.setActiveSheet(ss.getSheetByName('Monatsabschluss'));
 }
 function getOrCreate(ss, name) { return ss.getSheetByName(name) || ss.insertSheet(name); }
-function clearSheet(sh) { var f = sh.getFilter(); if (f) f.remove(); sh.clear(); var cs = sh.getCharts(); for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]); }
+// sh.clear() laesst Zahlenformate stehen (Lehre 05.09.2026: alte Prozent-/Datumsformate machten aus 27 Trials "2700%" und aus
+// 15 Leads "15.01.1900"), deshalb zusaetzlich das ganze Blatt auf Standardformat zuruecksetzen.
+function clearSheet(sh) {
+  var f = sh.getFilter(); if (f) f.remove(); sh.clear();
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearFormat().setNumberFormat('General');
+  var cs = sh.getCharts(); for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]);
+}
 
 // Leads Historie (manuelle Monatszahlen aus HISTORY) wandert in die MonatsHistorie (Kennzahl leads_web), der Tab entfaellt (Ruben 04.09.2026)
 function migrateHistorie(ss) {
