@@ -118,6 +118,12 @@ ohne ausweisen, weil sie gekuendigt wird; LTV auf Netto-Umsatz mit allem; Kohort
   Abo-Zahlung) Monate (max 12), sonst gaelten Quartals-/Jahreszahler als abgesprungen. ARPU, Retention und Prognose nur aus den
   Neukunden. Erster Stand 05.09.: ZH ARPU 216, Retention 90.8 %, Dauer 10.9 Monate, LTV 2'344; WT 171 / 92.7 % / 13.8 / 2'358;
   WT-Kohorten liegen nach 9 Monaten bereits bei ~1'750 kumuliert mit 75-86 % aktiv - die Prognose ist konservativ (junge Stichprobe).
+- GOOGLE-ADS-SKRIPT LIVE (05.09. 11:03, in Rubens Chrome eingerichtet): Skript "Werbekosten -> Analytics Sheet" (scriptId 12252568)
+  im Konto 831-058-5625, autorisiert (Sheets + Ads, 2FA per Gmail-Prompt durch Ruben), taeglich 06:00-07:00. Erstlauf 400 Tage:
+  275 Zeilen ab 2025-08-01; Google-Spend Feb bis 21.08.2026 = 0 (Kampagnen offenbar pausiert, Neustart 22.08.), Aug 2026 nur
+  22.-31.08. (WT 951, ZH 298), Sep bis 05.09. WT 424 / ZH 136. Der Ads-Editor ist CodeMirror 5: `document.querySelector('.CodeMirror')
+  .CodeMirror.setValue(txt)` mit txt per fetch von raw.githubusercontent ersetzt den Code sauber (kein Tippen, keine Auto-Klammern);
+  danach Save, Run > "Run without preview". Frequenz ueber die Scripts-Liste (Spalte Frequency, Stift).
 - Probe-Aktion `probe` in klassen.js + PROBE_REPORTS im Apps Script (Ergebnis per Mail) fuer kuenftige Report-Erkundungen.
   Reports mit 403 fuer den API-User: payments, transactions, invoices, client_charges, revenue, refunds, started_subscription.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
