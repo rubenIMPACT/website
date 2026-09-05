@@ -1397,62 +1397,72 @@ function runLTVChain() { try { runLTV(); } catch (e) { ltvDropChain(); MailApp.s
 function runLTVMonthly() { runLTVChain(); }
 function buildLTV(ss) {
   var sh = getOrCreate(ss, LTV_SHEET); clearSheet(sh);
-  var rows = ltvRead(ss).filter(function (x) { return x.uid !== '-'; });
-  var mset = {}; rows.forEach(function (x) { mset[x.mk] = 1; }); var mks = Object.keys(mset).sort();
+  // Testzahlungen (CHF 1-3 aus der Einrichtung) raus; Kunde = mindestens eine Abo-Zahlung, Einmalkaeufe zaehlen zum Umsatz dazu
+  var rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.net >= 5; });
   sh.getRange('A1').setValue('IMPACT Kundenwert (LTV)').setFontSize(16).setFontWeight('bold');
-  if (!mks.length) { sh.getRange('A2').setValue('Noch keine Zahlungsdaten – das Nachladen läuft.').setFontColor('#666666'); return; }
-  var mig = mks[0], mig2 = nextMonth(mig), lastFull = mks[mks.length - 1], cur = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+  if (!rows.length) { sh.getRange('A2').setValue('Noch keine Zahlungsdaten – das Nachladen läuft.').setFontColor('#666666'); return; }
+  var mks = {}; rows.forEach(function (x) { mks[x.mk] = 1; }); var months = Object.keys(mks).sort(), lastFull = months[months.length - 1], cur = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+  // Vorauszahlungen: eine Abo-Zahlung deckt round(Betrag / Median einer Abo-Zahlung) Monate (max. 12), sonst gaelte ein Jahreszahler nach einem Monat als weg
+  var amts = rows.filter(function (x) { return x.type === 'Abo' && x.n > 0; }).map(function (x) { return x.net / x.n; }).sort(function (a, b) { return a - b; });
+  var med = amts.length ? amts[Math.floor(amts.length / 2)] : 180;
+  var cover = function (x) { return x.type !== 'Abo' ? 0 : Math.max(1, Math.min(12, Math.round((x.net / Math.max(1, x.n)) / med))); };
   var cust = {};
-  rows.forEach(function (x) { var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, loc: x.loc, net: 0, m: {}, first: x.mk, last: x.mk }; c.net += x.net; c.m[x.mk] = (c.m[x.mk] || 0) + x.net; if (x.mk < c.first) c.first = x.mk; if (x.mk > c.last) c.last = x.mk; if (x.type === 'Abo') c.loc = x.loc; });
-  var list = Object.keys(cust).map(function (u) { return cust[u]; });
-  list.forEach(function (c) { c.migrated = c.first <= mig2; c.active = c.last >= prevMonth(lastFull); });
-  sh.getRange('A2').setValue('Netto-Umsatz (ohne MwSt, nach Rückerstattungen, Abos und Einmalkäufe) je Kunde und Monat aus dem Report Charges, Stand ' + lastFull + ' (letzter voller Monat). '
-    + 'Migration nach exercise.com: erster Monat mit Zahlungen = ' + mig + '; wer bis ' + mig2 + ' zum ersten Mal zahlt, gilt als migriert (echtes Startdatum unbekannt) und bleibt aus den Kohorten draussen. '
-    + 'Kohorte = Monat der ersten Zahlung, kumulierter Netto-Umsatz pro Kunde nach 3/6/9/12 Monaten (nur wenn die Kohorte alt genug ist). '
-    + 'Prognose-LTV = Ø Netto je zahlendem Kunden und Monat (letzte 3 Monate, alle Kunden) × erwartete Dauer 1/(1−Retention); Retention = Anteil der Zahler eines Monats, die im Folgemonat wieder zahlen (letzte 6 Monate). '
-    + 'Jahreszahler drücken die Retention leicht. Der Prognose-LTV steht auch im Monatsabschluss (LTV : CAC).').setFontColor('#666666').setWrap(true);
-  sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 96);
+  rows.forEach(function (x) {
+    var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, loc: x.loc, net: 0, m: {}, active: {}, first: '' };
+    c.net += x.net; c.m[x.mk] = (c.m[x.mk] || 0) + x.net;
+    if (x.type === 'Abo') { c.loc = x.loc; if (!c.first || x.mk < c.first) c.first = x.mk; for (var i = 0, cv = cover(x); i < cv; i++) c.active[addMonths(x.mk, i)] = 1; }
+  });
+  var list = Object.keys(cust).map(function (u) { return cust[u]; }).filter(function (c) { return c.first; });
+  sh.getRange('A2').setValue('Netto-Umsatz (ohne MwSt, nach Rückerstattungen; Abos und Einmalkäufe) je Kunde und Monat aus dem Report Charges, Stand ' + lastFull + ' (letzter voller Monat). Kunde = mindestens eine Abo-Zahlung; Testzahlungen unter CHF 5 ausgeschlossen. '
+    + 'Vorauszahlungen: eine Abo-Zahlung deckt Betrag ÷ Median einer Abo-Zahlung (CHF ' + Math.round(med) + ') Monate, damit Quartals- und Jahreszahler nicht als abgesprungen gelten. '
+    + 'Migration nach exercise.com lief gestaffelt: Monate, deren Kohorte mehr als doppelt so gross ist wie der normale Zugang (Median der letzten 5 Monate), gelten als Migrationsmonate; erst die Kohorten danach sind echte Neukunden ("Stichprobe", Entscheid Ruben 05.09.2026) und bilden ARPU, Retention und Prognose. '
+    + 'Prognose-LTV = Ø Netto je aktivem Neukunden und Monat (letzte 3 Monate) × erwartete Dauer 1/(1−Retention); Retention = Anteil der aktiven Neukunden eines Monats, die im Folgemonat noch aktiv sind (letzte 6 Monate). '
+    + 'Die Stichprobe ist jung, ihre Retention deshalb eher zu tief (Frühabspringer wiegen schwer) – der Prognose-LTV ist konservativ. Steht auch im Monatsabschluss (LTV : CAC).').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 120);
   var r = 4, N = [3, 6, 9, 12];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', L = list.filter(function (c) { return c.loc === loc; }), fresh = L.filter(function (c) { return !c.migrated; });
+    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', L = list.filter(function (c) { return c.loc === loc; });
     sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
-    // Kennzahlen
-    var payers = function (mk) { return L.filter(function (c) { return (c.m[mk] || 0) > 0; }); };
-    var last3 = [lastFull, prevMonth(lastFull), prevMonth(prevMonth(lastFull))].filter(function (mk) { return mk >= mig2; });
-    var arpuN = 0, arpuS = 0; last3.forEach(function (mk) { var ps = payers(mk); arpuN += ps.length; ps.forEach(function (c) { arpuS += c.m[mk]; }); });
-    var arpu = arpuN ? arpuS / arpuN : 0;
-    var retN = 0, retK = 0, mk = prevMonth(lastFull);
-    for (var i = 0; i < 6 && mk >= mig2; i++, mk = prevMonth(mk)) { var ps = payers(mk), nx = nextMonth(mk); retN += ps.length; retK += ps.filter(function (c) { return (c.m[nx] || 0) > 0; }).length; }
-    var ret = retN ? retK / retN : 0, life = ret < 1 && ret > 0 ? 1 / (1 - ret) : 0, ltv = Math.round(arpu * life);
-    var churned = fresh.filter(function (c) { return !c.active; }), realized = churned.length ? churned.reduce(function (a, c) { return a + c.net; }, 0) / churned.length : 0;
+    if (!L.length) { sh.getRange(r, 1).setValue('keine Abo-Zahlungen'); r += 3; return; }
+    var size = {}; L.forEach(function (c) { size[c.first] = (size[c.first] || 0) + 1; });
+    var cks = Object.keys(size).sort(), lastN = cks.filter(function (k) { return k <= lastFull; }).slice(-5).map(function (k) { return size[k]; }).sort(function (a, b) { return a - b; });
+    var ref = lastN.length ? lastN[Math.floor(lastN.length / 2)] : 0, heavy = cks.filter(function (k) { return ref && size[k] > 2 * ref; });
+    var freshFrom = heavy.length ? nextMonth(heavy[heavy.length - 1]) : nextMonth(cks[0]);
+    var fresh = L.filter(function (c) { return c.first >= freshFrom; }), migr = L.length - fresh.length;
+    var activeIn = function (mk) { return fresh.filter(function (c) { return c.active[mk]; }); };
+    var last3 = [lastFull, prevMonth(lastFull), prevMonth(prevMonth(lastFull))].filter(function (mk) { return mk >= freshFrom; });
+    var aN = 0, aS = 0; last3.forEach(function (mk) { aN += activeIn(mk).length; fresh.forEach(function (c) { aS += c.m[mk] || 0; }); });
+    var arpu = aN ? aS / aN : 0, retN = 0, retK = 0, mk = prevMonth(lastFull);
+    for (var i = 0; i < 6 && mk >= freshFrom; i++, mk = prevMonth(mk)) { var ps = activeIn(mk), nx = nextMonth(mk); retN += ps.length; retK += ps.filter(function (c) { return c.active[nx]; }).length; }
+    var ret = retN ? retK / retN : 0, life = ret > 0 && ret < 1 ? 1 / (1 - ret) : 0, ltv = Math.round(arpu * life);
+    var churned = fresh.filter(function (c) { return !c.active[lastFull] && !c.active[prevMonth(lastFull)]; });
+    var realized = churned.length ? churned.reduce(function (a, c) { return a + c.net; }, 0) / churned.length : 0;
     var kv = [
-      ['Kunden mit Zahlungen seit ' + mig, L.length, ''],
-      ['   davon migriert (Start unbekannt, nicht in Kohorten)', L.filter(function (c) { return c.migrated; }).length, ''],
-      ['   davon neu seit ' + nextMonth(mig2) + ' (Stichprobe für die Kohorten)', fresh.length, ''],
-      ['Ø Netto je zahlendem Kunden und Monat (letzte 3 Monate)', Math.round(arpu), '#,##0'],
-      ['Monatliche Retention (letzte 6 Monate)', ret, '0.0%'],
+      ['Kunden mit Abo-Zahlungen seit ' + cks[0], L.length, '0'],
+      ['   davon aus Migrationsmonaten ' + (heavy.length ? heavy[0] + ' bis ' + heavy[heavy.length - 1] : cks[0]) + ' (Startdatum unbekannt, nicht in der Prognose)', migr, '0'],
+      ['   davon Neukunden ab ' + freshFrom + ' = Stichprobe für die Prognose', fresh.length, '0'],
+      ['Ø Netto je aktivem Neukunden und Monat (letzte 3 Monate, Abos + Einmalkäufe)', Math.round(arpu), '#,##0'],
+      ['Monatliche Retention der Neukunden (letzte 6 Monate)', ret, '0.0%'],
       ['Erwartete Dauer in Monaten (1 / (1 − Retention))', Math.round(life * 10) / 10, '0.0'],
       ['LTV netto Prognose (Ø Monat × Dauer)', ltv, '#,##0'],
-      ['Realisierter Netto-Umsatz je abgesprungenem Neukunden (' + churned.length + ' Kunden ohne Zahlung in den letzten 2 Monaten)', Math.round(realized), '#,##0'],
+      ['Realisierter Netto-Umsatz je abgesprungenem Neukunden (' + churned.length + ' ohne aktives Abo in ' + prevMonth(lastFull) + ' und ' + lastFull + ')', Math.round(realized), '#,##0'],
     ];
-    kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); if (x[2]) sh.getRange(r, 2).setNumberFormat(x[2]); if (/LTV netto/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
+    kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); sh.getRange(r, 2).setNumberFormat(x[2]); if (/^LTV netto/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
     r++;
-    // Kohorten
-    var coh = {}; fresh.forEach(function (c) { (coh[c.first] = coh[c.first] || []).push(c); });
-    var cks = Object.keys(coh).sort();
-    var head = ['Startmonat', 'Kunden', 'Ø Netto 1. Monat'].concat(N.map(function (n) { return 'Ø kumuliert nach ' + n + ' Mon.'; })).concat(['noch zahlend']);
+    var head = ['Startmonat (erste Abo-Zahlung)', 'Kunden', 'Ø Netto 1. Monat'].concat(N.map(function (n) { return 'Ø kumuliert nach ' + n + ' Mon.'; })).concat(['noch aktiv', 'Kohorte']);
     sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
-    var age = function (ck) { var y = +lastFull.slice(0, 4) - +ck.slice(0, 4), m = +lastFull.slice(5, 7) - +ck.slice(5, 7); return y * 12 + m + 1; };
+    var age = function (ck) { return (+lastFull.slice(0, 4) - +ck.slice(0, 4)) * 12 + (+lastFull.slice(5, 7) - +ck.slice(5, 7)) + 1; };
     var cum = function (c, ck, n) { var s = 0; for (var i = 0; i < n; i++) s += c.m[addMonths(ck, i)] || 0; return s; };
     var crow = cks.map(function (ck) {
-      var cs = coh[ck], n = cs.length, a = age(ck), avg = function (fn) { return Math.round(cs.reduce(function (s, c) { return s + fn(c); }, 0) / n); };
-      return [new Date(ck + '-01T00:00:00'), n, avg(function (c) { return c.m[ck] || 0; })].concat(N.map(function (k) { return a >= k ? avg(function (c) { return cum(c, ck, k); }) : ''; })).concat([cs.filter(function (c) { return c.active; }).length / n]);
+      var cs = L.filter(function (c) { return c.first === ck; }), n = cs.length, a = age(ck), avg = function (fn) { return Math.round(cs.reduce(function (s, c) { return s + fn(c); }, 0) / n); };
+      return [new Date(ck + '-01T00:00:00'), n, avg(function (c) { return c.m[ck] || 0; })].concat(N.map(function (k) { return a >= k ? avg(function (c) { return cum(c, ck, k); }) : ''; })).concat([cs.filter(function (c) { return c.active[lastFull]; }).length / n, ck >= freshFrom ? 'Neukunden' : 'Migration']);
     });
-    if (crow.length) { sh.getRange(r, 1, crow.length, head.length).setValues(crow); sh.getRange(r, 1, crow.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 3, crow.length, N.length + 1).setNumberFormat('#,##0'); sh.getRange(r, head.length, crow.length, 1).setNumberFormat('0%'); r += crow.length; }
-    r += 2;
-    maStoreMetrics(ss, cur, loc, { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_retention: ret, ltv_lifetime: Math.round(life * 10) / 10 });
+    sh.getRange(r, 1, crow.length, head.length).setValues(crow); sh.getRange(r, 1, crow.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 3, crow.length, N.length + 1).setNumberFormat('#,##0'); sh.getRange(r, head.length - 1, crow.length, 1).setNumberFormat('0%');
+    crow.forEach(function (x, i) { if (x[head.length - 1] === 'Migration') sh.getRange(r + i, 1, 1, head.length).setFontColor('#999999'); });
+    r += crow.length + 2;
+    maStoreMetrics(ss, cur, loc, { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_retention: ret, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length });
   });
-  sh.setColumnWidth(1, 420);
+  sh.setColumnWidth(1, 460);
   buildMonatsabschluss(ss);
 }
 
