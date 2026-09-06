@@ -2012,6 +2012,9 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
   var n = Math.max(0, sh.getLastRow() - TR_ROW0 + 1);
   var old = n ? sh.getRange(TR_ROW0, TR_P0, n, TR_NCOL).getValues() : [];
   var oldDays = n ? sh.getRange(TR_ROW0, 1, n, TR_DAY_N).getValues() : [];
+  // alte Dropdown-Regeln (Spalte "Gespraech" des fruehen Layouts) liegen noch auf Zellen unterhalb der Daten und blockierten am
+  // 06.09. das Schreiben ("cell J172 violates the data validation rules"): vor jedem Schreiben alle Validierungen im Block loeschen
+  sh.getRange(TR_ROW0, 1, Math.max(1, sh.getMaxRows() - TR_ROW0 + 1), sh.getMaxColumns()).clearDataValidations();
   var calls = {}; oldDays.forEach(function (r) { var d = dOfCell(r[DI.day]); if (d && (r[DI.att] !== '' || r[DI.conv] !== '')) calls[d] = [r[DI.att], r[DI.conv]]; });
   var byUid = {}; old.forEach(function (r) { if (r[CI.uid]) byUid[String(r[CI.uid])] = r; });
   var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm');
