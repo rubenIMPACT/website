@@ -1606,8 +1606,19 @@ function runMonatsabschluss(start, end) {
 // Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
 // reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
-var MA_CATCHUP = '2026-09-05 Verkaeufe je Kanal'; // Marke aendern = Nachlauf laeuft erneut
-var MA_CATCHUP_MONTHS = ['2026-08', '2026-09'];
+var MA_CATCHUP = '2026-09-05 Juni Juli Bankabgleich'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP_MONTHS = ['2026-06', '2026-07'];
+// Bankabgleich (Ruben 05.09.): Tages-/Standort-/Typ-Summen der Zahlungen fuer Juni-August, Ergebnis per Mail
+function PROBE_SUMS() {
+  var out = {};
+  ['2026-06', '2026-07', '2026-08'].forEach(function (mk) {
+    var base = { action: 'ltv', month: mk, kind: 'sums', start: mk + '-01', end: mk + '-01' };
+    klassenCall(Object.assign({ phase: 'cr' }, base));
+    var r = null; for (var i = 0; i < 15; i++) { Utilities.sleep(8000); r = klassenCall(Object.assign({ phase: 'cg' }, base)); if (r.ready) break; }
+    out[mk] = r;
+  });
+  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Zahlungssummen Juni-August ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify(out).slice(0, 90000) });
+}
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;
   pr.setProperty('maCatchUp', MA_CATCHUP); pr.setProperty('maQueue', JSON.stringify(MA_CATCHUP_MONTHS));
