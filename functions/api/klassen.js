@@ -521,7 +521,7 @@ function lifeExpand(list) {
   const out = [];
   (Array.isArray(list) ? list : []).forEach((a) => {
     if (!Array.isArray(a) || !a[0]) return;
-    const base = { Email: a[0], Current: a[2] || "", Location: a[3] || "", "First Name": a[4] || "", "Last Name": "" };
+    const base = { Email: a[0], Current: a[2] || "", Location: a[3] || "", "First Name": a[4] || "", "Last Name": "", Source: a[6] || "" };
     out.push(Object.assign({ Date: a[1], "Transitioned To": "" }, base));
     if (a[5]) out.push(Object.assign({ Date: a[5], "Transitioned To": "Signed but no payment" }, base));
   });
@@ -570,12 +570,11 @@ async function ltv(H, p) {
   if (!readyFor(spec, r.json)) return { ready: false, why: whyNot(spec, r.json) };
   const all = rowsOf(r.json.cached_stats), locOf = (v) => (/winterthur/i.test(String(v || "")) ? "Winterthur" : "Zurich"), destLoc = (v) => (/z[uü]rich/i.test(String(v || "")) ? "Zurich" : "Winterthur");
   if (kind === "sums") {
-    // Abgleich mit dem Bankkonto (Ruben 05.09.): je Tag und Standort Summen aus dem Charges-Report - Betrag, Stripe-Gebuehr,
-    // Rueckerstattung, MwSt, "Net After Refunds" (= Betrag - Rueckerstattung - Gebuehr = das, was Stripe auszahlt)
-    const days = {}, loc = {}, type = {}, st = {}, add = (o, k, x) => { const a = o[k] = o[k] || [0, 0, 0, 0, 0, 0]; a[0]++; a[1] += num(x["Amount"]); a[2] += num(x["Fee"]); a[3] += num(x["Amount Refund"]); a[4] += num(x["Tax"]); a[5] += num(x["Net After Refunds"]); };
-    all.forEach((x) => { const s = String(x["Status"] || ""); st[s] = (st[s] || 0) + 1; if (!/succeeded/i.test(s)) return; add(days, chDate(x["Created"]), x); add(loc, locOf(x["Location"] || x["Destination"]), x); add(type, String(x["Purchase Type"] || "?") + "/" + String(x["Item Type"] || "?"), x); });
-    const r2 = (o) => { Object.keys(o).forEach((k) => { o[k] = o[k].map((v, i) => (i ? Math.round(v * 100) / 100 : v)); }); return o; };
-    return { ready: true, month: mk, kind, n: all.length, statuses: st, days: r2(days), byLoc: r2(loc), byType: r2(type) };
+    // Cash-Block (Ruben 06.09.): je Tag und Standort Anzahl, Betrag, Stripe-Gebuehr, Rueckerstattung, MwSt und "Net After Refunds"
+    // (= Betrag - Rueckerstattung - Gebuehr = das, was Stripe 7 Kalendertage spaeter auszahlt)
+    const by = {}, st = {};
+    all.forEach((x) => { const sv = String(x["Status"] || ""); st[sv] = (st[sv] || 0) + 1; if (!/succeeded/i.test(sv)) return; const d = chDate(x["Created"]), l = locOf(x["Location"] || x["Destination"]), k = d + "|" + l, a = by[k] = by[k] || [d, l, 0, 0, 0, 0, 0, 0]; a[2]++; a[3] += num(x["Amount"]); a[4] += num(x["Fee"]); a[5] += num(x["Amount Refund"]); a[6] += num(x["Tax"]); a[7] += num(x["Net After Refunds"]); });
+    return { ready: true, month: mk, kind, n: all.length, statuses: st, rows: Object.keys(by).sort().map((k) => by[k].map((v, i) => (i < 3 ? v : Math.round(v * 100) / 100))) };
   }
   if (kind === "cancelled") {
     return { ready: true, month: mk, kind, n: all.length, rows: all.map((x) => [String(x["User ID"] || ""), String(x["Email"] || "").toLowerCase().trim(), x["Location"] ? locOf(x["Location"]) : destLoc(x["Destination"]), chDate(x["Ended At"]), /yes/i.test(String(x["Converted"] || "")) ? 1 : 0, String(x["Subscribeable"] || "").slice(0, 60), String(x["Reason"] || "").slice(0, 60)]).filter((a) => a[0]) };
@@ -684,11 +683,11 @@ async function trials(H, p) {
     const by = {};
     rowsOf(r.json.cached_stats).forEach((x) => {
       const e = String(x["Email"] || "").toLowerCase().trim(), d = chDate(x["Date"]); if (!e || !d) return;
-      const o = by[e] = by[e] || { e, d: "", c: "", l: "", n: "", pay: "" };
-      if (o.d <= d) { o.d = d; o.c = String(x["Current"] || ""); o.l = String(x["Location"] || ""); o.n = ((x["First Name"] || "") + " " + (x["Last Name"] || "")).trim(); }
+      const o = by[e] = by[e] || { e, d: "", c: "", l: "", n: "", pay: "", s: "" };
+      if (o.d <= d) { o.d = d; o.c = String(x["Current"] || ""); o.l = String(x["Location"] || ""); o.n = ((x["First Name"] || "") + " " + (x["Last Name"] || "")).trim(); o.s = String(x["Source"] || ""); }
       if (String(x["Transitioned To"] || "") === "Signed but no payment" && o.pay < d) o.pay = d;
     });
-    return { ready: true, rows: Object.keys(by).map((e) => [e, by[e].d, by[e].c, by[e].l, by[e].n, by[e].pay]) };
+    return { ready: true, rows: Object.keys(by).map((e) => [e, by[e].d, by[e].c, by[e].l, by[e].n, by[e].pay, by[e].s]) };
   }
   if (phase === "t2") {
     const fv = await getJson(H, U.fvZH.url), v1 = await getJson(H, U.v1.url);
@@ -739,8 +738,9 @@ function computeTrials(inp) {
   const waiv = inp.waiver.map((r) => ({ uid: String(r["User ID"]), date: chDate(r["Signed"]), by: String(r["Signed By"] || "") }));
   const waivBy = {}; waiv.forEach((w) => { (waivBy[w.uid] = waivBy[w.uid] || []).push(w); });
   // Lifecycle-Stage (exercise.com "Current") je E-Mail, letzter Uebergang im Fenster gewinnt
-  const lifeBy = {}; (inp.life || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (!e) return; if (!lifeBy[e] || lifeBy[e].date <= d) lifeBy[e] = { date: d, cur: String(r["Current"] || "") }; });
+  const lifeBy = {}; (inp.life || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (!e) return; if (!lifeBy[e] || lifeBy[e].date <= d) lifeBy[e] = { date: d, cur: String(r["Current"] || ""), src: String(r["Source"] || "") }; });
   const lifeOf = (email) => { const l = lifeBy[String(email || "").toLowerCase().trim()]; return l ? l.cur : ""; };
+  const srcOf = (email) => { const l = lifeBy[String(email || "").toLowerCase().trim()]; return l ? l.src : ""; }; // exercise.com "Source" als Kanal-Fallback ohne Website-Lead
   // Letzte Notiz je User-ID (Report "Account Notes": Date, Title, Created By)
   const noteBy = {}; (inp.notes || []).forEach((r) => { const u = String(r["User ID"] || ""), d = chDate(r["Date"]); if (!u || !d) return; if (!noteBy[u] || noteBy[u].date <= d) noteBy[u] = { date: d, type: String(r["Title"] || "").slice(0, 40), by: String(r["Created By"] || "") }; });
   const noteOf = (uid) => noteBy[String(uid)] || null;
@@ -764,7 +764,7 @@ function computeTrials(inp) {
     if (!e || seenPay[e] || String(r["Current"] || "") !== "Signed but no payment") return;
     seenPay[e] = 1;
     const loc = /winterthur/i.test(String(r["Location"] || "")) ? "Winterthur" : "Zurich";
-    payopen[loc].push({ name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), email: e, uid: uidOf[e] || "", since: payInto[e] || chDate(r["Date"]) });
+    payopen[loc].push({ name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), email: e, uid: uidOf[e] || "", since: payInto[e] || chDate(r["Date"]), stage: String(r["Current"] || ""), note: noteOf(uidOf[e] || "") });
   });
   ["Zurich", "Winterthur"].forEach((l) => payopen[l].sort((a, b) => (a.since < b.since ? -1 : 1)));
   const out = { window: { start, end, today }, generated: new Date().toISOString(), rows: { Zurich: [], Winterthur: [] }, sales: {}, payopen, stats: { visits: vis.length, prior: prior.size } };
@@ -779,7 +779,7 @@ function computeTrials(inp) {
       const vsAll = byUser[f.uid] || [];
       const nsD = vsAll.filter((v) => /noshow/i.test(v.status)).map((v) => v.date);          // alle No-Shows im Fenster (auch wenn die Zeile etwas anderes zeigt)
       const bkD = Array.from(new Set(vsAll.filter((v) => !/cancel/i.test(v.status)).map((v) => v.bookedAt).filter(Boolean))); // Placed Trials: wann wurde gebucht
-      const base = { uid: f.uid, name: f.name, email: f.email, loc, personen: /&|\+| und /i.test(f.name) ? 2 : 1, lifecycle: lifeOf(f.email), lastNote: noteOf(f.uid), ns: nsD, bk: bkD };
+      const base = { uid: f.uid, name: f.name, email: f.email, loc, personen: 1, source: srcOf(f.email), lifecycle: lifeOf(f.email), lastNote: noteOf(f.uid), ns: nsD, bk: bkD };
       if (comp.length) {
         const v = comp[0];
         if ((subsBy[f.uid] || []).some((s) => s.date && s.date < v.date && !isPT(s.pkg))) return; // Altkunde
@@ -804,7 +804,7 @@ function computeTrials(inp) {
     if (prior.has(uid) || comp.some((c) => c.date < v.date)) return;
     const loc = /winterthur/i.test(v.loc) ? "Winterthur" : "Zurich";
     const ex = (cancBy[uid] || []).some((c) => c.ended && c.ended < v.date);
-    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, lifecycle: lifeOf(v.email), lastNote: noteOf(uid), ns: byUser[uid].filter((z) => /noshow/i.test(z.status)).map((z) => z.date), bk: Array.from(new Set(byUser[uid].filter((z) => !/cancel/i.test(z.status)).map((z) => z.bookedAt).filter(Boolean))), date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
+    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, source: srcOf(v.email), lifecycle: lifeOf(v.email), lastNote: noteOf(uid), ns: byUser[uid].filter((z) => /noshow/i.test(z.status)).map((z) => z.date), bk: Array.from(new Set(byUser[uid].filter((z) => !/cancel/i.test(z.status)).map((z) => z.bookedAt).filter(Boolean))), date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
   });
   (inp.open || []).forEach((o) => { if (o && o.uid && o.date) out.sales[String(o.uid)] = saleOf(String(o.uid), String(o.date)); });
   return out;

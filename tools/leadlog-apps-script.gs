@@ -1358,11 +1358,12 @@ function runWerbekostenDaily() {
 // Report-Caches) in versteckten Tabs, Nachladen ab LTV_START in Etappen (Kette ueber Einmal-Trigger, Script-Lock), monatlich am 1.
 // um 05:00 der Vormonat; Kunden-Flags (action 'clients_flags') werden bei jedem Lauf komplett neu geholt.
 var LTV_SHEET = 'LTV', LTV_DATA = 'ZahlungenMonat', LTV_START = '2025-06', LTV_HEAD = ['Monat', 'UID', 'E-Mail', 'Standort', 'Typ', 'Netto', 'Brutto', 'Anzahl'];
-var LTV_INIT = '2026-09-05 Kuendigungen'; // Marke aendern = fehlende Monate werden beim naechsten Stundenlauf nachgeladen
+var LTV_INIT = '2026-09-06 Cash'; // Marke aendern = fehlende Monate werden beim naechsten Stundenlauf nachgeladen
 var LTV_TABS = {
   charges: { name: LTV_DATA, head: LTV_HEAD },
   cancelled: { name: 'KuendigungenMonat', head: ['Monat', 'UID', 'E-Mail', 'Standort', 'Ende', 'Converted', 'Paket', 'Grund'] },
   lifecycle: { name: 'LifecycleMonat', head: ['Monat', 'E-Mail', 'Datum', 'Von', 'Nach'] },
+  sums: { name: 'ZahlungenTag', head: ['Monat', 'Datum', 'Standort', 'Anzahl', 'Betrag', 'Gebuehr', 'Refund', 'MwSt', 'Auszahlung'] }, // Cash-Block (06.09.)
 };
 var LTV_FLAGS = 'KundenFlags', LTV_FLAGS_HEAD = ['UID', 'E-Mail', 'Migriert', 'Erstellt', 'TrialZH', 'TrialWT', 'StageID'];
 function nextMonth(mk) { return monthKeyStr(new Date(+mk.slice(0, 4), +mk.slice(5, 7), 1)); }
@@ -1713,6 +1714,7 @@ var MA_NOTE = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, 
   + 'Abos gestartet = Abo-Starts ohne Paketwechsel und ohne Personal Training. Kündigungen ohne Wechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben; wird drei Monate lang nachgeführt. '
   + 'Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026); Website-Leads nach Kanal je Standort ab September 2026. '
   + 'Diagramme rechts: "Leads" = alle Quellen aus exercise.com, für Monate ohne diesen Wert (vor August 2026) die Website-Leads. Interessen stehen nur noch im Diagramm, nicht mehr in der Liste. '
+  + 'Cash: Zahlungen je Tag aus dem Charges-Report (Betrag inkl. MwSt, Rückerstattungen, Stripe-Gebühren 2 %, MwSt 8.1 %); Stripe zahlt 7 Kalendertage nach der Belastung aus, deshalb ist "erwarteter Bankeingang" nach Auszahlungsmonat gerechnet und passt zum Kontoauszug (Abgleich Juli/August 2026 auf 0.2 %); Ist-Werte aus dem Tab Bank. '
   + 'Werbung: Media-Kosten aus Google Ads (Skript) und Meta (API) je Standort nach Kampagnenname, Agenturkosten aus dem Tab Einstellungen nach Media-Anteil verteilt; CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl; LTV = Prognose aus Zahlungen (Tab LTV).';
 function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
@@ -1753,7 +1755,6 @@ function buildMonatsabschluss(ss) {
       if (['trial_attended', 'sales_signed', 'new_customers', 'net_growth', 'rev_total_gross'].indexOf(def[0]) >= 0) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
       rowIdx[def[0]] = r; r++;
     });
-    // Werbung und Kundenwert: Kosten live aus WerbekostenDaten/Einstellungen, Quoten als Formeln auf die Zeilen dieses Blocks
     var cellOf = function (key, ci) { return String.fromCharCode(66 + ci) + rowIdx[key]; };
     var put = function (key, label, fn, fmt, opts) {
       var row = [label].concat(keys.map(fn)); sh.getRange(r, 1, 1, row.length).setValues([row]);
@@ -1764,6 +1765,21 @@ function buildMonatsabschluss(ss) {
     // leere Zellen zaehlen in Sheets als 0, deshalb explizit pruefen (sonst "Kosten pro Lead 0", solange keine Werbedaten da sind)
     var ratio = function (num, den) { return function (k, ci) { var a = cellOf(num, ci), b = cellOf(den, ci); return '=IF(OR(' + a + '="",' + b + '="",' + b + '=0),"",' + a + '/' + b + ')'; }; };
     var mediaOf = function (k, pn) { var o = (wkM[k] || {})[loc]; if (!o) return ''; return Math.round(pn ? (o.plat[pn] || 0) : o.media); };
+    // Cash (Ruben 06.09.): Zahlungen aus dem Charges-Report je Tag; Stripe zahlt 7 Kalendertage nach der Belastung aus (Wochenende
+    // -> Montag), deshalb "erwarteter Bankeingang" nach Auszahlungsmonat; Ist-Werte aus dem Tab Bank (Kontoauszug, von Hand / spaeter CSV)
+    var cashM = cashMonth(ss, loc), bankM = bankRead(ss), cv = function (k, f) { var o = cashM[k]; return o ? Math.round(o[f]) : ''; };
+    sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Cash: Zahlungen und Bankeingang').setFontWeight('bold'); r++;
+    put('cash_paid', 'Zahlungen Kunden (inkl. MwSt, nach Rückerstattung; Charges-Report)', function (k) { return cv(k, 'paid'); }, '#,##0', { bold: true });
+    put('cash_refund', '   davon Rückerstattungen', function (k) { return cv(k, 'refund'); }, '#,##0', { grey: true });
+    put('cash_fee', 'Stripe-Gebühren', function (k) { return cv(k, 'fee'); }, '#,##0');
+    put('cash_tax', 'MwSt', function (k) { return cv(k, 'tax'); }, '#,##0');
+    put('cash_net', 'Umsatz ohne MwSt (nach Rückerstattung)', function (k) { return cv(k, 'netvat'); }, '#,##0', { bold: true });
+    put('cash_payout', 'Auszahlung Stripe nach Belastungsdatum (Betrag − Rückerstattung − Gebühr)', function (k) { return cv(k, 'net'); }, '#,##0');
+    put('cash_expect', 'Erwarteter Bankeingang Stripe im Monat (Auszahlung 7 Tage später)', function (k) { return cv(k, 'expect'); }, '#,##0', { bold: true });
+    put('cash_bank', 'Bankeingang Stripe laut Konto (Tab Bank)', function (k) { var b = bankM[k + '|' + loc]; return b && b.stripe !== '' ? b.stripe : ''; }, '#,##0');
+    put('cash_diff', 'Differenz Konto − erwartet', function (k, ci) { var a = cellOf('cash_bank', ci), b = cellOf('cash_expect', ci); return '=IF(OR(' + a + '="",' + b + '=""),"",' + a + '-' + b + ')'; }, '#,##0');
+    put('cash_transfer', 'Überweisungen ohne Stripe laut Konto (fehlen in exercise.com)', function (k) { var b = bankM[k + '|' + loc]; return b && b.transfers !== '' ? b.transfers : ''; }, '#,##0');
+    // Werbung und Kundenwert: Kosten live aus WerbekostenDaten/Einstellungen, Quoten als Formeln auf die Zeilen dieses Blocks
     sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Werbung und Kundenwert').setFontWeight('bold'); r++;
     put('wk_media', 'Werbekosten Media (CHF)', function (k) { return mediaOf(k); }, '#,##0', { bold: true });
     WK_PLATFORMS.forEach(function (pn) { put('wk:' + pn, '   davon ' + pn, function (k) { return mediaOf(k, pn); }, '#,##0', { grey: true }); });
@@ -1827,6 +1843,40 @@ function buildMonatsabschluss(ss) {
   var ma = ss.getSheetByName(MA_SHEET); if (ma) { ss.setActiveSheet(ma); ss.moveActiveSheet(1); }
   [MA_HIST, MA_COHORT].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
 }
+// Cash je Monat und Standort aus ZahlungenTag (Monat|Datum|Standort|Anzahl|Betrag|Gebuehr|Refund|MwSt|Auszahlung)
+function cashMonth(ss, loc) {
+  var out = {}, rows = ltvRows(ss, 'sums'), O = function (k) { return out[k] = out[k] || { paid: 0, refund: 0, fee: 0, tax: 0, netvat: 0, net: 0, expect: 0 }; };
+  rows.forEach(function (r) {
+    if (String(r[1]) === '-' || String(r[2]) !== loc) return;
+    var d = dOfCell(r[1]); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+    var amt = Number(r[4]) || 0, fee = Number(r[5]) || 0, ref = Number(r[6]) || 0, tax = Number(r[7]) || 0, net = Number(r[8]) || 0, o = O(d.slice(0, 7));
+    o.paid += amt - ref; o.refund += ref; o.fee += fee; o.tax += tax; o.netvat += amt - ref - tax; o.net += net;
+    var p = new Date(d + 'T12:00:00'); p.setDate(p.getDate() + 7); while (p.getDay() === 0 || p.getDay() === 6) p.setDate(p.getDate() + 1);
+    O(fmtD(p).slice(0, 7)).expect += net;
+  });
+  // laufender Monat: erwarteter Eingang unvollstaendig, deshalb nur bis zum letzten vollen Datenmonat ausweisen
+  var last = rows.filter(function (r) { return String(r[1]) !== '-'; }).map(function (r) { return dOfCell(r[1]); }).sort().pop() || '';
+  Object.keys(out).forEach(function (k) { if (k > last.slice(0, 7)) delete out[k]; else if (k === last.slice(0, 7) && last < addDs(last.slice(0, 7) + '-01', 27)) delete out[k].expect; });
+  return out;
+}
+// Tab Bank (persistent, von Hand aus dem Kontoauszug; Stand Juni-August 2026 aus den UBS-PDFs vom 03.09.): Month|Location|Stripe credits|Transfers|Note
+var BANK_SHEET = 'Bank';
+function bankRead(ss) {
+  var sh = ss.getSheetByName(BANK_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(BANK_SHEET); sh.getRange(1, 1, 200, 1).setNumberFormat('@');
+    var rows = [['Month', 'Location', 'Stripe credits', 'Transfers', 'Note'],
+      ['2026-06', 'Zurich', 111628.63, 4611.85, 'UBS statement 03.09.2026'], ['2026-06', 'Winterthur', 45775.61, 0, ''],
+      ['2026-07', 'Zurich', 113395.25, 3157.66, ''], ['2026-07', 'Winterthur', 49731.89, 0, ''],
+      ['2026-08', 'Zurich', 103030.13, 711, ''], ['2026-08', 'Winterthur', 42618.04, 0, '']];
+    sh.getRange(1, 1, rows.length, 5).setValues(rows); sh.getRange(1, 1, 1, 5).setFontWeight('bold'); sh.setFrozenRows(1);
+    sh.getRange(1, 1).setNote('Credits per month from the bank statement (credits only). Stripe credits = all "Stripe Payments UK Ltd" entries, Transfers = all other credits. Enter one row per month and location; the Monatsabschluss reads this tab.');
+    sh.setColumnWidth(5, 260);
+  }
+  var out = {}; if (sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach(function (r) { var mk = mkOf(r[0]); if (!/^\d{4}-\d{2}$/.test(mk) || !r[1]) return; out[mk + '|' + String(r[1])] = { stripe: r[2] === '' ? '' : Number(r[2]) || 0, transfers: r[3] === '' ? '' : Number(r[3]) || 0 }; });
+  return out;
+}
 // COUNTIFS ueber den Tab Daten: C Monat, D Standort, G zaehlt, E Interesse, J Kanal
 function maCountLeads(monthRef, locDE, col, name) {
   return '=COUNTIFS(Daten!$C:$C,' + monthRef + ',Daten!$D:$D,"' + locDE + '",Daten!$G:$G,1' + (col ? ',Daten!$' + col + ':$' + col + ',"' + name + '"' : '') + ')';
@@ -1851,9 +1901,10 @@ var TR_ACCESS = { Zurich: [MAIL.zh], Winterthur: [MAIL.wt] };
 var TR_MAIL_TEAM = false; // Mail an Abdi/Bogdan erst nach der Einfuehrung (Ruben 04.09.); bis dahin nur an Ruben
 var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
 var TR_LANG = { Zurich: 'de', Winterthur: 'en' };
-var TR_ROW0 = 5, TR_DAY_N = 7, TR_P0 = 8, TR_NCOL = 19, TR_PAY0 = 28, TR_PAY_N = 4, TR_CHECK_DAYS = 1, TR_PAY_DAYS = 7;
+var TR_ROW0 = 5, TR_DAY_N = 7, TR_P0 = 8, TR_NCOL = 19, TR_CHECK_DAYS = 1, TR_PAY_DAYS = 7;
 var DI = { day: 0, att: 1, conv: 2, placed: 3, trials: 4, noshow: 5, sold: 6 };
-var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, pers: 7, lifecycle: 8, check: 9, contract: 10, seller: 11, pkg: 12, note: 13, crm: 14, created: 15, uid: 16, ns: 17, stamp: 18 };
+// Ruben 06.09.: Spalte Personen raus (zwei Kinder = Zeile kopieren und Namen aendern, die Kopie bleibt erhalten), Vertragsstart neu
+var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, lifecycle: 7, check: 8, contract: 9, start: 10, seller: 11, pkg: 12, note: 13, crm: 14, created: 15, uid: 16, ns: 17, stamp: 18 };
 var LC_POST = ['Client', 'Dependant client', 'Signed but no payment', 'Pending Decision', 'Missed the talk', 'Not Interested (Lost)'];
 var LC_CLIENT = ['Client', 'Dependant client', 'Signed but no payment'];
 var LC_NOSHOW_OK = ['re-engage no-shows', 're-engage cancelled trial'].concat(LC_POST);
@@ -1889,6 +1940,12 @@ var TR_T = {
     rule: 'Rule (Ruben, 4 Sep 2026): Trial = first ever check-in at IMPACT, whatever package exercise.com attaches; no staff, guests or existing members. Events, seminars and open mat are not trials. Two kids on one account = 2 people. Not a trial (assistant coach, friends & family, data error) = set the stage "Non-Client" in exercise.com. A person\'s state is their lifecycle stage in exercise.com; the sheet has no status columns of its own. "Check" shows, from one day after the session, where fact and stage do not match (red): please update in exercise.com, the hint disappears with the next run. Contract signed = signature (waiver), not subscription start. On the left the day block: your only inputs are calls attempted and calls conducted. On the far right "Payment open": signed, but no payment details. Updated every hour 9am-10pm. Column explanations: note on the header cell.'
   }
 };
+// Umbau 06.09.2026 (Ruben): Spalte "Personen" entfaellt, "Vertragsstart" kommt hinter "Abschluss am"; Kinder = Zeile kopieren
+(function () {
+  var add = { de: ['Vertragsstart', 'Startdatum des Abos laut exercise.com (kann nach dem Abschluss liegen). Automatisch.', ' Zwei Kinder auf einem Account: Zeile kopieren und den Namen des zweiten Kindes eintragen, die Kopie bleibt bei jedem Lauf erhalten. Kanal: Klick-ID/UTM/Referrer der Website-Anfrage seit 02.09.2026; "ohne Website-Lead" = keine Website-Anfrage gefunden (Telefon, Walk-in, App, oder vor dem 02.09.), dann steht die Quelle aus exercise.com dahinter; "Direkt" = Website ohne Werbe-Klick.'],
+    en: ['Contract start', 'Subscription start date from exercise.com (may be after the signing date). Automatic.', ' Two kids on one account: copy the row and enter the second child\'s name, the copy survives every run. Channel: click ID/UTM/referrer of the website request since 2 Sep 2026; "no website lead" = no website request found (phone, walk-in, app, or before 2 Sep), then the exercise.com source follows; "Direct" = website without an ad click.'] };
+  ['de', 'en'].forEach(function (l) { var T = TR_T[l]; if (T.head.length !== 19 || T.head[7] === add[l][0] || T.head[10] === add[l][0]) return; T.head.splice(7, 1); T.notes.splice(7, 1); T.head.splice(10, 0, add[l][0]); T.notes.splice(10, 0, add[l][1]); T.rule += add[l][2]; });
+})();
 var TR_REV = {};
 (function () { var e = TR_T.en, d = TR_T.de; ['art', 'kanal'].forEach(function (kind) { Object.keys(e[kind]).forEach(function (k) { TR_REV[e[kind][k]] = k; }); Object.keys(d[kind]).forEach(function (k) { TR_REV[d[kind][k]] = k; }); }); })();
 function trC(v) { v = String(v || ''); return TR_REV[v] || v; }
@@ -1904,7 +1961,7 @@ function colL(n) { return String.fromCharCode(64 + n); }
 function trCall(body) { body.action = 'trials'; return klassenCall(body); }
 function trNoTrial(r) { return LC_EXCLUDE.indexOf(String(r[CI.lifecycle] || '').trim()) >= 0; }
 function trIsTrial(r) { var art = trC(r[CI.art]), lc = String(r[CI.lifecycle] || ''); if (trNoTrial(r)) return false; return art === 'Trial' || (art.indexOf('Wiederholer') === 0 && LC_POST.indexOf(lc) >= 0); }
-function trPers(r) { var n = Number(r[CI.pers]); return n > 0 ? n : 1; }
+function trPers(r) { return 1; } // seit 06.09.: eine Zeile = eine Person (Kinder als eigene Zeilen)
 function trSold(r) { return trIsTrial(r) && !!dOfCell(r[CI.contract]); }
 function trNsDates(r) { return String(r[CI.ns] || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean); }
 // Pruefung Fakt gegen Lifecycle-Stage (Ruben 04.09.2026: ein Tag nach dem Termin; Zahlung offen ab 7 Tagen)
@@ -1967,6 +2024,7 @@ function runProbetrainings(startOpt) {
   if (!p3 || !p3.ready) throw new Error('Trials t3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
   var data = p3.data, lines = [], leadMap = trLeadMap(main);
   Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, (data.payopen || {})[loc] || [], start, today, leadMap)); });
+  try { lines.push('Open payments: ' + payWrite(data.payopen || {}, today)); } catch (e0) { Logger.log('Open payments: ' + e0); }
   try { teamMirrorEvents(main, ss); } catch (e1) { Logger.log('Events-Spiegel: ' + e1); }
   try { buildWochenreport(main, ss); } catch (e2) { Logger.log('Wochenreport: ' + e2); }
   Logger.log('Probetrainings ' + start + '..' + end + ': ' + lines.join(' | '));
@@ -1996,27 +2054,27 @@ function trInit(ss, sh, loc) {
   sh.getRange('A2:Z2').merge(); sh.setRowHeight(2, 110);
   sh.getRange(4, 1, 1, TR_DAY_N).setValues([T.dHead]).setNotes([T.dNotes]).setFontWeight('bold').setBackground('#e8eaed');
   sh.getRange(4, TR_P0, 1, TR_NCOL).setValues([T.head]).setNotes([T.notes]).setFontWeight('bold').setBackground('#f3f3f3');
-  sh.getRange(4, TR_PAY0, 1, TR_PAY_N).setValues([T.payHead]).setFontWeight('bold').setBackground('#fde8d5');
   sh.setFrozenRows(4); // keine fixierten Spalten: A2:Z2 ist verbunden, Google erlaubt das Einfrieren dann nicht
   [95, 110, 110, 95, 60, 75, 70].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-  [95, 200, 150, 200, 150, 150, 130, 70, 170, 330, 95, 150, 220, 150, 50, 110, 90, 160, 100].forEach(function (w, i) { sh.setColumnWidth(TR_P0 + i, w); });
-  sh.setColumnWidth(TR_PAY0 - 1, 30);
-  [200, 95, 60, 50].forEach(function (w, i) { sh.setColumnWidth(TR_PAY0 + i, w); });
+  [95, 200, 150, 200, 150, 150, 170, 170, 330, 95, 95, 150, 220, 150, 50, 110, 90, 160, 100].forEach(function (w, i) { sh.setColumnWidth(TR_P0 + i, w); });
   sh.hideColumns(TR_P0 + CI.uid, 2); // UID und NS sind nur Schluessel (Ruben 04.09.)
   trProtect(sh, TR_ACCESS[loc] || [], 'Nur Ruben und ' + (TR_ACCESS[loc] || []).join(', '));
   ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 2 : 3);
 }
 function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
   var T = trT(loc), sh = getOrCreate(ss, TR_SHEETS[loc]);
-  if (sh.getLastRow() < 4 || sh.getRange(4, TR_P0, 1, TR_NCOL).getValues()[0].join('|') !== T.head.join('|') || sh.getRange(4, 1, 1, TR_DAY_N).getValues()[0].join('|') !== T.dHead.join('|')) trInit(ss, sh, loc);
+  // erst die bisherigen Zeilen lesen (Anrufe, Kopien), dann bei geaenderter Kopfzeile neu aufbauen - so ueberleben die Handeingaben den Umbau
   var n = Math.max(0, sh.getLastRow() - TR_ROW0 + 1);
   var old = n ? sh.getRange(TR_ROW0, TR_P0, n, TR_NCOL).getValues() : [];
   var oldDays = n ? sh.getRange(TR_ROW0, 1, n, TR_DAY_N).getValues() : [];
+  if (sh.getLastRow() < 4 || sh.getRange(4, TR_P0, 1, TR_NCOL).getValues()[0].join('|') !== T.head.join('|') || sh.getRange(4, 1, 1, TR_DAY_N).getValues()[0].join('|') !== T.dHead.join('|')) { trInit(ss, sh, loc); n = 0; }
   // alte Dropdown-Regeln (Spalte "Gespraech" des fruehen Layouts) liegen noch auf Zellen unterhalb der Daten und blockierten am
   // 06.09. das Schreiben ("cell J172 violates the data validation rules"): vor jedem Schreiben alle Validierungen im Block loeschen
   sh.getRange(TR_ROW0, 1, Math.max(1, sh.getMaxRows() - TR_ROW0 + 1), sh.getMaxColumns()).clearDataValidations();
   var calls = {}; oldDays.forEach(function (r) { var d = dOfCell(r[DI.day]); if (d && (r[DI.att] !== '' || r[DI.conv] !== '')) calls[d] = [r[DI.att], r[DI.conv]]; });
-  var byUid = {}; old.forEach(function (r) { if (r[CI.uid]) byUid[String(r[CI.uid])] = r; });
+  // Kopien mit gleicher UID und anderem Namen (zweites Kind, von Hand kopiert) bleiben erhalten
+  var byUid = {}, extras = {};
+  old.forEach(function (r) { var u = String(r[CI.uid] || ''); if (!u) return; if (!byUid[u]) byUid[u] = r; else if (String(r[CI.name]) !== String(byUid[u][CI.name])) (extras[u] = extras[u] || []).push(String(r[CI.name])); });
   var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm');
   var toDate = function (s) { return s ? new Date(s + 'T12:00:00') : ''; };
   var noteTxt = function (nt) { return nt && nt.date ? nt.date.slice(8, 10) + '.' + nt.date.slice(5, 7) + '.' + nt.date.slice(0, 4) + (nt.type ? ' ' + nt.type : '') : ''; };
@@ -2025,17 +2083,17 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
   rows.forEach(function (x) {
     var o = byUid[x.uid], s = x.sale || {}, lead = leadMap ? trFindLead(leadMap, x.email, x.name, x.date) : null, r = [];
     r[CI.date] = toDate(x.date); r[CI.name] = x.name; r[CI.art] = trL(loc, 'art', x.art); r[CI.cls] = x.cls || ''; r[CI.coach] = x.trainer || ''; r[CI.booked] = x.bookedBy || '';
-    r[CI.kanal] = trL(loc, 'kanal', lead ? lead.kanal : 'ohne Website-Lead');
-    r[CI.pers] = x.personen;
+    r[CI.kanal] = trL(loc, 'kanal', lead ? lead.kanal : 'ohne Website-Lead') + (!lead && x.source ? ' (' + x.source + ')' : '');
     r[CI.lifecycle] = x.lifecycle || (o ? o[CI.lifecycle] : ''); r[CI.check] = '';
-    r[CI.contract] = toDate(s.date); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || '';
+    r[CI.contract] = toDate(s.date); r[CI.start] = toDate(s.start); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || '';
     r[CI.note] = x.lastNote ? noteTxt(x.lastNote) : (o ? o[CI.note] : ''); r[CI.crm] = crm(x.uid);
     r[CI.created] = toDate((x.bk && x.bk.length ? x.bk[x.bk.length - 1] : x.bookedAt) || ''); r[CI.uid] = String(x.uid);
     r[CI.ns] = (x.ns || []).join(','); r[CI.stamp] = stamp;
     byUid[x.uid] = r; seen[x.uid] = true;
   });
-  Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.date); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; });
+  Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.date); o[CI.start] = toDate(s.start); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; });
   var all = Object.keys(byUid).map(function (k) { return byUid[k]; });
+  Object.keys(extras).forEach(function (u) { var base = byUid[u]; if (!base) return; extras[u].forEach(function (nm) { var c = base.slice(); c[CI.name] = nm; all.push(c); }); });
   all.forEach(function (r) { r[CI.check] = trCheck(r, today, T); if (!r[CI.crm]) r[CI.crm] = crm(r[CI.uid]); });
   // Tageswerte: Trials, No-Shows (aus den NS-Daten, nicht aus der Art), Verkauft (Vertragstag), Placed Trials (Buchungstag)
   var day = {}, D = function (d) { return day[d] = day[d] || { placed: 0, trials: 0, ns: 0, sold: 0 }; };
@@ -2077,32 +2135,13 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
     sh.getRange(TR_ROW0, DI.att + 1, dayOut.length, 2).setBackground('#fff8e1');
     sh.getRange(TR_ROW0, TR_P0, perOut.length, TR_NCOL).setValues(perOut);
     sh.getRange(TR_ROW0, TR_P0 + CI.art, perOut.length, 1).setNotes(notes);
-    [CI.date, CI.contract, CI.created].forEach(function (c) { sh.getRange(TR_ROW0, TR_P0 + c, perOut.length, 1).setNumberFormat('dd.MM.yyyy'); });
+    [CI.date, CI.contract, CI.start, CI.created].forEach(function (c) { sh.getRange(TR_ROW0, TR_P0 + c, perOut.length, 1).setNumberFormat('dd.MM.yyyy'); });
     sh.getRange(TR_ROW0, TR_P0 + CI.uid, perOut.length, 2).setNumberFormat('@');
     sh.getRange(TR_ROW0, TR_P0 + CI.check, perOut.length, 1).setWrap(true);
   }
-  trPayBlock(sh, payopen, today, T, Math.max(dayOut.length, 1));
   trFormat(sh, dayOut.length, loc);
   var nChk = all.filter(function (r) { return !!r[CI.check]; }).length;
   return trLocDE(loc) + ': ' + all.length + ' Personen, ' + dayOut.length + ' Zeilen, zu pruefen ' + nChk + ', Zahlung offen ' + payopen.length;
-}
-function trPayBlock(sh, payopen, today, T, rows) {
-  var maxR = Math.max(rows, 1);
-  sh.getRange(4, TR_PAY0, maxR + 1, TR_PAY_N).clearContent().setBackground(null);
-  sh.getRange(4, TR_PAY0, 1, TR_PAY_N).setValues([T.payHead]).setFontWeight('bold').setBackground('#fde8d5');
-  var out = (payopen || []).map(function (x) {
-    var age = x.since ? Math.round((new Date(today + 'T12:00:00') - new Date(x.since + 'T12:00:00')) / 864e5) : '';
-    return [x.name, x.since ? new Date(x.since + 'T12:00:00') : '', age, x.uid ? '=HYPERLINK("https://app.impact-martialarts.com/ex4/clients/' + x.uid + '/notes","CRM")' : ''];
-  });
-  if (out.length) {
-    sh.getRange(TR_ROW0, TR_PAY0, out.length, TR_PAY_N).setValues(out);
-    sh.getRange(TR_ROW0, TR_PAY0 + 1, out.length, 1).setNumberFormat('dd.MM.yyyy');
-    var rng = sh.getRange(TR_ROW0, TR_PAY0, out.length, TR_PAY_N);
-    rng.setBackground('#fff4e5');
-    var old = sh.getRange(TR_ROW0, TR_PAY0 + 2, out.length, 1);
-    old.setFontWeight('normal');
-    for (var i = 0; i < out.length; i++) if (Number(out[i][2]) >= 30) sh.getRange(TR_ROW0 + i, TR_PAY0, 1, TR_PAY_N).setBackground('#fce4e4');
-  }
 }
 function trFormat(sh, n, loc) {
   var rules = [], T = trT(loc), q = function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
@@ -2142,7 +2181,6 @@ function trDailyMail() {
     var T = trT(loc), sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return;
     var n = sh.getLastRow() - TR_ROW0 + 1;
     var v = sh.getRange(TR_ROW0, TR_P0, n, TR_NCOL).getValues().filter(function (r) { return !!r[CI.uid]; });
-    var pay = sh.getRange(TR_ROW0, TR_PAY0, n, TR_PAY_N).getValues().filter(function (r) { return r[0] && Number(r[2]) >= TR_PAY_DAYS; });
     var td = v.filter(function (r) { return dOfCell(r[CI.date]) === today; });
     var yd = v.filter(function (r) { return dOfCell(r[CI.date]) === yest; });
     var chk = v.filter(function (r) { return !!r[CI.check]; });
@@ -2155,8 +2193,6 @@ function trDailyMail() {
     yd.forEach(function (r) { lines.push('  - ' + r[CI.name] + ' | ' + trC(r[CI.art]) + ' | ' + (r[CI.lifecycle] || '?') + (dOfCell(r[CI.contract]) ? ' | ' + T.head[CI.contract] + ' ' + deD(dOfCell(r[CI.contract])) : '')); });
     lines.push(''); lines.push(T.mail.checks + ' (' + chk.length + '):'); if (!chk.length) lines.push('  ' + T.mail.none);
     chk.forEach(function (r) { lines.push('  - ' + r[CI.name] + ': ' + r[CI.check]); });
-    lines.push(''); lines.push(T.mail.pay + ' (' + pay.length + '):'); if (!pay.length) lines.push('  ' + T.mail.none);
-    pay.forEach(function (r) { lines.push('  - ' + r[0] + ': ' + r[2] + ' Tage'); });
     lines.push(''); lines.push(T.mail.month.replace('{t}', cnt(mv, trIsTrial)).replace('{s}', cnt(mv, trSold)).replace('{c}', chk.length));
     lines.push(''); lines.push('https://docs.google.com/spreadsheets/d/' + TEAM_ID);
     var to = TR_MAIL_TEAM ? (TR_ACCESS[loc] || [MAIL.fallback]).join(',') : MAIL.fallback;
@@ -2164,6 +2200,49 @@ function trDailyMail() {
     if (TR_MAIL_TEAM) msg.cc = MAIL.fallback;
     MailApp.sendEmail(msg);
   });
+  try { payDailyMail(); } catch (e) { Logger.log('Open payments Mail: ' + e); }
+}
+// ------------------------------------------------------------ Open Payments (06.09.2026, Entscheid Ruben): eigenes Sheet fuers Geld
+// eintreiben (Waseem + weitere, nicht Abdi/Bogdan). Beide Standorte in einem Tab, aelteste zuerst, stuendlich aus den Trials-Daten
+// (Stage "Signed but no payment"). Die Datei wird beim ersten Lauf angelegt (ID in den Script Properties) und liegt im Team-Ordner.
+var PAY_SHEET = 'Open payments', PAY_HEAD = ['Name', 'Location', 'Signed since', 'Days open', 'Lifecycle stage', 'Last note', 'CRM', 'Updated'];
+var PAY_ACCESS = []; // E-Mails der Bearbeiter (traegt Ruben nach) - bekommen Schreibrecht und die Tagesmail
+function paySs() {
+  var pr = PropertiesService.getScriptProperties(), id = pr.getProperty('payId');
+  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) { Logger.log('Open Payments neu anlegen: ' + e); } }
+  var ss = SpreadsheetApp.create('IMPACT Open Payments');
+  try { var f = DriveApp.getFileById(ss.getId()), parents = DriveApp.getFileById(TEAM_ID).getParents(); if (parents.hasNext()) { var folder = parents.next(); folder.addFile(f); DriveApp.getRootFolder().removeFile(f); } } catch (e2) { Logger.log('Open Payments Ordner: ' + e2); }
+  pr.setProperty('payId', ss.getId());
+  return ss;
+}
+function payWrite(payopen, today) {
+  var ss = paySs(), sh = ss.getSheets()[0]; if (sh.getName() !== PAY_SHEET) sh.setName(PAY_SHEET);
+  clearSheet(sh);
+  if (PAY_ACCESS.length) { try { ss.addEditors(PAY_ACCESS); } catch (e) { Logger.log('Open Payments Freigabe: ' + e); } }
+  sh.getRange('A1').setValue('IMPACT Open Payments').setFontSize(16).setFontWeight('bold');
+  sh.getRange('A2').setValue('People with the lifecycle stage "Signed but no payment" in exercise.com (contract signed, no payment method yet), both locations, oldest first. Updated hourly 09-22 from exercise.com; rows turn red after 30 days. When the payment is in, set the stage to "Client" in exercise.com and the row disappears with the next run. Notes belong in exercise.com (CRM link), not here.').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2:H2').merge(); sh.setRowHeight(2, 64);
+  sh.getRange(4, 1, 1, PAY_HEAD.length).setValues([PAY_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
+  var list = []; ['Zurich', 'Winterthur'].forEach(function (loc) { (payopen[loc] || []).forEach(function (x) { list.push(Object.assign({ loc: loc }, x)); }); });
+  list.sort(function (a, b) { return (a.since || '') < (b.since || '') ? -1 : 1; });
+  var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm');
+  var rows = list.map(function (x) {
+    var age = x.since ? Math.round((new Date(today + 'T12:00:00') - new Date(x.since + 'T12:00:00')) / 864e5) : '';
+    var nt = x.note && x.note.date ? x.note.date.slice(8, 10) + '.' + x.note.date.slice(5, 7) + '.' + (x.note.type ? ' ' + x.note.type : '') : '';
+    return [x.name, trLocDE(x.loc), x.since ? new Date(x.since + 'T12:00:00') : '', age, x.stage || LC_PAY_OPEN, nt, x.uid ? '=HYPERLINK("https://app.impact-martialarts.com/ex4/clients/' + x.uid + '/notes","CRM")' : '', stamp];
+  });
+  if (rows.length) { sh.getRange(5, 1, rows.length, PAY_HEAD.length).setValues(rows); sh.getRange(5, 3, rows.length, 1).setNumberFormat('dd.MM.yyyy'); for (var i = 0; i < rows.length; i++) if (Number(rows[i][3]) >= 30) sh.getRange(5 + i, 1, 1, PAY_HEAD.length).setBackground('#fce4e4'); }
+  else sh.getRange(5, 1).setValue('none').setFontColor('#999999');
+  sh.setFrozenRows(4); [220, 95, 100, 80, 190, 200, 50, 100].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+  return rows.length;
+}
+function payDailyMail() {
+  var ss = paySs(), sh = ss.getSheetByName(PAY_SHEET); if (!sh || sh.getLastRow() < 5) return;
+  var v = sh.getRange(5, 1, sh.getLastRow() - 4, PAY_HEAD.length).getValues().filter(function (r) { return r[0] && r[0] !== 'none' && Number(r[3]) >= TR_PAY_DAYS; });
+  var lines = ['Signed, but no payment for ' + TR_PAY_DAYS + '+ days: ' + v.length, ''];
+  v.forEach(function (r) { lines.push('  - ' + r[0] + ' (' + r[1] + '): ' + r[3] + ' days'); });
+  lines.push('', 'https://docs.google.com/spreadsheets/d/' + ss.getId());
+  MailApp.sendEmail({ to: [MAIL.fallback].concat(PAY_ACCESS).join(','), subject: '[Open payments] ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy'), body: lines.join('\n') });
 }
 function runProbetrainingsHourly() {
   var h = Number(Utilities.formatDate(new Date(), TZ, 'H')); if (h < 9 || h > 22) return;
