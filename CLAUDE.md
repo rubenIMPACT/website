@@ -142,6 +142,25 @@ ohne ausweisen, weil sie gekuendigt wird; LTV auf Netto-Umsatz mit allem; Kohort
   danach Save, Run > "Run without preview". Frequenz ueber die Scripts-Liste (Spalte Frequency, Stift).
 - Probe-Aktion `probe` in klassen.js + PROBE_REPORTS im Apps Script (Ergebnis per Mail) fuer kuenftige Report-Erkundungen.
   Reports mit 403 fuer den API-User: payments, transactions, invoices, client_charges, revenue, refunds, started_subscription.
+BANKABGLEICH + CASH-BLOCK (06.09.2026, Entscheid Ruben nach Abgleich mit den UBS-Kontoauszuegen Juni-August): Stripe zahlt EXAKT
+7 Kalendertage nach der Belastung aus (Wochenende -> Montag); mit dieser Verschiebung stimmen Juli/August auf 0.2 % mit dem Konto
+(beide Standorte zusammen). Ein Bankmonat = Belastungen ~24. Vormonat bis ~23. - deshalb sehen Monatsabschluss (Belastungsdatum)
+und Konto je Monat um bis zu +-9'500 CHF anders aus, ueber 3 Monate aber fast gleich. Weitere Unterschiede: Stripe-Gebuehr 2.05 %,
+Rueckerstattungen, Sales-by-Category liegt 1-2k/Monat unter den Charges (nicht kategorisierte Einmalkaeufe), Ueberweisungen ohne
+Stripe (nur ZH, 700-4'600/Monat, fehlen in exercise.com). GEBAUT: vierte LTV-Monatsreihe ZahlungenTag (action ltv kind sums:
+Datum|Standort|Anzahl|Betrag|Gebuehr|Refund|MwSt|Auszahlung), Cash-Block je Standort im Monatsabschluss (Zahlungen inkl. MwSt,
+Rueckerstattungen, Gebuehren, MwSt, Umsatz ohne MwSt, Auszahlung nach Belastungsdatum, erwarteter Bankeingang nach 7-Tage-Regel,
+Bankeingang laut Tab Bank, Differenz, Ueberweisungen). Tab Bank ist persistent (Month|Location|Stripe credits|Transfers|Note),
+vorbefuellt Juni-August aus den PDFs; spaeter UBS-CSV-Import. Lehre: Monatsabschluss "netto" = nach Stripe-Gebuehr, NICHT ohne MwSt.
+TEAM-TABS AB 06.09. (Ruben): Spalte "Personen" weg (zwei Kinder = Zeile kopieren und Namen aendern; Kopien mit gleicher UID und
+anderem Namen bleiben bei jedem Lauf erhalten, `extras` in trUpsert), neue Spalte "Vertragsstart" (Abo-Start, sale.start) hinter
+"Abschluss am", CI: date0 name1 art2 cls3 coach4 booked5 kanal6 lifecycle7 check8 contract9 start10 seller11 pkg12 note13 crm14
+created15 uid16 ns17 stamp18. Kanal ohne Website-Lead zeigt die exercise.com-"Source" in Klammern. Der Block "Zahlung offen"
+(AB..AE) ist RAUS aus den Team-Tabs: eigenes Sheet "IMPACT Open Payments" (paySs(): beim ersten Lauf angelegt, ID in Script
+Properties 'payId', im Team-Ordner; Tab "Open payments": Name|Location|Signed since|Days open|Lifecycle stage|Last note|CRM|Updated,
+beide Standorte, aelteste zuerst, ab 30 Tagen rot; PAY_ACCESS = Bearbeiter, z. B. Waseem - Ruben nennt die E-Mails); Tagesmail
+"[Open payments]" 12:00 an Ruben (+PAY_ACCESS), die Mittagsmails an Abdi/Bogdan enthalten keinen Zahlungsteil mehr. Alte
+Datenvalidierungen (Dropdown "Gespraech") blockierten am 06.09. 09:48 das Schreiben (J172) -> clearDataValidations vor jedem Lauf.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
