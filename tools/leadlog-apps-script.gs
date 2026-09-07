@@ -1251,6 +1251,22 @@ var ST_DEFAULTS = [
   ['Agentur bis', '', 'Letzter Monat mit Agenturkosten (yyyy-MM). Leer = laeuft noch.'],
   ['EUR in CHF', '0.94', 'Kurs fuer die Umrechnung der Agenturkosten - bitte pruefen.'],
   ['Werbekosten-Split ohne Standort', '0.5', 'Anteil Zuerich fuer Kampagnen ohne Standort im Namen (Rest Winterthur).'],
+  // Prognose bis 2030 im Monatsabschluss (Ruben 07.09.2026). Leer = automatisch aus den letzten Monaten; eine Zahl ueberschreibt.
+  ['Prognose: Verkäufe/Monat Zürich', '', 'Basis-Verkäufe pro Monat (vor Saisonindex). Leer = Durchschnitt der letzten 6 vollen Monate.'],
+  ['Prognose: Verkäufe/Monat Winterthur', '', 'Wie oben für Winterthur.'],
+  ['Prognose: Verlustquote Zürich %', '', 'Verluste in % der zahlenden Kunden pro Monat. Leer = gemessene Quote aller Kunden (Tab LTV).'],
+  ['Prognose: Verlustquote Winterthur %', '', 'Wie oben für Winterthur.'],
+  ['Prognose: Abo-Wert Zürich', '', 'Abo-Umsatz netto je zahlendem Kunden und Monat. Leer = Durchschnitt der letzten 3 vollen Monate.'],
+  ['Prognose: Abo-Wert Winterthur', '', 'Wie oben für Winterthur.'],
+  ['Prognose: Preisanpassung %/Jahr', '0', 'Jährliche Erhöhung des Abo-Werts in Prozent, ab Januar des Folgejahres.'],
+  ['Prognose: Starterpaket Zürich', '', 'Einmalkäufe je Neukunde beim Start. Leer = Wert aus dem Tab LTV.'],
+  ['Prognose: Starterpaket Winterthur', '', 'Wie oben für Winterthur.'],
+  ['Prognose: Übrige Einmalkäufe Zürich', '', 'Übrige Einmalkäufe je zahlendem Kunden und Monat (Shop, Events). Leer = Durchschnitt der letzten 3 vollen Monate.'],
+  ['Prognose: Übrige Einmalkäufe Winterthur', '', 'Wie oben für Winterthur.'],
+  ['Prognose: Magicline-Abbau %/Monat', '10', 'Monatlicher Rückgang der Magicline-Einnahmen (Zürich, altes System) ab dem letzten Wert im Tab Bank.'],
+  ['Saisonindex Jan', '1.06', 'Saisonfaktor für Verkäufe je Monat (1 = Durchschnitt). Vorbelegt aus den Ist-Verkäufen Zürich 2025 im alten Finanzplan.'],
+  ['Saisonindex Feb', '0.91', ''], ['Saisonindex Mär', '1.15', ''], ['Saisonindex Apr', '0.73', ''], ['Saisonindex Mai', '1.06', ''], ['Saisonindex Jun', '1.17', ''],
+  ['Saisonindex Jul', '0.64', ''], ['Saisonindex Aug', '1.06', ''], ['Saisonindex Sep', '1.48', ''], ['Saisonindex Okt', '1.31', ''], ['Saisonindex Nov', '0.82', ''], ['Saisonindex Dez', '0.60', ''],
 ];
 function stGet(ss) {
   var sh = ss.getSheetByName(ST_SHEET);
@@ -1260,6 +1276,9 @@ function stGet(ss) {
     sh.setColumnWidth(1, 240); sh.setColumnWidth(3, 500); sh.setFrozenRows(1);
   }
   var o = {}; sh.getRange(2, 1, Math.max(1, sh.getLastRow() - 1), 2).getValues().forEach(function (r) { if (r[0]) o[String(r[0])] = r[1]; });
+  // neue Einstellungen mit Standardwert nachtragen (bestehende Werte bleiben)
+  var missing = ST_DEFAULTS.filter(function (d) { return !(d[0] in o); });
+  if (missing.length) { var at = sh.getLastRow() + 1; sh.getRange(at, 2, missing.length, 1).setNumberFormat('@'); sh.getRange(at, 1, missing.length, 3).setValues(missing); missing.forEach(function (d) { o[d[0]] = d[1]; }); }
   return o;
 }
 function wkLocOf(name) { var s = String(name || ''); if (/winterthur|\bWT\b|winti/i.test(s)) return 'Winterthur'; if (/z[üu]e?rich|\bZH\b/i.test(s)) return 'Zurich'; return 'Beide'; }
@@ -1564,8 +1583,8 @@ function buildLTV(ss) {
   sh.getRange('A2').setValue('Kundenwert und LTV aus den Zahlungen in exercise.com (Charges-Report), Zahlungen bis ' + lastFull + ', Kündigungen bis ' + (kLast || '–') + '. Übliche Monatszahlung (Median) ' + Math.round(med) + ' CHF. ' + (hasFlags ? '' : '⚠️ Kunden-Flags fehlen noch, Migrierte nicht ausgeschlossen. ') + 'Kurzdefinitionen als Notiz an den Zeilen, alles Weitere im Tab Methodik.').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 44);
   var r = 4, N = [3, 6, 9, 12], store = [];
-  ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', L = list.filter(function (c) { return c.loc === loc; }), fresh = L.filter(function (c) { return !c.migrated; });
+  ['Zurich', 'Winterthur', 'Gesamt'].forEach(function (loc) {
+    var locDE = loc === 'Zurich' ? 'Zürich' : loc === 'Winterthur' ? 'Winterthur' : 'Gesamt (beide Standorte)', L = loc === 'Gesamt' ? list : list.filter(function (c) { return c.loc === loc; }), fresh = L.filter(function (c) { return !c.migrated; });
     sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
     if (!L.length) { sh.getRange(r, 1).setValue('keine Abo-Zahlungen'); r += 3; return; }
     var active = function (set, mk) { return set.filter(function (c) { return c.first <= mk && (!c.end || c.end >= mk); }); };
@@ -1619,9 +1638,10 @@ function buildLTV(ss) {
       var nc = L.filter(function (c) { return c.first === mk; }), sSt = nc.reduce(function (s, c) { return s + starterOf(c); }, 0);
       store.push({ mk: mk, loc: loc, metrics: {
         cv_paying: nP, cv_abo: nP ? Math.round(sAbo / nP) : '', cv_other: nP ? Math.round(sOther / nP) : '',
-        cv_starter: nc.length ? Math.round(sSt / nc.length) : '', cv_month: nP ? Math.round(sAbo / nP + sOther / nP + (life ? starter / life : 0)) : '' } });
+        cv_starter: nc.length ? Math.round(sSt / nc.length) : '', cv_month: nP ? Math.round(sAbo / nP + sOther / nP + (life ? starter / life : 0)) : '',
+        abo_paid: Math.round(sAbo), cv_other_sum: Math.round(sOther), cv_starter_sum: Math.round(sSt), cv_new: nc.length } });
     });
-    store.push({ mk: cur, loc: loc, metrics: { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_starter: Math.round(starter), ltv_month: Math.round(cvMonth), ltv_retention: 1 - rf.loss, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length } });
+    store.push({ mk: cur, loc: loc, metrics: { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_starter: Math.round(starter), ltv_month: Math.round(cvMonth), ltv_retention: 1 - rf.loss, ltv_loss_all: ra.loss, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length } });
   });
   maStoreMetricsMany(ss, store);
   sh.setColumnWidth(1, 340);
@@ -1686,7 +1706,7 @@ var MA_NOTES = {
   net_growth: 'Abos gestartet minus Kündigungen.',
   active_subs: 'Laufende Abos am Tag des Laufs.',
   churn_rate: 'Kündigungen geteilt durch aktive Abos.',
-  mrr_net: 'Monatlicher Abo-Umsatz netto aller laufenden Abos am Tag des Laufs (Bestand, nicht Zahlungen).',
+  mrr_net: 'Monatlicher Abo-Umsatz netto aller laufenden Abos am Monatsende (Bestand, nicht Zahlungen). Stichtagswert, erst ab September 2026 gemessen; davor stehen die Abo-Zahlungen (Kasse).',
   avg_sub_net: 'Abo-Umsatz netto geteilt durch aktive Abos.',
   cash_paid: 'Alle erfolgreichen Zahlungen im Monat laut Charges-Report, inkl. MwSt, nach Rückerstattungen.',
   cash_net: 'Zahlungen ohne MwSt und nach Rückerstattungen. Das ist der Umsatz nach Kasse.',
@@ -1698,6 +1718,7 @@ var MA_NOTES = {
   cv_abo: 'Abo-Zahlungen netto im Monat geteilt durch zahlende Abo-Kunden. Jahreszahler auf die bezahlten Monate verteilt. Alle Kunden inkl. migrierte.',
   cv_month: 'Abo-Umsatz plus übrige Einmalkäufe je Kunde plus Starterpaket verteilt auf die erwartete Dauer. Basis für den LTV.',
   cv_starter: 'Einmalkäufe im Startfenster (ein Monat vor bis ein Monat nach der ersten Abo-Zahlung) plus Mehrbetrag der ersten Abo-Belastung.',
+  abo_paid: 'Alle Abo-Zahlungen netto im Monat laut Charges-Report (Kasse). Rückwärts belastbar, anders als der Stichtagswert der laufenden Abos.',
   wk_media: 'Media-Kosten Google, Meta und TikTok, je Standort nach Kampagnenname.',
   wk_agency: 'Agenturkosten aus dem Tab Einstellungen, nach Media-Anteil auf die Standorte verteilt.',
   cpl: 'Media-Kosten geteilt durch Website-Leads.',
@@ -1814,154 +1835,245 @@ var MA_NOTE_FULL = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-
   + 'Tab Bank: Stripe, Magicline (Auszahlungen über Adyen, Mitglieder, die noch im alten System abgebucht werden), Überweisungen von Mitgliedern und Stiftungen (Umsatz ausserhalb exercise.com), Übrige (kein Umsatz). Show-up-Rate = 1 − No-Show-Quote, damit alle Quoten nach oben zeigen sollen. '
   + 'Kundenwert: Abo-Umsatz netto je zahlendem Kunden aus dem Charges-Report (Jahreszahler auf die bezahlten Monate verteilt), Starterpaket = Einmalkäufe ±1 Monat um die erste Abo-Zahlung plus Mehrbetrag der ersten Abo-Belastung (Zürich bucht Abo und Starterpaket zusammen ab), über die erwartete Dauer verteilt; LTV = monatlicher Kundenwert × erwartete Dauer (Tab LTV). '
   + 'Werbung: Media-Kosten aus Google Ads (Skript) und Meta (API) je Standort nach Kampagnenname, Agenturkosten aus dem Tab Einstellungen nach Media-Anteil verteilt; CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl.';
-var MA_NOTE = 'Kennzahlen je Standort und Monat aus exercise.com, Zahlungen aus dem Charges-Report, Werbekosten aus Google, Meta und TikTok. '
-  + 'Zeilen mit + zeigen Details. Kurzdefinitionen stehen als Notiz an der Zeilenbezeichnung, alles Weitere im Tab Methodik. Der laufende Monat ist noch unvollständig.';
+var MA_NOTE = 'Kennzahlen je Standort und Monat aus exercise.com, Zahlungen aus dem Charges-Report, Werbekosten aus Google, Meta und TikTok; darunter Gesamt. '
+  + 'Blaue Spalten = Prognose bis 2030 aus Kunden × Kundenwert (Annahmen im Tab Einstellungen, leer = automatisch aus den letzten Monaten), graue Spalten = Jahressummen. '
+  + 'Zeilen mit + zeigen Details, Kurzdefinitionen stehen als Notiz an der Zeile, alles Weitere im Tab Methodik.';
+// Spaltenbuchstabe (A, Z, AA, ...) fuer 1-basierte Spaltennummer
+function colA1(n) { var t = ''; while (n > 0) { var m = (n - 1) % 26; t = String.fromCharCode(65 + m) + t; n = Math.floor((n - 1) / 26); } return t; }
+var MA_FC_END = '2030-12', MA_SNAP_FROM = '2026-09'; // Prognose bis Dez 2030; Stichtagszeilen (Abo-Bestand) erst ab Sep 2026 echt gemessen
+var MA_ADD = ['leads_all', 'trial_booked_transitions', 'first_visits', 'first_visits_excluded', 'trial_noshow', 'trial_attended', 'signed_at_trial', 'sales_signed', 'sales_open', 'new_customers', 'switches', 'cancellations', 'net_growth', 'lost_after_trial', 'active_subs', 'paused_subs', 'pending_cancel', 'mrr_net', 'rev_membership_gross', 'rev_membership_net', 'starter_count', 'rev_starter_gross', 'pt_count', 'rev_pt_gross', 'rev_gear_gross', 'rev_total_gross', 'rev_total_net', 'conv_cohort_n', 'cv_paying', 'abo_paid', 'cv_other_sum', 'cv_starter_sum', 'cv_new'];
+var MA_STOCK = ['cv_paying', 'active_subs', 'paused_subs', 'pending_cancel', 'mrr_net', 'avg_sub_net', 'cv_abo', 'cv_other', 'cv_starter', 'cv_month', 'ltv'];
+var MA_FC_INFO = '';
 function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
-  if (sh.getMaxColumns() < 30) sh.insertColumnsAfter(sh.getMaxColumns(), 30 - sh.getMaxColumns());
-  sh.setFrozenColumns(0); sh.getRange(2, 1, 1, sh.getMaxColumns()).breakApart();
   var hist = ss.getSheetByName(MA_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 4).getValues() : [];
-  var months = {}; hv.forEach(function (r) { months[mkOf(r[0])] = 1; });
-  months[Utilities.formatDate(new Date(), TZ, 'yyyy-MM')] = 1; // laufender Monat immer dabei (Leads Website, Kanal live)
-  var keys = Object.keys(months).filter(function (k) { return k >= MA_FROM; }).sort().slice(-12);
   var val = {}; hv.forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
-  var vOf = function (k, loc, name) { var v = val[k + '|' + loc + '|' + name]; return v === undefined || v === '' ? '' : v; };
-  var dt = function (k) { return new Date(k + '-01T00:00:00'); };
+  var curK = Utilities.formatDate(new Date(), TZ, 'yyyy-MM'), m0 = prevMonth(curK);
+  // Kohortengroessen je Monat und Standort (fuer die Gesamt-Quote)
+  var cohN = {}, csh = ss.getSheetByName(MA_COHORT);
+  if (csh && csh.getLastRow() > 1) csh.getRange(2, 1, csh.getLastRow() - 1, 2).getValues().forEach(function (r) { var k = mkOf(r[0]) + '|' + r[1]; cohN[k] = (cohN[k] || 0) + 1; });
+  var st = stGet(ss), stNum = function (k) { var v = st[k]; return v === '' || v === undefined || v === null ? null : Number(String(v).replace(',', '.')); };
+  // Spalten: Monate ab MA_FROM bis Ende 2030, nach jedem Dezember eine Jahressumme
+  var cols = [], k = MA_FROM;
+  while (k <= MA_FC_END) { cols.push({ k: k, m: true, fc: k > curK }); if (k.slice(5) === '12') cols.push({ k: 'Y' + k.slice(0, 4), y: k.slice(0, 4) }); k = nextMonth(k); }
+  var hkeys = cols.filter(function (c) { return c.m && !c.fc; }).map(function (c) { return c.k; });
+  var need = cols.length + 3; if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
+  sh.setFrozenColumns(0); sh.getRange(2, 1, 1, sh.getMaxColumns()).breakApart();
+  var dt = function (kk) { return new Date(kk + '-01T00:00:00'); };
+  var vOf = function (kk, loc, name) { if (loc === 'Gesamt') return gOf(kk, name); var v = val[kk + '|' + loc + '|' + name]; return v === undefined || v === '' ? '' : v; };
+  var num = function (v) { return v === '' || v === null || v === undefined ? 0 : Number(v); };
+  var both = function (kk, name) { var a = val[kk + '|Zurich|' + name], b = val[kk + '|Winterthur|' + name]; var ea = a === undefined || a === '', eb = b === undefined || b === ''; return ea && eb ? '' : num(a) + num(b); };
+  var div = function (a, b) { return a === '' || b === '' || !num(b) ? '' : num(a) / num(b); };
+  var gOf = function (kk, name) { // Gesamt = Summe beider Standorte, Quoten aus den Summen neu gerechnet
+    if (MA_ADD.indexOf(name) >= 0 || name.indexOf('sales_kanal:') === 0) return both(kk, name);
+    if (name.indexOf('ltv_') === 0) { var v = val[kk + '|Gesamt|' + name]; return v === undefined || v === '' ? '' : v; }
+    switch (name) {
+      case 'noshow_rate': var fv = both(kk, 'first_visits'), ex = both(kk, 'first_visits_excluded'); return fv === '' || !(num(fv) - num(ex)) ? '' : num(both(kk, 'trial_noshow')) / (num(fv) - num(ex));
+      case 'conv_sales_trial': return div(both(kk, 'sales_signed'), both(kk, 'trial_attended'));
+      case 'conv_sales_lead': return div(both(kk, 'sales_signed'), both(kk, 'leads_all'));
+      case 'conv_simple': return div(both(kk, 'new_customers'), both(kk, 'trial_attended'));
+      case 'conv_cohort_rate': var n = both(kk, 'conv_cohort_n'), c = (cohN[kk + '|Zurich'] || 0) + (cohN[kk + '|Winterthur'] || 0); return n === '' || !c ? '' : num(n) / c;
+      case 'churn_rate': return div(both(kk, 'cancellations'), both(kk, 'active_subs'));
+      case 'avg_sub_net': return div(both(kk, 'mrr_net'), both(kk, 'active_subs'));
+      case 'cv_abo': return div(both(kk, 'abo_paid'), both(kk, 'cv_paying'));
+      case 'cv_other': return div(both(kk, 'cv_other_sum'), both(kk, 'cv_paying'));
+      case 'cv_starter': return div(both(kk, 'cv_starter_sum'), both(kk, 'cv_new'));
+      case 'cv_month': var ab = gOf(kk, 'cv_abo'), ot = gOf(kk, 'cv_other'), lt = val[curK + '|Gesamt|ltv_lifetime'], stv = val[curK + '|Gesamt|ltv_starter']; return ab === '' ? '' : num(ab) + num(ot) + (num(lt) ? num(stv) / num(lt) : 0);
+    }
+    return '';
+  };
+  // Prognose je Standort: Kunden(t) = Kunden(t-1) + Verkaeufe(t) - Verluste(t); Umsatz = Kunden x Abo-Wert + Starterpakete + uebrige Einmalkaeufe (+ Magicline-Abbau)
+  var lastN = function (loc, name, n) { var out = [], kk = m0; for (var i = 0; i < 12 && out.length < n; i++, kk = prevMonth(kk)) { var v = vOf(kk, loc, name); if (v !== '') out.push(num(v)); } return out; };
+  var avg = function (a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; };
+  var seas = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'].map(function (m) { var v = stNum('Saisonindex ' + m); return v === null || !v ? 1 : v; });
+  var price = (stNum('Prognose: Preisanpassung %/Jahr') || 0) / 100, decay = (stNum('Prognose: Magicline-Abbau %/Monat') || 0) / 100;
+  var bankAll = bankRead(ss), fcInfo = [];
+  var forecast = function (loc) {
+    var de = loc === 'Zurich' ? 'Zürich' : 'Winterthur', out = {};
+    var salesBase = stNum('Prognose: Verkäufe/Monat ' + de), lossQ = stNum('Prognose: Verlustquote ' + de + ' %'), arpu0 = stNum('Prognose: Abo-Wert ' + de), starter = stNum('Prognose: Starterpaket ' + de), other = stNum('Prognose: Übrige Einmalkäufe ' + de);
+    var auto = [];
+    if (salesBase === null) { salesBase = Math.round(avg(lastN(loc, 'sales_signed', 6))); auto.push('Verkäufe'); }
+    if (lossQ === null) { lossQ = num(val[curK + '|' + loc + '|ltv_loss_all']) * 100; auto.push('Verlustquote'); }
+    if (arpu0 === null) { arpu0 = Math.round(avg(lastN(loc, 'cv_abo', 3))); auto.push('Abo-Wert'); }
+    if (starter === null) { starter = num(val[curK + '|' + loc + '|ltv_starter']); auto.push('Starterpaket'); }
+    if (other === null) { other = Math.round(avg(lastN(loc, 'cv_other', 3))); auto.push('übrige Einmalkäufe'); }
+    var cust = num(vOf(m0, loc, 'cv_paying')) || num(vOf(m0, loc, 'active_subs')), magic = 0;
+    if (loc === 'Zurich') { var bk0 = m0; for (var i = 0; i < 6 && !magic; i++, bk0 = prevMonth(bk0)) { var b = bankAll[bk0 + '|Zurich']; if (b && b.adyen !== '') magic = num(b.adyen); } }
+    fcInfo.push(de + ': Start ' + m0 + ' mit ' + cust + ' zahlenden Kunden, Verkäufe ' + salesBase + '/Monat × Saisonindex, Verlustquote ' + (Math.round(lossQ * 10) / 10) + ' %, Abo-Wert ' + arpu0 + ' CHF' + (price ? ' (+' + (price * 100) + ' %/Jahr)' : '') + ', Starterpaket ' + Math.round(starter) + ', übrige Einmalkäufe ' + other + '/Kunde' + (loc === 'Zurich' ? ', Magicline ab ' + Math.round(magic) + ' CHF mit −' + (decay * 100) + ' %/Monat' : '') + (auto.length ? ' [automatisch: ' + auto.join(', ') + ']' : ''));
+    var kk = nextMonth(m0), y0 = +m0.slice(0, 4);
+    while (kk <= MA_FC_END) {
+      var mi = +kk.slice(5, 7) - 1, actualSales = kk <= curK ? vOf(kk, loc, 'sales_signed') : '';
+      var sales = actualSales !== '' ? num(actualSales) : Math.round(salesBase * seas[mi]);
+      var losses = Math.round(cust * lossQ / 100); cust = Math.max(0, cust + sales - losses);
+      var arpu = arpu0 * Math.pow(1 + price, Math.max(0, +kk.slice(0, 4) - y0)); magic = magic * (1 - decay);
+      var abo = cust * arpu, one = sales * starter + cust * other, net = abo + one + magic;
+      out[kk] = { sales: sales, losses: losses, cust: cust, arpu: arpu, abo: abo, starter: starter, other: other, one: one, magic: magic, net: net };
+      kk = nextMonth(kk);
+    }
+    return out;
+  };
+  var fc = { Zurich: forecast('Zurich'), Winterthur: forecast('Winterthur') }, fcG = {};
+  Object.keys(fc.Zurich).forEach(function (kk) { var a = fc.Zurich[kk], b = fc.Winterthur[kk] || {}; var o = {}; ['sales', 'losses', 'cust', 'abo', 'one', 'magic', 'net'].forEach(function (f) { o[f] = num(a[f]) + num(b[f]); }); o.arpu = o.cust ? o.abo / o.cust : ''; o.starter = ''; o.other = ''; fcG[kk] = o; });
+  fc.Gesamt = fcG;
+  MA_FC_INFO = fcInfo.join('\n');
+  var fcVal = function (loc, kk, key) { // Prognosewerte fuer die Zeilen, die vorwaerts gerechnet werden
+    var o = fc[loc][kk]; if (!o) return '';
+    switch (key) {
+      case 'sales_signed': return o.sales; case 'cancellations': return o.losses; case 'net_growth': return o.sales - o.losses;
+      case 'cv_paying': return o.cust; case 'cv_abo': return o.arpu === '' ? '' : Math.round(o.arpu); case 'cv_starter': return o.starter === '' ? '' : Math.round(o.starter); case 'cv_other': return o.other === '' ? '' : Math.round(o.other);
+      case 'abo_paid': return Math.round(o.abo); case 'cash_net': return Math.round(o.net); case 'cash_paid': return Math.round(o.net * 1.081);
+      case 'cash_nonstripe': case 'cash_adyen': return o.magic > 0.5 ? Math.round(o.magic) : '';
+    }
+    return '';
+  };
+  // Kopf
   sh.getRange('A1').setValue('IMPACT Monatsabschluss').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue('Methodik').setFontColor('#999999');
   sh.getRange('B2').setValue(MA_NOTE).setFontColor('#666666').setWrap(true);
   sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 44);
-  var r = 4, blocks = [], wkM = wkMonthAgg(ss);
-  ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', rowIdx = {}, det = [];
-    sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
-    var head = ['Kennzahl'].concat(keys.map(dt));
+  var r = 4, blocks = [], wkM = wkMonthAgg(ss), bankM = bankAll, cashZ = cashMonth(ss, 'Zurich'), cashW = cashMonth(ss, 'Winterthur');
+  var cashG = {}; Object.keys(cashZ).concat(Object.keys(cashW)).forEach(function (kk) { if (cashG[kk]) return; var a = cashZ[kk] || {}, b = cashW[kk] || {}, o = {}; ['paid', 'refund', 'fee', 'tax', 'netvat', 'net', 'expect'].forEach(function (f) { if (a[f] !== undefined || b[f] !== undefined) o[f] = num(a[f]) + num(b[f]); }); cashG[kk] = o; });
+  var cashOf = { Zurich: cashZ, Winterthur: cashW, Gesamt: cashG };
+  var bankOf = function (loc, kk, f) { if (loc !== 'Gesamt') { var b = bankM[kk + '|' + loc]; return b && b[f] !== '' ? b[f] : ''; } var x = bankM[kk + '|Zurich'], y = bankM[kk + '|Winterthur']; if (!x && !y) return ''; var vx = x ? x[f] : '', vy = y ? y[f] : ''; return vx === '' && vy === '' ? '' : num(vx) + num(vy); };
+  var mediaOfLoc = function (loc, kk, pn) { var w = wkM[kk]; if (!w) return ''; var pick = function (o) { return pn ? (o.plat[pn] || 0) : o.media; }; return Math.round(loc === 'Gesamt' ? pick(w.Zurich) + pick(w.Winterthur) : pick(w[loc])); };
+  var agencyOf = function (loc, kk) { if (!(wkM[kk] || kk >= '2026-01') || kk > curK) return ''; var a = wkAgency(ss, kk, wkM); return Math.round(loc === 'Gesamt' ? a.Zurich + a.Winterthur : a[loc]); };
+  ['Zurich', 'Winterthur', 'Gesamt'].forEach(function (loc) {
+    var locDE = loc === 'Zurich' ? 'Zürich' : loc === 'Winterthur' ? 'Winterthur' : 'Gesamt', locFilter = loc === 'Gesamt' ? '*' : locDE, rowIdx = {}, det = [], yearRule = {};
+    sh.getRange(r, 1).setValue(locDE + (loc === 'Gesamt' ? ' (Zürich + Winterthur)' : '')).setFontWeight('bold').setFontSize(13); r++;
+    var head = ['Kennzahl'].concat(cols.map(function (c) { return c.m ? dt(c.k) : c.y; }));
     sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
-    sh.getRange(r, 2, 1, keys.length).setNumberFormat('mmm yyyy');
-    var curK = Utilities.formatDate(new Date(), TZ, 'yyyy-MM'); keys.forEach(function (k, ci) { if (k === curK) sh.getRange(r, 2 + ci).setNumberFormat('mmm yyyy" (laufend)"').setNote('Laufender Monat: Cash und Kundenwert kommen erst nach Monatsende.'); });
+    cols.forEach(function (c, ci) { var cell = sh.getRange(r, 2 + ci); if (c.m) { cell.setNumberFormat(c.k === curK ? 'mmm yyyy" (laufend)"' : c.fc ? 'mmm yy" P"' : 'mmm yyyy'); if (c.k === curK) cell.setNote('Laufender Monat: Cash und Kundenwert kommen erst nach Monatsende.'); if (c.fc) cell.setBackground('#d2e3fc').setNote('Prognose. Annahmen im Tab Einstellungen, Herleitung im Tab Methodik.'); } else cell.setBackground('#e0e0e0').setNumberFormat('@').setNote('Jahressumme; Bestandswerte = Dezember.'); });
     var hdr = r; r++;
-    var rowsDef = [];
-    MA_ROWS.forEach(function (def) { rowsDef.push(def); if (def[0] === 'leads_web') KANAL_ORDER.forEach(function (kn) { rowsDef.push(['kanal:' + kn, '   davon ' + kn, '0']); }); });
-    rowsDef.forEach(function (def) {
-      var row = [def[1]];
-      keys.forEach(function (k, ci) {
-        var col = String.fromCharCode(66 + ci);
-        if (def[0] === 'leads_web' && k >= LOG_START.slice(0, 7)) row.push(maCountLeads(col + '$' + hdr, locDE, null, null));
-        else if (def[0].indexOf('kanal:') === 0) row.push(k < LOG_START.slice(0, 7) ? '' : maCountLeads(col + '$' + hdr, locDE, 'J', def[0].split(':')[1]));
-        else if (def[0] === 'showup_rate') { var nsv = vOf(k, loc, 'noshow_rate'); row.push(nsv === '' ? '' : 1 - Number(nsv)); } // positiv gedreht (Ruben 06.09.)
-        else row.push(vOf(k, loc, def[0]));
+    var colOf = function (ci) { return colA1(2 + ci); };
+    var writeRow = function (key, label, fn, fmt, opts) {
+      var row = [label];
+      cols.forEach(function (c, ci) {
+        if (c.m) { row.push(c.fc ? fcVal(loc, c.k, key) : fn(c.k, ci)); return; }
+        // Jahresspalte: Summe der Monate, Bestand = Dezember, Quoten neu aus den Summen, sonst leer
+        var rule = yearRule[key] || (MA_STOCK.indexOf(key) >= 0 ? 'dec' : (MA_ADD.indexOf(key) >= 0 || /^(kanal:|sk:|wk:|cash_|leads_web$|wk_)/.test(key)) ? 'sum' : '');
+        var first = ci - 12, last = ci - 1, a1 = colOf(first), a2 = colOf(last);
+        if (rule === 'sum') row.push('=IF(COUNT(' + a1 + '{r}:' + a2 + '{r})=0,"",SUM(' + a1 + '{r}:' + a2 + '{r}))');
+        else if (rule === 'dec') row.push('=IF(' + a2 + '{r}="","",' + a2 + '{r})');
+        else if (rule.indexOf('ratio:') === 0) { var p = rule.split(':'), n1 = rowIdx[p[1]], d1 = rowIdx[p[2]]; row.push(n1 && d1 ? '=IF(OR(SUM(' + a1 + n1 + ':' + a2 + n1 + ')=0,SUM(' + a1 + d1 + ':' + a2 + d1 + ')=0),"",SUM(' + a1 + n1 + ':' + a2 + n1 + ')/SUM(' + a1 + d1 + ':' + a2 + d1 + '))' : ''); }
+        else row.push('');
       });
+      row = row.map(function (v) { return typeof v === 'string' ? v.replace(/\{r\}/g, String(r)) : v; });
       sh.getRange(r, 1, 1, row.length).setValues([row]);
-      if (def[3] === 'd' || def[0].indexOf('kanal:') === 0) { det.push(r); sh.getRange(r, 1).setFontColor('#666666'); }
-      if (keys.length) sh.getRange(r, 2, 1, keys.length).setNumberFormat(def[2]);
-      if (['trial_attended', 'sales_signed', 'new_customers', 'net_growth', 'mrr_net'].indexOf(def[0]) >= 0) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
-      if (MA_NOTES[def[0]]) sh.getRange(r, 1).setNote(MA_NOTES[def[0]]);
-      rowIdx[def[0]] = r; r++;
-    });
-    var cellOf = function (key, ci) { return String.fromCharCode(66 + ci) + rowIdx[key]; };
-    var put = function (key, label, fn, fmt, opts) {
-      var row = [label].concat(keys.map(fn)); sh.getRange(r, 1, 1, row.length).setValues([row]);
-      if (fmt && keys.length) sh.getRange(r, 2, 1, keys.length).setNumberFormat(fmt);
+      if (fmt) sh.getRange(r, 2, 1, cols.length).setNumberFormat(fmt);
       if (opts && (opts.grey || opts.detail)) sh.getRange(r, 1).setFontColor('#666666'); if (opts && opts.detail) det.push(r); if (opts && opts.bold) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
       if (MA_NOTES[key]) sh.getRange(r, 1).setNote(MA_NOTES[key]);
       rowIdx[key] = r; r++;
     };
-    var block = function (t) { sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue(t).setFontWeight('bold'); r++; };
-    // leere Zellen zaehlen in Sheets als 0, deshalb explizit pruefen (sonst "Kosten pro Lead 0", solange keine Werbedaten da sind)
-    var ratio = function (num, den) { return function (k, ci) { var a = cellOf(num, ci), b = cellOf(den, ci); return '=IF(OR(' + a + '="",' + b + '="",' + b + '=0),"",' + a + '/' + b + ')'; }; };
-    var mediaOf = function (k, pn) { var o = (wkM[k] || {})[loc]; if (!o) return ''; return Math.round(pn ? (o.plat[pn] || 0) : o.media); };
-    // Cash (Ruben 06.09.): Zahlungen aus dem Charges-Report je Tag; Stripe zahlt 7 Kalendertage nach der Belastung aus (Wochenende
-    // -> Montag), deshalb "erwarteter Bankeingang" nach Auszahlungsmonat; Ist-Werte aus dem Tab Bank (Kontoauszug, von Hand / spaeter CSV)
-    var cashM = cashMonth(ss, loc), bankM = bankRead(ss), cv = function (k, f) { var o = cashM[k]; return o ? Math.round(o[f]) : ''; };
-    var bk = function (k, f) { var b = bankM[k + '|' + loc]; return b && b[f] !== '' ? b[f] : ''; }, D = { detail: true };
+    yearRule.conv_sales_trial = 'ratio:sales_signed:trial_attended'; yearRule.conv_sales_lead = 'ratio:sales_signed:leads_all'; yearRule.conv_simple = 'ratio:new_customers:trial_attended';
+    yearRule.cpl = 'ratio:wk_media:leads_web'; yearRule.cpt = 'ratio:wk_media:trial_attended'; yearRule.cac = 'ratio:wk_media:sales_signed';
+    var rowsDef = [];
+    MA_ROWS.forEach(function (def) { rowsDef.push(def); if (def[0] === 'leads_web') KANAL_ORDER.forEach(function (kn) { rowsDef.push(['kanal:' + kn, '   davon ' + kn, '0', 'd']); }); });
+    var snap = ['active_subs', 'paused_subs', 'pending_cancel', 'churn_rate', 'mrr_net', 'avg_sub_net'];
+    rowsDef.forEach(function (def) {
+      var key = def[0];
+      writeRow(key, def[1], function (kk, ci) {
+        if (key === 'leads_web') return kk >= LOG_START.slice(0, 7) ? maCountLeads(colOf(ci) + '$' + hdr, locFilter, null, null) : vOf(kk, loc, key);
+        if (key.indexOf('kanal:') === 0) return kk < LOG_START.slice(0, 7) ? '' : maCountLeads(colOf(ci) + '$' + hdr, locFilter, 'J', key.split(':')[1]);
+        if (key === 'showup_rate') { var nsv = vOf(kk, loc, 'noshow_rate'); return nsv === '' ? '' : 1 - Number(nsv); }
+        if (snap.indexOf(key) >= 0 && kk < MA_SNAP_FROM) return ''; // Stichtagswerte vor Sep 2026 waren Nachlaeufe mit dem Bestand von Anfang September
+        return vOf(kk, loc, key);
+      }, def[2], { detail: def[3] === 'd', bold: ['trial_attended', 'sales_signed', 'new_customers', 'net_growth', 'mrr_net'].indexOf(key) >= 0 });
+    });
+    var cellOf = function (key, ci) { return colOf(ci) + rowIdx[key]; };
+    var put = writeRow;
+    var block = function (t) { sh.getRange(r, 1, 1, cols.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue(t).setFontWeight('bold'); r++; };
+    var ratio = function (n1, d1) { return function (kk, ci) { var a = cellOf(n1, ci), b = cellOf(d1, ci); return '=IF(OR(' + a + '="",' + b + '="",' + b + '=0),"",' + a + '/' + b + ')'; }; };
+    var cashM = cashOf[loc], cv = function (kk, f) { var o = cashM[kk]; return o && o[f] !== undefined ? Math.round(o[f]) : ''; };
+    var bk = function (kk, f) { return bankOf(loc, kk, f); }, D = { detail: true };
     block('Cash: Zahlungen und Bankeingang');
-    put('cash_paid', 'Zahlungen der Kunden (inkl. MwSt)', function (k) { return cv(k, 'paid'); }, '#,##0', { bold: true });
-    put('cash_refund', '   davon Rückerstattungen', function (k) { return cv(k, 'refund'); }, '#,##0', D);
-    put('cash_fee', '   Stripe-Gebühren', function (k) { return cv(k, 'fee'); }, '#,##0', D);
-    put('cash_tax', '   MwSt', function (k) { return cv(k, 'tax'); }, '#,##0', D);
-    put('cash_net', 'Umsatz ohne MwSt', function (k) { return cv(k, 'netvat'); }, '#,##0', { bold: true });
-    put('cash_payout', '   Stripe-Auszahlung nach Belastungsdatum', function (k) { return cv(k, 'net'); }, '#,##0', D);
-    put('cash_expect', 'Erwarteter Bankeingang Stripe', function (k) { return cv(k, 'expect'); }, '#,##0', { bold: true });
-    put('cash_bank', 'Bankeingang Stripe laut Konto', function (k) { return bk(k, 'stripe'); }, '#,##0');
-    put('cash_diff', 'Differenz Konto − erwartet', function (k, ci) { var a = cellOf('cash_bank', ci), b = cellOf('cash_expect', ci); return '=IF(OR(' + a + '="",' + b + '=""),"",' + a + '-' + b + ')'; }, '#,##0');
-    put('cash_nonstripe', 'Umsatz ausserhalb Stripe (Magicline, Überweisungen)', function (k) { var a = bk(k, 'adyen'), c = bk(k, 'customers'); return a === '' && c === '' ? '' : (Number(a) || 0) + (Number(c) || 0); }, '#,##0', { bold: true });
-    put('cash_adyen', '   davon Magicline (Adyen)', function (k) { return bk(k, 'adyen'); }, '#,##0', D);
-    put('cash_cust', '   davon Überweisungen von Mitgliedern', function (k) { return bk(k, 'customers'); }, '#,##0', D);
-    put('cash_other', '   Übrige Eingänge (kein Umsatz)', function (k) { return bk(k, 'other'); }, '#,##0', D);
-    put('cash_total', 'Bankeingang gesamt laut Konto', function (k, ci) { var a = cellOf('cash_bank', ci); return '=IF(' + a + '="","",' + a + '+N(' + cellOf('cash_nonstripe', ci) + ')+N(' + cellOf('cash_other', ci) + '))'; }, '#,##0', { bold: true });
-    // Kundenwert je Monat aus den Zahlungen (Tab LTV, alle Kunden inkl. migriert): Abo-Wert ohne Starterpaket, Starterpaket ueber die
-    // erwartete Dauer verteilt (Ruben 06.09.: sauberer monatlicher Kundenwert, Starterpaket darf den Monatswert nicht verfaelschen)
+    put('cash_paid', 'Zahlungen der Kunden (inkl. MwSt)', function (kk) { return cv(kk, 'paid'); }, '#,##0', { bold: true });
+    put('cash_refund', '   davon Rückerstattungen', function (kk) { return cv(kk, 'refund'); }, '#,##0', D);
+    put('cash_fee', '   Stripe-Gebühren', function (kk) { return cv(kk, 'fee'); }, '#,##0', D);
+    put('cash_tax', '   MwSt', function (kk) { return cv(kk, 'tax'); }, '#,##0', D);
+    put('cash_net', 'Umsatz ohne MwSt', function (kk) { return cv(kk, 'netvat'); }, '#,##0', { bold: true });
+    put('cash_payout', '   Stripe-Auszahlung nach Belastungsdatum', function (kk) { return cv(kk, 'net'); }, '#,##0', D);
+    put('cash_expect', 'Erwarteter Bankeingang Stripe', function (kk) { return cv(kk, 'expect'); }, '#,##0', { bold: true });
+    put('cash_bank', 'Bankeingang Stripe laut Konto', function (kk) { return bk(kk, 'stripe'); }, '#,##0');
+    put('cash_diff', 'Differenz Konto − erwartet', function (kk, ci) { var a = cellOf('cash_bank', ci), b = cellOf('cash_expect', ci); return '=IF(OR(' + a + '="",' + b + '=""),"",' + a + '-' + b + ')'; }, '#,##0');
+    put('cash_nonstripe', 'Umsatz ausserhalb Stripe (Magicline, Überweisungen)', function (kk) { var a = bk(kk, 'adyen'), c = bk(kk, 'customers'); return a === '' && c === '' ? '' : num(a) + num(c); }, '#,##0', { bold: true });
+    put('cash_adyen', '   davon Magicline (Adyen)', function (kk) { return bk(kk, 'adyen'); }, '#,##0', D);
+    put('cash_cust', '   davon Überweisungen von Mitgliedern', function (kk) { return bk(kk, 'customers'); }, '#,##0', D);
+    put('cash_other', '   Übrige Eingänge (kein Umsatz)', function (kk) { return bk(kk, 'other'); }, '#,##0', D);
+    put('cash_total', 'Bankeingang gesamt laut Konto', function (kk, ci) { var a = cellOf('cash_bank', ci); return '=IF(' + a + '="","",' + a + '+N(' + cellOf('cash_nonstripe', ci) + ')+N(' + cellOf('cash_other', ci) + '))'; }, '#,##0', { bold: true });
     block('Kundenwert');
-    put('cv_abo', 'Ø Abo-Umsatz netto je zahlendem Kunden', function (k) { return vOf(k, loc, 'cv_abo'); }, '#,##0', { bold: true });
-    put('cv_paying', '   Zahlende Abo-Kunden', function (k) { return vOf(k, loc, 'cv_paying'); }, '0', D);
-    put('cv_other', '   Übrige Einmalkäufe je Kunde', function (k) { return vOf(k, loc, 'cv_other'); }, '#,##0', D);
-    put('cv_starter', '   Starterpaket je Neukunde', function (k) { return vOf(k, loc, 'cv_starter'); }, '#,##0', D);
-    put('cv_month', 'Monatlicher Kundenwert', function (k) { return vOf(k, loc, 'cv_month'); }, '#,##0', { bold: true });
-    // Werbung: Kosten live aus WerbekostenDaten/Einstellungen, Quoten als Formeln auf die Zeilen dieses Blocks
+    put('abo_paid', 'Abo-Zahlungen netto (Kasse)', function (kk) { return vOf(kk, loc, 'abo_paid'); }, '#,##0', { bold: true });
+    put('cv_paying', 'Zahlende Abo-Kunden', function (kk) { return vOf(kk, loc, 'cv_paying'); }, '0', { bold: true });
+    put('cv_abo', 'Ø Abo-Umsatz netto je zahlendem Kunden', function (kk) { var v = vOf(kk, loc, 'cv_abo'); return v === '' ? '' : Math.round(v); }, '#,##0', { bold: true });
+    put('cv_other', '   Übrige Einmalkäufe je Kunde', function (kk) { var v = vOf(kk, loc, 'cv_other'); return v === '' ? '' : Math.round(v); }, '#,##0', D);
+    put('cv_starter', '   Starterpaket je Neukunde', function (kk) { var v = vOf(kk, loc, 'cv_starter'); return v === '' ? '' : Math.round(v); }, '#,##0', D);
+    put('cv_month', 'Monatlicher Kundenwert', function (kk) { var v = vOf(kk, loc, 'cv_month'); return v === '' ? '' : Math.round(v); }, '#,##0', { bold: true });
     block('Werbung');
-    put('wk_media', 'Werbekosten Media (CHF)', function (k) { return mediaOf(k); }, '#,##0', { bold: true });
-    WK_PLATFORMS.forEach(function (pn) { put('wk:' + pn, '   davon ' + pn, function (k) { return mediaOf(k, pn); }, '#,##0', D); });
-    put('wk_agency', 'Agenturkosten (CHF, Anteil ' + locDE + ')', function (k) { return wkM[k] || k >= '2026-01' ? Math.round(wkAgency(ss, k, wkM)[loc]) : ''; }, '#,##0');
+    put('wk_media', 'Werbekosten Media (CHF)', function (kk) { return mediaOfLoc(loc, kk); }, '#,##0', { bold: true });
+    WK_PLATFORMS.forEach(function (pn) { put('wk:' + pn, '   davon ' + pn, function (kk) { return mediaOfLoc(loc, kk, pn); }, '#,##0', D); });
+    put('wk_agency', 'Agenturkosten (CHF' + (loc === 'Gesamt' ? '' : ', Anteil ' + locDE) + ')', function (kk) { return agencyOf(loc, kk); }, '#,##0');
     put('cpl', 'Kosten pro Website-Lead', ratio('wk_media', 'leads_web'), '#,##0');
     WK_PLATFORMS.forEach(function (pn) { put('cpl:' + pn, '   CPL ' + pn, ratio('wk:' + pn, 'kanal:' + pn), '#,##0', D); });
     put('cpt', '   Kosten pro Probetraining', ratio('wk_media', 'trial_attended'), '#,##0', D);
-    WK_PLATFORMS.forEach(function (pn) { put('sk:' + pn, '   Verkäufe aus ' + pn + '-Leads', function (k) { return vOf(k, loc, 'sales_kanal:' + pn); }, '0', D); });
+    WK_PLATFORMS.forEach(function (pn) { put('sk:' + pn, '   Verkäufe aus ' + pn + '-Leads', function (kk) { return vOf(kk, loc, 'sales_kanal:' + pn); }, '0', D); });
     put('cac', 'CAC Media je Verkauf', ratio('wk_media', 'sales_signed'), '#,##0', { bold: true });
-    put('cac_all', 'CAC inkl. Agentur', function (k, ci) { var m = cellOf('wk_media', ci), a = cellOf('wk_agency', ci), sg = cellOf('sales_signed', ci); return '=IF(OR(' + m + '="",' + sg + '="",' + sg + '=0),"",(' + m + '+' + a + ')/' + sg + ')'; }, '#,##0', { bold: true });
+    put('cac_all', 'CAC inkl. Agentur', function (kk, ci) { var m = cellOf('wk_media', ci), a = cellOf('wk_agency', ci), sg = cellOf('sales_signed', ci); return '=IF(OR(' + m + '="",' + sg + '="",' + sg + '=0),"",(' + m + '+' + a + ')/' + sg + ')'; }, '#,##0', { bold: true });
     WK_PLATFORMS.forEach(function (pn) { put('cac:' + pn, '   CAC ' + pn, ratio('wk:' + pn, 'sk:' + pn), '#,##0', D); });
-    put('ltv', 'LTV netto (Prognose)', function (k) { return vOf(k, loc, 'ltv_forecast'); }, '#,##0', { bold: true });
+    put('ltv', 'LTV netto (Prognose)', function (kk) { return vOf(kk, loc, 'ltv_forecast'); }, '#,##0', { bold: true });
     put('ltv_cac', '   LTV : CAC (Media)', ratio('ltv', 'cac'), '0.0', D);
     put('ltv_cac_all', 'LTV : CAC (inkl. Agentur)', ratio('ltv', 'cac_all'), '0.0');
     put('payback', 'Payback in Monaten', ratio('cac_all', 'cv_month'), '0.0');
-    // Detailzeilen als einklappbare Zeilengruppen (Ruben 07.09.: lesbar; Plus-Zeichen links zeigt die Details)
+    // Prognosespalten einfaerben, Detailzeilen in einklappbare Gruppen
+    cols.forEach(function (c, ci) { if (c.fc) sh.getRange(hdr + 1, 2 + ci, r - hdr - 1, 1).setBackground('#e8f0fe'); else if (c.y) sh.getRange(hdr + 1, 2 + ci, r - hdr - 1, 1).setBackground('#f1f1f1').setFontWeight('bold'); });
     var groups = []; det.sort(function (a, b) { return a - b; }).forEach(function (x) { var g = groups[groups.length - 1]; if (g && x === g[1] + 1) g[1] = x; else groups.push([x, x]); });
     groups.forEach(function (g) { try { sh.getRange(g[0], 1, g[1] - g[0] + 1, 1).shiftRowGroupDepth(1); } catch (e) { Logger.log('Zeilengruppe ' + g + ': ' + e); } });
-    blocks.push({ loc: loc, locDE: locDE, hdr: hdr });
+    blocks.push({ loc: loc, locDE: locDE, locFilter: locFilter, hdr: hdr });
     r += 2;
   });
-  // Diagrammdaten unten (Monate als Zeilen), Diagramme rechts neben den Zahlen ab Spalte O
-  if (keys.length) {
-    var d = r + 1;
-    sh.getRange(d, 1).setValue('Diagrammdaten – automatisch, bitte nicht bearbeiten').setFontWeight('bold').setFontColor('#999999'); d += 2;
-    blocks.forEach(function (b) {
-      var mo = keys.map(function (k) { return [dt(k)]; });
-      var tbl = function (headRow, rows, fmt) {
-        sh.getRange(d, 1, 1, headRow.length).setValues([headRow]).setFontWeight('bold');
-        sh.getRange(d + 1, 1, rows.length, headRow.length).setValues(rows);
-        sh.getRange(d + 1, 1, rows.length, 1).setNumberFormat('mmm yyyy');
-        if (fmt) sh.getRange(d + 1, 2, rows.length, headRow.length - 1).setNumberFormat(fmt);
-        sh.getRange(d, 1, rows.length + 1, headRow.length).setFontColor('#999999').setFontSize(9);
-        var at = d; d += rows.length + 2; return at;
-      };
-      var num = function (v) { return v === '' || v === null || v === undefined ? 0 : Number(v); };
-      var fun = tbl([b.locDE + ' Funnel', 'Leads', 'Probetrainings gebucht', 'Probetrainings', 'Abos gestartet', 'Kündigungen'], keys.map(function (k) {
-        var la = vOf(k, b.loc, 'leads_all'), lw = vOf(k, b.loc, 'leads_web');
-        return [dt(k), num(la) || num(lw), num(vOf(k, b.loc, 'trial_booked_transitions')), num(vOf(k, b.loc, 'trial_attended')), num(vOf(k, b.loc, 'new_customers')), num(vOf(k, b.loc, 'cancellations'))];
-      }));
-      var quo = tbl([b.locDE + ' Quoten', 'Show-up-Rate', 'Verkäufe / Probetrainings', 'Verkäufe / Leads', 'Kohorten-Conversion'], keys.map(function (k) {
-        var nsv = vOf(k, b.loc, 'noshow_rate');
-        return [dt(k), nsv === '' ? 0 : 1 - num(nsv), num(vOf(k, b.loc, 'conv_sales_trial')), num(vOf(k, b.loc, 'conv_sales_lead')), num(vOf(k, b.loc, 'conv_cohort_rate'))];
-      }), '0%');
-      var kan = tbl([b.locDE + ' Kanal'].concat(KANAL_ORDER), keys.map(function (k, ci) {
-        return [dt(k)].concat(KANAL_ORDER.map(function (kn) { return k < LOG_START.slice(0, 7) ? 0 : maCountLeads('$A' + (d + 1 + ci), b.locDE, 'J', kn); }));
-      }));
-      var inr = tbl([b.locDE + ' Interesse'].concat(INTERESTS), keys.map(function (k, ci) {
-        return [dt(k)].concat(INTERESTS.map(function (it) { return k < LOG_START.slice(0, 7) ? 0 : maCountLeads('$A' + (d + 1 + ci), b.locDE, 'E', it); }));
-      }));
-      var C = function (type, at, w, row, col, title, opts) {
-        var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(sh.getRange(at, 1, keys.length + 1, w))
-          .setPosition(row, col, 0, 0).setOption('title', title).setOption('width', 620).setOption('height', 320)
-          .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'MMM yy' }).setOption('vAxis', { minValue: 0 });
-        Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
-        sh.insertChart(ch.build());
-      };
-      C(Charts.ChartType.COLUMN, fun, 6, b.hdr, 15, 'Funnel ' + b.locDE + ': Leads, gebucht, Probetrainings, Abos, Kündigungen', { colors: ['#9e9e9e', '#f6d55c', '#e2c210', '#1a73e8', '#d93025'] });
-      C(Charts.ChartType.LINE, quo, 5, b.hdr, 22, 'Quoten ' + b.locDE + ' (alle Linien: höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 } });
-      C(Charts.ChartType.COLUMN, kan, KANAL_ORDER.length + 1, b.hdr + 16, 15, 'Website-Leads ' + b.locDE + ' nach Kanal', { isStacked: true });
-      C(Charts.ChartType.COLUMN, inr, INTERESTS.length + 1, b.hdr + 16, 22, 'Website-Leads ' + b.locDE + ' nach Interesse', { isStacked: true });
-    });
-  }
-  sh.setColumnWidth(1, 300); sh.setFrozenColumns(1); // Spalte A bleibt beim seitlichen Scrollen stehen (Ruben 05.09.2026)
+  // Diagramme unten (Ruben 07.09.), Diagrammdaten im versteckten Tab MADiagramm (nur Ist-Monate)
+  var dsh = getOrCreate(ss, 'MADiagramm'); clearSheet(dsh); if (!dsh.isSheetHidden()) dsh.hideSheet();
+  var chartRow = r + 1;
+  sh.getRange(chartRow, 1).setValue('Diagramme (Ist-Monate; Daten im versteckten Tab MADiagramm)').setFontWeight('bold').setFontColor('#999999'); chartRow += 1;
+  var d = 1;
+  blocks.forEach(function (b, bi) {
+    var tbl = function (headRow, rows, fmt) {
+      dsh.getRange(d, 1, 1, headRow.length).setValues([headRow]).setFontWeight('bold');
+      dsh.getRange(d + 1, 1, rows.length, headRow.length).setValues(rows);
+      dsh.getRange(d + 1, 1, rows.length, 1).setNumberFormat('mmm yyyy');
+      if (fmt) dsh.getRange(d + 1, 2, rows.length, headRow.length - 1).setNumberFormat(fmt);
+      var at = d; d += rows.length + 2; return at;
+    };
+    var fun = tbl([b.locDE + ' Funnel', 'Leads', 'Probetrainings gebucht', 'Probetrainings', 'Abos gestartet', 'Kündigungen'], hkeys.map(function (kk) {
+      var la = vOf(kk, b.loc, 'leads_all'), lw = vOf(kk, b.loc, 'leads_web');
+      return [dt(kk), num(la) || num(lw), num(vOf(kk, b.loc, 'trial_booked_transitions')), num(vOf(kk, b.loc, 'trial_attended')), num(vOf(kk, b.loc, 'new_customers')), num(vOf(kk, b.loc, 'cancellations'))];
+    }));
+    var quo = tbl([b.locDE + ' Quoten', 'Show-up-Rate', 'Verkäufe / Probetrainings', 'Verkäufe / Leads', 'Kohorten-Conversion'], hkeys.map(function (kk) {
+      var nsv = vOf(kk, b.loc, 'noshow_rate');
+      return [dt(kk), nsv === '' ? 0 : 1 - num(nsv), num(vOf(kk, b.loc, 'conv_sales_trial')), num(vOf(kk, b.loc, 'conv_sales_lead')), num(vOf(kk, b.loc, 'conv_cohort_rate'))];
+    }), '0%');
+    var kan = tbl([b.locDE + ' Kanal'].concat(KANAL_ORDER), hkeys.map(function (kk, ci) {
+      return [dt(kk)].concat(KANAL_ORDER.map(function (kn) { return kk < LOG_START.slice(0, 7) ? 0 : maCountLeads('$A' + (d + 1 + ci), b.locFilter, 'J', kn); }));
+    }));
+    var inr = tbl([b.locDE + ' Interesse'].concat(INTERESTS), hkeys.map(function (kk, ci) {
+      return [dt(kk)].concat(INTERESTS.map(function (it) { return kk < LOG_START.slice(0, 7) ? 0 : maCountLeads('$A' + (d + 1 + ci), b.locFilter, 'E', it); }));
+    }));
+    var C = function (type, at, w, row, col, title, opts) {
+      var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(dsh.getRange(at, 1, hkeys.length + 1, w))
+        .setPosition(row, col, 0, 0).setOption('title', title).setOption('width', 620).setOption('height', 320)
+        .setOption('legend', { position: 'bottom' }).setOption('hAxis', { format: 'MMM yy' }).setOption('vAxis', { minValue: 0 });
+      Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
+      sh.insertChart(ch.build());
+    };
+    var row0 = chartRow + bi * 34;
+    sh.getRange(row0, 1).setValue(b.locDE).setFontWeight('bold');
+    try {
+      C(Charts.ChartType.COLUMN, fun, 6, row0 + 1, 1, 'Funnel ' + b.locDE + ': Leads, gebucht, Probetrainings, Abos, Kündigungen', { colors: ['#9e9e9e', '#f6d55c', '#e2c210', '#1a73e8', '#d93025'] });
+      C(Charts.ChartType.LINE, quo, 5, row0 + 1, 10, 'Quoten ' + b.locDE + ' (alle Linien: höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 } });
+      C(Charts.ChartType.COLUMN, kan, KANAL_ORDER.length + 1, row0 + 17, 1, 'Website-Leads ' + b.locDE + ' nach Kanal', { isStacked: true });
+      C(Charts.ChartType.COLUMN, inr, INTERESTS.length + 1, row0 + 17, 10, 'Website-Leads ' + b.locDE + ' nach Interesse', { isStacked: true });
+    } catch (e) { Logger.log('Diagramme ' + b.locDE + ': ' + e); }
+  });
+  sh.setColumnWidth(1, 300); cols.forEach(function (c, ci) { sh.setColumnWidth(2 + ci, c.m ? 72 : 84); });
+  sh.setFrozenColumns(1); // Spalte A bleibt beim seitlichen Scrollen stehen (Ruben 05.09.2026)
   try { sh.setRowGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE); sh.collapseAllRowGroups(); } catch (e) { Logger.log('Zeilengruppen: ' + e); }
   [MA_HIST, MA_COHORT].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
   try { buildMethodik(ss); } catch (e1) { Logger.log('Methodik: ' + e1); }
@@ -1990,6 +2102,7 @@ function buildMethodik(ss) {
     ['Wochenreport', WR_NOTE_FULL],
     ['Werbekosten', WK_NOTE_FULL],
     ['LTV und Kundenwert', LTV_NOTE_FULL],
+    ['Prognose bis 2030 (blaue Spalten im Monatsabschluss)', 'Kunden nächster Monat = Kunden heute + Verkäufe − Verluste. Verkäufe = Basis pro Monat × Saisonindex des Kalendermonats (Index aus den Ist-Verkäufen Zürich 2025 des alten Finanzplans). Verluste = zahlende Kunden × Verlustquote. Abo-Umsatz = Kunden × Abo-Wert (jährliche Preisanpassung ab Januar), plus Starterpaket je Verkauf, plus übrige Einmalkäufe je Kunde, in Zürich plus auslaufende Magicline-Einnahmen. Umsatz ohne MwSt = Summe; Zahlungen inkl. MwSt = × 1.081. Alle Annahmen stehen im Tab Einstellungen (leer = automatisch aus den letzten Monaten). Gesamt = Summe beider Standorte. Aktuell verwendet:\n' + MA_FC_INFO],
     ['Bank', 'Gutschriften je Monat und Standort aus dem Kontoauszug (nur Eingänge), von Hand eingetragen: Stripe = alle Gutschriften "Stripe Payments UK Ltd" (exercise.com), Magicline (Adyen) = Auszahlungen des alten Studio-Systems, Customer transfers = Überweisungen von Mitgliedern und Stiftungen (Umsatz, fehlt in exercise.com), Other = kein Umsatz (Steuerrückzahlungen, Versicherungen, unbenannt). Der Monatsabschluss liest diesen Tab.'],
     ['Einstellungen', 'Agenturkosten in EUR pro Monat mit Von/Bis, Wechselkurs EUR in CHF, Anteil Zürich für Kampagnen ohne Standort im Namen.'],
     ['Team KPIs (Probetrainings Zürich und Winterthur)', TR_T.de.rule],
