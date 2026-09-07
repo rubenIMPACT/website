@@ -453,3 +453,8 @@ ersetzt in den Eingabezeilen ab Juni bis zum laufenden Monat auch Planformeln (a
 ARBEITSWEISE (Ruben 07.09. spaet, "red wie ein 60-jaehriger CEO"): weniger bauen, mehr pruefen; Definitionen sind eingefroren,
 Aenderungen nur mit Rubens Ja; Berichte in Geschaeftssprache (Hebel: Verluste, Show-up, Zahlungsausfaelle), nicht in Zeilen.
 Parallele Session hat f7926d5 (tools/whatsapp/dryrun.gs) committet - nur eigene Pfade adden.
+WOCHEN = MONAT (Ruben 08.09. 00:50, Commit e36f8b8): Eine Woche zaehlt nur die Tage ihres Monats (KW 36 ohne den 31.08.), wrCollect
+sammelt je TAG (out.day) und wrWeekOf/weekOf summiert die Tage der Woche innerhalb des Monats; daySumFor und mediaWeek ebenso.
+Wochenquellen = Monatsquellen: Verkaeufe je Woche aus signed_d: (Waiver-Datum, klassen.js signed_by_day), Buchungen (placed) und
+Kohorte (csold = Vertragsstart gesetzt) ab MA_TEAM_FROM je Woche UND Monat aus dem Team-Sheet. Damit ergeben die Wochen eines
+Monats zusammen exakt den Monat (Team-"sold" wird nicht mehr genutzt).
