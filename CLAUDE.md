@@ -436,3 +436,12 @@ Woche (csold/t). (3) Keine leeren Titelzeilen mehr (Ruben: "Zeile 23 ist leer").
 Diagramme doppelt uebereinander und Ruben sah ein leeres Blatt waehrend des Baus. (6) Frage Ruben "39 Monate": Dauer = 1 / Verlust-
 quote; Verlustquote = wirksame Kuendigungen + Debt collection der letzten 6 Monate / aktive Neukunden-Monate (nicht aus 3 Monaten).
 (7) Chrome: gviz mit tqx=out:csv loest einen Download aus und haengt den Tab; out:html + get_page_text funktioniert.
+NACHTRAG 07.09. 23:30 (Commit 413c4ae): (1) VERLUSTE = wirksame Kuendigungen + Debt collection (debt_collection aus Lifecycle
+"to ~ /debt/", auch je Tag debt_d:), Details davon Kuendigungen / davon Debt collection / Paketwechsel; Churn = Verluste / Kunden;
+Finanzplan "Kuendigungen" bekommt die Verluste (Ruben: Kuendigungen kamen zu niedrig vor). Nachlauf Jun-Aug fuer debt_collection
+(MA_CATCHUP '2026-09-07 Debt collection Jun-Aug'). (2) Jahresquoten: LET-Formel, Zaehler und Nenner nur aus Monaten, in denen
+BEIDE stehen (Churn-Jahr war 1.9 % statt 3-4 %, weil Kunden ab Januar, Verluste erst ab Juni summiert wurden). (3) Tabs: keine
+Reihenfolge mehr erzwungen (Ruben schiebt selbst), MA_TAB_HIDE versteckt Kuendigungsrisiko, Cancellations, Bank, Einstellungen,
+Finanzplan-Uebertrag, Methodik. Bank/Einstellungen zum Eintragen einblenden. (4) Ruben-Frage "manuell reinschreiben": alle
+Berichtstabs werden bei jedem Lauf komplett neu gebaut (clearSheet loescht Zeilen) - Handaenderungen dort halten hoechstens eine
+Stunde. Eingaben nur in Bank, Einstellungen, Team-KPIs Anrufspalten, Finanzplan-Kopie.
