@@ -89,7 +89,7 @@ function waDryRunHourly() {
     var sent = sentPrefixes(sh, today);
     arr.forEach(function (a) {
       var c = info[a.uid];
-      if (c && (c.cancel_pending || /debt|inactive|non-client|lost/i.test(c.lifecycle) || !/^billed$/i.test(c.billing))) return; // debt collection, inactive, paused: by hand
+      if (!c || c.cancel_pending || /debt|inactive|non-client|lost/i.test(c.lifecycle) || !/^billed$/i.test(c.billing)) return; // not in the client list (cancelled/inactive), debt collection, paused: by hand
       var lang = leadLang[nname(a.name)] || 'de', vars = { due_date: deDate(a.first, lang) };
       function pushE(msg, trig) { var pre = 'E:' + msg + ':' + a.uid; if (sent[pre]) return; sent[pre] = today; pushRow('E', msg, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E); }
       var money = 'CHF ' + a.amount + ' open, ' + a.attempts + ' attempts, ' + (a.reason || 'no reason given');
@@ -98,10 +98,9 @@ function waDryRunHourly() {
       if (a.days >= RULE_E.W3_D) pushE('W3', 'W3: still open after ' + a.days + ' days, ' + money);
       if (a.open >= 2) pushE('W4', 'W4: ' + a.open + ' open charges (the next charge failed too), ' + money);
     });
-    writeArrears(ss, arr, info, sh);
-    var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); // replaced by the arrears account
   }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
+  if (arr) { writeArrears(ss, arr, info || {}, sh); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
   sh.getRange('A3').setValue('Last run ' + fmtDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', failed payments: ' + (pay ? pay.length : 'n/a') + ', in arrears: ' + (arr ? arr.length : 'n/a') + '.' + payNote);
   Logger.log('Dry run ' + fmtDT(now) + ': ' + out.length + ' new rows');
@@ -239,7 +238,7 @@ function writeArrears(ss, rows, info, dry) {
   var last = lastMsgE(dry), now = fmtDT(new Date());
   var out = rows.map(function (a) {
     var c = info[a.uid] || {}, stage = a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait')));
-    return [a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.amount, a.lastDate, a.reason, a.item, c.lifecycle || '', c.billing || '', stage, last[a.uid] || '', now];
+    return [a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.amount, a.lastDate, a.reason, a.item, c.lifecycle || 'not in client list', c.billing || '', stage, last[a.uid] || '', now];
   });
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent();
   if (out.length) sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
