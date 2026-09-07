@@ -188,6 +188,16 @@ NACHTRAG 07.09.: In Zuerich wird das Starterpaket meist mit der ersten Abo-Belas
 ~150. Heuristik in buildLTV: Mehrbetrag der ersten Abo-Zahlung gegenueber der ueblichen (Median der spaeteren) Monatszahlung des Kunden
 (wenn > 1.5x und > 20 CHF) wandert von abo nach one (c.bundled). Monatsabschluss-Spalten ab MA_FROM = 2026-01 (die Kundenwert-Reihen
 reichen bis Jun 2025 zurueck und haetten das 12-Monats-Fenster sonst nach Okt 2025 verschoben).
+META ADS LIVE (07.09.2026): Meta-Werbekosten laufen ueber die Marketing API. Setup: Meta-for-Developers-Konto (Ruben, Handy-
+Verifizierung), App "IMPACT Analytics" (ID 1756500978891417, Use Case "Create & manage ads with Marketing API", Portfolio Impact
+Martial Arts, Business-Verifizierung abgeschlossen), System-User "Conversions API System User" (ID 61556572779052) mit den
+Werbekonten IMPACT Martial Arts + Little Ninjas (View performance) und der App (Develop app); Token: Ablauf nie, Berechtigung
+ads_read, von Ruben erzeugt und als Secret META_ADS_TOKEN in Cloudflare Pages (Projekt website) eingetragen; neues Deployment noetig,
+weil Pages Secrets erst beim naechsten Deploy in die Funktion kommen. Erster Lauf runWerbekosten 07.09. 11:23: 60 Zeilen fuer
+14 Tage. Historie seit 2025-10 per RUN_NOW monatsweise nachgeladen (klassen.js metaAds pagt mit limit=500). Ich erzeuge/kopiere
+KEINE Tokens (Ruben klickt "Generate token" und "Save"); LEADLOG_TOKEN liegt in Cloudflare als Typ "Text" im Klartext - Ruben
+gebeten, ihn als Secret neu anzulegen. Meta-Business-Suite-Dialoge oeffnen im MCP-Tab oft erst beim zweiten Klick (Viewport 1000x515),
+Dialog-Optionen per find() + ref klicken; Klassifizierer blockt Batches mit "Escape"-Taste im Token-Dialog.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
