@@ -32,7 +32,7 @@ var TEXT = {
         en: 'Hi {name}, how did you like your trial on {date}? Is there anything still open for you?' }
 };
 var CF_URL = 'https://www.impact-martialarts.com/api/wa', CF_TOKEN = 'PASTE_LEADLOG_TOKEN_HERE'; // Token = Zeile "var TOKEN" im Leads-Log-Script; nur im Editor eintragen, nie ins Repo
-var RULE_E = { W2_D: 2, W3_D: 12, DAYS: 30 }; // W1 sofort, W2 nach 2 Tagen, W3 nach 12 Tagen, W4 einen Tag nach der naechsten Faelligkeit
+var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 30 }; // Ruben 07.09.2026: W1 zwei Tage nach der ersten Sichtung (Abbuchung geht oft von selbst noch durch), W2 Tag 6, W3 Tag 14, W4 einen Tag nach der naechsten Faelligkeit
 var TEXT_E = {
   W1: { de: 'Hey {name} 👋 wir haben gesehen, dass die letzte Zahlung bei deinem Abo leider nicht durchgegangen ist. Kannst du bitte kurz deine Zahlungsdaten und die Deckung deines Kontos prüfen, damit wir es in den nächsten Tagen erneut abbuchen können? Wenn du Hilfe brauchst, sag kurz Bescheid 🙏 Danke dir!',
         en: "Hey {name} 👋 We noticed that the last payment for your membership didn't go through. Could you please check your payment details and make sure your account has sufficient funds, so we can retry the charge in the next few days? If you need any help, just let us know 🙏 Thanks so much!" },
@@ -83,20 +83,22 @@ function waDryRunHourly() {
   var pay = readFailedPayments(), payNote = '';
   if (pay === null) payNote = ' Flow E skipped (no token / endpoint error).';
   else {
-    var seen = firstSeenE(sh);
+    var state = readEState(ss, sh), active = {};
     pay.forEach(function (c) {
       if (!c.uid || c.cancel_pending || /debt|inactive|non-client|lost/i.test(c.lifecycle) || !/^billed$/i.test(c.billing)) return; // only active, billed members; debt collection, inactive and paused accounts are handled by hand
-      var lang = leadLang[nname(c.name)] || 'de', first = seen[c.uid];
+      active[c.uid] = true;
+      if (!state[c.uid]) state[c.uid] = today; // first sighting: remember only, no message yet
+      var lang = leadLang[nname(c.name)] || 'de', first = state[c.uid];
       var vars = { due_date: c.next_payment ? deDate(c.next_payment, lang) : '' };
       function pushE(msg, key, trig) { pushRow('E', msg, 'Waseem', c.name, lang, trig, key, vars, TEXT_E); }
-      if (!first) pushE('W1', 'E:W1:' + c.uid + ':' + today, 'W1: failed payment seen today, billing "' + c.billing + '", stage "' + c.lifecycle + '"');
-      else {
-        var age = Math.round((new Date(today + 'T12:00:00') - new Date(first + 'T12:00:00')) / 86400000);
-        if (age >= RULE_E.W2_D) pushE('W2', 'E:W2:' + c.uid + ':' + first, 'W2: still failing ' + age + ' days after first sighting (' + first + ')');
-        if (age >= RULE_E.W3_D) pushE('W3', 'E:W3:' + c.uid + ':' + first, 'W3: still failing ' + age + ' days after first sighting');
-        if (c.next_payment && c.next_payment > first && today >= addDs(c.next_payment, 1)) pushE('W4', 'E:W4:' + c.uid + ':' + c.next_payment, 'W4: next payment ' + c.next_payment + ' passed, still failing');
-      }
+      var age = Math.round((new Date(today + 'T12:00:00') - new Date(first + 'T12:00:00')) / 86400000);
+      if (age >= RULE_E.W1_D) pushE('W1', 'E:W1:' + c.uid + ':' + first, 'W1: still failing ' + age + ' days after first sighting (' + first + '), billing "' + c.billing + '", stage "' + c.lifecycle + '"');
+      if (age >= RULE_E.W2_D) pushE('W2', 'E:W2:' + c.uid + ':' + first, 'W2: still failing ' + age + ' days after first sighting (' + first + ')');
+      if (age >= RULE_E.W3_D) pushE('W3', 'E:W3:' + c.uid + ':' + first, 'W3: still failing ' + age + ' days after first sighting');
+      if (c.next_payment && c.next_payment > first && today >= addDs(c.next_payment, 1)) pushE('W4', 'E:W4:' + c.uid + ':' + c.next_payment, 'W4: next payment ' + c.next_payment + ' passed, still failing');
     });
+    Object.keys(state).forEach(function (u) { if (!active[u]) delete state[u]; }); // paid, cancelled or excluded: forget, a later failure starts fresh
+    writeEState(ss, state);
   }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
@@ -174,6 +176,18 @@ function readFailedPayments() { // null = not available (no token or endpoint er
     if (r.getResponseCode() !== 200 || !b.ok) { Logger.log('wa failed_payments: ' + r.getResponseCode() + ' ' + String(r.getContentText()).slice(0, 200)); return null; }
     return b.rows || [];
   } catch (e) { Logger.log('wa failed_payments: ' + e); return null; }
+}
+function eStateSheet(ss) { var s = ss.getSheetByName('E state'); if (!s) { s = ss.insertSheet('E state'); s.getRange(1, 1, 1, 2).setValues([['UID', 'First seen']]).setFontWeight('bold'); s.getRange('B:B').setNumberFormat('@'); s.hideSheet(); } return s; }
+function readEState(ss, dry) { // uid -> date of first sighting; seeded once from the old W1 rows (logged at first sighting until 07.09.2026)
+  var s = eStateSheet(ss), map = {}, n = s.getLastRow();
+  if (n >= 2) s.getRange(2, 1, n - 1, 2).getValues().forEach(function (r) { if (r[0]) map[String(r[0])] = dOf(r[1]); });
+  if (!Object.keys(map).length) { var seed = firstSeenE(dry); Object.keys(seed).forEach(function (u) { map[u] = seed[u]; }); }
+  return map;
+}
+function writeEState(ss, map) {
+  var s = eStateSheet(ss), rows = Object.keys(map).sort().map(function (u) { return [u, map[u]]; });
+  if (s.getLastRow() >= 2) s.getRange(2, 1, s.getLastRow() - 1, 2).clearContent();
+  if (rows.length) s.getRange(2, 1, rows.length, 2).setValues(rows);
 }
 function firstSeenE(sh) { // uid -> date of the W1 row (first sighting of the failed payment)
   var seen = {}, n = sh.getLastRow();
