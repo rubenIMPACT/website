@@ -225,6 +225,26 @@ name/Email/Reason, Wortgrenze, "Attest" bleibt). Team-Tabs: A2 = ruleShort mit V
 "Gebuchte Trials" statt "Placed Trials" (de), Wochentage per Zahlenformat "Mo "dd.MM. (Wert bleibt Datum), Kanal "kein Web-Lead" mit
 exercise.com-Quelle als Zellnotiz (r.srcNote -> kNotes), kuenftige Tage ohne Nullen, Events-Spiegel als letzter Tab, ZH/WT auf 1/2.
 Rote Zeile mit Zukunftstermin = Pruefregel "booked" (Stage nicht Trial Booked), korrekt. LTV-Labels kurz, Spalte A 340.
+PROGNOSE BIS 2030 IM MONATSABSCHLUSS (Ruben 07.09., nach Lektuere des alten Finanzplans
+https://docs.google.com/spreadsheets/d/1RJ1UoQuiDBc52kNgRn3l5DfopAErSxsnI0X68vzvi60 und der Kopie ohne Expansion
+https://docs.google.com/spreadsheets/d/1vBD3eIxE5huSL8k_s0ky--fVbhe_ugJkQD51RB6zxUw): Bloecke Zuerich, Winterthur, Gesamt untereinander,
+Spalten = Monate ab MA_FROM (2026-01) bis MA_FC_END (2030-12) plus Jahressumme nach jedem Dezember (Summe fuer MA_ADD/Cash/Werbung,
+Dezemberwert fuer MA_STOCK, Quoten aus Jahressummen per yearRule). Prognosemonate (> laufender Monat) blau (#e8f0fe, Kopf "Sep 26 P"),
+Werte aus forecast(loc): Kunden(t) = Kunden(t-1) + Verkaeufe - round(Kunden x Verlustquote), Verkaeufe = Basis x Saisonindex (Ist-Verkaeufe
+Zuerich 2025 aus dem alten Plan), Abo-Umsatz = Kunden x Abo-Wert (+Preisanpassung %/Jahr), + Starterpaket x Verkaeufe + uebrige Einmalkaeufe
+x Kunden + Magicline-Abbau (ZH, ab letztem Bank-Wert). Annahmen im Tab Einstellungen ("Prognose: ..." + 12 Saisonindizes; leer = automatisch
+aus den letzten 6 bzw. 3 Monaten / Tab LTV; stGet traegt fehlende Defaults nach). Gefuellte Prognosezeilen: sales_signed, cancellations,
+net_growth, cv_paying, cv_abo, cv_starter, cv_other, abo_paid, cash_net, cash_paid (x1.081), cash_nonstripe/cash_adyen. Verwendete
+Annahmen stehen im Tab Methodik (MA_FC_INFO). GESAMT: gOf() summiert MA_ADD-Keys, rechnet Quoten aus Summen (Kohorten ueber Tab Kohorten),
+LTV/Kundenwert aus dem Gesamt-Durchgang in buildLTV (loc 'Gesamt', L = alle Kunden). Neue LTV-Stores: abo_paid (Summe Abo-Netto),
+cv_other_sum, cv_starter_sum, cv_new, ltv_loss_all. STICHTAGSZEILEN (active_subs, paused_subs, pending_cancel, churn_rate, mrr_net,
+avg_sub_net) vor MA_SNAP_FROM = 2026-09 leer: die Nachlaeufe vom 05./06.09. hatten den Bestand von Anfang September in Juni-August
+geschrieben (Ruben hat es an den vierfach gleichen Werten gesehen); rueckwaerts belastbar ist "Abo-Zahlungen netto (Kasse)" = abo_paid.
+DIAGRAMME jetzt unten (je Block 34 Zeilen), Daten im versteckten Tab MADiagramm (Chart-Ranges auf anderem Tab). colA1() fuer Spalten > Z.
+LEHREN aus dem alten Finanzplan: Verkaeufe Zuerich Ist 2025 = 48,41,52,33,48,53,29,48,67,59,37,27 (Saison), Plan 2026 Umsatz ZH 1.47 Mio /
+WT 839k liegt weit ueber Ist (ZH ~1.15 Mio, WT ~0.5 Mio Hochrechnung), Vertrieb (ZH 45, WT 30/Monat) und Kuendigungen (WT 0-10) stimmen
+mit dem Plan - der Abstand kommt aus der Umsatzherleitung (Abo-Mix x Preise) des alten Plans. Meine Fehler dabei (nicht wiederholen):
+WT-Verkaeufe und WT-Kuendigungen aus dem Kopf geschaetzt statt aus dem Sheet gelesen.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
