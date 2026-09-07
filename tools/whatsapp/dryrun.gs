@@ -197,8 +197,8 @@ function buildArrears() { // one entry per member with at least one open (unconv
   if (fp === null) return null;
   var ch = fetchReport('charges', start, end, 8000, ['User ID', 'Date', 'Amount', 'Status']);
   if (ch === null) return null;
-  var ok = {};
-  ch.forEach(function (r) { if (/succe|paid|complete/i.test(String(r['Status'] || ''))) { var u = String(r['User ID'] || ''); (ok[u] = ok[u] || []).push({ date: dOfAny(r['Date']), amount: num(r['Amount']) }); } });
+  var ok = {}, chVals = {};
+  ch.forEach(function (r) { var stv = String(r['Status'] === undefined ? '' : r['Status']); chVals[stv] = (chVals[stv] || 0) + 1; if (/succe|paid|complete/i.test(stv)) { var u = String(r['User ID'] || ''); (ok[u] = ok[u] || []).push({ date: dOfAny(r['Date']), amount: num(r['Amount']) }); } });
   var byUid = {}, convVals = {};
   fp.forEach(function (r) {
     var u = String(r['User ID'] || ''); if (!u) return;
@@ -225,8 +225,8 @@ function buildArrears() { // one entry per member with at least one open (unconv
     rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS });
   });
   rows.sort(function (x, y) { return y.days - x.days; });
-  rows.convVals = convVals;
-  Logger.log('Arrears: ' + rows.length + ' members, Converted values ' + JSON.stringify(convVals) + ', hidden cases ' + rows.filter(function (a) { return a.hidden; }).length);
+  rows.convVals = convVals; rows.chVals = chVals;
+  Logger.log('Arrears: ' + rows.length + ' members, Converted values ' + JSON.stringify(convVals) + ', charge status values ' + JSON.stringify(chVals) + ', hidden cases ' + rows.filter(function (a) { return a.hidden; }).length);
   return rows;
 }
 var ARR_HEAD = ['UID', 'Name', 'Location', 'First failed', 'Days', 'Open charges', 'Attempts', 'Auto-retries left', 'Later invoice paid', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Last message', 'Updated'];
@@ -249,7 +249,7 @@ function writeArrears(ss, rows, info, dry) {
   });
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent();
   if (out.length) sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
-  sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[9]; }, 0)) + ' open, ' + out.filter(function (r) { return r[8] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[7] === 'no'; }).length + ' with auto-retries exhausted. Converted values: ' + JSON.stringify(rows.convVals || {}) + '. ' + now);
+  sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[9]; }, 0)) + ' open, ' + out.filter(function (r) { return r[8] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[7] === 'no'; }).length + ' with auto-retries exhausted. Converted values: ' + JSON.stringify(rows.convVals || {}) + ', charge status values: ' + JSON.stringify(rows.chVals || {}) + '. ' + now);
 }
 function lastMsgE(dry) { // uid -> latest dry-run message for Flow E
   var m = {}, n = dry.getLastRow(); if (n < TR_ROW0) return m;
