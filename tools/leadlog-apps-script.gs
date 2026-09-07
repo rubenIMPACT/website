@@ -1436,8 +1436,8 @@ function runLTVMonthly() { runLTVChain(); }
 var LTV_NOTE_FULL = 'Brutto zuerst (Ruben 07.09.2026): alle Werte aus den Bruttobelastungen im Report Charges (Betrag nach Rückerstattungen, inkl. MwSt), netto = brutto geteilt durch 1.081. Kunde = mindestens eine Abo-Belastung; Testzahlungen unter CHF 5 ausgeschlossen. Jahreszahler zählen im Monat der Zahlung. '
   + 'VERLOREN ist nur, wer offiziell gekündigt hat (Kündigung wirksam, Paketwechsel zählen nicht) oder wegen Nichtzahlung in "Debt collection" ging (Entscheid Ruben 05.09.2026); Zahlungslücken zählen nicht, solche Kunden stehen in "ohne Abo-Zahlung im Monat". '
   + 'Migrierte = Konten mit den Tags Migrating / imported / Bexio (Startdatum unbekannt), sie bleiben aus Kohorten und Prognose draussen. '
-  + 'EINE Methode für den Kundenwert: Abo-Belastungen der letzten 3 vollen Monate geteilt durch alle Neukunden mit laufendem Abo in diesen Monaten, auch die ohne Zahlung im Monat; dieselbe Rechnung steht im Monatsabschluss als "Abo-Umsatz je Kunde" für alle Kunden. Starterpaket (Einmalkäufe ±1 Monat um die erste Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung, in Zürich meist mit dem Abo zusammen abgebucht) und übrige Einmalkäufe stehen getrennt und sind NICHT im LTV. '
-  + 'LTV Abo netto = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer; Dauer = 1 / monatliche Verlustquote; Verlustquote = wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch die aktiven Neukunden. Kohorten unter 10 Kunden oder jünger als 3 Monate sind grau, weil Kündigungen dort noch nicht wirksam sein können.';
+  + 'EINE Methode für den Kundenwert: Abo-Belastungen der letzten 3 vollen Monate geteilt durch alle Neukunden mit laufendem Abo in diesen Monaten, auch die ohne Zahlung im Monat; dieselbe Rechnung steht im Monatsabschluss als "Abo-Umsatz je Kunde" für alle Kunden. Starterpaket (Einmalkäufe ±1 Monat um die erste Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung, in Zürich meist mit dem Abo zusammen abgebucht) und übrige Einmalkäufe stehen getrennt und zählen im LTV dazu: Starterpaket einmal, übrige Einmalkäufe je Monat mal Dauer (Ruben 08.09.2026). '
+  + 'LTV netto = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer + Starterpaket + übrige Einmalkäufe × Dauer; Dauer = 1 / monatliche Verlustquote; Verlustquote = wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch die aktiven Neukunden. Kohorten unter 10 Kunden oder jünger als 3 Monate sind grau, weil Kündigungen dort noch nicht wirksam sein können.';
 function buildLTV(ss) {
   var sh = getOrCreate(ss, LTV_SHEET); clearSheet(sh);
   var rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.gross >= 5; }); // Testzahlungen (CHF 1-3) raus
@@ -1491,7 +1491,7 @@ function buildLTV(ss) {
     // EINE Methode (Ruben 07.09.2026): Abo-Belastungen brutto geteilt durch alle Kunden mit laufendem Abo (auch ohne Zahlung im Monat), netto = brutto / 1.081
     var arpuG = aN ? aAbo / aN : 0, arpu = arpuG / VAT, other = aN ? aOther / aN / VAT : 0, life = rf.loss > 0 ? 1 / rf.loss : 0;
     var stSet = fresh.filter(function (c) { return c.first <= prevMonth(lastFull); }), starter = stSet.length ? stSet.reduce(function (s, c) { return s + starterOf(c); }, 0) / stSet.length / VAT : 0;
-    var ltv = Math.round(arpu * life); // nur wiederkehrender Abo-Umsatz, ohne Starterpaket und Einmalkaeufe
+    var ltv = Math.round(arpu * life + starter + other * life); // Abo x Dauer + Starterpaket + uebrige Einmalkaeufe x Dauer (Ruben 08.09.: eine LTV-Zahl)
     var gone = fresh.filter(function (c) { return c.end && c.end <= lastFull; }), aboOf = function (c) { var s = 0; Object.keys(c.abo).forEach(function (mk) { s += c.abo[mk]; }); return s; };
     var realized = gone.length ? gone.reduce(function (a, c) { return a + aboOf(c); }, 0) / gone.length / VAT : 0;
     var kv = [
@@ -1501,15 +1501,15 @@ function buildLTV(ss) {
       ['Abo-Umsatz brutto je Kunde und Monat', Math.round(arpuG), '#,##0', 'Abo-Belastungen der letzten 3 vollen Monate geteilt durch die Neukunden mit laufendem Abo in diesen Monaten, auch die ohne Zahlung im Monat. Jahreszahler zählen im Monat der Zahlung.'],
       ['Abo-Umsatz netto je Kunde und Monat', Math.round(arpu), '#,##0', 'Brutto geteilt durch 1.081. Basis des LTV.'],
       ['   Kunden ohne Abo-Zahlung im Monat (Ø der 3 Monate)', Math.round(noPay / 3), '0', 'Laufendes Abo, aber keine Belastung im Monat: Pause, geplatzte Zahlung oder ausgelaufener Vertrag ohne Kündigungseintrag.'],
-      ['   Übrige Einmalkäufe netto je Kunde und Monat', Math.round(other), '#,##0', 'Shop, Events, Personal Training usw. ausserhalb des Startfensters. Nicht im LTV.'],
-      ['Starterpaket netto je Neukunde (einmalig)', Math.round(starter), '#,##0', 'Ø über ' + stSet.length + ' Neukunden mit vollem Fenster: Einmalkäufe von einem Monat vor bis einen Monat nach der ersten Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung. Nicht im LTV, im Finanzplan getrennt geführt.'],
+      ['   Übrige Einmalkäufe netto je Kunde und Monat', Math.round(other), '#,##0', 'Shop, Events, Personal Training usw. ausserhalb des Startfensters. Zählt im LTV mal Dauer.'],
+      ['Starterpaket netto je Neukunde (einmalig)', Math.round(starter), '#,##0', 'Ø über ' + stSet.length + ' Neukunden mit vollem Fenster: Einmalkäufe von einem Monat vor bis einen Monat nach der ersten Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung. Zählt einmal im LTV; im Finanzplan getrennt geführt.'],
       ['Verlustquote pro Monat (Neukunden)', rf.loss, '0.0%', 'Wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch aktive Kundenmonate: ' + rf.lN + ' von ' + rf.aN + '.'],
       ['   alle Kunden inkl. migriert', ra.loss, '0.0%', 'Zum Vergleich: ' + ra.lN + ' von ' + ra.aN + ' Kundenmonaten.'],
       ['Erwartete Dauer (Monate)', Math.round(life * 10) / 10, '0.0', '1 geteilt durch die Verlustquote.'],
-      ['LTV Abo netto (Prognose)', ltv, '#,##0', 'Abo-Umsatz netto je Kunde und Monat mal erwartete Dauer. Ohne Starterpaket und Einmalkäufe (Ruben 07.09.2026).'],
+      ['LTV netto (Prognose)', ltv, '#,##0', 'Abo-Umsatz netto je Kunde und Monat mal erwartete Dauer, plus Starterpaket, plus übrige Einmalkäufe mal Dauer (Ruben 08.09.2026).'],
       ['Realisierter Abo-Umsatz netto je verlorenem Neukunden', Math.round(realized), '#,##0', gone.length + ' Neukunden mit wirksamer Kündigung oder Debt collection: was sie an Abo-Belastungen bis zum Ende tatsächlich bezahlt haben.'],
     ];
-    kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); sh.getRange(r, 2).setNumberFormat(x[2]); if (x[3]) sh.getRange(r, 1).setNote(x[3]); if (/^(LTV Abo netto|Abo-Umsatz netto je Kunde)/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
+    kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); sh.getRange(r, 2).setNumberFormat(x[2]); if (x[3]) sh.getRange(r, 1).setNote(x[3]); if (/^(LTV netto|Abo-Umsatz netto je Kunde)/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
     r++;
     var size = {}; fresh.forEach(function (c) { size[c.first] = (size[c.first] || 0) + 1; }); var cks = Object.keys(size).sort();
     var head = ['Startmonat (erste Abo-Zahlung, Neukunden)', 'Kunden', 'Ø Netto 1. Monat'].concat(N.map(function (n) { return 'Ø kumuliert nach ' + n + ' Mon.'; })).concat(['noch aktiv', 'verloren']);
@@ -1617,7 +1617,7 @@ var MA_NOTES = {
   cpl: 'Media-Kosten geteilt durch Website-Leads.',
   cac: 'Media-Kosten geteilt durch Verkäufe. Belastbare Zahl.',
   cac_all: 'Media plus Agentur geteilt durch Verkäufe.',
-  ltv: 'Abo-Umsatz netto je Kunde und Monat mal erwartete Dauer (Tab LTV). Ohne Starterpaket und Einmalkäufe. Stand des letzten Laufs.',
+  ltv: 'Abo-Umsatz netto je Kunde und Monat mal erwartete Dauer, plus Starterpaket, plus übrige Einmalkäufe mal Dauer (Tab LTV). Stand des letzten Laufs.',
   ltv_cac_all: 'Wie viel ein Kunde über seine Dauer an Abo-Umsatz bringt, geteilt durch die Kosten je gewonnenem Kunden.',
   payback: 'Monate, bis der Abo-Umsatz netto eines Kunden die Kosten je gewonnenem Kunden eingespielt hat.'
 };
@@ -1729,7 +1729,7 @@ var MA_NOTE_FULL = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-
   + 'Probetrainings durchgeführt = Erstbesucher mit Check-in, ohne Altkunden und Staff; Show-up-Rate = erschienen geteilt durch erschienen plus No-Shows. Verkäufe = Vertragsunterschriften (Waiver); Abos gestartet = Abo-Starts ohne Paketwechsel und ohne Personal Training; Kündigungen = wirksam gewordene Kündigungen ohne Paketwechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben, drei Monate nachgeführt. '
   + 'EINE METHODE für Kunden und Umsatz (Ruben 07.09.2026): alles aus den Belastungen im Charges-Report, brutto zuerst. Kunden mit laufendem Abo = Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben, auch wenn sie im Monat nichts bezahlt haben (Personen). Zahlungen brutto = alle Belastungen nach Rückerstattungen, davon Abo und davon Einmalkäufe (Mehrbetrag der ersten Abo-Belastung = Starterpaket zählt bei den Einmalkäufen); MwSt = brutto minus brutto/1.081; netto = brutto/1.081. Abo-Umsatz je Kunde = Abo-Belastungen geteilt durch Kunden mit laufendem Abo. Jahreszahler zählen im Monat der Zahlung. Zum Vergleich zählt der Report Active Subscriptions die Abos am Tag des Laufs (erst ab September 2026). '
   + 'Bank (Tab Bank, von Hand): alle Gutschriften laut Konto, davon Stripe (zieht 2 % Gebühr ab, zahlt sieben Tage nach der Belastung aus), Magicline (Adyen, altes System), Überweisungen von Mitgliedern, übrige (kein Umsatz). Kontrolle = Stripe laut Konto minus erwartete Auszahlung. '
-  + 'Werbung: Media-Kosten aus Google Ads (Skript), Meta (API) und TikTok (Report-Mail) je Standort nach Kampagnenname; Agentur = Pauschalen je Standort plus TikTok-Pauschale nach TikTok-Ausgaben verteilt (Tab Einstellungen); CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl; LTV = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer (Tab LTV); Payback = CAC inkl. Agentur geteilt durch Abo-Umsatz netto je Kunde.';
+  + 'Werbung: Media-Kosten aus Google Ads (Skript), Meta (API) und TikTok (Report-Mail) je Standort nach Kampagnenname; Agentur = Pauschalen je Standort plus TikTok-Pauschale nach TikTok-Ausgaben verteilt (Tab Einstellungen); CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl; LTV = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer plus Starterpaket plus übrige Einmalkäufe × Dauer (Tab LTV); Payback = CAC inkl. Agentur geteilt durch Abo-Umsatz netto je Kunde.';
 var MA_NOTE = 'Kennzahlen je Standort aus exercise.com, Log und Team-Sheet, Zahlungen aus dem Charges-Report, Werbekosten aus Google, Meta und TikTok; darunter Gesamt. '
   + 'Ab September 2026 stehen die Kalenderwochen vor ihrem Monat: weisse Spalten = Woche (grau = gibt es nur je Monat), blaue = Monat, dunkelgraue = Jahr. Zeilen mit + zeigen Details, Kurzdefinitionen stehen als Notiz an der Zeile, alles Weitere im Tab Methodik.';
 // Spaltenbuchstabe (A, Z, AA, ...) fuer 1-basierte Spaltennummer
@@ -1915,7 +1915,7 @@ function buildMonatsabschlussCore(ss) {
     put('cac', 'CAC Media (CHF je Verkauf)', ratio('wk_media', 'sales_signed'), '#,##0', B);
     put('cac_all', 'CAC inkl. Agentur (CHF je Verkauf)', function (c, ci) { var m = cellOf('wk_media', ci), a = cellOf('wk_agency', ci), sg = cellOf('sales_signed', ci); return '=IF(OR(' + m + '="",' + sg + '="",' + sg + '=0),"",(' + m + '+N(' + a + '))/' + sg + ')'; }, '#,##0', B);
     WK_PLATFORMS.forEach(function (pn) { put('cac:' + pn, '   CAC ' + pn + ' (CHF je Verkauf)', ratio('wk:' + pn, 'sk:' + pn), '#,##0', D); });
-    put('ltv', 'LTV Abo netto (CHF, Prognose)', V('ltv_forecast'), '#,##0', B);
+    put('ltv', 'LTV netto (CHF, Prognose)', V('ltv_forecast'), '#,##0', B);
     put('ltv_cac', '   LTV : CAC (Media)', ratio('ltv', 'cac'), '0.0', D);
     put('ltv_cac_all', 'LTV : CAC (inkl. Agentur)', ratio('ltv', 'cac_all'), '0.0');
     put('payback', 'Payback in Monaten', ratio('cac_all', 'cv_abo_net'), '0.0');
@@ -2492,7 +2492,7 @@ var FP_ROWS = [ // [Zeilenbezeichnung im Plan (Anfang, Spalten A-E), Kennzahl, B
 ];
 var FP_NOTE = 'Der Tageslauf (04:30) und der Monatslauf (1. des Monats) schreiben die Ist-Zahlen in die Kopie des Finanzplans (Tabs IMP ZH und IMP WIN), ab Juni 2026 bis zum laufenden Monat: '
   + 'Anzahl Leads = neue Kontakte in exercise.com (alle Wege); Anzahl Trials = durchgeführte Probetrainings (Ruben 07.09.); Neue Verkäufe = Abo-Starts ohne Paketwechsel; Kündigungen = Verluste, also wirksame Kündigungen plus Debt collection, ohne Paketwechsel (Ruben 07.09.); Sold Gear = Gear brutto; Total Sales from Bank = alle Gutschriften laut Tab Bank (Entscheide Ruben 07.09.2026). '
-  + 'Die Spalte wird über den Monatskopf (z. B. "9.2026") gefunden, die Zeile über ihre Bezeichnung. Es wird nie über eine Formel geschrieben, nur in leere oder Zahlenzellen; deine Planwerte ab dem Folgemonat bleiben unberührt. '
+  + 'Die Spalte wird über den Monatskopf (z. B. "9.2026") gefunden, die Zeile über ihre Bezeichnung. In diesen Eingabezeilen werden ab Juni 2026 bis zum laufenden Monat auch Planformeln durch die Ist-Zahl ersetzt (Ruben 08.09.), die alte Formel steht im Protokoll; ab dem Folgemonat bleibt alles unberührt. '
   + 'Starterpakete, Personal Training und Kundenwert werden nicht übertragen: der Plan führt sie je Typ (Bronze, Silber, ...) bzw. als Formel. Jede geänderte Zelle steht mit altem und neuem Wert in diesem Tab.';
 function fpValues(ss) { // Kennzahl je Monat und Standort aus der MonatsHistorie und dem Tab Bank
   var hs = ss.getSheetByName(MA_HIST), val = {}, num = function (v) { return v === '' || v === null || v === undefined ? 0 : Number(v); };
@@ -2521,8 +2521,8 @@ function fpTransfer() {
       FP_ROWS.forEach(function (fr) {
         var row = rowOf[fr[1]]; if (!row) return;
         var v = get(mk, loc, fr[1]); if (v === null) return;
-        var cell = sh.getRange(row, col); if (cell.getFormula()) return; // nie ueber Formeln schreiben
-        var old = cell.getValue(); if (old !== '' && old !== null && Math.abs(Number(old) - v) < 2) return; // Rundungsdifferenzen (Bank +-1 CHF) nicht als Aenderung
+        var cell = sh.getRange(row, col), f = cell.getFormula(), old = f ? f : cell.getValue(); // Eingabezeilen: ab FP_FROM bis zum laufenden Monat auch Planformeln ersetzen (Ruben 08.09.), alte Formel steht im Protokoll
+        if (!f && old !== '' && old !== null && Math.abs(Number(old) - v) < 2) return; // Rundungsdifferenzen (Bank +-1 CHF) nicht als Aenderung
         cell.setValue(v); n++;
         log.push([new Date(), FP_TABS[loc], cell.getA1Notation(), mk, fr[2], old, v]);
       });
