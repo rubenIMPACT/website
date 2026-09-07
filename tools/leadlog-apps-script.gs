@@ -1860,7 +1860,9 @@ function buildMonatsabschlussCore(ss) {
         if (rule === 'sum') row.push('=IF(COUNT(' + mc('{r}') + ')=0,"",SUM(' + mc('{r}') + '))');
         else if (rule === 'last') { var lastC = colOf(mi[mi.length - 1]) + '{r}'; row.push('=IF(' + lastC + '="","",' + lastC + ')'); }
         else if (rule === 'showup') { var at = mc(rowIdx.trial_attended), nn = mc(rowIdx.trial_noshow); row.push('=IF(SUM(' + at + ')+SUM(' + nn + ')=0,"",SUM(' + at + ')/(SUM(' + at + ')+SUM(' + nn + ')))'); }
-        else if (rule === 'cacall') { var me = mc(rowIdx.wk_media), ag = mc(rowIdx.wk_agency), sg = mc(rowIdx.sales_signed); row.push('=IF(OR(SUM(' + sg + ')=0,COUNT(' + me + ')=0),"",(SUM(' + me + ')+SUM(' + ag + '))/SUM(' + sg + '))'); }
+        else if (rule === 'cacall') { // nur Monate mit Verkaufszahl (sonst zaehlen Agenturkosten aus Monaten ohne Verkaeufe mit)
+          var g = function (key) { return mi.map(function (i) { var sgc = colOf(i) + rowIdx.sales_signed; return 'IF(' + sgc + '<>"",N(' + colOf(i) + rowIdx[key] + '),0)'; }).join(','); };
+          row.push('=LET(mm,SUM(' + g('wk_media') + '),aa,SUM(' + g('wk_agency') + '),ss,SUM(' + g('sales_signed') + '),IF(OR(ss=0,mm=0),"",(mm+aa)/ss))'); }
         else if (typeof rule === 'object' && rule.div) { var src = colOf(ci) + rowIdx[rule.div]; row.push('=IF(' + src + '="","",' + src + '/' + VAT + ')'); }
         else if (typeof rule === 'object' || String(rule).indexOf('ratio:') === 0) { // Quote aus den Summen, aber nur Monate, in denen Zaehler UND Nenner stehen (Lehre 07.09.: Churn 1.9 % statt 3-4 %)
           var p = typeof rule === 'object' ? ['', rule.n, rule.d] : rule.split(':'), n1 = rowIdx[p[1]], d1 = rowIdx[p[2]];
