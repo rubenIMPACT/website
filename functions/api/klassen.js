@@ -528,10 +528,12 @@ function lifeExpand(list) {
   });
   return out;
 }
+// Uhrzeit "HH:MM" (24 h) aus "yyyy/MM/dd hh:mm AM/PM" der Reports (Lehre 07.09.: slice(11,19) verlor das PM -> 04:30 statt 16:30)
+const to24 = (s) => { const m = String(s || "").match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i); if (!m) return ""; let h = +m[1]; if (m[3]) { const pm = /pm/i.test(m[3]); if (pm && h < 12) h += 12; if (!pm && h === 12) h = 0; } return String(h).padStart(2, "0") + ":" + m[2]; };
 const fvCompact = (rows) => rows.map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10).replace(/\//g, "-"), cls: String(r["First Session Visit"] || "").replace(/\s+/g, " ").trim() }));
 function visCompact(cs) {
   const H = (cs && cs.headers) || [], vi = (n) => H.indexOf(n), out = [];
-  ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((x) => out.push({ uid: String(x[vi("User ID")]), name: ((x[vi("First Name")] || "") + " " + (x[vi("Last Name")] || "")).trim(), email: String(x[vi("Email")] || "").toLowerCase(), date: chDate(x[vi("Start Time")]), time: String(x[vi("Start Time")] || "").slice(11, 19), cls: String(x[vi("Service")] || "").replace(/\s+/g, " ").trim(), loc: String(x[vi("Location")] || ""), status: String(x[vi("Status")] || ""), staff: String(x[vi("Primary Staff")] || ""), staff2: String(x[vi("Secondary Staff")] || ""), bookedBy: String(x[vi("Booked By")] || ""), bookedAt: chDate(x[vi("Booked At")]), pkg: String(x[vi("Client Package Used")] || ""), guest: String(x[vi("Guest From Visit ID")] || "").replace(/null/i, "") })));
+  ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((x) => out.push({ uid: String(x[vi("User ID")]), name: ((x[vi("First Name")] || "") + " " + (x[vi("Last Name")] || "")).trim(), email: String(x[vi("Email")] || "").toLowerCase(), date: chDate(x[vi("Start Time")]), time: to24(x[vi("Start Time")]), cls: String(x[vi("Service")] || "").replace(/\s+/g, " ").trim(), loc: String(x[vi("Location")] || ""), status: String(x[vi("Status")] || ""), staff: String(x[vi("Primary Staff")] || ""), staff2: String(x[vi("Secondary Staff")] || ""), bookedBy: String(x[vi("Booked By")] || ""), bookedAt: chDate(x[vi("Booked At")]), pkg: String(x[vi("Client Package Used")] || ""), guest: String(x[vi("Guest From Visit ID")] || "").replace(/null/i, "") })));
   return out;
 }
 // Werbekosten Meta (Marketing API v23, System-User-Token ohne Ablauf in der Cloudflare-Env META_ADS_TOKEN, Recht ads_read):
