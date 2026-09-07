@@ -228,6 +228,14 @@ function waCleanup() { // maintenance: drop dry-run rows that the current rules 
   for (var i = v.length - 1; i >= 0; i--) { if (v[i][3] === 'E' && /Debt collection|Inactive Client|billing "paused"|Non-Billed/i.test(String(v[i][8] || ''))) { sh.deleteRow(TR_ROW0 + i); del++; } }
   Logger.log('Cleanup: ' + del + ' rows removed'); return del;
 }
+function waProbeReports() { // one-off: which payment reports exist in exercise.com and which columns they have (log only)
+  var keys = ['failed_payments', 'failed_payment', 'charges', 'sales', 'transactions', 'balance_transactions', 'payments', 'invoices', 'estimated_upcoming_charges', 'sales_by_category'];
+  var end = fmtD(new Date()), start = addDs(end, -30);
+  keys.forEach(function (k) {
+    var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'report', key: k, start: start, end: end, per: 200, refresh: true, sample: 2 }), muteHttpExceptions: true });
+    Logger.log(k + ' -> ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 900));
+  });
+}
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();

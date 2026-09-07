@@ -4,6 +4,10 @@
 //   action "failed_payments" {days?}: Kunden mit fehlgeschlagener Zahlung im Fenster (entspricht dem Custom-Status-
 //   Filter "Failed Payments" der Kundenliste: q[client_filter_type][]=failed_payment,,start,end), kompakt je Kunde.
 //   Liefert nur, was der Zahlungs-Flow braucht: UID, Name, Telefon, Lifecycle, Billing-Status, naechste Zahlung.
+//   action "report" {key, start, end, per?, location_id?, refresh?, rows?, sample?}: generischer Zugriff auf einen
+//   exercise.com-Report (/api/v4/reports/<key>, gleicher Cache-Mechanismus wie klassen.js: refresh=true stoesst die
+//   Generierung an, danach ohne refresh abholen; {ready:false} = noch am Rechnen, spaeter nochmals rufen).
+//   Grundlage fuer das Verzugskonto (Report "failed_payments" = jede geplatzte Abbuchung einzeln).
 const API = "https://app.impact-martialarts.com";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -17,6 +21,7 @@ export async function onRequestPost(context) {
     const H = await signIn(env);
     if (!H) return j({ error: "signin_failed" }, 502);
     if (p.action === "failed_payments") return j(await failedPayments(H, Math.min(Math.max(Number(p.days) || 30, 1), 120)));
+    if (p.action === "report") return j(await report(H, p));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
     return j({ error: "exception", detail: String(e && e.message ? e.message : e).slice(0, 200) }, 502);
@@ -44,6 +49,47 @@ async function failedPayments(H, days) {
     if (!list.length || list.length < 100 || (total && rows.length >= total)) break;
   }
   return { ok: true, days, start, end, total, count: rows.length, rows };
+}
+
+async function report(H, p) {
+  const key = String(p.key || "").replace(/[^a-z_]/g, "");
+  if (!key) return { error: "no_key" };
+  const start = String(p.start || ""), end = String(p.end || ""), per = Math.min(Number(p.per) || 2000, 10000);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return { error: "bad_dates" };
+  const q = "page=1&start_date=" + unixCH(start, false) + "&start_date_string=" + start + "&end_date=" + unixCH(end, true) + "&end_date_string=" + end + "&per=" + per + (p.location_id ? "&location_id=" + Number(p.location_id) : "");
+  const url = API + "/api/v4/reports/" + key + "?" + q;
+  let r = await getJson(H, url + (p.refresh ? "&refresh=true" : ""));
+  if (r.status !== 200 || !r.json) return { ok: false, key, status: r.status, error: "report_" + r.status, body: JSON.stringify(r.json || "").slice(0, 200) };
+  for (let i = 0; i < (p.refresh ? 6 : 2) && r.json.refreshing; i++) { await sleep(3000); r = await getJson(H, url); }
+  const json = r.json, cs = json.cached_stats, filters = filtersText(json);
+  const ready = !json.refreshing && filters.indexOf("Start Date: " + start.replace(/-/g, "/")) >= 0;
+  const rows = rowsOf(cs);
+  const headers = Array.isArray(cs) ? Object.keys(rows[0] || {}) : ((cs && cs.headers) || []);
+  const out = { ok: true, key, ready, refreshing: !!json.refreshing, filters: filters.slice(0, 200), headers, count: rows.length, top: Object.keys(json).slice(0, 12) };
+  if (p.sample) out.sample = rows.slice(0, Math.min(Number(p.sample), 5)).map((row) => { const o = {}; Object.keys(row).forEach((k) => { o[k] = String(row[k] === undefined || row[k] === null ? "" : row[k]).slice(0, 40); }); return o; });
+  if (p.rows) out.rows = rows;
+  return out;
+}
+function rowsOf(cs) {
+  if (Array.isArray(cs)) return cs.slice(1);
+  const H = (cs && cs.headers) || [], rows = [];
+  ((cs && cs.reports) || []).forEach((g) => (g.items || []).forEach((it) => { const o = {}; H.forEach((h, i) => { o[h] = it[i]; }); o.__group = g.name; rows.push(o); }));
+  return rows;
+}
+function filtersText(json) { const cs = json.cached_stats; return Array.isArray(cs) ? ((cs[0] || {}).filters || "") : ((cs || {}).filters || ""); }
+async function getJson(H, url) {
+  const r = await fetch(url, { headers: H });
+  let json = null; try { json = await r.json(); } catch {}
+  return { status: r.status, json };
+}
+function sleep(ms) { return new Promise((res) => setTimeout(res, ms)); }
+function unixCH(dateStr, endOfDay) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const lastSun = (mo) => { const dt = new Date(Date.UTC(y, mo + 1, 0)); return dt.getUTCDate() - dt.getUTCDay(); };
+  const t = Date.UTC(y, m - 1, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0);
+  const dstStart = Date.UTC(y, 2, lastSun(2), 1), dstEnd = Date.UTC(y, 9, lastSun(9), 1);
+  const offset = (t >= dstStart && t < dstEnd) ? 2 : 1;
+  return Math.floor(t / 1000) - offset * 3600;
 }
 
 async function signIn(env) {
