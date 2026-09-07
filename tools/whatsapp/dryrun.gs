@@ -225,32 +225,52 @@ function buildArrears() { // one entry per member with at least one open (unconv
     var att = open.reduce(function (m, c) { return Math.max(m, c.attempts); }, 0);
     rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS || daysBetween(first, end) > RULE_E.RETRY_WINDOW_D || HARD_DECLINE.test(newest.reason) });
   });
-  rows.sort(function (x, y) { return y.days - x.days; });
+  rows.sort(function (x, y) { return y.days - x.days; }); // provisional; the final order (priority) is set in writeArrears once the client status is known
   rows.convVals = convVals; rows.chVals = chVals;
   Logger.log('Arrears: ' + rows.length + ' members, Converted values ' + JSON.stringify(convVals) + ', charge status values ' + JSON.stringify(chVals) + ', hidden cases ' + rows.filter(function (a) { return a.hidden; }).length);
   return rows;
 }
-var ARR_HEAD = ['UID', 'Name', 'Location', 'First failed', 'Days', 'Open charges', 'Attempts', 'Auto-retries left', 'Later invoice paid', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Last message', 'Updated'];
+var ARR_HEAD = ['Priority', 'UID', 'Name', 'Location', 'First failed', 'Days', 'Open charges', 'Attempts', 'Auto-retries left', 'Later invoice paid', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Next step', 'Last message', 'Updated'];
+var ARR_W = [60, 80, 180, 90, 90, 50, 60, 60, 70, 70, 90, 90, 260, 200, 110, 80, 60, 300, 120, 120];
+function stageOf(a) { return a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait'))); }
+function activeClient(c) { return !!c && !c.cancel_pending && !/debt|inactive|non-client|lost/i.test(c.lifecycle) && /^billed$/i.test(c.billing); }
+function priorityOf(a, c) { // 1 = most urgent. Active members first (the automation can still act), ordered by dunning stage, then by amount.
+  if (!c) return 5;                                   // not in the client list: cancelled / inactive, by hand
+  if (/debt/i.test(c.lifecycle)) return 4;            // already in debt collection
+  if (!activeClient(c)) return 4;                     // paused, pending cancellation, inactive
+  var st = stageOf(a);
+  return st === 'W4' ? 1 : (st === 'W3' ? 2 : 3);     // W4 = second charge open, W3 = retries exhausted, W1/W2/wait = still in the automatic window
+}
+function nextStepOf(a, c) {
+  if (!c) return 'By hand: account not in client list (cancelled or inactive)';
+  if (/debt/i.test(c.lifecycle)) return 'Debt collection running (Sam)';
+  if (!activeClient(c)) return 'By hand: subscription paused or pending cancellation';
+  var st = stageOf(a);
+  if (st === 'W4') return 'W4 sent or due: escalate to Sam if no payment tomorrow';
+  if (a.exhausted) return HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry by hand' : 'Retry by hand (see Retry today)';
+  return 'Wait for Stripe retries; ' + st + ' message due';
+}
 function writeArrears(ss, rows, info, dry) {
   var sh = ss.getSheetByName('Arrears');
   if (!sh) {
     sh = ss.insertSheet('Arrears');
     sh.getRange('A1').setValue('Arrears: members with open failed charges').setFontSize(14).setFontWeight('bold');
-    sh.getRange('A2').setValue('Rebuilt every hour from the exercise.com reports "Failed Payments" and "Charges" (last 90 days). Open = failed charge that exercise.com has not marked as converted (paid later). A later paid invoice does NOT close an older open charge (column "Later invoice paid" flags exactly these hidden cases). Auto-retries left = no once the platform stopped retrying (about 3 attempts); then only a manual retry after the card update or a direct payment settles it. Stage = dunning step by days open: W1 from day 2, W2 from day 6, W3 from day 14, W4 as soon as a second charge is open. Debt collection, inactive, paused and accounts outside the client list are listed but get no automatic message.').setFontColor('#666666').setWrap(true);
-    sh.getRange('A2:R2').merge(); sh.setRowHeight(2, 80);
+    sh.getRange('A2').setValue('Rebuilt every hour from the exercise.com reports "Failed Payments" and "Charges" (last 90 days), sorted by Priority (1 = most urgent), then by open amount. Open = failed charge that exercise.com has not marked as converted (paid later). A later paid invoice does NOT close an older open charge (column "Later invoice paid" flags exactly these hidden cases). Auto-retries left = no once Stripe stopped retrying (5 attempts, 14 days, or a hard decline); then only a manual retry after the card update or a direct payment settles it. Stage = dunning step: W1 from day 2, W2 from day 6, W3 from day 14, W4 as soon as a second charge is open. Next step = what a human still has to do. Debt collection, paused and accounts outside the client list are listed at the bottom and get no automatic message.').setFontColor('#666666').setWrap(true);
+    sh.getRange('A2:T2').merge(); sh.setRowHeight(2, 90);
     sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
     sh.setFrozenRows(4);
-    [80, 180, 90, 90, 50, 60, 60, 70, 70, 90, 90, 260, 200, 110, 80, 70, 120, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    ARR_W.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
   }
-  if (sh.getLastRow() >= 4 && sh.getRange(4, 8).getValue() !== 'Auto-retries left') { sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5'); } // header upgrade 07.09.
+  if (sh.getLastRow() >= 4 && sh.getRange(4, 1).getValue() !== 'Priority') { if (sh.getMaxColumns() < ARR_HEAD.length) sh.insertColumnsAfter(sh.getMaxColumns(), ARR_HEAD.length - sh.getMaxColumns()); sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5'); ARR_W.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); } // header upgrade 08.09.
   var last = lastMsgE(dry), now = fmtDT(new Date());
-  var out = rows.map(function (a) {
-    var c = info[a.uid] || {}, stage = a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait')));
-    return [a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.exhausted ? 'no' : 'yes', a.hidden ? 'yes' : '', a.amount, a.lastDate, a.reason, a.item, c.lifecycle || 'not in client list', c.billing || '', stage, last[a.uid] || '', now];
+  var sorted = rows.slice().sort(function (x, y) { var px = priorityOf(x, info[x.uid]), py = priorityOf(y, info[y.uid]); return px !== py ? px - py : (y.amount !== x.amount ? y.amount - x.amount : y.days - x.days); });
+  var out = sorted.map(function (a) {
+    var c = info[a.uid] || null, stage = stageOf(a);
+    return [priorityOf(a, c), a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.exhausted ? 'no' : 'yes', a.hidden ? 'yes' : '', a.amount, a.lastDate, a.reason, a.item, c ? c.lifecycle : 'not in client list', c ? c.billing : '', stage, nextStepOf(a, c), last[a.uid] || '', now];
   });
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent();
   if (out.length) sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
-  sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[9]; }, 0)) + ' open, ' + out.filter(function (r) { return r[8] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[7] === 'no'; }).length + ' with auto-retries exhausted. Converted values: ' + JSON.stringify(rows.convVals || {}) + ', charge status values: ' + JSON.stringify(rows.chVals || {}) + '. ' + now);
+  sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[10]; }, 0)) + ' open, ' + out.filter(function (r) { return r[9] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[8] === 'no'; }).length + ' with auto-retries exhausted. Priority 1 = second charge open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused, 5 = not in client list. ' + now);
 }
 var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open charges', 'Amount open CHF', 'Later invoice paid', 'Failure message', 'Suggested action', 'Updated'];
 function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose automatic retries are exhausted -> Waseem retries by hand
@@ -265,7 +285,7 @@ function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose
     [80, 180, 90, 50, 60, 90, 70, 260, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
   }
   var now = fmtDT(new Date());
-  var out = rows.filter(function (a) { var c = info[a.uid]; return a.exhausted && c && !c.cancel_pending && !/debt|inactive|non-client|lost/i.test(c.lifecycle) && /^billed$/i.test(c.billing); })
+  var out = rows.filter(function (a) { return a.exhausted && activeClient(info[a.uid]); }).sort(function (x, y) { return y.amount - x.amount; })
     .map(function (a) { return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.hidden ? 'yes' : '', a.reason, HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry' : (a.hidden ? 'Retry today, card works' : 'Retry today'), now]; });
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, RETRY_HEAD.length).clearContent();
   if (out.length) sh.getRange(5, 1, out.length, RETRY_HEAD.length).setValues(out);
