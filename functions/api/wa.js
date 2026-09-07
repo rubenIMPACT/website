@@ -67,7 +67,7 @@ async function report(H, p) {
   const headers = Array.isArray(cs) ? Object.keys(rows[0] || {}) : ((cs && cs.headers) || []);
   const out = { ok: true, key, ready, refreshing: !!json.refreshing, filters: filters.slice(0, 200), headers, count: rows.length, top: Object.keys(json).slice(0, 12) };
   if (p.sample) out.sample = rows.slice(0, Math.min(Number(p.sample), 5)).map((row) => { const o = {}; Object.keys(row).forEach((k) => { o[k] = String(row[k] === undefined || row[k] === null ? "" : row[k]).slice(0, 40); }); return o; });
-  if (p.rows) out.rows = rows;
+  if (p.rows) { const cols = Array.isArray(p.cols) ? p.cols.map(String) : null; out.rows = cols ? rows.map((r) => { const o = {}; cols.forEach((c) => { o[c] = r[c]; }); return o; }) : rows; }
   return out;
 }
 function rowsOf(cs) {
