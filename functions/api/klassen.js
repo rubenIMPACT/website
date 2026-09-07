@@ -457,9 +457,10 @@ function computeMonat(inp) {
     out.signed[loc] = sg.map((u) => ({ email: signedBy[u].email, date: signedBy[u].date }));
     L.net_growth = L.new_customers - L.cancellations;
     // Abos (Stand Lauf)
-    const sL = subs.filter((s) => s.loc === loc && s.type !== "Scheduled");
+    const sAll = subs.filter((s) => s.loc === loc), sL = sAll.filter((s) => s.type !== "Scheduled");
     const active = sL.filter((s) => s.type !== "Paused");
     L.active_subs = active.length; L.paused_subs = sL.length - active.length; L.pending_cancel = active.filter((s) => s.type === "Pending Cancel").length;
+    L.subs_total = sAll.length; L.scheduled_subs = sAll.length - sL.length; // alle Abos wie im Report Active Subscriptions (Ruben 07.09.: 647 statt 605)
     L.mrr_net = Math.round(active.reduce((a, s) => a + s.chf, 0)); L.avg_sub_net = active.length ? Math.round(L.mrr_net / active.length) : 0;
     L.churn_rate = (L.active_subs + L.cancellations) ? L.cancellations / (L.active_subs + L.cancellations) : 0;
     // Umsatz (Sales by Category, brutto und netto)
@@ -783,12 +784,12 @@ function computeTrials(inp) {
       if (comp.length) {
         const v = comp[0];
         if ((subsBy[f.uid] || []).some((s) => s.date && s.date < v.date && !isPT(s.pkg))) return; // Altkunde
-        out.rows[loc].push(Object.assign(base, { date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: TR_EVENT.test(v.cls) ? "Event (kein Trial)" : "Trial", visits: comp.length, sale: saleOf(f.uid, v.date) }));
+        out.rows[loc].push(Object.assign(base, { date: v.date, time: v.time, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: TR_EVENT.test(v.cls) ? "Event (kein Trial)" : "Trial", visits: comp.length, sale: saleOf(f.uid, v.date) }));
       } else {
         const fut = vs.filter((v) => v.date > today && !/cancel/i.test(v.status)), ns = vs.filter((v) => /noshow/i.test(v.status)), cn = vs.filter((v) => /cancel/i.test(v.status));
         const b = fut[0] || ns[ns.length - 1] || cn[cn.length - 1];
         if (!b) return;
-        out.rows[loc].push(Object.assign(base, { date: b.date, cls: b.cls, trainer: b.staff, bookedBy: b.bookedBy, bookedAt: b.bookedAt, art: fut.length ? "Gebucht" : (ns.length ? "No-Show" : "Storniert"), visits: 0, sale: saleOf(f.uid, b.date) }));
+        out.rows[loc].push(Object.assign(base, { date: b.date, time: b.time, cls: b.cls, trainer: b.staff, bookedBy: b.bookedBy, bookedAt: b.bookedAt, art: fut.length ? "Gebucht" : (ns.length ? "No-Show" : "Storniert"), visits: 0, sale: saleOf(f.uid, b.date) }));
       }
     });
   }
@@ -804,7 +805,7 @@ function computeTrials(inp) {
     if (prior.has(uid) || comp.some((c) => c.date < v.date)) return;
     const loc = /winterthur/i.test(v.loc) ? "Winterthur" : "Zurich";
     const ex = (cancBy[uid] || []).some((c) => c.ended && c.ended < v.date);
-    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, source: srcOf(v.email), lifecycle: lifeOf(v.email), lastNote: noteOf(uid), ns: byUser[uid].filter((z) => /noshow/i.test(z.status)).map((z) => z.date), bk: Array.from(new Set(byUser[uid].filter((z) => !/cancel/i.test(z.status)).map((z) => z.bookedAt).filter(Boolean))), date: v.date, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
+    out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, source: srcOf(v.email), lifecycle: lifeOf(v.email), lastNote: noteOf(uid), ns: byUser[uid].filter((z) => /noshow/i.test(z.status)).map((z) => z.date), bk: Array.from(new Set(byUser[uid].filter((z) => !/cancel/i.test(z.status)).map((z) => z.bookedAt).filter(Boolean))), date: v.date, time: v.time, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date) });
   });
   (inp.open || []).forEach((o) => { if (o && o.uid && o.date) out.sales[String(o.uid)] = saleOf(String(o.uid), String(o.date)); });
   return out;
