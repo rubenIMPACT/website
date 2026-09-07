@@ -1566,16 +1566,18 @@ var MA_ROWS = [
   ['conv_sales_trial', 'Quote Verkäufe / Probetrainings', '0%', 'w'],
   ['conv_sales_lead', 'Quote Verkäufe / neue Kontakte', '0%', 'w'],
   ['conv_cohort_rate', 'Kohorten-Conversion', '0%', 'w'],
-  ['cancellations', 'Kündigungen (ohne Paketwechsel)', '0', 'wb'],
-  ['switches', '   Paketwechsel', '0', 'd'],
-  ['net_growth', 'Nettowachstum (Abo-Starts − Kündigungen)', '0', 'wb'],
+  ['losses', 'Verluste (Kündigungen + Debt collection)', '0', 'wb'],
+  ['cancellations', '   davon wirksame Kündigungen', '0', 'dw'],
+  ['debt_collection', '   davon Debt collection (Nichtzahler)', '0', 'dw'],
+  ['switches', '   Paketwechsel (kein Verlust)', '0', 'd'],
+  ['net_growth', 'Nettowachstum (Abo-Starts − Verluste)', '0', 'wb'],
   ['cv_active', 'Kunden mit laufendem Abo', '0', 'b'],
   ['cv_nopay', '   davon ohne Abo-Zahlung im Monat', '0', 'd'],
   ['subs_total', '   Abos laut exercise.com-Report (Stand Lauf)', '0', 'd'],
   ['pending_cancel', '      davon mit Kündigung auf Periodenende', '0', 'd'],
   ['paused_subs', '      davon pausiert', '0', 'd'],
   ['scheduled_subs', '      davon geplanter Start', '0', 'd'],
-  ['churn_rate', 'Churn (Kündigungen / Kunden)', '0.0%', ''],
+  ['churn_rate', 'Churn (Verluste / Kunden)', '0.0%', ''],
 ];
 // Kurzdefinitionen als Notiz an der Zeilenbezeichnung (ausfuehrlich im Tab Methodik)
 var MA_NOTES = {
@@ -1592,12 +1594,14 @@ var MA_NOTES = {
   conv_sales_trial: 'Verkäufe des Monats geteilt durch durchgeführte Probetrainings des Monats.',
   conv_sales_lead: 'Verkäufe des Monats geteilt durch neue Kontakte in exercise.com.',
   conv_cohort_rate: 'Monat: Probetrainer des Monats, die bis heute ein Abo gestartet haben, reift drei Monate nach. Woche: Probetrainer der Woche, die bis heute einen Vertrag unterschrieben haben (Team-Sheet).',
-  cancellations: 'Wirksam gewordene Kündigungen nach Enddatum in exercise.com, ohne Paketwechsel. Geht so in den Finanzplan.',
-  net_growth: 'Abos gestartet minus Kündigungen.',
+  losses: 'Verlorene Kunden: wirksam gewordene Kündigungen (Enddatum in exercise.com, ohne Paketwechsel) plus Übergänge in die Lifecycle-Stage Debt collection. Dieselbe Regel wie die Verlustquote im LTV. Geht so in den Finanzplan (Kündigungen).',
+  cancellations: 'Wirksam gewordene Kündigungen nach Enddatum in exercise.com, ohne Paketwechsel.',
+  debt_collection: 'Kontakte, die im Monat auf die Lifecycle-Stage Debt collection gewechselt sind (Nichtzahler).',
+  net_growth: 'Abos gestartet minus Verluste.',
   cv_active: 'Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben (aus den Zahlungen in exercise.com, deshalb bis 2025 zurück). Personen, nicht Abos.',
   cv_nopay: 'Davon Kunden ohne Abo-Belastung in diesem Monat: Pause, geplatzte Zahlung oder ausgelaufener Vertrag ohne Kündigungseintrag.',
   subs_total: 'Zum Vergleich: alle Abos am Tag des Laufs laut Report Active Subscriptions (laufend, Kündigung auf Periodenende, pausiert, geplanter Start). Zählt Abos, nicht Personen. Erst ab September 2026.',
-  churn_rate: 'Kündigungen des Monats geteilt durch Kunden mit laufendem Abo.',
+  churn_rate: 'Verluste des Monats geteilt durch Kunden mit laufendem Abo. Jahr: alle Verluste geteilt durch alle Kundenmonate, nur Monate mit beiden Werten.',
   cash_paid: 'Alle erfolgreichen Belastungen in exercise.com im Monat, brutto inkl. MwSt, nach Rückerstattungen. Jahreszahler zählen im Monat der Zahlung.',
   abo_gross: 'Belastungen mit Abo-Bezug. Der Mehrbetrag der ersten Abo-Belastung (Zürich bucht das Starterpaket mit dem Abo zusammen ab) zählt bei den Einmalkäufen.',
   one_gross: 'Belastungen ohne Abo-Bezug: Starterpakete, Shop, Personal Training, Events.',
@@ -1638,7 +1642,7 @@ function runMonatsabschluss(start, end) {
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var L = data.locations[loc] || {}, m = {};
     Object.keys(L).forEach(function (k) { if (typeof L[k] === 'number') m[k] = L[k]; });
-    [['starts_by_day', 'starts_d:'], ['cancels_by_day', 'cancels_d:'], ['leads_by_day', 'leads_d:']].forEach(function (dk) { var o = L[dk[0]] || {}; Object.keys(o).forEach(function (d) { m[dk[1] + d] = o[d]; }); }); // Tageswerte fuer die Wochenspalten (Ruben 07.09.)
+    [['starts_by_day', 'starts_d:'], ['cancels_by_day', 'cancels_d:'], ['leads_by_day', 'leads_d:'], ['debt_by_day', 'debt_d:']].forEach(function (dk) { var o = L[dk[0]] || {}; Object.keys(o).forEach(function (d) { m[dk[1] + d] = o[d]; }); }); // Tageswerte fuer die Wochenspalten (Ruben 07.09.)
     var fvNet = (L.first_visits || 0) - (L.first_visits_excluded || 0);
     m.noshow_rate = fvNet ? (L.trial_noshow || 0) / fvNet : 0;
     m.conv_simple = L.trial_attended ? (L.new_customers || 0) / L.trial_attended : 0;
@@ -1646,7 +1650,7 @@ function runMonatsabschluss(start, end) {
     m.conv_sales_lead = L.leads_all ? (L.sales_signed || 0) / L.leads_all : 0;
     var cnt = {}; ((data.signed || {})[loc] || []).forEach(function (sg) { var ld = trFindLead(leadMap, sg.email, '', sg.date); if (ld && ld.kanal) cnt[ld.kanal] = (cnt[ld.kanal] || 0) + 1; });
     KANAL_ORDER.forEach(function (kn) { m['sales_kanal:' + kn] = cnt[kn] || 0; });
-    maStoreMetricsMany(ss, [{ mk: mk, loc: loc, metrics: m, drop: ['starts_d:', 'cancels_d:', 'leads_d:'] }]);
+    maStoreMetricsMany(ss, [{ mk: mk, loc: loc, metrics: m, drop: ['starts_d:', 'cancels_d:', 'leads_d:', 'debt_d:'] }]);
     lines.push(loc + ': ' + (L.trial_attended || 0) + ' Probetrainings, ' + (L.new_customers || 0) + ' Neukunden, ' + (L.cancellations || 0) + ' Kuendigungen, netto ' + (L.net_growth || 0) + ', Abo-Umsatz brutto ' + (L.rev_membership_gross || 0) + ' CHF');
   });
   // Kohorten-Conversion fuer diesen und die zwei Vormonate
@@ -1667,8 +1671,8 @@ function runMonatsabschluss(start, end) {
 // Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
 // reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
-var MA_CATCHUP = '2026-09-07 Tageswerte August'; // Marke aendern = Nachlauf laeuft erneut
-var MA_CATCHUP_MONTHS = ['2026-08'];
+var MA_CATCHUP = '2026-09-07 Debt collection Jun-Aug'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP_MONTHS = ['2026-06', '2026-07', '2026-08'];
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;
   pr.setProperty('maCatchUp', MA_CATCHUP); pr.setProperty('maQueue', JSON.stringify(MA_CATCHUP_MONTHS));
@@ -1732,7 +1736,7 @@ var MA_NOTE = 'Kennzahlen je Standort aus exercise.com, Log und Team-Sheet, Zahl
 function colA1(n) { var t = ''; while (n > 0) { var m = (n - 1) % 26; t = String.fromCharCode(65 + m) + t; n = Math.floor((n - 1) / 26); } return t; }
 var MA_SNAP_FROM = '2026-09', MA_TEAM_FROM = '2026-09', VAT = 1.081; // Report-Stichtagszeilen erst ab Sep 2026 echt gemessen; Team-Sheet-Monatswerte (Gespraeche) erst ab Sep 2026 vollstaendig
 var MA_SNAP = ['subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs'];
-var MA_ADD = ['leads_all', 'leads_web', 'calls', 'trial_booked_transitions', 'first_visits', 'first_visits_excluded', 'trial_noshow', 'trial_attended', 'signed_at_trial', 'sales_signed', 'sales_open', 'new_customers', 'switches', 'cancellations', 'net_growth', 'lost_after_trial', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'rev_membership_gross', 'rev_membership_net', 'starter_count', 'rev_starter_gross', 'pt_count', 'rev_pt_gross', 'rev_gear_gross', 'rev_total_gross', 'rev_total_net', 'conv_cohort_n', 'cv_active', 'cv_nopay', 'abo_gross', 'one_gross'];
+var MA_ADD = ['leads_all', 'leads_web', 'calls', 'losses', 'debt_collection', 'trial_booked_transitions', 'first_visits', 'first_visits_excluded', 'trial_noshow', 'trial_attended', 'signed_at_trial', 'sales_signed', 'sales_open', 'new_customers', 'switches', 'cancellations', 'net_growth', 'lost_after_trial', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'rev_membership_gross', 'rev_membership_net', 'starter_count', 'rev_starter_gross', 'pt_count', 'rev_pt_gross', 'rev_gear_gross', 'rev_total_gross', 'rev_total_net', 'conv_cohort_n', 'cv_active', 'cv_nopay', 'abo_gross', 'one_gross'];
 var MA_STOCK = ['cv_active', 'cv_nopay', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'ltv'];
 function buildMonatsabschluss(ss) { // nie zwei Baue gleichzeitig (Stundenlauf, Tageslauf, Nachlauf): sonst doppelte Diagramme und leeres Blatt (Lehre 07.09.)
   var lock = LockService.getUserLock(); if (!lock.tryLock(0)) { Logger.log('Monatsabschluss: Bau laeuft bereits, uebersprungen'); return; }
@@ -1827,7 +1831,9 @@ function buildMonatsabschlussCore(ss) {
           case 'sales_signed': return c.w ? wrSum(o, 'sold') : vOf(kk, key);
           case 'new_customers': return c.w ? daySum(kk, 'starts_d:') : vOf(kk, key);
           case 'cancellations': return c.w ? daySum(kk, 'cancels_d:') : vOf(kk, key);
-          case 'net_growth': if (c.w) { var s1 = daySum(kk, 'starts_d:'), s2 = daySum(kk, 'cancels_d:'); return s1 === '' && s2 === '' ? '' : num(s1) - num(s2); } return vOf(kk, key);
+          case 'debt_collection': return c.w ? daySum(kk, 'debt_d:') : vOf(kk, key);
+          case 'losses': var lc = c.w ? daySum(kk, 'cancels_d:') : vOf(kk, 'cancellations'), ld = c.w ? daySum(kk, 'debt_d:') : vOf(kk, 'debt_collection'); return lc === '' && ld === '' ? '' : num(lc) + num(ld);
+          case 'net_growth': var s1 = c.w ? daySum(kk, 'starts_d:') : vOf(kk, 'new_customers'), s2 = V('losses')(c); return s1 === '' && s2 === '' ? '' : num(s1) - num(s2);
           case 'subs_total': if (kk < MA_SNAP_FROM) return ''; var st = vOf(kk, key); if (st !== '') return st; var a = vOf(kk, 'active_subs'); return a === '' ? '' : num(a) + num(vOf(kk, 'paused_subs')) + num(vOf(kk, 'scheduled_subs'));
           case 'cash_paid': var ag = vOf(kk, 'abo_gross'), og = vOf(kk, 'one_gross'); return ag === '' && og === '' ? '' : num(ag) + num(og);
           case 'cash_total': var ff = ['stripe', 'adyen', 'customers', 'other'].map(function (f) { return bankOf(loc, kk, f); }); return ff.every(function (x) { return x === ''; }) ? '' : ff.reduce(function (s, x) { return s + num(x); }, 0);
@@ -1856,7 +1862,9 @@ function buildMonatsabschlussCore(ss) {
         else if (rule === 'showup') { var at = mc(rowIdx.trial_attended), nn = mc(rowIdx.trial_noshow); row.push('=IF(SUM(' + at + ')+SUM(' + nn + ')=0,"",SUM(' + at + ')/(SUM(' + at + ')+SUM(' + nn + ')))'); }
         else if (rule === 'cacall') { var me = mc(rowIdx.wk_media), ag = mc(rowIdx.wk_agency), sg = mc(rowIdx.sales_signed); row.push('=IF(OR(SUM(' + sg + ')=0,COUNT(' + me + ')=0),"",(SUM(' + me + ')+SUM(' + ag + '))/SUM(' + sg + '))'); }
         else if (typeof rule === 'object' && rule.div) { var src = colOf(ci) + rowIdx[rule.div]; row.push('=IF(' + src + '="","",' + src + '/' + VAT + ')'); }
-        else if (typeof rule === 'object' || String(rule).indexOf('ratio:') === 0) { var p = typeof rule === 'object' ? ['', rule.n, rule.d] : rule.split(':'), n1 = rowIdx[p[1]], d1 = rowIdx[p[2]]; row.push(n1 && d1 ? '=IF(OR(SUM(' + mc(n1) + ')=0,SUM(' + mc(d1) + ')=0),"",SUM(' + mc(n1) + ')/SUM(' + mc(d1) + '))' : ''); }
+        else if (typeof rule === 'object' || String(rule).indexOf('ratio:') === 0) { // Quote aus den Summen, aber nur Monate, in denen Zaehler UND Nenner stehen (Lehre 07.09.: Churn 1.9 % statt 3-4 %)
+          var p = typeof rule === 'object' ? ['', rule.n, rule.d] : rule.split(':'), n1 = rowIdx[p[1]], d1 = rowIdx[p[2]];
+          if (n1 && d1) { var pair = function (rr) { return mi.map(function (i) { var a = colOf(i) + n1, b = colOf(i) + d1; return 'IF(AND(' + a + '<>"",' + b + '<>""),' + colOf(i) + rr + ',0)'; }).join(','); }; row.push('=LET(nn,SUM(' + pair(n1) + '),dd,SUM(' + pair(d1) + '),IF(dd=0,"",nn/dd))'); } else row.push(''); }
         else row.push('');
       });
       row = row.map(function (v) { return typeof v === 'string' ? v.replace(/\{r\}/g, String(r)) : v; });
@@ -1872,13 +1880,13 @@ function buildMonatsabschlussCore(ss) {
     var cellOf = function (key, ci) { return colOf(ci) + rowIdx[key]; };
     var ratio = function (n1, d1) { return function (c, ci) { var a = cellOf(n1, ci), b = cellOf(d1, ci); return '=IF(OR(' + a + '="",' + b + '="",' + b + '=0),"",' + a + '/' + b + ')'; }; };
     var divVat = function (key) { return function (c, ci) { var a = cellOf(key, ci); return '=IF(' + a + '="","",' + a + '/' + VAT + ')'; }; };
-    yearRule.conv_sales_trial = 'ratio:sales_signed:trial_attended'; yearRule.conv_sales_lead = 'ratio:sales_signed:leads_all'; yearRule.showup_rate = 'showup'; yearRule.churn_rate = 'ratio:cancellations:cv_active'; yearRule.conv_cohort_rate = '';
+    yearRule.conv_sales_trial = 'ratio:sales_signed:trial_attended'; yearRule.conv_sales_lead = 'ratio:sales_signed:leads_all'; yearRule.showup_rate = 'showup'; yearRule.churn_rate = 'ratio:losses:cv_active'; yearRule.conv_cohort_rate = '';
     yearRule.cv_abo_gross = 'ratio:abo_gross:cv_active'; yearRule.cv_abo_net = { div: 'cv_abo_gross' };
     yearRule.cpl = 'ratio:wk_media:leads_web'; yearRule.cpt = 'ratio:wk_media:trial_attended'; yearRule.cac = 'ratio:wk_media:sales_signed'; yearRule.cac_all = 'cacall';
     WK_PLATFORMS.forEach(function (pn) { yearRule['cpl:' + pn] = { n: 'wk:' + pn, d: 'kanal:' + pn }; yearRule['cac:' + pn] = { n: 'wk:' + pn, d: 'sk:' + pn }; }); // Schluessel enthalten ':' -> Objekt statt 'ratio:a:b'
     MA_ROWS.forEach(function (def) {
       if (def[0] === '_h') { block(def[1]); return; }
-      var fl = def[3] || '', fn = def[0] === 'churn_rate' ? ratio('cancellations', 'cv_active') : def[0] === 'conv_sales_trial' ? ratio('sales_signed', 'trial_attended') : def[0] === 'conv_sales_lead' ? ratio('sales_signed', 'leads_all') : V(def[0]);
+      var fl = def[3] || '', fn = def[0] === 'churn_rate' ? ratio('losses', 'cv_active') : def[0] === 'conv_sales_trial' ? ratio('sales_signed', 'trial_attended') : def[0] === 'conv_sales_lead' ? ratio('sales_signed', 'leads_all') : V(def[0]);
       put(def[0], def[1], fn, def[2], { detail: fl.indexOf('d') >= 0, weekly: fl.indexOf('w') >= 0, bold: fl.indexOf('b') >= 0 });
     });
     // Umsatz: brutto zuerst, davon netto und MwSt (Ruben 07.09.2026), alles aus derselben Quelle (Charges); Bank als eine Kontrollzeile mit Details
@@ -1962,16 +1970,11 @@ function buildMonatsabschlussCore(ss) {
   try { maArrangeTabs(ss); } catch (e2) { Logger.log('Tabs: ' + e2); }
 }
 // Sichtbare Tabs in fester Reihenfolge (Ruben 07.09.): Berichte, dann Formular-Eingaenge (gelb), dann Eingabe-Tabs (gruen), Protokoll und Methodik (grau)
-var MA_TAB_ORDER = ['Monatsabschluss', 'Werbekosten', 'LTV', 'Klassenanalyse', 'Kündigungsrisiko', 'Trainingsplan-Analyse', 'Events', 'Cancellations', 'Bank', 'Einstellungen', 'Finanzplan-Übertrag', 'Methodik'];
+var MA_TAB_HIDE = ['Kündigungsrisiko', 'Cancellations', 'Bank', 'Einstellungen', 'Finanzplan-Übertrag', 'Methodik']; // Ruben 07.09.: braucht er nicht, versteckt (Bank/Einstellungen zum Eintragen einblenden)
 var MA_TAB_COLOR = { Events: '#f4b400', Cancellations: '#f4b400', Bank: '#34a853', Einstellungen: '#34a853', 'Finanzplan-Übertrag': '#9e9e9e', Methodik: '#9e9e9e' };
-function maArrangeTabs(ss) {
-  var pos = 1;
-  MA_TAB_ORDER.forEach(function (n) {
-    var sh = ss.getSheetByName(n); if (!sh) return;
-    if (sh.getIndex() !== pos) { ss.setActiveSheet(sh); ss.moveActiveSheet(pos); }
-    var c = MA_TAB_COLOR[n] || null; if ((sh.getTabColor() || null) !== c) sh.setTabColor(c);
-    pos++;
-  });
+function maArrangeTabs(ss) { // Reihenfolge bestimmt Ruben selbst (07.09.), das Skript versteckt nur die Hilfstabs und setzt Farben
+  MA_TAB_HIDE.forEach(function (n) { var sh = ss.getSheetByName(n); if (sh && !sh.isSheetHidden()) sh.hideSheet(); });
+  Object.keys(MA_TAB_COLOR).forEach(function (n) { var sh = ss.getSheetByName(n); if (sh && (sh.getTabColor() || null) !== MA_TAB_COLOR[n]) sh.setTabColor(MA_TAB_COLOR[n]); });
 }
 // Tab Methodik: alle ausfuehrlichen Definitionen an einem Ort (Ruben 07.09.: keine Textwaende ueber den Tabellen)
 var METHODIK_SHEET = 'Methodik';
@@ -2481,12 +2484,12 @@ var FP_ROWS = [ // [Zeilenbezeichnung im Plan (Anfang, Spalten A-E), Kennzahl, B
   [/^Anzahl Leads/i, 'leads_all', 'Neue Kontakte in exercise.com (alle Wege)'],
   [/^Anzahl Trials/i, 'trial_attended', 'Probetrainings durchgeführt (Erstbesucher mit Check-in)'],
   [/^Neue Verk/i, 'new_customers', 'Abo-Starts ohne Paketwechsel und Personal Training'],
-  [/^K.ndigungen/i, 'cancellations', 'Wirksame Kündigungen ohne Paketwechsel'],
+  [/^K.ndigungen/i, 'losses', 'Verluste: wirksame Kündigungen plus Debt collection (ohne Paketwechsel)'],
   [/^Sold Gear through Exercise/i, 'rev_gear_gross', 'Gear brutto (Sales by Category)'],
   [/Total Sales from Bank/i, 'cash_total', 'Alle Gutschriften laut Kontoauszug (Tab Bank)']
 ];
 var FP_NOTE = 'Der Tageslauf (04:30) und der Monatslauf (1. des Monats) schreiben die Ist-Zahlen in die Kopie des Finanzplans (Tabs IMP ZH und IMP WIN), ab Juni 2026 bis zum laufenden Monat: '
-  + 'Anzahl Leads = neue Kontakte in exercise.com (alle Wege); Anzahl Trials = durchgeführte Probetrainings (Ruben 07.09.); Neue Verkäufe = Abo-Starts ohne Paketwechsel; Kündigungen = wirksame Kündigungen ohne Paketwechsel; Sold Gear = Gear brutto; Total Sales from Bank = alle Gutschriften laut Tab Bank (Entscheide Ruben 07.09.2026). '
+  + 'Anzahl Leads = neue Kontakte in exercise.com (alle Wege); Anzahl Trials = durchgeführte Probetrainings (Ruben 07.09.); Neue Verkäufe = Abo-Starts ohne Paketwechsel; Kündigungen = Verluste, also wirksame Kündigungen plus Debt collection, ohne Paketwechsel (Ruben 07.09.); Sold Gear = Gear brutto; Total Sales from Bank = alle Gutschriften laut Tab Bank (Entscheide Ruben 07.09.2026). '
   + 'Die Spalte wird über den Monatskopf (z. B. "9.2026") gefunden, die Zeile über ihre Bezeichnung. Es wird nie über eine Formel geschrieben, nur in leere oder Zahlenzellen; deine Planwerte ab dem Folgemonat bleiben unberührt. '
   + 'Starterpakete, Personal Training und Kundenwert werden nicht übertragen: der Plan führt sie je Typ (Bronze, Silber, ...) bzw. als Formel. Jede geänderte Zelle steht mit altem und neuem Wert in diesem Tab.';
 function fpValues(ss) { // Kennzahl je Monat und Standort aus der MonatsHistorie und dem Tab Bank
@@ -2495,7 +2498,7 @@ function fpValues(ss) { // Kennzahl je Monat und Standort aus der MonatsHistorie
   var bank = bankRead(ss);
   return function (mk, loc, key) {
     var v = function (k) { var x = val[mk + '|' + loc + '|' + k]; return x === undefined || x === '' ? null : Number(x); };
-    if (key === 'trials_all') { var a = v('trial_attended'), n = v('trial_noshow'); return a === null ? null : a + (n || 0); }
+    if (key === 'losses') { var kc = v('cancellations'), kd = v('debt_collection'); return kc === null && kd === null ? null : (kc || 0) + (kd || 0); }
     if (key === 'cash_total') { var b = bank[mk + '|' + loc]; if (!b || b.stripe === '') return null; return Math.round(num(b.stripe) + num(b.adyen) + num(b.customers) + num(b.other)); }
     return v(key);
   };

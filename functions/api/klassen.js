@@ -451,7 +451,8 @@ function computeMonat(inp) {
     L.cancellations = caL.filter((c) => !c.converted && !startedUids.has(c.uid)).length;
     L.cancellations_converted = caL.length - L.cancellations;
     const dayCount = (list, f) => { const o = {}; list.forEach((s) => { const d = f(s); if (d) o[d] = (o[d] || 0) + 1; }); return o; }; // je Tag fuer die Wochenspalten (Ruben 07.09.)
-    L.starts_by_day = dayCount(nonPT.filter((s) => !switchUids.has(s.uid)), (s) => s.date); L.leads_by_day = dayCount(lf.filter((x) => x.to === "Lead"), (x) => x.date); L.cancels_by_day = dayCount(caL.filter((c) => !c.converted && !startedUids.has(c.uid)), (c) => c.date);
+    L.starts_by_day = dayCount(nonPT.filter((s) => !switchUids.has(s.uid)), (s) => s.date); L.leads_by_day = dayCount(lf.filter((x) => x.to === "Lead"), (x) => x.date);
+    const debtL = lf.filter((x) => /debt/i.test(x.to)); L.debt_collection = debtL.length; L.debt_by_day = dayCount(debtL, (x) => x.date); // Verluste = Kuendigungen + Debt collection (Ruben 07.09.) L.cancels_by_day = dayCount(caL.filter((c) => !c.converted && !startedUids.has(c.uid)), (c) => c.date);
     const reasons = {}; caL.forEach((c) => { const k = c.reason || "ohne Grund"; reasons[k] = (reasons[k] || 0) + 1; }); L.cancel_reasons = reasons;
     const sg = Object.keys(signedBy).filter((u) => (uidLoc[u] || "Zurich") === loc);
     L.sales_signed = sg.length;
