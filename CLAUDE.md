@@ -198,6 +198,10 @@ weil Pages Secrets erst beim naechsten Deploy in die Funktion kommen. Erster Lau
 KEINE Tokens (Ruben klickt "Generate token" und "Save"); LEADLOG_TOKEN liegt in Cloudflare als Typ "Text" im Klartext - Ruben
 gebeten, ihn als Secret neu anzulegen. Meta-Business-Suite-Dialoge oeffnen im MCP-Tab oft erst beim zweiten Klick (Viewport 1000x515),
 Dialog-Optionen per find() + ref klicken; Klassifizierer blockt Batches mit "Escape"-Taste im Token-Dialog.
+ADYEN = MAGICLINE (Ruben 07.09.): die woechentlichen Adyen-Gutschriften auf dem ZH-Konto sind Auszahlungen des alten Studio-Systems
+Magicline (Mitglieder, die noch dort abgebucht werden; Jun 3'102, Jul 4'811, Aug 2'104). Bank-Tab-Spalte heisst "Magicline (Adyen)",
+Monatsabschluss "davon Magicline". Diese Mitglieder fehlen in exercise.com (Kandidaten fuer die Migration). Ruben ist nicht technisch:
+Cloudflare-/Token-Dinge in einfachen Worten erklaeren, keine Fachbegriffe ohne Erklaerung.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus

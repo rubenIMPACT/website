@@ -1716,7 +1716,7 @@ var MA_NOTE = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, 
   + 'Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026); Website-Leads nach Kanal je Standort ab September 2026. '
   + 'Diagramme rechts: "Leads" = alle Quellen aus exercise.com, für Monate ohne diesen Wert (vor August 2026) die Website-Leads. Interessen stehen nur noch im Diagramm, nicht mehr in der Liste. '
   + 'Cash: Zahlungen je Tag aus dem Charges-Report (Betrag inkl. MwSt, Rückerstattungen, Stripe-Gebühren 2 %, MwSt 8.1 %); Stripe zahlt 7 Kalendertage nach der Belastung aus, deshalb ist "erwarteter Bankeingang" nach Auszahlungsmonat gerechnet und passt zum Kontoauszug (Abgleich Juli/August 2026 auf 0.2 %); Ist-Werte aus dem Tab Bank. '
-  + 'Tab Bank: Stripe, Adyen (zweiter Zahlungsanbieter, Zuordnung offen), Überweisungen von Mitgliedern und Stiftungen (Umsatz ausserhalb exercise.com), Übrige (kein Umsatz). Show-up-Rate = 1 − No-Show-Quote, damit alle Quoten nach oben zeigen sollen. '
+  + 'Tab Bank: Stripe, Magicline (Auszahlungen über Adyen, Mitglieder, die noch im alten System abgebucht werden), Überweisungen von Mitgliedern und Stiftungen (Umsatz ausserhalb exercise.com), Übrige (kein Umsatz). Show-up-Rate = 1 − No-Show-Quote, damit alle Quoten nach oben zeigen sollen. '
   + 'Kundenwert: Abo-Umsatz netto je zahlendem Kunden aus dem Charges-Report (Jahreszahler auf die bezahlten Monate verteilt), Starterpaket = Einmalkäufe ±1 Monat um die erste Abo-Zahlung plus Mehrbetrag der ersten Abo-Belastung (Zürich bucht Abo und Starterpaket zusammen ab), über die erwartete Dauer verteilt; LTV = monatlicher Kundenwert × erwartete Dauer (Tab LTV). '
   + 'Werbung: Media-Kosten aus Google Ads (Skript) und Meta (API) je Standort nach Kampagnenname, Agenturkosten aus dem Tab Einstellungen nach Media-Anteil verteilt; CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl.';
 function buildMonatsabschluss(ss) {
@@ -1783,8 +1783,8 @@ function buildMonatsabschluss(ss) {
     put('cash_expect', 'Erwarteter Bankeingang Stripe im Monat (Auszahlung 7 Tage später)', function (k) { return cv(k, 'expect'); }, '#,##0', { bold: true });
     put('cash_bank', 'Bankeingang Stripe laut Konto (Tab Bank)', function (k) { return bk(k, 'stripe'); }, '#,##0');
     put('cash_diff', 'Differenz Konto − erwartet', function (k, ci) { var a = cellOf('cash_bank', ci), b = cellOf('cash_expect', ci); return '=IF(OR(' + a + '="",' + b + '=""),"",' + a + '-' + b + ')'; }, '#,##0');
-    put('cash_nonstripe', 'Umsatz ausserhalb Stripe laut Konto (Adyen + Kundenüberweisungen, fehlen in exercise.com)', function (k) { var a = bk(k, 'adyen'), c = bk(k, 'customers'); return a === '' && c === '' ? '' : (Number(a) || 0) + (Number(c) || 0); }, '#,##0', { bold: true });
-    put('cash_adyen', '   davon Adyen (zweiter Zahlungsanbieter, Zuordnung offen)', function (k) { return bk(k, 'adyen'); }, '#,##0', { grey: true });
+    put('cash_nonstripe', 'Umsatz ausserhalb Stripe laut Konto (Magicline + Kundenüberweisungen, fehlen in exercise.com)', function (k) { var a = bk(k, 'adyen'), c = bk(k, 'customers'); return a === '' && c === '' ? '' : (Number(a) || 0) + (Number(c) || 0); }, '#,##0', { bold: true });
+    put('cash_adyen', '   davon Magicline (Auszahlungen über Adyen, altes System)', function (k) { return bk(k, 'adyen'); }, '#,##0', { grey: true });
     put('cash_cust', '   davon Überweisungen von Mitgliedern und Stiftungen', function (k) { return bk(k, 'customers'); }, '#,##0', { grey: true });
     put('cash_other', 'Übrige Eingänge laut Konto (kein Umsatz: Staat, Rückerstattungen, unbenannt)', function (k) { return bk(k, 'other'); }, '#,##0');
     put('cash_total', 'Bankeingang gesamt laut Konto', function (k, ci) { var a = cellOf('cash_bank', ci); return '=IF(' + a + '="","",' + a + '+N(' + cellOf('cash_nonstripe', ci) + ')+N(' + cellOf('cash_other', ci) + '))'; }, '#,##0', { bold: true });
@@ -1878,11 +1878,11 @@ function cashMonth(ss, loc) {
   return out;
 }
 // Tab Bank (persistent, von Hand aus dem Kontoauszug, spaeter UBS-CSV): Month|Location|Stripe credits|Adyen|Customer transfers|Other credits|Note.
-// Stripe = exercise.com-Auszahlungen; Adyen = zweiter Zahlungsanbieter (Zuordnung offen, Ruben gefragt 06.09.); Customer transfers =
+// Stripe = exercise.com-Auszahlungen; Adyen = Auszahlungen von Magicline (altes Studio-System, Ruben 07.09.: dort werden noch Mitglieder abgebucht); Customer transfers =
 // Ueberweisungen von Mitgliedern und Stiftungen (Umsatz, fehlt in exercise.com); Other = kein Umsatz (Eidg. Finanzverwaltung, SVA, unbenannt).
 // Juni-August 2026 aus den UBS-PDFs vom 03.09. (Nachrechnung 06.09.: Summen = Kontoumsatz 371'919.94 ZH / 138'125.54 WT). Altes Layout mit
 // einer Transfers-Spalte war unvollstaendig (Eintraege mit Betrag auf derselben Zeile fehlten) und wird beim Lesen ersetzt.
-var BANK_SHEET = 'Bank', BANK_HEAD = ['Month', 'Location', 'Stripe credits', 'Adyen', 'Customer transfers', 'Other credits (no revenue)', 'Note'];
+var BANK_SHEET = 'Bank', BANK_HEAD = ['Month', 'Location', 'Stripe credits', 'Magicline (Adyen)', 'Customer transfers', 'Other credits (no revenue)', 'Note'];
 var BANK_SEED = [
   ['2026-06', 'Zurich', 111628.63, 3102.03, 11861.65, 15840.50, 'UBS statement 03.09.2026; other = Eidg. Finanzverwaltung 14765.50 + SVA 1075.00; transfers = 30 members/foundations'],
   ['2026-06', 'Winterthur', 45775.61, 0, 0, 0, ''],
@@ -1893,13 +1893,14 @@ var BANK_SEED = [
 function bankRead(ss) {
   var sh = ss.getSheetByName(BANK_SHEET), w = BANK_HEAD.length;
   var head = sh && sh.getLastRow() ? sh.getRange(1, 1, 1, w).getValues()[0].map(String) : [];
+  if (sh && head[3] === 'Adyen') { sh.getRange(1, 4).setValue(BANK_HEAD[3]); head[3] = BANK_HEAD[3]; } // Umbenennung 07.09. ohne Neuaufbau
   if (!sh || head.join('|') !== BANK_HEAD.join('|')) {
     if (!sh) sh = ss.insertSheet(BANK_SHEET); else sh.clear();
     sh.getRange(1, 1, 200, 1).setNumberFormat('@');
     var rows = [BANK_HEAD].concat(BANK_SEED);
     sh.getRange(1, 1, rows.length, w).setValues(rows); sh.getRange(1, 1, 1, w).setFontWeight('bold'); sh.setFrozenRows(1);
     sh.getRange(2, 3, rows.length - 1, 4).setNumberFormat('#,##0.00');
-    sh.getRange(1, 1).setNote('Credits per month from the bank statement (credits only), one row per month and location. Stripe credits = all "Stripe Payments UK Ltd" entries (exercise.com). Adyen = payouts of a second payment provider. Customer transfers = bank transfers from members and foundations (revenue, not in exercise.com). Other = credits that are no revenue (tax refunds, insurance, unnamed). The Monatsabschluss reads this tab.');
+    sh.getRange(1, 1).setNote('Credits per month from the bank statement (credits only), one row per month and location. Stripe credits = all "Stripe Payments UK Ltd" entries (exercise.com). Magicline (Adyen) = payouts of the old studio software Magicline via Adyen (members still debited there). Customer transfers = bank transfers from members and foundations (revenue, not in exercise.com). Other = credits that are no revenue (tax refunds, insurance, unnamed). The Monatsabschluss reads this tab.');
     sh.setColumnWidth(7, 420);
   }
   var out = {}; if (sh.getLastRow() < 2) return out;
