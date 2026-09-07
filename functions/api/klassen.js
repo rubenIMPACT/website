@@ -407,7 +407,7 @@ function computeMonat(inp) {
   const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: dOf(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
   const preExisting = new Set(subs.filter((s) => s.date && s.date < start).map((s) => s.uid));
   // Lifecycle
-  const life = inp.life.map((r) => ({ loc: locOf(r["Location"]), from: String(r["Transitioned From"] || ""), to: String(r["Transitioned To"] || "") }));
+  const life = inp.life.map((r) => ({ loc: locOf(r["Location"]), from: String(r["Transitioned From"] || ""), to: String(r["Transitioned To"] || ""), date: chDate(r["Date"]) }));
   // Verkaeufe = Vertragsunterschriften im Monat (Waiver); Standort ueber Abo, sonst ueber den Check-in
   const lifeCur = {}; inp.life.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) lifeCur[e] = String(r["Current"] || ""); });
   const uidLoc = {}; subs.forEach((s) => { uidLoc[s.uid] = s.loc; });
@@ -451,7 +451,7 @@ function computeMonat(inp) {
     L.cancellations = caL.filter((c) => !c.converted && !startedUids.has(c.uid)).length;
     L.cancellations_converted = caL.length - L.cancellations;
     const dayCount = (list, f) => { const o = {}; list.forEach((s) => { const d = f(s); if (d) o[d] = (o[d] || 0) + 1; }); return o; }; // je Tag fuer die Wochenspalten (Ruben 07.09.)
-    L.starts_by_day = dayCount(nonPT.filter((s) => !switchUids.has(s.uid)), (s) => s.date); L.cancels_by_day = dayCount(caL.filter((c) => !c.converted && !startedUids.has(c.uid)), (c) => c.date);
+    L.starts_by_day = dayCount(nonPT.filter((s) => !switchUids.has(s.uid)), (s) => s.date); L.leads_by_day = dayCount(lf.filter((x) => x.to === "Lead"), (x) => x.date); L.cancels_by_day = dayCount(caL.filter((c) => !c.converted && !startedUids.has(c.uid)), (c) => c.date);
     const reasons = {}; caL.forEach((c) => { const k = c.reason || "ohne Grund"; reasons[k] = (reasons[k] || 0) + 1; }); L.cancel_reasons = reasons;
     const sg = Object.keys(signedBy).filter((u) => (uidLoc[u] || "Zurich") === loc);
     L.sales_signed = sg.length;
