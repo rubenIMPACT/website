@@ -1253,7 +1253,7 @@ var ST_DEFAULTS = [
   ['Werbekosten-Split ohne Standort', '0.5', 'Anteil Zuerich fuer Kampagnen ohne Standort im Namen (Rest Winterthur).'],
   // Prognose bis 2030 im Monatsabschluss (Ruben 07.09.2026). Leer = automatisch aus den letzten Monaten; eine Zahl ueberschreibt.
   ['Prognose: Verkäufe/Monat Zürich', '', 'Basis-Verkäufe pro Monat (vor Saisonindex). Leer = Durchschnitt der letzten 6 vollen Monate.'],
-  ['Prognose: Verkäufe/Monat Winterthur', '', 'Wie oben für Winterthur.'],
+  ['Prognose: Verkäufe/Monat Winterthur', '30', 'Wie oben für Winterthur. 30 = Wert aus dem alten Finanzplan, von Ruben am 07.09.2026 bestätigt (die Vertragszählung in exercise.com liegt tiefer).'],
   ['Prognose: Verlustquote Zürich %', '', 'Verluste in % der zahlenden Kunden pro Monat. Leer = gemessene Quote aller Kunden (Tab LTV).'],
   ['Prognose: Verlustquote Winterthur %', '', 'Wie oben für Winterthur.'],
   ['Prognose: Abo-Wert Zürich', '', 'Abo-Umsatz netto je zahlendem Kunden und Monat. Leer = Durchschnitt der letzten 3 vollen Monate.'],
@@ -1280,6 +1280,11 @@ function stGet(ss) {
   var missing = ST_DEFAULTS.filter(function (d) { return !(d[0] in o); });
   if (missing.length) { var at = sh.getLastRow() + 1; sh.getRange(at, 2, missing.length, 1).setNumberFormat('@'); sh.getRange(at, 1, missing.length, 3).setValues(missing); missing.forEach(function (d) { o[d[0]] = d[1]; }); }
   return o;
+}
+function stSet(ss, key, value) { // eine Einstellung setzen (Wert als Text, damit Sheets nichts umdeutet)
+  var sh = ss.getSheetByName(ST_SHEET) || (stGet(ss), ss.getSheetByName(ST_SHEET)), v = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
+  for (var i = 1; i < v.length; i++) if (String(v[i][0]) === key) { sh.getRange(i + 1, 2).setNumberFormat('@').setValue(String(value)); return true; }
+  return false;
 }
 function wkLocOf(name) { var s = String(name || ''); if (/winterthur|\bWT\b|winti/i.test(s)) return 'Winterthur'; if (/z[üu]e?rich|\bZH\b/i.test(s)) return 'Zurich'; return 'Beide'; }
 function wkRead(ss) {
@@ -1902,7 +1907,7 @@ function buildMonatsabschluss(ss) {
     fcInfo.push(de + ': Start ' + m0 + ' mit ' + cust + ' zahlenden Kunden, Verkäufe ' + salesBase + '/Monat × Saisonindex, Verlustquote ' + (Math.round(lossQ * 10) / 10) + ' %, Abo-Wert ' + arpu0 + ' CHF' + (price ? ' (+' + (price * 100) + ' %/Jahr)' : '') + ', Starterpaket ' + Math.round(starter) + ', übrige Einmalkäufe ' + other + '/Kunde' + (loc === 'Zurich' ? ', Magicline ab ' + Math.round(magic) + ' CHF mit −' + (decay * 100) + ' %/Monat' : '') + (auto.length ? ' [automatisch: ' + auto.join(', ') + ']' : ''));
     var kk = nextMonth(m0), y0 = +m0.slice(0, 4);
     while (kk <= MA_FC_END) {
-      var mi = +kk.slice(5, 7) - 1, actualSales = kk <= curK ? vOf(kk, loc, 'sales_signed') : '';
+      var mi = +kk.slice(5, 7) - 1, actualSales = kk < curK ? vOf(kk, loc, 'sales_signed') : ''; // laufender Monat ist unvollstaendig -> Plan
       var sales = actualSales !== '' ? num(actualSales) : Math.round(salesBase * seas[mi]);
       var losses = Math.round(cust * lossQ / 100); cust = Math.max(0, cust + sales - losses);
       var arpu = arpu0 * Math.pow(1 + price, Math.max(0, +kk.slice(0, 4) - y0)); magic = magic * (1 - decay);
