@@ -51,6 +51,18 @@ function routeTo(location, firstname) {
   if (/^testlead/i.test(s(firstname))) to = MAIL.fallback; // Testschutz: Testleads immer an Ruben
   return to;
 }
+// Fehlermails nur an Ruben und hoechstens eine je Problem und Tag (Ruben 06.09.: keine Mailflut). Schluessel = Funktion + Anfang der Meldung,
+// Merkzettel in der Script Property errmail (wird taeglich bereinigt).
+function mailOnce(key, subject, body) {
+  var pr = PropertiesService.getScriptProperties(), day = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'), map = {};
+  try { map = JSON.parse(pr.getProperty('errmail') || '{}'); } catch (e0) { map = {}; }
+  Object.keys(map).forEach(function (k) { if (map[k] !== day) delete map[k]; });
+  var sig = key + ':' + String(body || '').replace(/\s+/g, ' ').slice(0, 60);
+  if (map[sig]) { pr.setProperty('errmail', JSON.stringify(map)); Logger.log('Fehlermail unterdrueckt (heute schon gesendet): ' + subject); return false; }
+  map[sig] = day; pr.setProperty('errmail', JSON.stringify(map));
+  MailApp.sendEmail({ to: MAIL.fallback, subject: subject, body: body });
+  return true;
+}
 
 // ---------------------------------------------------------------- Tabs
 function leadsSheet(ss) {
@@ -891,7 +903,7 @@ function runKlassenanalyseMonthly() {
     try { ma = runMonatsabschluss(start, end); } catch (e2) { ma = 'Monatsabschluss FEHLGESCHLAGEN: ' + String(e2 && e2.message ? e2.message : e2); }
     MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Monatsabschluss und Klassenanalyse ' + start.slice(0, 7) + ' sind da', body: 'Monatsabschluss fuer ' + start + ' bis ' + end + ' (Tab Monatsabschluss):\n' + ma + '\n\nKlassenanalyse (Tabs Klassenanalyse und Kuendigungsrisiko):\n' + report + '\n\nhttps://docs.google.com/spreadsheets/d/' + SHEET_ID });
   } catch (e) {
-    MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Klassenanalyse ' + start.slice(0, 7) + ' FEHLGESCHLAGEN', body: 'Fehler: ' + String(e && e.message ? e.message : e) + '\n\nNaechster Versuch: im Script-Editor runKlassenanalyseMonthly ausfuehren oder Fenster manuell mit runKlassenanalyse(start, end).' });
+    mailOnce('klassenanalyse', '[Sheet] Klassenanalyse ' + start.slice(0, 7) + ' FEHLGESCHLAGEN', 'Fehler: ' + String(e && e.message ? e.message : e) + '\n\nNaechster Versuch: im Script-Editor runKlassenanalyseMonthly ausfuehren oder Fenster manuell mit runKlassenanalyse(start, end).');
     throw e;
   }
 }
@@ -1249,7 +1261,8 @@ function stGet(ss) {
 }
 function wkLocOf(name) { var s = String(name || ''); if (/winterthur|\bWT\b|winti/i.test(s)) return 'Winterthur'; if (/z[üu]e?rich|\bZH\b/i.test(s)) return 'Zurich'; return 'Beide'; }
 function wkRead(ss) {
-  var sh = ss.getSheetByName(WK_SHEET); if (!sh || sh.getLastRow() < 2) return [];
+  var sh = ss.getSheetByName(WK_SHEET); if (sh && !sh.isSheetHidden()) sh.hideSheet(); // Rohdaten bleiben versteckt (Ruben 06.09.)
+  if (!sh || sh.getLastRow() < 2) return [];
   return sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().map(function (r) { return { d: dOfCell(r[0]), plat: String(r[1] || ''), acct: String(r[2] || ''), camp: String(r[3] || ''), loc: String(r[4] || ''), cost: Number(r[5]) || 0, clicks: Number(r[6]) || 0, imp: Number(r[7]) || 0 }; }).filter(function (x) { return x.d && x.plat; });
 }
 function wkUpsert(ss, rows) {
@@ -1346,8 +1359,8 @@ function runWerbekosten() {
   return notes.join(' | ');
 }
 function runWerbekostenDaily() {
-  try { var t = runWerbekosten(); if (/Meta-Fehler/.test(t)) MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Werbekosten mit Fehlern', body: t }); }
-  catch (e) { MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] Werbekosten FEHLGESCHLAGEN', body: String(e && e.stack ? e.stack : e) }); }
+  try { var t = runWerbekosten(); if (/Meta-Fehler/.test(t)) mailOnce('werbekosten', '[Sheet] Werbekosten mit Fehlern', t); }
+  catch (e) { mailOnce('werbekosten', '[Sheet] Werbekosten FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e)); }
 }
 
 // ------------------------------------------------------------ LTV (05.09.2026, Entscheide Ruben: Netto-Umsatz mit allem; VERLOREN ist nur,
@@ -1444,7 +1457,7 @@ function runLTVChain() {
     // voruebergehende Fehler (502 etc.): bis zu drei neue Anlaeufe im Abstand von 5 Minuten, Mail erst beim endgueltigen Abbruch
     var n = Number(pr.getProperty('ltvRetry') || 0) + 1; pr.setProperty('ltvRetry', String(n)); ltvDropChain();
     if (n <= 3) { ScriptApp.newTrigger('runLTVChain').timeBased().after(5 * 60 * 1000).create(); Logger.log('LTV Fehler, Anlauf ' + n + ': ' + e); }
-    else { pr.deleteProperty('ltvRetry'); MailApp.sendEmail({ to: MAIL.fallback, subject: '[Sheet] LTV FEHLGESCHLAGEN (nach 3 Anlaeufen)', body: String(e && e.stack ? e.stack : e) }); }
+    else { pr.deleteProperty('ltvRetry'); mailOnce('ltv', '[Sheet] LTV FEHLGESCHLAGEN (nach 3 Anlaeufen)', String(e && e.stack ? e.stack : e)); }
   }
 }
 function runLTVMonthly() { runLTVChain(); }
@@ -1456,9 +1469,20 @@ function buildLTV(ss) {
   var mset = {}; rows.forEach(function (x) { mset[x.mk] = 1; }); var months = Object.keys(mset).sort(), lastFull = months[months.length - 1], cur = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
   var flags = ltvFlags(ss), hasFlags = Object.keys(flags).length > 100;
   var kMonths = {}; ltvRows(ss, 'cancelled').forEach(function (r) { kMonths[r[0]] = 1; }); var kLast = Object.keys(kMonths).sort().pop() || '';
-  // Kunde = mindestens eine Abo-Zahlung; Umsatz = alles (Abos + Einmalkaeufe)
+  // Jahres-/Halbjahreszahler (Ruben 06.09.): Abo-Zahlungen ab dem Dreifachen der ueblichen Monatszahlung werden auf die bezahlten Monate verteilt
+  var per = rows.filter(function (x) { return x.type === 'Abo'; }).map(function (x) { return x.net / Math.max(1, x.n); }).sort(function (a, b) { return a - b; });
+  var med = per.length ? per[Math.floor(per.length / 2)] : 180;
+  var coverOf = function (x) { var p = x.net / Math.max(1, x.n); return p >= 3 * med ? Math.min(12, Math.max(2, Math.round(p / med))) : 1; };
+  // Kunde = mindestens eine Abo-Zahlung. m = Netto gesamt je Monat (Kohorten), abo = Abo-Netto verteilt, one = Einmalkaeufe, pay = Monate mit Abo-Deckung
   var cust = {};
-  rows.forEach(function (x) { var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, email: x.email, loc: x.loc, net: 0, m: {}, first: '', lastAbo: '', endCand: '', debt: '' }; c.net += x.net; c.m[x.mk] = (c.m[x.mk] || 0) + x.net; if (x.type === 'Abo') { c.loc = x.loc; if (!c.first || x.mk < c.first) c.first = x.mk; if (x.mk > c.lastAbo) c.lastAbo = x.mk; } });
+  rows.forEach(function (x) {
+    var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, email: x.email, loc: x.loc, net: 0, m: {}, abo: {}, one: {}, pay: {}, first: '', lastAbo: '', endCand: '', debt: '' };
+    c.net += x.net; c.m[x.mk] = (c.m[x.mk] || 0) + x.net;
+    if (x.type === 'Abo') {
+      c.loc = x.loc; if (!c.first || x.mk < c.first) c.first = x.mk; if (x.mk > c.lastAbo) c.lastAbo = x.mk;
+      var cv = coverOf(x); for (var i = 0; i < cv; i++) { var mm = addMonths(x.mk, i); c.abo[mm] = (c.abo[mm] || 0) + x.net / cv; c.pay[mm] = 1; }
+    } else c.one[x.mk] = (c.one[x.mk] || 0) + x.net;
+  });
   var byEmail = {}; Object.keys(cust).forEach(function (u) { if (cust[u].email) byEmail[cust[u].email] = cust[u]; });
   // Ende = wirksame Kuendigung (ohne Converted = Paketwechsel) oder Uebergang nach Debt collection; hinfaellig, wenn danach wieder Abo-Zahlungen kamen
   ltvRows(ss, 'cancelled').forEach(function (r) { var c = cust[String(r[1])]; if (!c || String(r[1]) === '-' || Number(r[5]) === 1) return; var e = dOfCell(r[4]).slice(0, 7); if (/^\d{4}-\d{2}$/.test(e) && e > c.endCand) c.endCand = e; });
@@ -1468,12 +1492,17 @@ function buildLTV(ss) {
     var e = c.endCand && c.lastAbo <= c.endCand ? c.endCand : ''; if (c.debt && c.lastAbo <= c.debt && (!e || c.debt < e)) e = c.debt;
     c.end = e; c.migrated = hasFlags ? !!(flags[c.uid] && flags[c.uid].mig) : false;
   });
+  // Starterpaket = Einmalkaeufe im Startfenster (Monat vor der ersten Abo-Zahlung bis Monat danach); uebrige Einmalkaeufe = Shop, Events usw.
+  var inStart = function (c, mk) { return mk >= prevMonth(c.first) && mk <= nextMonth(c.first); };
+  var starterOf = function (c) { var s = 0; Object.keys(c.one).forEach(function (mk) { if (inStart(c, mk)) s += c.one[mk]; }); return s; };
+  var otherOf = function (c, mk) { return inStart(c, mk) ? 0 : (c.one[mk] || 0); };
   sh.getRange('A2').setValue('Netto-Umsatz (ohne MwSt, nach Rückerstattungen; Abos und Einmalkäufe) je Kunde und Monat aus dem Report Charges, Zahlungen bis ' + lastFull + ', Kündigungen bis ' + (kLast || '–') + '. Kunde = mindestens eine Abo-Zahlung; Testzahlungen unter CHF 5 ausgeschlossen. '
     + 'VERLOREN ist nur, wer offiziell gekündigt hat (Kündigung wirksam, Paketwechsel zählen nicht) oder wegen Nichtzahlung in "Debt collection" ging (Entscheid Ruben 05.09.2026); Zahlungslücken zählen nicht. '
     + (hasFlags ? 'Migrierte = Konten mit den Tags Migrating / imported / Bexio (Startdatum unbekannt) – sie bleiben aus Kohorten und Prognose draussen. ' : '⚠️ Kunden-Flags fehlen noch, Migrierte nicht ausgeschlossen. ')
-    + 'Prognose-LTV = Ø Netto je aktivem Neukunden und Monat (letzte 3 Monate) × erwartete Dauer 1/(monatliche Verlustquote), Verlustquote = wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch die aktiven Neukunden. Steht auch im Monatsabschluss (LTV : CAC).').setFontColor('#666666').setWrap(true);
-  sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 110);
-  var r = 4, N = [3, 6, 9, 12];
+    + 'Ø Monat = Abo-Umsatz plus übrige Einmalkäufe je aktivem Neukunden (letzte 3 Monate); das Starterpaket (Einmalkäufe ±1 Monat um die erste Abo-Zahlung, Median-Monatszahlung ' + Math.round(med) + ' CHF; Jahreszahler auf die bezahlten Monate verteilt) zählt einmal je Kunde und nicht im Monatswert (Ruben 06.09.2026). '
+    + 'Prognose-LTV = Ø Monat × erwartete Dauer + Starterpaket, Dauer = 1/(monatliche Verlustquote), Verlustquote = wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch die aktiven Neukunden. Monatlicher Kundenwert und LTV stehen auch im Monatsabschluss.').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 130);
+  var r = 4, N = [3, 6, 9, 12], store = [];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', L = list.filter(function (c) { return c.loc === loc; }), fresh = L.filter(function (c) { return !c.migrated; });
     sh.getRange(r, 1).setValue(locDE).setFontWeight('bold').setFontSize(13); r++;
@@ -1482,22 +1511,27 @@ function buildLTV(ss) {
     var lostIn = function (set, mk) { return set.filter(function (c) { return c.end === mk; }); };
     var rate = function (set) { var aN = 0, lN = 0, mk = lastFull; for (var i = 0; i < 6 && mk >= months[0]; i++, mk = prevMonth(mk)) { aN += active(set, mk).length; lN += lostIn(set, mk).length; } return { loss: aN ? lN / aN : 0, aN: aN, lN: lN }; };
     var rf = rate(fresh), ra = rate(L);
-    var last3 = [lastFull, prevMonth(lastFull), prevMonth(prevMonth(lastFull))], aN = 0, aS = 0;
-    last3.forEach(function (mk) { var act = active(fresh, mk); aN += act.length; act.forEach(function (c) { aS += c.m[mk] || 0; }); });
-    var arpu = aN ? aS / aN : 0, life = rf.loss > 0 ? 1 / rf.loss : 0, ltv = Math.round(arpu * life);
+    var last3 = [lastFull, prevMonth(lastFull), prevMonth(prevMonth(lastFull))], aN = 0, aAbo = 0, aOther = 0;
+    last3.forEach(function (mk) { var act = active(fresh, mk); aN += act.length; act.forEach(function (c) { aAbo += c.abo[mk] || 0; aOther += otherOf(c, mk); }); });
+    var arpu = aN ? (aAbo + aOther) / aN : 0, life = rf.loss > 0 ? 1 / rf.loss : 0;
+    var stSet = fresh.filter(function (c) { return c.first <= prevMonth(lastFull); }), starter = stSet.length ? stSet.reduce(function (s, c) { return s + starterOf(c); }, 0) / stSet.length : 0;
+    var cvMonth = arpu + (life ? starter / life : 0), ltv = Math.round(arpu * life + starter);
     var gone = fresh.filter(function (c) { return c.end && c.end <= lastFull; }), realized = gone.length ? gone.reduce(function (a, c) { return a + c.net; }, 0) / gone.length : 0;
     var kv = [
       ['Kunden mit Abo-Zahlungen seit ' + months[0], L.length, '0'],
       ['   davon migriert (Tags, Startdatum unbekannt, nicht in der Prognose)', L.length - fresh.length, '0'],
       ['   davon Neukunden = Stichprobe für die Prognose', fresh.length, '0'],
-      ['Ø Netto je aktivem Neukunden und Monat (letzte 3 Monate, Abos + Einmalkäufe)', Math.round(arpu), '#,##0'],
+      ['Ø Monat: Abo-Umsatz + übrige Einmalkäufe netto je aktivem Neukunden (letzte 3 Monate, ohne Starterpaket)', Math.round(arpu), '#,##0'],
+      ['   davon Abo-Umsatz (Jahreszahler auf die bezahlten Monate verteilt)', Math.round(aN ? aAbo / aN : 0), '#,##0'],
+      ['Starterpaket: Einmalkäufe je Neukunde beim Start (Ø über ' + stSet.length + ' Neukunden mit vollem Fenster ±1 Monat)', Math.round(starter), '#,##0'],
       ['Monatliche Verlustquote Neukunden (wirksame Kündigungen + Debt collection, letzte 6 Monate: ' + rf.lN + ' von ' + rf.aN + ' Kundenmonaten)', rf.loss, '0.0%'],
       ['   zum Vergleich: alle Kunden inkl. migriert (' + ra.lN + ' von ' + ra.aN + ')', ra.loss, '0.0%'],
       ['Erwartete Dauer in Monaten (1 / Verlustquote)', Math.round(life * 10) / 10, '0.0'],
-      ['LTV netto Prognose (Ø Monat × Dauer)', ltv, '#,##0'],
+      ['Monatlicher Kundenwert (Ø Monat + Starterpaket / Dauer)', Math.round(cvMonth), '#,##0'],
+      ['LTV netto Prognose (Ø Monat × Dauer + Starterpaket)', ltv, '#,##0'],
       ['Realisierter Netto-Umsatz je verlorenem Neukunden (' + gone.length + ' mit wirksamer Kündigung oder Debt collection)', Math.round(realized), '#,##0'],
     ];
-    kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); sh.getRange(r, 2).setNumberFormat(x[2]); if (/^LTV netto/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
+    kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); sh.getRange(r, 2).setNumberFormat(x[2]); if (/^(LTV netto|Monatlicher Kundenwert)/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
     r++;
     var size = {}; fresh.forEach(function (c) { size[c.first] = (size[c.first] || 0) + 1; }); var cks = Object.keys(size).sort();
     var head = ['Startmonat (erste Abo-Zahlung, Neukunden)', 'Kunden', 'Ø Netto 1. Monat'].concat(N.map(function (n) { return 'Ø kumuliert nach ' + n + ' Mon.'; })).concat(['noch aktiv', 'verloren']);
@@ -1509,10 +1543,26 @@ function buildLTV(ss) {
       var lost = cs.filter(function (c) { return c.end && c.end <= lastFull; }).length;
       return [new Date(ck + '-01T00:00:00'), n, avg(function (c) { return c.m[ck] || 0; })].concat(N.map(function (k) { return a >= k ? avg(function (c) { return cum(c, ck, k); }) : ''; })).concat([(n - lost) / n, lost]);
     });
-    if (crow.length) { sh.getRange(r, 1, crow.length, head.length).setValues(crow); sh.getRange(r, 1, crow.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 3, crow.length, N.length + 1).setNumberFormat('#,##0'); sh.getRange(r, head.length - 1, crow.length, 1).setNumberFormat('0%'); r += crow.length; }
+    if (crow.length) {
+      sh.getRange(r, 1, crow.length, head.length).setValues(crow); sh.getRange(r, 1, crow.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 3, crow.length, N.length + 1).setNumberFormat('#,##0'); sh.getRange(r, head.length - 1, crow.length, 1).setNumberFormat('0%');
+      // grau = zu klein oder zu jung, "noch aktiv" sagt dort nichts (Ruben 06.09.: 100 % bei 2 Kunden bzw. bei Kohorten ohne wirksame Kuendigung)
+      cks.forEach(function (ck, k) { if (size[ck] < 10 || age(ck) < 3) sh.getRange(r + k, 1, 1, head.length).setFontColor('#999999'); });
+      r += crow.length;
+      sh.getRange(r, 1).setValue('Grau = Kohorte unter 10 Kunden oder jünger als 3 Monate: Kündigungen können dort noch nicht wirksam sein, "noch aktiv" ist nicht aussagekräftig.').setFontColor('#999999').setFontSize(9); r++;
+    }
     r += 2;
-    maStoreMetrics(ss, cur, loc, { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_retention: 1 - rf.loss, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length });
+    // Kundenwert je Monat fuer den Monatsabschluss (alle Kunden inkl. migriert, das ist die echte Basis)
+    months.forEach(function (mk) {
+      var pay = L.filter(function (c) { return c.pay[mk]; }), nP = pay.length, sAbo = 0, sOther = 0;
+      pay.forEach(function (c) { sAbo += c.abo[mk] || 0; }); L.forEach(function (c) { sOther += otherOf(c, mk); });
+      var nc = L.filter(function (c) { return c.first === mk; }), sSt = nc.reduce(function (s, c) { return s + starterOf(c); }, 0);
+      store.push({ mk: mk, loc: loc, metrics: {
+        cv_paying: nP, cv_abo: nP ? Math.round(sAbo / nP) : '', cv_other: nP ? Math.round(sOther / nP) : '',
+        cv_starter: nc.length ? Math.round(sSt / nc.length) : '', cv_month: nP ? Math.round(sAbo / nP + sOther / nP + (life ? starter / life : 0)) : '' } });
+    });
+    store.push({ mk: cur, loc: loc, metrics: { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_starter: Math.round(starter), ltv_month: Math.round(cvMonth), ltv_retention: 1 - rf.loss, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length } });
   });
+  maStoreMetricsMany(ss, store);
   sh.setColumnWidth(1, 520);
   buildMonatsabschluss(ss);
 }
@@ -1529,7 +1579,7 @@ var MA_ROWS = [
   ['first_visits_excluded', 'davon keine Probetrainer (Altkunden, Staff)', '0'],
   ['trial_noshow', 'Nicht erschienen', '0'],
   ['trial_attended', 'Probetraining stattgefunden', '0'],
-  ['noshow_rate', 'No-Show-Quote', '0%'],
+  ['showup_rate', 'Show-up-Rate (erschienen / Erstbesuche)', '0%'],
   ['signed_at_trial', 'davon Abo bis zum ersten Training abgeschlossen', '0'],
   ['sales_signed', 'Verkäufe (Vertrag unterschrieben)', '0'],
   ['sales_open', 'davon Zahlung noch offen', '0'],
@@ -1609,17 +1659,6 @@ function runMonatsabschluss(start, end) {
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
 var MA_CATCHUP = '2026-09-05 Juni Juli Bankabgleich'; // Marke aendern = Nachlauf laeuft erneut
 var MA_CATCHUP_MONTHS = ['2026-06', '2026-07'];
-// Bankabgleich (Ruben 05.09.): Tages-/Standort-/Typ-Summen der Zahlungen fuer Juni-August, Ergebnis per Mail
-function PROBE_SUMS() {
-  var out = {};
-  ['2026-06', '2026-07', '2026-08'].forEach(function (mk) {
-    var base = { action: 'ltv', month: mk, kind: 'sums', start: mk + '-01', end: mk + '-01' };
-    klassenCall(Object.assign({ phase: 'cr' }, base));
-    var r = null; for (var i = 0; i < 15; i++) { Utilities.sleep(8000); r = klassenCall(Object.assign({ phase: 'cg' }, base)); if (r.ready) break; }
-    out[mk] = r;
-  });
-  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Zahlungssummen Juni-August ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify(out).slice(0, 90000) });
-}
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;
   pr.setProperty('maCatchUp', MA_CATCHUP); pr.setProperty('maQueue', JSON.stringify(MA_CATCHUP_MONTHS));
@@ -1633,55 +1672,9 @@ function maCatchUp() {
   var mk = q.shift(); pr.setProperty('maQueue', JSON.stringify(q));
   var d = new Date(mk + '-01T12:00:00'), last = new Date(d.getFullYear(), d.getMonth() + 1, 0), now = new Date();
   try { runMonatsabschluss(mk + '-01', fmtD(last < now ? last : now)); } catch (e) {
-    MailApp.sendEmail({ to: MAIL.fallback, subject: '[Monatsabschluss] Nachlauf ' + mk + ' FEHLGESCHLAGEN', body: String(e && e.stack ? e.stack : e) });
+    mailOnce('monatsabschluss', '[Monatsabschluss] Nachlauf ' + mk + ' FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e));
   }
   if (q.length) ScriptApp.newTrigger('maCatchUp').timeBased().after(60 * 1000).create();
-}
-// Entwicklungs-Helfer: Reports erkunden (Zahlungen fuer den LTV), Ergebnis als Mail. Aufruf ueber RUN_NOW.
-function PROBE_REPORTS() {
-  var base = { action: 'probe', start: '2026-08-01', end: '2026-08-07', per: 30, reports: ['charges', 'payments', 'itemized_sales', 'transactions', 'sales', 'invoices', 'client_charges', 'revenue', 'refunds', { name: 'active_subscription', extra: '&only_active=false' }] };
-  var r1 = klassenCall(Object.assign({ refresh: true }, base));
-  Utilities.sleep(30000);
-  var r2 = klassenCall(base);
-  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Reports ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify({ first: r1, second: r2 }, null, 1).slice(0, 60000) });
-}
-function PROBE_CLIENTS() {
-  var r = klassenCall({ action: 'probe_clients', start: '2026-08-01', end: '2026-08-31', pages: 40, month: '2026-08' });
-  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Clients/Tags ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify(r, null, 1).slice(0, 60000) });
-}
-function PROBE_CHARGES_STATUS() {
-  var base = { action: 'probe', start: '2026-08-01', end: '2026-08-31', per: 8000, sample: 0, reports: ['charges'] };
-  klassenCall(Object.assign({ refresh: true }, base)); Utilities.sleep(30000);
-  var r = klassenCall(base);
-  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] Charges-Status August ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: JSON.stringify(r, null, 1).slice(0, 20000) });
-}
-// LTV-Plausibilisierung (Ruben 05.09.: 9 % Verlust je Monat kommt ihm zu hoch vor): Verluste je Monat, Rueckkehrer, Luecken
-function LTV_CHECK() {
-  var ss = SpreadsheetApp.openById(SHEET_ID), rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.net >= 5; });
-  var amts = rows.filter(function (x) { return x.type === 'Abo' && x.n > 0; }).map(function (x) { return x.net / x.n; }).sort(function (a, b) { return a - b; });
-  var med = amts.length ? amts[Math.floor(amts.length / 2)] : 180;
-  var cover = function (x) { return x.type !== 'Abo' ? 0 : Math.max(1, Math.min(12, Math.round((x.net / Math.max(1, x.n)) / med))); };
-  var cust = {};
-  rows.forEach(function (x) { var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, loc: x.loc, active: {}, abo: {}, first: '' }; if (x.type === 'Abo') { c.loc = x.loc; c.abo[x.mk] = 1; if (!c.first || x.mk < c.first) c.first = x.mk; for (var i = 0, cv = cover(x); i < cv; i++) c.active[addMonths(x.mk, i)] = 1; } });
-  var list = Object.keys(cust).map(function (u) { return cust[u]; }).filter(function (c) { return c.first; });
-  var out = ['Median Abo-Zahlung ' + Math.round(med) + ', Kunden mit Abo ' + list.length];
-  ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var freshFrom = loc === 'Zurich' ? '2026-04' : '2025-11';
-    var L = list.filter(function (c) { return c.loc === loc && c.first >= freshFrom; }), A = list.filter(function (c) { return c.loc === loc; });
-    out.push('', '== ' + loc + ': alle Abo-Kunden ' + A.length + ', Neukunden ab ' + freshFrom + ' ' + L.length);
-    [['Neukunden', L], ['Alle', A]].forEach(function (pair) {
-      var set = pair[1], mk = loc === 'Zurich' ? '2026-01' : '2025-11';
-      out.push('-- ' + pair[0]);
-      for (var i = 0; i < 12 && mk < '2026-08'; i++, mk = nextMonth(mk)) {
-        var nx = nextMonth(mk), act = set.filter(function (c) { return c.active[mk]; }), lost = act.filter(function (c) { return !c.active[nx]; });
-        var back = lost.filter(function (c) { return Object.keys(c.abo).some(function (m) { return m > nx; }); }), gap1 = lost.filter(function (c) { return c.active[nextMonth(nx)]; });
-        out.push(mk + '->' + nx + ': aktiv ' + act.length + ', verloren ' + lost.length + ' (' + (act.length ? Math.round(1000 * lost.length / act.length) / 10 : 0) + '%), spaeter wieder Abo ' + back.length + ', davon direkt im uebernaechsten Monat ' + gap1.length);
-      }
-    });
-    var early = L.filter(function (c) { return c.first < '2026-07'; }), one = early.filter(function (c) { return Object.keys(c.abo).length === 1; });
-    out.push('Neukunden mit Start vor Juli: ' + early.length + ', davon nur EIN Abo-Zahlungsmonat: ' + one.length);
-  });
-  MailApp.sendEmail({ to: MAIL.fallback, subject: '[Probe] LTV-Check ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: out.join('\n') });
 }
 function maStoreCohorts(ss, mk, cohort) {
   var sh = getOrCreate(ss, MA_COHORT), head = ['Monat', 'Standort', 'UID', 'E-Mail', 'Name', 'Erstbesuch'];
@@ -1696,16 +1689,20 @@ function maReadCohort(ss, mk, loc) {
   var sh = ss.getSheetByName(MA_COHORT); if (!sh || sh.getLastRow() < 2) return [];
   return sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().filter(function (r) { return mkOf(r[0]) === mk && r[1] === loc; }).map(function (r) { return { uid: String(r[2]), email: String(r[3] || '').toLowerCase(), date: dOfCell(r[5]) }; });
 }
-function maStoreMetrics(ss, mk, loc, metrics) {
+function maStoreMetrics(ss, mk, loc, metrics) { maStoreMetricsMany(ss, [{ mk: mk, loc: loc, metrics: metrics }]); }
+function maStoreMetricsMany(ss, entries) { // viele Monate in einem Lese-/Schreibvorgang (Kundenwert je Monat aus buildLTV)
   var sh = getOrCreate(ss, MA_HIST), head = ['Monat', 'Standort', 'Kennzahl', 'Wert'];
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.setFrozenRows(1); sh.hideSheet(); }
   var rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues() : [];
   rows.forEach(function (r) { r[0] = mkOf(r[0]); });
   var idx = {}; rows.forEach(function (r, i) { idx[r[0] + '|' + r[1] + '|' + r[2]] = i; });
-  Object.keys(metrics).forEach(function (k) {
-    var key = mk + '|' + loc + '|' + k;
-    if (idx[key] !== undefined) rows[idx[key]][3] = metrics[k]; else { rows.push([mk, loc, k, metrics[k]]); idx[key] = rows.length - 1; }
+  entries.forEach(function (en) {
+    Object.keys(en.metrics).forEach(function (k) {
+      var key = en.mk + '|' + en.loc + '|' + k;
+      if (idx[key] !== undefined) rows[idx[key]][3] = en.metrics[k]; else { rows.push([en.mk, en.loc, k, en.metrics[k]]); idx[key] = rows.length - 1; }
+    });
   });
+  if (!rows.length) return;
   sh.getRange(2, 1, rows.length, 1).setNumberFormat('@'); sh.getRange(2, 1, rows.length, 4).setValues(rows);
 }
 // Kopftext (Methodik) steht in B2, damit Spalte A eingefroren werden kann (Ruben 05.09.2026)
@@ -1715,7 +1712,9 @@ var MA_NOTE = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, 
   + 'Abo-Bestand und Abo-Umsatz netto = Stand am Tag des Laufs. Leads Website vor September 2026 = manuell gezählte Monatszahlen (Ruben, 02.09.2026); Website-Leads nach Kanal je Standort ab September 2026. '
   + 'Diagramme rechts: "Leads" = alle Quellen aus exercise.com, für Monate ohne diesen Wert (vor August 2026) die Website-Leads. Interessen stehen nur noch im Diagramm, nicht mehr in der Liste. '
   + 'Cash: Zahlungen je Tag aus dem Charges-Report (Betrag inkl. MwSt, Rückerstattungen, Stripe-Gebühren 2 %, MwSt 8.1 %); Stripe zahlt 7 Kalendertage nach der Belastung aus, deshalb ist "erwarteter Bankeingang" nach Auszahlungsmonat gerechnet und passt zum Kontoauszug (Abgleich Juli/August 2026 auf 0.2 %); Ist-Werte aus dem Tab Bank. '
-  + 'Werbung: Media-Kosten aus Google Ads (Skript) und Meta (API) je Standort nach Kampagnenname, Agenturkosten aus dem Tab Einstellungen nach Media-Anteil verteilt; CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl; LTV = Prognose aus Zahlungen (Tab LTV).';
+  + 'Tab Bank: Stripe, Adyen (zweiter Zahlungsanbieter, Zuordnung offen), Überweisungen von Mitgliedern und Stiftungen (Umsatz ausserhalb exercise.com), Übrige (kein Umsatz). Show-up-Rate = 1 − No-Show-Quote, damit alle Quoten nach oben zeigen sollen. '
+  + 'Kundenwert: Abo-Umsatz netto je zahlendem Kunden aus dem Charges-Report (Jahreszahler auf die bezahlten Monate verteilt), Starterpaket = Einmalkäufe ±1 Monat um die erste Abo-Zahlung, über die erwartete Dauer verteilt; LTV = monatlicher Kundenwert × erwartete Dauer (Tab LTV). '
+  + 'Werbung: Media-Kosten aus Google Ads (Skript) und Meta (API) je Standort nach Kampagnenname, Agenturkosten aus dem Tab Einstellungen nach Media-Anteil verteilt; CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl.';
 function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
   if (sh.getMaxColumns() < 30) sh.insertColumnsAfter(sh.getMaxColumns(), 30 - sh.getMaxColumns());
@@ -1730,7 +1729,7 @@ function buildMonatsabschluss(ss) {
   sh.getRange('A1').setValue('IMPACT Monatsabschluss').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue('Methodik').setFontColor('#999999');
   sh.getRange('B2').setValue(MA_NOTE).setFontColor('#666666').setWrap(true);
-  sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 88);
+  sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 120);
   var r = 4, blocks = [], wkM = wkMonthAgg(ss);
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var locDE = loc === 'Zurich' ? 'Zürich' : 'Winterthur', rowIdx = {};
@@ -1747,6 +1746,7 @@ function buildMonatsabschluss(ss) {
         var col = String.fromCharCode(66 + ci);
         if (def[0] === 'leads_web' && k >= LOG_START.slice(0, 7)) row.push(maCountLeads(col + '$' + hdr, locDE, null, null));
         else if (def[0].indexOf('kanal:') === 0) row.push(k < LOG_START.slice(0, 7) ? '' : maCountLeads(col + '$' + hdr, locDE, 'J', def[0].split(':')[1]));
+        else if (def[0] === 'showup_rate') { var nsv = vOf(k, loc, 'noshow_rate'); row.push(nsv === '' ? '' : 1 - Number(nsv)); } // positiv gedreht (Ruben 06.09.)
         else row.push(vOf(k, loc, def[0]));
       });
       sh.getRange(r, 1, 1, row.length).setValues([row]);
@@ -1768,6 +1768,7 @@ function buildMonatsabschluss(ss) {
     // Cash (Ruben 06.09.): Zahlungen aus dem Charges-Report je Tag; Stripe zahlt 7 Kalendertage nach der Belastung aus (Wochenende
     // -> Montag), deshalb "erwarteter Bankeingang" nach Auszahlungsmonat; Ist-Werte aus dem Tab Bank (Kontoauszug, von Hand / spaeter CSV)
     var cashM = cashMonth(ss, loc), bankM = bankRead(ss), cv = function (k, f) { var o = cashM[k]; return o ? Math.round(o[f]) : ''; };
+    var bk = function (k, f) { var b = bankM[k + '|' + loc]; return b && b[f] !== '' ? b[f] : ''; };
     sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Cash: Zahlungen und Bankeingang').setFontWeight('bold'); r++;
     put('cash_paid', 'Zahlungen Kunden (inkl. MwSt, nach Rückerstattung; Charges-Report)', function (k) { return cv(k, 'paid'); }, '#,##0', { bold: true });
     put('cash_refund', '   davon Rückerstattungen', function (k) { return cv(k, 'refund'); }, '#,##0', { grey: true });
@@ -1776,11 +1777,23 @@ function buildMonatsabschluss(ss) {
     put('cash_net', 'Umsatz ohne MwSt (nach Rückerstattung)', function (k) { return cv(k, 'netvat'); }, '#,##0', { bold: true });
     put('cash_payout', 'Auszahlung Stripe nach Belastungsdatum (Betrag − Rückerstattung − Gebühr)', function (k) { return cv(k, 'net'); }, '#,##0');
     put('cash_expect', 'Erwarteter Bankeingang Stripe im Monat (Auszahlung 7 Tage später)', function (k) { return cv(k, 'expect'); }, '#,##0', { bold: true });
-    put('cash_bank', 'Bankeingang Stripe laut Konto (Tab Bank)', function (k) { var b = bankM[k + '|' + loc]; return b && b.stripe !== '' ? b.stripe : ''; }, '#,##0');
+    put('cash_bank', 'Bankeingang Stripe laut Konto (Tab Bank)', function (k) { return bk(k, 'stripe'); }, '#,##0');
     put('cash_diff', 'Differenz Konto − erwartet', function (k, ci) { var a = cellOf('cash_bank', ci), b = cellOf('cash_expect', ci); return '=IF(OR(' + a + '="",' + b + '=""),"",' + a + '-' + b + ')'; }, '#,##0');
-    put('cash_transfer', 'Überweisungen ohne Stripe laut Konto (fehlen in exercise.com)', function (k) { var b = bankM[k + '|' + loc]; return b && b.transfers !== '' ? b.transfers : ''; }, '#,##0');
-    // Werbung und Kundenwert: Kosten live aus WerbekostenDaten/Einstellungen, Quoten als Formeln auf die Zeilen dieses Blocks
-    sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Werbung und Kundenwert').setFontWeight('bold'); r++;
+    put('cash_nonstripe', 'Umsatz ausserhalb Stripe laut Konto (Adyen + Kundenüberweisungen, fehlen in exercise.com)', function (k) { var a = bk(k, 'adyen'), c = bk(k, 'customers'); return a === '' && c === '' ? '' : (Number(a) || 0) + (Number(c) || 0); }, '#,##0', { bold: true });
+    put('cash_adyen', '   davon Adyen (zweiter Zahlungsanbieter, Zuordnung offen)', function (k) { return bk(k, 'adyen'); }, '#,##0', { grey: true });
+    put('cash_cust', '   davon Überweisungen von Mitgliedern und Stiftungen', function (k) { return bk(k, 'customers'); }, '#,##0', { grey: true });
+    put('cash_other', 'Übrige Eingänge laut Konto (kein Umsatz: Staat, Rückerstattungen, unbenannt)', function (k) { return bk(k, 'other'); }, '#,##0');
+    put('cash_total', 'Bankeingang gesamt laut Konto', function (k, ci) { var a = cellOf('cash_bank', ci); return '=IF(' + a + '="","",' + a + '+N(' + cellOf('cash_nonstripe', ci) + ')+N(' + cellOf('cash_other', ci) + '))'; }, '#,##0', { bold: true });
+    // Kundenwert je Monat aus den Zahlungen (Tab LTV, alle Kunden inkl. migriert): Abo-Wert ohne Starterpaket, Starterpaket ueber die
+    // erwartete Dauer verteilt (Ruben 06.09.: sauberer monatlicher Kundenwert, Starterpaket darf den Monatswert nicht verfaelschen)
+    sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Kundenwert (aus Zahlungen, Tab LTV)').setFontWeight('bold'); r++;
+    put('cv_paying', 'Zahlende Abo-Kunden im Monat (Jahreszahler auf die bezahlten Monate verteilt)', function (k) { return vOf(k, loc, 'cv_paying'); }, '0');
+    put('cv_abo', 'Ø Abo-Umsatz netto je zahlendem Kunden', function (k) { return vOf(k, loc, 'cv_abo'); }, '#,##0', { bold: true });
+    put('cv_other', '   plus übrige Einmalkäufe je zahlendem Kunden (Shop, Events; ohne Starterpaket)', function (k) { return vOf(k, loc, 'cv_other'); }, '#,##0', { grey: true });
+    put('cv_starter', 'Starterpaket: Einmalkäufe je Neukunde beim Start (±1 Monat um die erste Abo-Zahlung)', function (k) { return vOf(k, loc, 'cv_starter'); }, '#,##0');
+    put('cv_month', 'Monatlicher Kundenwert (Abo + übrige Einmalkäufe + Ø Starterpaket / erwartete Dauer)', function (k) { return vOf(k, loc, 'cv_month'); }, '#,##0', { bold: true });
+    // Werbung: Kosten live aus WerbekostenDaten/Einstellungen, Quoten als Formeln auf die Zeilen dieses Blocks
+    sh.getRange(r, 1, 1, keys.length + 1).setBackground('#f3f3f3'); sh.getRange(r, 1).setValue('Werbung').setFontWeight('bold'); r++;
     put('wk_media', 'Werbekosten Media (CHF)', function (k) { return mediaOf(k); }, '#,##0', { bold: true });
     WK_PLATFORMS.forEach(function (pn) { put('wk:' + pn, '   davon ' + pn, function (k) { return mediaOf(k, pn); }, '#,##0', { grey: true }); });
     put('wk_agency', 'Agenturkosten (CHF, Anteil ' + locDE + ')', function (k) { return wkM[k] || k >= '2026-01' ? Math.round(wkAgency(ss, k, wkM)[loc]) : ''; }, '#,##0');
@@ -1791,10 +1804,10 @@ function buildMonatsabschluss(ss) {
     put('cac', 'CAC Media (Werbekosten / Verkäufe)', ratio('wk_media', 'sales_signed'), '#,##0', { bold: true });
     put('cac_all', 'CAC inkl. Agentur', function (k, ci) { var m = cellOf('wk_media', ci), a = cellOf('wk_agency', ci), sg = cellOf('sales_signed', ci); return '=IF(OR(' + m + '="",' + sg + '="",' + sg + '=0),"",(' + m + '+' + a + ')/' + sg + ')'; }, '#,##0', { bold: true });
     WK_PLATFORMS.forEach(function (pn) { put('cac:' + pn, '   CAC ' + pn + ' (Media / Verkäufe aus ' + pn + '-Leads)', ratio('wk:' + pn, 'sk:' + pn), '#,##0', { grey: true }); });
-    put('ltv', 'LTV netto (Prognose, Stand Lauf)', function (k) { return vOf(k, loc, 'ltv_forecast'); }, '#,##0', { bold: true });
+    put('ltv', 'LTV netto (Prognose: monatlicher Kundenwert × erwartete Dauer, Stand Lauf)', function (k) { return vOf(k, loc, 'ltv_forecast'); }, '#,##0', { bold: true });
     put('ltv_cac', 'LTV : CAC (Media)', ratio('ltv', 'cac'), '0.0');
     put('ltv_cac_all', 'LTV : CAC (inkl. Agentur)', ratio('ltv', 'cac_all'), '0.0');
-    put('payback', 'Payback in Monaten (CAC inkl. Agentur / Ø Abo-Wert netto)', ratio('cac_all', 'avg_sub_net'), '0.0');
+    put('payback', 'Payback in Monaten (CAC inkl. Agentur / monatlicher Kundenwert)', ratio('cac_all', 'cv_month'), '0.0');
     blocks.push({ loc: loc, locDE: locDE, hdr: hdr });
     r += 2;
   });
@@ -1817,8 +1830,9 @@ function buildMonatsabschluss(ss) {
         var la = vOf(k, b.loc, 'leads_all'), lw = vOf(k, b.loc, 'leads_web');
         return [dt(k), num(la) || num(lw), num(vOf(k, b.loc, 'trial_booked_transitions')), num(vOf(k, b.loc, 'trial_attended')), num(vOf(k, b.loc, 'new_customers')), num(vOf(k, b.loc, 'cancellations'))];
       }));
-      var quo = tbl([b.locDE + ' Quoten', 'No-Show', 'Verkäufe / Probetrainings', 'Verkäufe / Leads', 'Kohorten-Conversion'], keys.map(function (k) {
-        return [dt(k), num(vOf(k, b.loc, 'noshow_rate')), num(vOf(k, b.loc, 'conv_sales_trial')), num(vOf(k, b.loc, 'conv_sales_lead')), num(vOf(k, b.loc, 'conv_cohort_rate'))];
+      var quo = tbl([b.locDE + ' Quoten', 'Show-up-Rate', 'Verkäufe / Probetrainings', 'Verkäufe / Leads', 'Kohorten-Conversion'], keys.map(function (k) {
+        var nsv = vOf(k, b.loc, 'noshow_rate');
+        return [dt(k), nsv === '' ? 0 : 1 - num(nsv), num(vOf(k, b.loc, 'conv_sales_trial')), num(vOf(k, b.loc, 'conv_sales_lead')), num(vOf(k, b.loc, 'conv_cohort_rate'))];
       }), '0%');
       var kan = tbl([b.locDE + ' Kanal'].concat(KANAL_ORDER), keys.map(function (k, ci) {
         return [dt(k)].concat(KANAL_ORDER.map(function (kn) { return k < LOG_START.slice(0, 7) ? 0 : maCountLeads('$A' + (d + 1 + ci), b.locDE, 'J', kn); }));
@@ -1834,7 +1848,7 @@ function buildMonatsabschluss(ss) {
         sh.insertChart(ch.build());
       };
       C(Charts.ChartType.COLUMN, fun, 6, b.hdr, 15, 'Funnel ' + b.locDE + ': Leads, gebucht, Probetrainings, Abos, Kündigungen', { colors: ['#9e9e9e', '#f6d55c', '#e2c210', '#1a73e8', '#d93025'] });
-      C(Charts.ChartType.LINE, quo, 5, b.hdr, 22, 'Quoten ' + b.locDE, { colors: ['#d93025', '#1a73e8', '#34a853', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 } });
+      C(Charts.ChartType.LINE, quo, 5, b.hdr, 22, 'Quoten ' + b.locDE + ' (alle Linien: höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 } });
       C(Charts.ChartType.COLUMN, kan, KANAL_ORDER.length + 1, b.hdr + 16, 15, 'Website-Leads ' + b.locDE + ' nach Kanal', { isStacked: true });
       C(Charts.ChartType.COLUMN, inr, INTERESTS.length + 1, b.hdr + 16, 22, 'Website-Leads ' + b.locDE + ' nach Interesse', { isStacked: true });
     });
@@ -1859,22 +1873,37 @@ function cashMonth(ss, loc) {
   Object.keys(out).forEach(function (k) { if (k > last.slice(0, 7)) delete out[k]; else if (k === last.slice(0, 7) && last < addDs(last.slice(0, 7) + '-01', 27)) delete out[k].expect; });
   return out;
 }
-// Tab Bank (persistent, von Hand aus dem Kontoauszug; Stand Juni-August 2026 aus den UBS-PDFs vom 03.09.): Month|Location|Stripe credits|Transfers|Note
-var BANK_SHEET = 'Bank';
+// Tab Bank (persistent, von Hand aus dem Kontoauszug, spaeter UBS-CSV): Month|Location|Stripe credits|Adyen|Customer transfers|Other credits|Note.
+// Stripe = exercise.com-Auszahlungen; Adyen = zweiter Zahlungsanbieter (Zuordnung offen, Ruben gefragt 06.09.); Customer transfers =
+// Ueberweisungen von Mitgliedern und Stiftungen (Umsatz, fehlt in exercise.com); Other = kein Umsatz (Eidg. Finanzverwaltung, SVA, unbenannt).
+// Juni-August 2026 aus den UBS-PDFs vom 03.09. (Nachrechnung 06.09.: Summen = Kontoumsatz 371'919.94 ZH / 138'125.54 WT). Altes Layout mit
+// einer Transfers-Spalte war unvollstaendig (Eintraege mit Betrag auf derselben Zeile fehlten) und wird beim Lesen ersetzt.
+var BANK_SHEET = 'Bank', BANK_HEAD = ['Month', 'Location', 'Stripe credits', 'Adyen', 'Customer transfers', 'Other credits (no revenue)', 'Note'];
+var BANK_SEED = [
+  ['2026-06', 'Zurich', 111628.63, 3102.03, 11861.65, 15840.50, 'UBS statement 03.09.2026; other = Eidg. Finanzverwaltung 14765.50 + SVA 1075.00; transfers = 30 members/foundations'],
+  ['2026-06', 'Winterthur', 45775.61, 0, 0, 0, ''],
+  ['2026-07', 'Zurich', 113395.25, 4811.15, 3596.56, 545.70, 'transfers = Stiftung Schloss Regensberg 2382.45, Helwig 775.21, 2 members; other = China Import Service'],
+  ['2026-07', 'Winterthur', 49731.89, 0, 0, 0, ''],
+  ['2026-08', 'Zurich', 103030.13, 2103.54, 1149.90, 854.90, 'transfers = OKey Stiftung 711.00, 2 members; other = credit without payer name 06.08.'],
+  ['2026-08', 'Winterthur', 42618.04, 0, 0, 0, '']];
 function bankRead(ss) {
-  var sh = ss.getSheetByName(BANK_SHEET);
-  if (!sh) {
-    sh = ss.insertSheet(BANK_SHEET); sh.getRange(1, 1, 200, 1).setNumberFormat('@');
-    var rows = [['Month', 'Location', 'Stripe credits', 'Transfers', 'Note'],
-      ['2026-06', 'Zurich', 111628.63, 4611.85, 'UBS statement 03.09.2026'], ['2026-06', 'Winterthur', 45775.61, 0, ''],
-      ['2026-07', 'Zurich', 113395.25, 3157.66, ''], ['2026-07', 'Winterthur', 49731.89, 0, ''],
-      ['2026-08', 'Zurich', 103030.13, 711, ''], ['2026-08', 'Winterthur', 42618.04, 0, '']];
-    sh.getRange(1, 1, rows.length, 5).setValues(rows); sh.getRange(1, 1, 1, 5).setFontWeight('bold'); sh.setFrozenRows(1);
-    sh.getRange(1, 1).setNote('Credits per month from the bank statement (credits only). Stripe credits = all "Stripe Payments UK Ltd" entries, Transfers = all other credits. Enter one row per month and location; the Monatsabschluss reads this tab.');
-    sh.setColumnWidth(5, 260);
+  var sh = ss.getSheetByName(BANK_SHEET), w = BANK_HEAD.length;
+  var head = sh && sh.getLastRow() ? sh.getRange(1, 1, 1, w).getValues()[0].map(String) : [];
+  if (!sh || head.join('|') !== BANK_HEAD.join('|')) {
+    if (!sh) sh = ss.insertSheet(BANK_SHEET); else sh.clear();
+    sh.getRange(1, 1, 200, 1).setNumberFormat('@');
+    var rows = [BANK_HEAD].concat(BANK_SEED);
+    sh.getRange(1, 1, rows.length, w).setValues(rows); sh.getRange(1, 1, 1, w).setFontWeight('bold'); sh.setFrozenRows(1);
+    sh.getRange(2, 3, rows.length - 1, 4).setNumberFormat('#,##0.00');
+    sh.getRange(1, 1).setNote('Credits per month from the bank statement (credits only), one row per month and location. Stripe credits = all "Stripe Payments UK Ltd" entries (exercise.com). Adyen = payouts of a second payment provider. Customer transfers = bank transfers from members and foundations (revenue, not in exercise.com). Other = credits that are no revenue (tax refunds, insurance, unnamed). The Monatsabschluss reads this tab.');
+    sh.setColumnWidth(7, 420);
   }
   var out = {}; if (sh.getLastRow() < 2) return out;
-  sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().forEach(function (r) { var mk = mkOf(r[0]); if (!/^\d{4}-\d{2}$/.test(mk) || !r[1]) return; out[mk + '|' + String(r[1])] = { stripe: r[2] === '' ? '' : Number(r[2]) || 0, transfers: r[3] === '' ? '' : Number(r[3]) || 0 }; });
+  sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().forEach(function (r) {
+    var mk = mkOf(r[0]); if (!/^\d{4}-\d{2}$/.test(mk) || !r[1]) return;
+    var n = function (v) { return v === '' ? '' : Number(v) || 0; };
+    out[mk + '|' + String(r[1])] = { stripe: n(r[2]), adyen: n(r[3]), customers: n(r[4]), other: n(r[5]) };
+  });
   return out;
 }
 // COUNTIFS ueber den Tab Daten: C Monat, D Standort, G zaehlt, E Interesse, J Kanal
@@ -2167,9 +2196,17 @@ function teamMirrorEvents(main, team) {
   if (v.length) { dst.getRange(1, 1, v.length, v[0].length).setValues(v); dst.getRange(1, 1, 1, v[0].length).setFontWeight('bold'); dst.setFrozenRows(1); dst.getRange(2, 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
   trProtect(dst, [], 'Spiegel aus dem Leads-Log, nur lesen');
 }
+// Freigabe des Team-Sheets erst nach der Einfuehrung (Ruben 06.09.: noch nichts im Team gezeigt). Solange TEAM_SHARED false ist,
+// nimmt teamShare() die Freigaben fuer Abdi, Bogdan und support weg (Stundenlauf prueft die Marke einmal je Wert).
+var TEAM_SHARED = false;
 function teamShare() {
   var f = DriveApp.getFileById(TEAM_ID), have = {};
   f.getEditors().forEach(function (u) { have[u.getEmail()] = 'e'; }); f.getViewers().forEach(function (u) { have[u.getEmail()] = have[u.getEmail()] || 'v'; });
+  if (!TEAM_SHARED) {
+    var gone = [];
+    [MAIL.zh, MAIL.wt].concat(TEAM_VIEWERS).forEach(function (e) { if (have[e] === 'e') { f.removeEditor(e); gone.push(e); } else if (have[e] === 'v') { f.removeViewer(e); gone.push(e); } });
+    return 'Team-Sheet nicht geteilt (TEAM_SHARED = false); Freigaben entfernt: ' + (gone.join(', ') || 'keine');
+  }
   [MAIL.zh, MAIL.wt].forEach(function (e) { if (have[e] !== 'e') f.addEditor(e); });
   TEAM_VIEWERS.forEach(function (e) { if (!have[e]) f.addViewer(e); });
   return 'Team-Sheet geteilt: Editoren ' + [MAIL.zh, MAIL.wt].join(', ') + '; Leser ' + TEAM_VIEWERS.join(', ');
@@ -2247,9 +2284,10 @@ function payDailyMail() {
 function runProbetrainingsHourly() {
   var h = Number(Utilities.formatDate(new Date(), TZ, 'H')); if (h < 9 || h > 22) return;
   try { var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('trTrigVer') !== TR_TRIG_VER) { installTrialTriggers(); pr.setProperty('trTrigVer', TR_TRIG_VER); } } catch (e0) { Logger.log('Trigger-Update: ' + e0); }
+  try { var pr1 = PropertiesService.getScriptProperties(); if (pr1.getProperty('teamShareVer') !== String(TEAM_SHARED)) { Logger.log(teamShare()); pr1.setProperty('teamShareVer', String(TEAM_SHARED)); } } catch (e3) { Logger.log('Team-Freigabe: ' + e3); }
   try { maQueueCatchUp(); } catch (e1) { Logger.log('Monats-Nachlauf: ' + e1); }
   try { ltvQueueInit(); } catch (e2) { Logger.log('LTV-Nachladen: ' + e2); }
-  try { runProbetrainings(); } catch (e) { Logger.log('Probetrainings Fehler: ' + e); MailApp.sendEmail({ to: MAIL.fallback, subject: '[Team] Probetrainings FEHLGESCHLAGEN ' + Utilities.formatDate(new Date(), TZ, 'HH:mm'), body: String(e && e.stack ? e.stack : e) }); }
+  try { runProbetrainings(); } catch (e) { Logger.log('Probetrainings Fehler: ' + e); mailOnce('probetrainings', '[Team] Probetrainings FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e) + '\n\nZeit: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm')); }
 }
 function installTrialTriggers() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail', 'runWerbekostenDaily', 'runLTVMonthly'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });

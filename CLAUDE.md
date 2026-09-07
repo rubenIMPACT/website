@@ -161,6 +161,28 @@ Properties 'payId', im Team-Ordner; Tab "Open payments": Name|Location|Signed si
 beide Standorte, aelteste zuerst, ab 30 Tagen rot; PAY_ACCESS = Bearbeiter, z. B. Waseem - Ruben nennt die E-Mails); Tagesmail
 "[Open payments]" 12:00 an Ruben (+PAY_ACCESS), die Mittagsmails an Abdi/Bogdan enthalten keinen Zahlungsteil mehr. Alte
 Datenvalidierungen (Dropdown "Gespraech") blockierten am 06.09. 09:48 das Schreiben (J172) -> clearDataValidations vor jedem Lauf.
+RUNDE 06./07.09. (Ruben: "ganz langsam", nichts ist im Team veroeffentlicht): (1) MAILS: alle Script-Mails gehen nur an Ruben;
+einzige Ausnahme sind die Website-Lead-Warnungen (routeTo -> abdi@/bogdan@ je Standort, seit dem Launch, Ruben gefragt ob auch die
+vorerst an ihn sollen). Fehlermails laufen ueber mailOnce(key, subject, body): hoechstens eine je Problem und Tag (Script Property
+errmail = {signatur: tag}); Signatur = key + erste 60 Zeichen der Meldung. Die Probe-Funktionen (PROBE_*, LTV_CHECK) sind geloescht,
+die Cloudflare-Endpunkte probe/probe_clients bleiben (keine Mails). (2) FREIGABE: TEAM_SHARED=false -> teamShare() ENTFERNT abdi@,
+bogdan@ (Editoren) und support@ (Leser) vom Team-KPIs-Sheet; Stundenlauf prueft die Marke (Property teamShareVer). Beim Einfuehren
+auf true setzen. (3) BANK-TAB neu: Month|Location|Stripe credits|Adyen|Customer transfers|Other credits (no revenue)|Note (altes Layout
+wird beim Lesen ersetzt, Header-Vergleich). Meine erste PDF-Auswertung hatte nur Eintraege mit Betrag auf der Folgezeile erfasst -
+Nicht-Stripe-Eingaenge ZH real: Juni 30'804 (Personen/Stiftungen 11'862, Adyen 3'102, Staat 15'841), Juli 8'953, Aug 4'108; WT 100 %
+Stripe. Adyen N.V. zahlt woechentlich aus (Zuordnung offen, Ruben gefragt); Mitglieder-Ueberweisungen (229/359, zwei Dauerauftraege)
+fehlen in exercise.com. Monatsabschluss-Cash: "Umsatz ausserhalb Stripe" (Adyen + Kundenueberweisungen), "Uebrige Eingaenge (kein
+Umsatz)", "Bankeingang gesamt". (4) SHOW-UP-RATE statt No-Show-Quote (Zeile showup_rate = 1 - noshow_rate, Quoten-Grafik gruen; alle
+Linien sollen nach oben zeigen). (5) WerbekostenDaten wird in wkRead() versteckt (der Google-Ads-Skript-Lauf hatte den Tab sichtbar
+angelegt). (6) LTV-KOHORTEN: Zeilen unter 10 Kunden oder juenger als 3 Monate grau (100 % bei 2 Kunden / ohne wirksame Kuendigung).
+(7) KUNDENWERT (Ruben: Starterpaket darf den Monatswert nicht verfaelschen): buildLTV rechnet je Kunde abo (Abo-Netto, Jahres-/
+Halbjahreszahler ab 3x Median-Monatszahlung auf die bezahlten Monate verteilt, coverOf), one (Einmalkaeufe), pay (Monate mit
+Abo-Deckung). Starterpaket = Einmalkaeufe im Fenster +-1 Monat um die erste Abo-Zahlung (starterOf), uebrige Einmalkaeufe = Rest
+(otherOf). LTV-Tab: Oe Monat = Abo + uebrige Einmalkaeufe je aktivem Neukunden (3 Monate, ohne Starterpaket); LTV = Oe Monat x Dauer +
+Starterpaket; Monatlicher Kundenwert = Oe Monat + Starterpaket/Dauer. Monatsabschluss-Block "Kundenwert (aus Zahlungen, Tab LTV)" je
+Monat ueber ALLE Kunden inkl. migriert: cv_paying, cv_abo, cv_other, cv_starter, cv_month (MonatsHistorie, geschrieben von buildLTV
+ueber maStoreMetricsMany in einem Rutsch); Payback = CAC inkl. Agentur / cv_month (laufender Monat leer, weil Charges nur bis zum
+letzten vollen Monat geladen werden).
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
