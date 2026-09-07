@@ -426,3 +426,13 @@ EINE METHODE (Ruben 07.09.2026 spaet, Commit b4a4e66): Kunden und Umsatz nur noc
   Winterthurer Luecke ist echt), LTV = netto x Dauer. Cohort-Tabelle netto (/VAT). Keine Jahreszahler-Verteilung mehr.
 - Wochenzellen ohne Wochenwert grau (#f3f3f3) per setBackgrounds-Matrix je Block (ein Aufruf). Finanzplan: Anzahl Trials =
   trial_attended (Ruben: "durchgefuehrt").
+NACHTRAG 07.09. 23:xx (Commit 37fee5b, Rubens Punkte): (1) exercise.com-Monatsreport "First Visits" datiert neu gebuchte No-Shows auf
+den Buchungsmonat -> September ZH 23 statt 29 (Team-Sheet-Tageswerte). Ab MA_TEAM_FROM schreibt buildMonatsabschluss die
+Team-Monatswerte (trial_attended, trial_noshow, noshow_rate) VOR dem Lesen in die MonatsHistorie; damit Woche = Monat und der
+Finanzplan bekommt dieselbe Zahl. Davor (Jun-Aug) bleibt der Monatsreport. (2) Neue Kontakte auch je Woche (leads_by_day aus dem
+Lifecycle-Datum -> leads_d:), Quoten als Formeln (auch je Woche), Kohorten-Conversion je Woche = Vertraege der Probetrainer der
+Woche (csold/t). (3) Keine leeren Titelzeilen mehr (Ruben: "Zeile 23 ist leer"). (4) CHF in den Werbe-Beschriftungen.
+(5) buildMonatsabschluss mit LockService.getUserLock().tryLock(0): parallele Baue (Stundenlauf-Trigger, Tageslauf, Nachlauf) legten
+Diagramme doppelt uebereinander und Ruben sah ein leeres Blatt waehrend des Baus. (6) Frage Ruben "39 Monate": Dauer = 1 / Verlust-
+quote; Verlustquote = wirksame Kuendigungen + Debt collection der letzten 6 Monate / aktive Neukunden-Monate (nicht aus 3 Monaten).
+(7) Chrome: gviz mit tqx=out:csv loest einen Download aus und haengt den Tab; out:html + get_page_text funktioniert.
