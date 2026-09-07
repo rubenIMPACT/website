@@ -920,7 +920,7 @@ function dropTestRows() {
   ['Events', 'Kündigungen', 'Cancellations'].forEach(function (name) {
     var sh = ss.getSheetByName(name); if (!sh || sh.getLastRow() < 2) return;
     var v = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues(), head = v[0], cols = [], mail = -1;
-    head.forEach(function (h, i) { if (['Name', 'Vorname', 'Nachname', 'E-Mail', 'First name', 'Last name', 'Email', 'Reason'].indexOf(String(h)) >= 0) cols.push(i); if (/^(E-Mail|Email)$/.test(String(h))) mail = i; });
+    head.forEach(function (h, i) { if (['Name', 'Vorname', 'Nachname', 'E-Mail', 'First name', 'Last name', 'Email', 'Reason', 'Friends'].indexOf(String(h)) >= 0) cols.push(i); if (/^(E-Mail|Email)$/.test(String(h))) mail = i; });
     var del = [];
     for (var r = 1; r < v.length; r++) {
       // "test" als eigenes Wort oder "testlead" (nicht "Attest"); ausserdem Rubens Adresse
@@ -2271,7 +2271,7 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
   Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.date); o[CI.start] = toDate(s.start); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; });
   var all = Object.keys(byUid).map(function (k) { return byUid[k]; });
   Object.keys(extras).forEach(function (u) { var base = byUid[u]; if (!base) return; extras[u].forEach(function (nm) { var c = base.slice(); c[CI.name] = nm; all.push(c); }); });
-  all.forEach(function (r) { r[CI.check] = trCheck(r, today, T); if (!r[CI.crm]) r[CI.crm] = crm(r[CI.uid]); });
+  all.forEach(function (r) { r[CI.check] = trCheck(r, today, T); if (!r[CI.crm]) r[CI.crm] = crm(r[CI.uid]); if (/^(ohne Website-Lead|no website lead)/.test(String(r[CI.kanal] || ''))) r[CI.kanal] = trL(loc, 'kanal', 'kein Web-Lead'); }); // alte Beschriftung angleichen
   // Tageswerte: Trials, No-Shows (aus den NS-Daten, nicht aus der Art), Verkauft (Vertragstag), Placed Trials (Buchungstag)
   var day = {}, D = function (d) { return day[d] = day[d] || { placed: 0, trials: 0, ns: 0, sold: 0 }; };
   var byDate = {};
