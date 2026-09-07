@@ -408,3 +408,21 @@ klicken; browser_batch mit >~150 s Wartezeit bricht ab. (4) Der Stundenlauf stoe
 runMonatsabschlussBuild an (gesehen 19:28, laeuft ~1-2 min). (5) Finanzplan-Uebertrag Erstlauf: 34 Zellen, Trials-Zeile im Plan
 bekommt jetzt Erstbesuche inkl. No-Shows (ZH Jun 145 statt Rubens 93) - Definition mit Ruben klaeren; laufender Monat ueberschreibt
 Rubens Planwert (Neue Verkaeufe Sep 45 -> 8), so gewollt; Kuendigungen ab Sep sind im Plan Formeln und bleiben unangetastet.
+EINE METHODE (Ruben 07.09.2026 spaet, Commit b4a4e66): Kunden und Umsatz nur noch aus den Charges, BRUTTO ZUERST.
+- Block "Abos": Kuendigungen (auch je Woche, aus cancels_d:yyyy-MM-dd = Enddatum), Paketwechsel (d), Nettowachstum (w), "Kunden mit
+  laufendem Abo" = cv_active aus buildLTV (gestartet, nicht wirksam gekuendigt, PERSONEN; Aug ZH 642 = 567 Zahler + 75 ohne Zahlung),
+  Details: davon ohne Abo-Zahlung (cv_nopay), Abos laut Report (subs_total, ab Sep; 649 Abos = 641 Personen), Periodenende, pausiert,
+  geplant; Churn = Kuendigungen / cv_active (Formel). Abo-Starts auch je Woche (starts_d: = Startdatum). Tageswerte kommen aus
+  klassen.js (starts_by_day/cancels_by_day) und werden vom Monatslauf als Keys starts_d:/cancels_d: gespeichert (drop-Prefix bei
+  Neulauf). MA_CATCHUP '2026-09-07 Tageswerte August' laedt Aug nach (fuer den 31.08. in KW 36).
+- Block "Umsatz": Zahlungen brutto (abo_gross + one_gross aus ZahlungenMonat, ohne Verteilung von Jahreszahlern, mit Buendel-
+  Heuristik Starterpaket -> Einmalkaeufe), davon Abo (d), davon Einmalkaeufe (d), MwSt = brutto - brutto/1.081, Umsatz netto =
+  brutto/1.081, Abo-Umsatz brutto je Kunde = abo_gross/cv_active (Aug ZH 168, Plan-Kundenwert 160 ist brutto!), netto je Kunde
+  (/1.081, Basis LTV), Bankeingang gesamt laut Konto mit Details Stripe/Magicline/Ueberweisungen/uebrige + Kontrolle Stripe
+  (Konto - erwartet). WEG: Preislisten-MRR (war faelschlich "netto", rechnete brutto), Ø je zahlendem Kunden, Refund/Gebuehr/
+  MwSt-Detail, Erwarteter Bankeingang, Stripe-Auszahlung. Der Charges-Report hat eine unsaubere MwSt-Spalte (7.6-8.0 % des
+  Betrags statt 7.49 %) -> ueberall /1.081 wie im Plan.
+- LTV: Abo-Umsatz brutto/netto je Kunde und Monat ueber ALLE Neukunden mit laufendem Abo (inkl. Nichtzahler; Ruben: eine Methode,
+  Winterthurer Luecke ist echt), LTV = netto x Dauer. Cohort-Tabelle netto (/VAT). Keine Jahreszahler-Verteilung mehr.
+- Wochenzellen ohne Wochenwert grau (#f3f3f3) per setBackgrounds-Matrix je Block (ein Aufruf). Finanzplan: Anzahl Trials =
+  trial_attended (Ruben: "durchgefuehrt").
