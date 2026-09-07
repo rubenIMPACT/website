@@ -360,3 +360,43 @@ der Abo-/Waiver-Reports sind UTC (22:00:02 +0000 = Mitternacht CEST) -> chDate()
 - **events.js Debug (04.09.)**: `?debug=1` liefert Schritt-Log (Apps Script, exercise.com-Kalender, attachApp) ohne Cache; `?refresh=1` baut den Cache sofort neu. LEHRE: `new Response(res.body, res)` verbraucht den Body der Original-Response -> Cloudflare 1101 beim Senden (Cache wurde trotzdem geschrieben, darum fiel es erst mit refresh=1 auf); jetzt zwei getrennte Responses.
 - **Registration = App (04.09., Script v27, Entscheid Ruben)**: Spalte "Registration" im Planungs-Sheet ist ein Dropdown `Form` / `App` / leer (vorher Checkbox; Migration `what=migrate` wandelt TRUE -> Form, Notizen im Kopf). `App` = Anmeldung als normaler Kurs in der IMPACT-App (exercise.com), z.B. Wrestling Sunday Sparring: Website zeigt Button "In der App anmelden" (Link `app.impact-martialarts.com/a/booking/?serviceId=<id>`) + Hinweis + live "x von y Plaetzen belegt"; kein Formular, keine Friends. `functions/api/events.js attachApp()` sucht den Kurs im exercise.com-Buchungsfeed (`/api/v4/calendar`, wie schedule.js: nur Termine mit >= 1 Buchung!) ueber Titel/Activity-Woerter + Datum + location_id; ohne Treffer allgemeine Buchungsseite `/a/booking/`. Neue Spalte "App link" (hinter Registration, optional): voller Link oder nur Service-ID ueberschreibt die Suche. Helfer `what=setreg&id=<event id>&mode=App|Form|` setzt die Spalte per URL. Deep-Link in die native App (Universal Link) ist ungetestet; Fallback ist die Web-App mit Login.
 - **Englisch (04.09., v25)**: Alle von mir angelegten Sheet-Spalten, Notizen, Tabs und Kalendertexte sind Englisch (Firmenstandard, siehe Memory "dokumente-englisch"): Planungs-Sheet Website | Registration | Friends | Rewards | Text | Image URL | Sign-ups | Invite (ID/CalId versteckt); Lead-Log-Tabs "Events" (Timestamp, Event, Date, Location, Name, Email, Phone, Friends, Language, Page, Event ID) und "Cancellations" (vorher Kündigungen). "Sam" = info@ im Invite-Alias. Der Analyse-Chat hat eigene deutsche Tabs (Leads, Trainingsplan, Analyse ...), die habe ich nicht angefasst.
+
+UMBAU 07.09.2026 ABEND (Ruben: "alles deutlich vereinfachen", Entscheide 1-4 + Team-KPIs): Commit 48da4f3.
+- WOCHEN IM MONATSABSCHLUSS: der Tab Wochenreport ist weg (buildMonatsabschluss loescht ihn). Spalten = Monate ab Jan 2026; ab
+  September 2026 stehen die Kalenderwochen (KW, Montag-Sonntag, Monat des Donnerstags) VOR ihrem Monat; Jahresspalte nach Dezember
+  und nach dem laufenden Monat ("2026 (bis heute)", Summe/letzter Monat/Quoten aus Summen ueber die Monatsspalten des Jahres).
+  Wochenwerte (wrCollect: Log + Team-Sheet-Tagesbloecke): Website-Leads + Kanaele, Gefuehrte Gespraeche (DI.conv), Probetraining
+  gebucht (placed), durchgefuehrt (t), No-Shows, Show-up, Verkaeufe (sold), Werbekosten, CPL. Alles andere nur je Monat.
+  Monatswerte aus dem Team-Sheet (Gespraeche) erst ab MA_TEAM_FROM = 2026-09. Der Stundenlauf baut den Monatsabschluss nicht
+  mehr inline, sondern per Einmal-Trigger runMonatsabschlussBuild (maScheduleBuild, +1 Minute) wegen der 6-Minuten-Grenze.
+- KEINE PROGNOSE MEHR (Ruben: der alte Finanzplan bleibt der einzige Plan). Prognose-/Saisonindex-Einstellungen werden von stGet
+  geloescht (ST_OBSOLETE). Kein Tab Ueberblick (Ruben: waere nur komplexer).
+- ZEILEN: "Neue Kontakte in exercise.com" (leads_all) zuerst, "davon ueber die Website" mit Kanaelen als Details (Google/Meta/TikTok
+  Ads, organisch und direkt); "Abos laut exercise.com" (subs_total, neu in klassen.js = alle Typen wie der Report Active
+  Subscriptions, Ruben sah 647 vs meine 605 = ohne Paused 34 und Scheduled 9) mit Details laufend/Periodenende/pausiert/geplant;
+  "Kunden ohne Abo-Zahlung im Monat" (cv_nopay). Kundenwert-Zeilen "Zahlende Abo-Kunden"/"Oe Abo-Umsatz" waren durch ALTE
+  ZEILENGRUPPEN versteckt (shiftRowGroupDepth(-1) auf ungruppierte Zeilen wirft -> alte Gruppen blieben): clearSheet ruft jetzt
+  dropRowGroups (getRowGroup().remove() je Zeile) VOR sh.clear() auf.
+- LTV OHNE STARTERPAKET (Ruben): LTV Abo netto = Oe Abo-Umsatz je ZAHLENDEM Neukunden x Dauer; Starterpaket und uebrige
+  Einmalkaeufe als eigene Zeilen, "Monatlicher Kundenwert" weg. Winterthur 154 war der Schnitt ueber alle aktiven Neukunden inkl.
+  Kunden ohne Zahlung im Monat (Aug: 238 Zahler, Oe 172, 44 ohne Zahlung); Zuerich 557 Zahler Oe 178, 124 ohne Augustzahlung.
+- AGENTUR (Ruben): 1000 EUR Zuerich, 1000 Winterthur, 750 TikTok fuer beide (Verteilung nach TikTok-Ausgaben, sonst 50/50);
+  Striking Studio 1000 zaehlt hier nicht. Einstellungen: Agentur Zuerich/Winterthur/TikTok EUR/Monat.
+- FINANZPLAN-UEBERTRAG (fpTransfer, in runMonatsabschlussDaily 04:30 und im Monatslauf): schreibt in die KOPIE
+  1vBD3eIxE5huSL8k_s0ky--fVbhe_ugJkQD51RB6zxUw (Tabs IMP ZH / IMP WIN), Spalte per Monatskopf "M.yyyy" (Zeile 1), Zeile per
+  Bezeichnung (Spalten A-E), ab 2026-06 bis zum laufenden Monat (Ruben will die laufenden Zahlen sehen): Anzahl Leads = leads_all,
+  Anzahl Trials = attended + noshow, Neue Verkaeufe = new_customers (Abo-Starts), Kuendigungen = cancellations (ohne Paketwechsel),
+  Sold Gear = rev_gear_gross, Total Sales from Bank = Bank-Tab gesamt. Nie ueber Formeln; Protokoll im Tab "Finanzplan-Uebertrag".
+  Das ORIGINAL 1RJ1UoQuiDBc52kNgRn3l5DfopAErSxsnI0X68vzvi60 erst nach Rubens Freigabe (FP_ID umstellen).
+  Struktur des Plans (beide Dateien gleich): Zeile 1 Monatskoepfe (5..16 = 2025, 18..25 = 1-8.2026, 26..29 = 9-12.2026, 30 TOT,
+  31.. 2027), Zeilen ZH: 4 Leads, 5 Trials, 6 Neue Verkaeufe, 10 Kuendigungen, 12 Total Kunden (Formel), 13 Kundenwert-Annahme
+  (160-165), 14 Kundenwert aus Konto (Formel), 18 Total Umsatz Gruppentraining = Kunden x Kundenwert (auch fuer Ist-Monate!),
+  21-36 Starterpakete je Typ, 38-41 PT, 43 Gear, 46 Weitere (Darlehen/PSP), 48 Total Sales Brutto, 53 Total Sales from Bank (UBS,
+  stimmt auf den Franken mit unserem Bank-Tab), 58 Net Sales. WIN gleich, ab Zeile 15 um eins versetzt (48 Bank, 53 Net Sales).
+  KORREKTUR meiner Aussage "25-40 % neben der Kasse": FALSCH. Plan 2026 ZH 1.469 Mio enthaelt ~270k Darlehen/PSP; ohne = ~1.2 Mio
+  vs Kasse ~1.15 Mio; WT Plan 539k vs ~0.5 Mio.
+- TEAM-KPIS: Klasse = "HH:MM Klasse" (time aus klassen.js: Start Time der Buchung/des Check-ins), Personen eines Tages nach
+  Uhrzeit aufsteigend sortiert (Rubens Beispiel 12:00 Boxen, 16:30 Kindertraining, 17:40 MMA; sein "nach oben die spaeteren Kurse"
+  als Diktierfehler gelesen - bei Widerspruch einfach umdrehen: tOf-Sortierung in trUpsert).
+- EVENTS/CANCELLATIONS leer = nur Testzeilen, von dropTestRows entfernt; gelb = Formular-Tabs. Funktionieren unveraendert.
+- Trigger neu (TR_TRIG_VER wm2): runMonatsabschlussDaily 04:30 (laufender Monat aus exercise.com + fpTransfer).
