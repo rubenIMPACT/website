@@ -2511,7 +2511,7 @@ function fpTransfer() {
         var row = rowOf[fr[1]]; if (!row) return;
         var v = get(mk, loc, fr[1]); if (v === null) return;
         var cell = sh.getRange(row, col); if (cell.getFormula()) return; // nie ueber Formeln schreiben
-        var old = cell.getValue(); if (old !== '' && old !== null && Math.abs(Number(old) - v) < 0.5) return;
+        var old = cell.getValue(); if (old !== '' && old !== null && Math.abs(Number(old) - v) < 2) return; // Rundungsdifferenzen (Bank +-1 CHF) nicht als Aenderung
         cell.setValue(v); n++;
         log.push([new Date(), FP_TABS[loc], cell.getA1Notation(), mk, fr[2], old, v]);
       });
