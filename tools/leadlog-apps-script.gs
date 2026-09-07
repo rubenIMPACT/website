@@ -318,13 +318,16 @@ function kanalOf(gclid, fbclid, ttclid, utm, ref) {
 }
 function mondayOf(d) { var t = new Date(d.getTime()); t.setHours(12, 0, 0, 0); t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); return t; }
 function isoWeek(d) { var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); var day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); var y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y0) / 86400000 + 1) / 7); }
+function wrMerge(o, x) { o.dup += x.dup; ['leads', 'att', 'calls', 'placed', 't', 'ns', 'sold', 'csold'].forEach(function (f) { o[f].Zurich += x[f].Zurich; o[f].Winterthur += x[f].Winterthur; }); ['kanal', 'inter'].forEach(function (f) { ['Zurich', 'Winterthur'].forEach(function (l) { Object.keys(x[f][l]).forEach(function (k) { o[f][l][k] = (o[f][l][k] || 0) + x[f][l][k]; }); }); }); return o; }
+// Woche (Montag) auf die Tage des Monats mk beschraenkt: die Wochen eines Monats ergeben zusammen den Monat
+function wrWeekOf(wr, monday, mk) { var o = wrBlank(); for (var i = 0; i < 7; i++) { var d = addDs(monday, i); if (d.slice(0, 7) === mk && wr.day[d]) wrMerge(o, wr.day[d]); } return o; }
 function wrBlank() { var pl = function (v) { return { Zurich: v(), Winterthur: v() }; }, z = function () { return 0; }, o = function () { return {}; }; return { dup: 0, leads: pl(z), kanal: pl(o), inter: pl(o), att: pl(z), calls: pl(z), placed: pl(z), t: pl(z), ns: pl(z), sold: pl(z), csold: pl(z) }; }
 // Sammelt je Woche (Schluessel = Montag) und je Monat (yyyy-MM) die Funnel-Werte; Monatswerte aus dem Team-Sheet sind erst ab MA_TEAM_FROM vollstaendig
 function wrCollect(ss, team) {
-  var out = { week: {}, month: {} };
-  var W = function (d) { var k = fmtD(mondayOf(new Date(d + 'T12:00:00'))); return out.week[k] = out.week[k] || wrBlank(); };
+  var out = { day: {}, month: {} }; // je Tag, damit Wochen auf die Tage ihres Monats beschraenkt werden koennen (Ruben 08.09.: Wochen muessen den Monat ergeben)
+  var D = function (d) { return out.day[d] = out.day[d] || wrBlank(); };
   var M = function (d) { var k = d.slice(0, 7); return out.month[k] = out.month[k] || wrBlank(); };
-  var both = function (d) { return [W(d), M(d)]; };
+  var both = function (d) { return [D(d), M(d)]; };
   // Website-Leads aus Daten (A Datum, D Standort, E Interesse, G Zaehlt, H Dublette, J Kanal)
   var dn = ss.getSheetByName('Daten'), dv = dn && dn.getLastRow() > 1 ? dn.getRange(2, 1, dn.getLastRow() - 1, 10).getValues() : [];
   dv.forEach(function (r) {
@@ -343,7 +346,7 @@ function wrCollect(ss, team) {
       var d = dOfCell(r[DI.day]); if (!d) return;
       both(d).forEach(function (o) { o.att[loc] += Number(r[DI.att]) || 0; o.calls[loc] += Number(r[DI.conv]) || 0; o.placed[loc] += Number(r[DI.placed]) || 0; o.t[loc] += Number(r[DI.trials]) || 0; o.ns[loc] += Number(r[DI.noshow]) || 0; o.sold[loc] += Number(r[DI.sold]) || 0; });
     });
-    ts.getRange(TR_ROW0, TR_P0, n, TR_NCOL).getValues().forEach(function (r) { if (!r[CI.uid]) return; var d = dOfCell(r[CI.date]); if (d && trIsTrial(r) && dOfCell(r[CI.contract])) both(d).forEach(function (o) { o.csold[loc] += 1; }); });
+    ts.getRange(TR_ROW0, TR_P0, n, TR_NCOL).getValues().forEach(function (r) { if (!r[CI.uid]) return; var d = dOfCell(r[CI.date]); if (d && trIsTrial(r) && dOfCell(r[CI.start])) both(d).forEach(function (o) { o.csold[loc] += 1; }); }); // Kohorte: Abo bis heute gestartet (Vertragsstart), gleiche Regel wie der Monatsreport
   });
   return out;
 }
@@ -1585,15 +1588,15 @@ var MA_NOTES = {
   leads_web: 'Anfragen über die Website (Log, ohne Dubletten und Tests), je Woche und Monat. Vor September 2026 von Hand gezählte Monatszahlen.',
   kanal_org: 'Website-Anfragen ohne Werbeklick: Google organisch, Instagram/Facebook organisch, TikTok organisch, direkt, andere.',
   calls: 'Geführte Gespräche laut Tagestabelle im Team-Sheet (Eingabe von Abdi und Bogdan). Ab September 2026.',
-  trial_booked_transitions: 'Monat: Kontakte, die auf die Lifecycle-Stage "Trial Booked" gewechselt sind. Woche: an diesen Tagen angelegte Trial-Buchungen (Team-Sheet).',
+  trial_booked_transitions: 'An diesen Tagen angelegte Trial-Buchungen (Team-Sheet), je Woche und ab September 2026 auch je Monat; davor Monatsreport (Lifecycle-Stage Trial Booked).',
   trial_attended: 'Erstbesucher mit erstem Check-in überhaupt, ohne Altkunden und Staff (Regel Team-Sheet). Ab September 2026 Woche und Monat aus derselben Quelle, davor Monatsreport von exercise.com. Geht so in den Finanzplan (Anzahl Trials).',
   trial_noshow: 'Gebucht und nicht erschienen.',
   showup_rate: 'Erschienene Probetrainer geteilt durch erschienene plus No-Shows.',
-  sales_signed: 'Vertragsunterschriften (Waiver), auch wenn das Abo später startet. Woche: Verträge der Probetrainer laut Team-Sheet.',
+  sales_signed: 'Vertragsunterschriften (Waiver) nach Datum der Unterschrift in exercise.com, je Woche und Monat, auch wenn das Abo später startet.',
   new_customers: 'Abo-Starts ohne Paketwechsel und ohne Personal Training, nach Startdatum des Abos in exercise.com. Geht so in den Finanzplan.',
   conv_sales_trial: 'Verkäufe des Monats geteilt durch durchgeführte Probetrainings des Monats.',
   conv_sales_lead: 'Verkäufe des Monats geteilt durch neue Kontakte in exercise.com.',
-  conv_cohort_rate: 'Monat: Probetrainer des Monats, die bis heute ein Abo gestartet haben, reift drei Monate nach. Woche: Probetrainer der Woche, die bis heute einen Vertrag unterschrieben haben (Team-Sheet).',
+  conv_cohort_rate: 'Probetrainer des Zeitraums, deren Abo bis heute gestartet ist, reift drei Monate nach. Ab September 2026 Woche und Monat aus dem Team-Sheet, davor Monatsreport.',
   losses: 'Verlorene Kunden: wirksam gewordene Kündigungen (Enddatum in exercise.com, ohne Paketwechsel) plus Übergänge in die Lifecycle-Stage Debt collection. Dieselbe Regel wie die Verlustquote im LTV. Geht so in den Finanzplan (Kündigungen).',
   cancellations: 'Wirksam gewordene Kündigungen nach Enddatum in exercise.com, ohne Paketwechsel.',
   debt_collection: 'Kontakte, die im Monat auf die Lifecycle-Stage Debt collection gewechselt sind (Nichtzahler).',
@@ -1642,7 +1645,7 @@ function runMonatsabschluss(start, end) {
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var L = data.locations[loc] || {}, m = {};
     Object.keys(L).forEach(function (k) { if (typeof L[k] === 'number') m[k] = L[k]; });
-    [['starts_by_day', 'starts_d:'], ['cancels_by_day', 'cancels_d:'], ['leads_by_day', 'leads_d:'], ['debt_by_day', 'debt_d:']].forEach(function (dk) { var o = L[dk[0]] || {}; Object.keys(o).forEach(function (d) { m[dk[1] + d] = o[d]; }); }); // Tageswerte fuer die Wochenspalten (Ruben 07.09.)
+    [['starts_by_day', 'starts_d:'], ['cancels_by_day', 'cancels_d:'], ['leads_by_day', 'leads_d:'], ['debt_by_day', 'debt_d:'], ['signed_by_day', 'signed_d:']].forEach(function (dk) { var o = L[dk[0]] || {}; Object.keys(o).forEach(function (d) { m[dk[1] + d] = o[d]; }); }); // Tageswerte fuer die Wochenspalten (Ruben 07.09.)
     var fvNet = (L.first_visits || 0) - (L.first_visits_excluded || 0);
     m.noshow_rate = fvNet ? (L.trial_noshow || 0) / fvNet : 0;
     m.conv_simple = L.trial_attended ? (L.new_customers || 0) / L.trial_attended : 0;
@@ -1650,7 +1653,7 @@ function runMonatsabschluss(start, end) {
     m.conv_sales_lead = L.leads_all ? (L.sales_signed || 0) / L.leads_all : 0;
     var cnt = {}; ((data.signed || {})[loc] || []).forEach(function (sg) { var ld = trFindLead(leadMap, sg.email, '', sg.date); if (ld && ld.kanal) cnt[ld.kanal] = (cnt[ld.kanal] || 0) + 1; });
     KANAL_ORDER.forEach(function (kn) { m['sales_kanal:' + kn] = cnt[kn] || 0; });
-    maStoreMetricsMany(ss, [{ mk: mk, loc: loc, metrics: m, drop: ['starts_d:', 'cancels_d:', 'leads_d:', 'debt_d:'] }]);
+    maStoreMetricsMany(ss, [{ mk: mk, loc: loc, metrics: m, drop: ['starts_d:', 'cancels_d:', 'leads_d:', 'debt_d:', 'signed_d:'] }]);
     lines.push(loc + ': ' + (L.trial_attended || 0) + ' Probetrainings, ' + (L.new_customers || 0) + ' Neukunden, ' + (L.cancellations || 0) + ' Kuendigungen, netto ' + (L.net_growth || 0) + ', Abo-Umsatz brutto ' + (L.rev_membership_gross || 0) + ' CHF');
   });
   // Kohorten-Conversion fuer diesen und die zwei Vormonate
@@ -1724,7 +1727,7 @@ function maStoreMetricsMany(ss, entries) { // viele Monate in einem Lese-/Schrei
 }
 // Kopftext (Methodik) steht in B2, damit Spalte A eingefroren werden kann (Ruben 05.09.2026)
 var MA_NOTE_FULL = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, Vertragsunterschriften, gestartete und gekündigte Abos, Charges), aus dem Log (Website-Anfragen) und aus den Probetrainings-Tabs im Team-Sheet (Gespräche, Trials, No-Shows, Verkäufe je Tag). '
-  + 'Spalten: Monate ab Januar 2026; ab September 2026 stehen die Kalenderwochen (Montag bis Sonntag) vor ihrem Monat, eine Woche gehört zum Monat, in dem ihr Donnerstag liegt. Wochenspalten zeigen nur, was es je Woche gibt: Website-Leads, Gespräche, gebuchte und durchgeführte Probetrainings, No-Shows, Verkäufe, Abo-Starts und Kündigungen (nach Start- bzw. Enddatum in exercise.com), Werbekosten, Kosten pro Lead. Graue Wochenzellen = gibt es nur je Monat. Jahresspalte = Summe der Monate, Bestandswerte = letzter Monat, Quoten neu aus den Summen. '
+  + 'Spalten: Monate ab Januar 2026; ab September 2026 stehen die Kalenderwochen (Montag bis Sonntag) vor ihrem Monat, eine Woche gehört zum Monat, in dem ihr Donnerstag liegt, und zählt nur die Tage dieses Monats, damit die Wochen eines Monats zusammen den Monat ergeben. Wochenspalten zeigen nur, was es je Woche gibt: Website-Leads, Gespräche, gebuchte und durchgeführte Probetrainings, No-Shows, Verkäufe, Abo-Starts und Kündigungen (nach Start- bzw. Enddatum in exercise.com), Werbekosten, Kosten pro Lead. Graue Wochenzellen = gibt es nur je Monat. Jahresspalte = Summe der Monate, Bestandswerte = letzter Monat, Quoten neu aus den Summen. '
   + 'Neue Kontakte = alle im Monat neu angelegten Kontakte in exercise.com (Website, Telefon, Walk-in, App); davon über die Website = Anfragen aus dem Log (ohne Dubletten und Tests), nach Kanal = Klick-ID, UTM oder Referrer. Vor September 2026 sind die Website-Leads von Hand gezählte Monatszahlen. '
   + 'Probetrainings durchgeführt = Erstbesucher mit Check-in, ohne Altkunden und Staff; Show-up-Rate = erschienen geteilt durch erschienen plus No-Shows. Verkäufe = Vertragsunterschriften (Waiver); Abos gestartet = Abo-Starts ohne Paketwechsel und ohne Personal Training; Kündigungen = wirksam gewordene Kündigungen ohne Paketwechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben, drei Monate nachgeführt. '
   + 'EINE METHODE für Kunden und Umsatz (Ruben 07.09.2026): alles aus den Belastungen im Charges-Report, brutto zuerst. Kunden mit laufendem Abo = Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben, auch wenn sie im Monat nichts bezahlt haben (Personen). Zahlungen brutto = alle Belastungen nach Rückerstattungen, davon Abo und davon Einmalkäufe (Mehrbetrag der ersten Abo-Belastung = Starterpaket zählt bei den Einmalkäufen); MwSt = brutto minus brutto/1.081; netto = brutto/1.081. Abo-Umsatz je Kunde = Abo-Belastungen geteilt durch Kunden mit laufendem Abo. Jahreszahler zählen im Monat der Zahlung. Zum Vergleich zählt der Report Active Subscriptions die Abos am Tag des Laufs (erst ab September 2026). '
@@ -1748,7 +1751,7 @@ function buildMonatsabschlussCore(ss) {
   var now = new Date(), curK = monthKeyStr(now), curMon = fmtD(mondayOf(now)), logM = LOG_START.slice(0, 7);
   var cohN = {}, csh = ss.getSheetByName(MA_COHORT);
   if (csh && csh.getLastRow() > 1) csh.getRange(2, 1, csh.getLastRow() - 1, 2).getValues().forEach(function (r) { var k = mkOf(r[0]) + '|' + r[1]; cohN[k] = (cohN[k] || 0) + 1; });
-  var wr = wrCollect(ss, teamSs()), wkW = wkWeekAgg(ss), wkM = wkMonthAgg(ss), bankM = bankRead(ss), cashZ = cashMonth(ss, 'Zurich'), cashW = cashMonth(ss, 'Winterthur');
+  var wr = wrCollect(ss, teamSs()), wkD = wkAgg(ss, function (d) { return d; }), wkM = wkMonthAgg(ss), bankM = bankRead(ss), cashZ = cashMonth(ss, 'Zurich'), cashW = cashMonth(ss, 'Winterthur');
   // Probetrainings ab MA_TEAM_FROM auch je Monat aus dem Team-Sheet (gleiche Regel wie die Wochen: erster Check-in ueberhaupt). Lehre 07.09.: der
   // Monatsreport "First Visits" datiert neu gebuchte No-Shows auf den Buchungsmonat (September ZH 23 statt 29). Wird in die Historie geschrieben,
   // damit auch der Finanzplan-Uebertrag diese Zahl nimmt.
@@ -1762,7 +1765,8 @@ function buildMonatsabschlussCore(ss) {
   var cashOf = { Zurich: cashZ, Winterthur: cashW, Gesamt: cashG };
   var bankOf = function (loc, kk, f) { if (loc !== 'Gesamt') { var b = bankM[kk + '|' + loc]; return b && b[f] !== '' ? b[f] : ''; } var x = bankM[kk + '|Zurich'], y = bankM[kk + '|Winterthur']; if (!x && !y) return ''; var vx = x ? x[f] : '', vy = y ? y[f] : ''; return vx === '' && vy === '' ? '' : num(vx) + num(vy); };
   // Tageswerte (starts_d:yyyy-MM-dd, cancels_d:yyyy-MM-dd) je Woche summieren; '' wenn der Monat des Tages noch nicht geladen ist
-  var daySumFor = function (locs, monday, prefix) { var s = 0, any = false; for (var i = 0; i < 7; i++) { var d = addDs(monday, i), mk = d.slice(0, 7); locs.forEach(function (l) { if (val[mk + '|' + l + '|new_customers'] === undefined) return; any = true; s += num(val[mk + '|' + l + '|' + prefix + d]); }); } return any ? s : ''; };
+  var daySumFor = function (locs, monday, mk, prefix) { var s = 0, any = false; for (var i = 0; i < 7; i++) { var d = addDs(monday, i); if (d.slice(0, 7) !== mk) continue; locs.forEach(function (l) { if (val[mk + '|' + l + '|new_customers'] === undefined) return; any = true; s += num(val[mk + '|' + l + '|' + prefix + d]); }); } return any ? s : ''; }; // nur Tage des Monats mk
+  var wkCache = {}, weekOf = function (monday, mk) { var key = monday + '|' + mk; if (!wkCache[key]) wkCache[key] = wrWeekOf(wr, monday, mk); return wkCache[key]; };
   // Spalten: Monate ab MA_FROM bis zum laufenden Monat; ab LEAD_WEEK0 die Kalenderwochen vor ihrem Monat (Monat des Donnerstags); nach Dezember und nach dem laufenden Monat eine Jahresspalte
   var cols = [], yearMonths = {}, k = MA_FROM;
   var weeksOf = function (mk) { var out = [], m = LEAD_WEEK0; while (m <= curMon) { if (addDs(m, 3).slice(0, 7) === mk) out.push(m); m = addDs(m, 7); } return out; };
@@ -1805,7 +1809,7 @@ function buildMonatsabschlussCore(ss) {
     cols.forEach(function (c, ci) {
       var cell = sh.getRange(r, 2 + ci);
       if (c.m) { cell.setNumberFormat(c.k === curK ? 'mmm yyyy" (laufend)"' : 'mmm yyyy').setBackground('#d9e2ef'); if (c.k === curK) cell.setNote('Laufender Monat: Zahlungen und Kunden kommen erst nach Monatsende.'); }
-      else if (c.w) { cell.setFontColor('#666666').setNote('Woche ' + deD(c.k) + '–' + deD(addDs(c.k, 6)) + c.k.slice(0, 4) + (c.k === curMon ? ', läuft noch' : '') + '. Nur Kennzahlen, die es je Woche gibt; grau = nur je Monat.'); }
+      else if (c.w) { var wd0 = c.k.slice(0, 7) === c.mk ? c.k : c.mk + '-01', we = addDs(c.k, 6), wd1 = we.slice(0, 7) === c.mk ? we : addDs(nextMonth(c.mk) + '-01', -1); cell.setFontColor('#666666').setNote('Woche ' + deD(wd0) + '–' + deD(wd1) + c.mk.slice(0, 4) + (c.k === curMon ? ', läuft noch' : '') + '. Zählt nur die Tage dieses Monats, die Wochen eines Monats ergeben zusammen den Monat. Grau = nur je Monat.'); }
       else cell.setBackground('#e0e0e0').setNumberFormat('@').setNote('Jahr: Summe der Monate, Bestandswerte = letzter Monat, Quoten neu aus den Summen.');
     });
     var hdr = r; r++;
@@ -1814,35 +1818,36 @@ function buildMonatsabschlussCore(ss) {
     var wrKan = function (o, names) { var s = 0; wrLocs.forEach(function (l) { names.forEach(function (nm) { s += o.kanal[l][nm] || 0; }); }); return s; };
     var mediaOf = function (agg, kk, pn) { var w = agg[kk]; if (!w) return ''; var pick = function (o) { return pn ? (o.plat[pn] || 0) : o.media; }; return Math.round(wrLocs.reduce(function (s, l) { return s + pick(w[l]); }, 0)); };
     var agencyOf = function (kk) { if (kk > curK || kk < '2026-01') return ''; var a = agencyM(kk); return Math.round(wrLocs.reduce(function (s, l) { return s + a[l]; }, 0)); };
-    var daySum = function (monday, prefix) { return daySumFor(wrLocs, monday, prefix); };
+    var daySum = function (c, prefix) { return daySumFor(wrLocs, c.k, c.mk, prefix); };
+    var mediaWeek = function (c, pn) { var s = 0, any = false; for (var i = 0; i < 7; i++) { var d = addDs(c.k, i); if (d.slice(0, 7) !== c.mk) continue; var w = wkD[d]; if (!w) continue; any = true; wrLocs.forEach(function (l) { s += pn ? (w[l].plat[pn] || 0) : w[l].media; }); } return any ? Math.round(s) : ''; };
     var V = function (key) { // Wert einer Kennzahl je Spalte: Woche aus Log, Team-Sheet und Tageswerten, Monat aus exercise.com (Team-Sheet-Monatswerte ab MA_TEAM_FROM)
       return function (c) {
-        var kk = c.k, logOk = c.w ? kk >= LEAD_WEEK0 : kk >= logM, teamOk = c.w || kk >= MA_TEAM_FROM, o = (c.w ? wr.week[kk] : wr.month[kk]) || wrBlank();
+        var kk = c.k, logOk = c.w ? kk >= LEAD_WEEK0 : kk >= logM, teamOk = c.w || kk >= MA_TEAM_FROM, o = c.w ? weekOf(kk, c.mk) : (wr.month[kk] || wrBlank());
         switch (key) {
-          case 'leads_all': return c.w ? daySum(kk, 'leads_d:') : vOf(kk, key);
+          case 'leads_all': return c.w ? daySum(c, 'leads_d:') : vOf(kk, key);
           case 'leads_web': return logOk ? wrSum(o, 'leads') : (c.w ? '' : vOf(kk, 'leads_web'));
-          case 'conv_cohort_rate': if (c.w) { var tt = wrSum(o, 't'); return tt ? wrSum(o, 'csold') / tt : ''; } return vOf(kk, key);
+          case 'conv_cohort_rate': if (c.w || (kk >= MA_TEAM_FROM && wr.month[kk])) { var tt = wrSum(o, 't'); return tt ? wrSum(o, 'csold') / tt : ''; } return vOf(kk, key);
           case 'kanal_org': return logOk ? wrKan(o, ORG) : '';
           case 'calls': return teamOk ? wrSum(o, 'calls') : '';
-          case 'trial_booked_transitions': return c.w ? wrSum(o, 'placed') : vOf(kk, key);
+          case 'trial_booked_transitions': return (c.w || (kk >= MA_TEAM_FROM && wr.month[kk])) ? wrSum(o, 'placed') : vOf(kk, key);
           case 'trial_attended': return c.w ? wrSum(o, 't') : vOf(kk, key);
           case 'trial_noshow': return c.w ? wrSum(o, 'ns') : vOf(kk, key);
           case 'showup_rate': if (c.w) { var t = wrSum(o, 't'), ns = wrSum(o, 'ns'); return t + ns ? t / (t + ns) : ''; } var nsv = vOf(kk, 'noshow_rate'); return nsv === '' ? '' : 1 - Number(nsv);
-          case 'sales_signed': return c.w ? wrSum(o, 'sold') : vOf(kk, key);
-          case 'new_customers': return c.w ? daySum(kk, 'starts_d:') : vOf(kk, key);
-          case 'cancellations': return c.w ? daySum(kk, 'cancels_d:') : vOf(kk, key);
-          case 'debt_collection': return c.w ? daySum(kk, 'debt_d:') : vOf(kk, key);
-          case 'losses': var lc = c.w ? daySum(kk, 'cancels_d:') : vOf(kk, 'cancellations'), ld = c.w ? daySum(kk, 'debt_d:') : vOf(kk, 'debt_collection'); return lc === '' && ld === '' ? '' : num(lc) + num(ld);
-          case 'net_growth': var s1 = c.w ? daySum(kk, 'starts_d:') : vOf(kk, 'new_customers'), s2 = V('losses')(c); return s1 === '' && s2 === '' ? '' : num(s1) - num(s2);
+          case 'sales_signed': return c.w ? daySum(c, 'signed_d:') : vOf(kk, key); // gleiche Quelle wie der Monat (Waiver-Datum in exercise.com)
+          case 'new_customers': return c.w ? daySum(c, 'starts_d:') : vOf(kk, key);
+          case 'cancellations': return c.w ? daySum(c, 'cancels_d:') : vOf(kk, key);
+          case 'debt_collection': return c.w ? daySum(c, 'debt_d:') : vOf(kk, key);
+          case 'losses': var lc = c.w ? daySum(c, 'cancels_d:') : vOf(kk, 'cancellations'), ld = c.w ? daySum(c, 'debt_d:') : vOf(kk, 'debt_collection'); return lc === '' && ld === '' ? '' : num(lc) + num(ld);
+          case 'net_growth': var s1 = c.w ? daySum(c, 'starts_d:') : vOf(kk, 'new_customers'), s2 = V('losses')(c); return s1 === '' && s2 === '' ? '' : num(s1) - num(s2);
           case 'subs_total': if (kk < MA_SNAP_FROM) return ''; var st = vOf(kk, key); if (st !== '') return st; var a = vOf(kk, 'active_subs'); return a === '' ? '' : num(a) + num(vOf(kk, 'paused_subs')) + num(vOf(kk, 'scheduled_subs'));
           case 'cash_paid': var ag = vOf(kk, 'abo_gross'), og = vOf(kk, 'one_gross'); return ag === '' && og === '' ? '' : num(ag) + num(og);
           case 'cash_total': var ff = ['stripe', 'adyen', 'customers', 'other'].map(function (f) { return bankOf(loc, kk, f); }); return ff.every(function (x) { return x === ''; }) ? '' : ff.reduce(function (s, x) { return s + num(x); }, 0);
           case 'cash_diff': var bs = bankOf(loc, kk, 'stripe'), ex = cashOf[loc][kk] ? cashOf[loc][kk].expect : undefined; return bs === '' || ex === undefined ? '' : Math.round(num(bs) - ex);
-          case 'wk_media': return mediaOf(c.w ? wkW : wkM, kk);
+          case 'wk_media': return c.w ? mediaWeek(c) : mediaOf(wkM, kk);
           case 'wk_agency': return c.w ? '' : agencyOf(kk);
         }
         if (key.indexOf('kanal:') === 0) return logOk ? wrKan(o, [key.slice(6)]) : '';
-        if (key.indexOf('wk:') === 0) return mediaOf(c.w ? wkW : wkM, kk, key.slice(3));
+        if (key.indexOf('wk:') === 0) return c.w ? mediaWeek(c, key.slice(3)) : mediaOf(wkM, kk, key.slice(3));
         if (key.indexOf('bank:') === 0) return c.w ? '' : bankOf(loc, kk, key.slice(5));
         if (MA_SNAP.indexOf(key) >= 0 && kk < MA_SNAP_FROM) return '';
         return c.w ? '' : vOf(kk, key);
@@ -1945,8 +1950,8 @@ function buildMonatsabschlussCore(ss) {
     };
     var fun = tbl([b.locDE + ' Monat', 'Neue Kontakte', 'Probetrainings', 'Abos gestartet', 'Kündigungen'], hkeys.map(function (kk) { var la = g(kk, 'leads_all'), lw = g(kk, 'leads_web'); return [dt(kk), num(la) || num(lw), num(g(kk, 'trial_attended')), num(g(kk, 'new_customers')), num(g(kk, 'cancellations'))]; }));
     var quo = tbl([b.locDE + ' Quoten', 'Show-up-Rate', 'Verkäufe / Probetrainings', 'Verkäufe / Kontakte', 'Kohorten-Conversion'], hkeys.map(function (kk) { var nsv = g(kk, 'noshow_rate'); return [dt(kk), nsv === '' ? 0 : 1 - num(nsv), num(g(kk, 'conv_sales_trial')), num(g(kk, 'conv_sales_lead')), num(g(kk, 'conv_cohort_rate'))]; }), '0%');
-    var wfun = tbl([b.locDE + ' Woche', 'Website-Leads', 'Gespräche', 'Probetrainings', 'Verkäufe', 'Abo-Starts', 'Kündigungen'], wkeys.map(function (m) { var o = wr.week[m] || wrBlank(); return [dtW(m), sumW(o, 'leads'), sumW(o, 'calls'), sumW(o, 't'), sumW(o, 'sold'), num(daySumFor(wrLocs, m, 'starts_d:')), num(daySumFor(wrLocs, m, 'cancels_d:'))]; }), null, 'dd.MM.');
-    var wkan = tbl([b.locDE + ' Kanal'].concat(WK_PLATFORMS).concat(['organisch/direkt']), wkeys.map(function (m) { var o = wr.week[m] || wrBlank(); return [dtW(m)].concat(WK_PLATFORMS.map(function (pn) { return kanW(o, [pn]); })).concat([kanW(o, ORG)]); }), null, 'dd.MM.');
+    var wfun = tbl([b.locDE + ' Woche', 'Website-Leads', 'Gespräche', 'Probetrainings', 'Verkäufe', 'Abo-Starts', 'Kündigungen'], wkeys.map(function (m) { var mkw = addDs(m, 3).slice(0, 7), o = weekOf(m, mkw); return [dtW(m), sumW(o, 'leads'), sumW(o, 'calls'), sumW(o, 't'), num(daySumFor(wrLocs, m, mkw, 'signed_d:')), num(daySumFor(wrLocs, m, mkw, 'starts_d:')), num(daySumFor(wrLocs, m, mkw, 'cancels_d:'))]; }), null, 'dd.MM.');
+    var wkan = tbl([b.locDE + ' Kanal'].concat(WK_PLATFORMS).concat(['organisch/direkt']), wkeys.map(function (m) { var o = weekOf(m, addDs(m, 3).slice(0, 7)); return [dtW(m)].concat(WK_PLATFORMS.map(function (pn) { return kanW(o, [pn]); })).concat([kanW(o, ORG)]); }), null, 'dd.MM.');
     var C = function (type, at, w, n, row, col, title, opts) {
       if (!n) return;
       var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(dsh.getRange(at, 1, n + 1, w)).setPosition(row, col, 0, 0)

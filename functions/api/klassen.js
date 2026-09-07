@@ -458,6 +458,7 @@ function computeMonat(inp) {
     const reasons = {}; caL.forEach((c) => { const k = c.reason || "ohne Grund"; reasons[k] = (reasons[k] || 0) + 1; }); L.cancel_reasons = reasons;
     const sg = Object.keys(signedBy).filter((u) => (uidLoc[u] || "Zurich") === loc);
     L.sales_signed = sg.length;
+    L.signed_by_day = dayCount(sg.map((u) => signedBy[u]), (x) => x.date); // Verkaeufe je Tag fuer die Wochenspalten (Ruben 08.09.)
     L.sales_open = sg.filter((u) => lifeCur[signedBy[u].email] === "Signed but no payment").length;
     out.signed[loc] = sg.map((u) => ({ email: signedBy[u].email, date: signedBy[u].date }));
     L.net_growth = L.new_customers - L.cancellations;
