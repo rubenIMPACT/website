@@ -32,7 +32,7 @@ var TEXT = {
         en: 'Hi {name}, how did you like your trial on {date}? Is there anything still open for you?' }
 };
 var CF_URL = 'https://www.impact-martialarts.com/api/wa', CF_TOKEN = 'PASTE_LEADLOG_TOKEN_HERE'; // Token = Zeile "var TOKEN" im Leads-Log-Script; nur im Editor eintragen, nie ins Repo
-var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 90, HIST_D: 90 }; // Ruben 07.09.2026: W1 zwei Tage nach der ersten Sichtung (Abbuchung geht oft von selbst noch durch), W2 Tag 6, W3 Tag 14, W4 einen Tag nach der naechsten Faelligkeit
+var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 90, HIST_D: 90, MAX_ATTEMPTS: 3 }; // MAX_ATTEMPTS: exercise.com/Stripe stop retrying after ~3 attempts (Ruben 07.09.), then only a manual retry or a direct payment settles the charge // Ruben 07.09.2026: W1 zwei Tage nach der ersten Sichtung (Abbuchung geht oft von selbst noch durch), W2 Tag 6, W3 Tag 14, W4 einen Tag nach der naechsten Faelligkeit
 var TEXT_E = {
   W1: { de: 'Hey {name} 👋 wir haben gesehen, dass die letzte Zahlung bei deinem Abo leider nicht durchgegangen ist. Kannst du bitte kurz deine Zahlungsdaten und die Deckung deines Kontos prüfen, damit wir es in den nächsten Tagen erneut abbuchen können? Wenn du Hilfe brauchst, sag kurz Bescheid 🙏 Danke dir!',
         en: "Hey {name} 👋 We noticed that the last payment for your membership didn't go through. Could you please check your payment details and make sure your account has sufficient funds, so we can retry the charge in the next few days? If you need any help, just let us know 🙏 Thanks so much!" },
@@ -199,14 +199,17 @@ function buildArrears() { // one entry per member with at least one open (unconv
   if (ch === null) return null;
   var ok = {};
   ch.forEach(function (r) { if (/succe|paid|complete/i.test(String(r['Status'] || ''))) { var u = String(r['User ID'] || ''); (ok[u] = ok[u] || []).push({ date: dOfAny(r['Date']), amount: num(r['Amount']) }); } });
-  var byUid = {};
+  var byUid = {}, convVals = {};
   fp.forEach(function (r) {
     var u = String(r['User ID'] || ''); if (!u) return;
     var d = dOfAny(r['Date']), amt = num(r['Amount']), cid = String(r['Charge ID'] || (d + ':' + amt));
     var conv = /yes|true|^1$/i.test(String(r['Converted'] || ''));
-    var settled = conv || (ok[u] || []).some(function (s) { return s.date >= d && Math.abs(s.amount - amt) < 0.05; });
+    var settled = conv; // only the platform's own flag counts; a later successful charge of the SAME amount does not settle an older one (next invoice paid, old one still open - Ruben 07.09.)
+    var laterPaid = (ok[u] || []).some(function (s) { return s.date > d && Math.abs(s.amount - amt) < 0.05; });
+    var cv = String(r['Converted'] === undefined ? '' : r['Converted']); convVals[cv] = (convVals[cv] || 0) + 1;
     var a = byUid[u] = byUid[u] || { uid: u, name: (String(r['First Name'] || '') + ' ' + String(r['Last Name'] || '')).trim(), loc: String(r['Location'] || ''), charges: {} };
-    var c = a.charges[cid] = a.charges[cid] || { date: d, last: d, amount: amt, attempts: 0, settled: false, reason: '', item: String(r['Item Name'] || '') };
+    var c = a.charges[cid] = a.charges[cid] || { date: d, last: d, amount: amt, attempts: 0, settled: false, laterPaid: false, reason: '', item: String(r['Item Name'] || '') };
+    c.laterPaid = c.laterPaid || laterPaid;
     if (d && d < c.date) c.date = d; if (d && d > c.last) c.last = d;
     c.attempts = Math.max(c.attempts, num(r['Attempts Within This Time Period']) || 1);
     c.settled = c.settled || settled;
@@ -218,31 +221,35 @@ function buildArrears() { // one entry per member with at least one open (unconv
     if (!open.length) return;
     open.sort(function (x, y) { return x.date < y.date ? -1 : 1; });
     var first = open[0].date, newest = open[open.length - 1];
-    rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: open.reduce(function (m, c) { return Math.max(m, c.attempts); }, 0), amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item });
+    var att = open.reduce(function (m, c) { return Math.max(m, c.attempts); }, 0);
+    rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS });
   });
   rows.sort(function (x, y) { return y.days - x.days; });
+  rows.convVals = convVals;
+  Logger.log('Arrears: ' + rows.length + ' members, Converted values ' + JSON.stringify(convVals) + ', hidden cases ' + rows.filter(function (a) { return a.hidden; }).length);
   return rows;
 }
-var ARR_HEAD = ['UID', 'Name', 'Location', 'First failed', 'Days', 'Open charges', 'Attempts', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Last message', 'Updated'];
+var ARR_HEAD = ['UID', 'Name', 'Location', 'First failed', 'Days', 'Open charges', 'Attempts', 'Auto-retries left', 'Later invoice paid', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Last message', 'Updated'];
 function writeArrears(ss, rows, info, dry) {
   var sh = ss.getSheetByName('Arrears');
   if (!sh) {
     sh = ss.insertSheet('Arrears');
     sh.getRange('A1').setValue('Arrears: members with open failed charges').setFontSize(14).setFontWeight('bold');
-    sh.getRange('A2').setValue('Rebuilt every hour from the exercise.com reports "Failed Payments" and "Charges" (last 90 days). Open = failed charge that was not converted and had no successful charge of the same amount since. Stage = dunning step by days open: W1 from day 2, W2 from day 6, W3 from day 14, W4 as soon as a second charge is open. Last message = latest dry-run row for this member. Debt collection, inactive and paused accounts are listed but get no automatic message.').setFontColor('#666666').setWrap(true);
-    sh.getRange('A2:P2').merge(); sh.setRowHeight(2, 70);
+    sh.getRange('A2').setValue('Rebuilt every hour from the exercise.com reports "Failed Payments" and "Charges" (last 90 days). Open = failed charge that exercise.com has not marked as converted (paid later). A later paid invoice does NOT close an older open charge (column "Later invoice paid" flags exactly these hidden cases). Auto-retries left = no once the platform stopped retrying (about 3 attempts); then only a manual retry after the card update or a direct payment settles it. Stage = dunning step by days open: W1 from day 2, W2 from day 6, W3 from day 14, W4 as soon as a second charge is open. Debt collection, inactive, paused and accounts outside the client list are listed but get no automatic message.').setFontColor('#666666').setWrap(true);
+    sh.getRange('A2:R2').merge(); sh.setRowHeight(2, 80);
     sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
     sh.setFrozenRows(4);
-    [80, 180, 90, 90, 50, 60, 60, 90, 90, 260, 200, 110, 80, 70, 120, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    [80, 180, 90, 90, 50, 60, 60, 70, 70, 90, 90, 260, 200, 110, 80, 70, 120, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
   }
+  if (sh.getLastRow() >= 4 && sh.getRange(4, 8).getValue() !== 'Auto-retries left') { sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5'); } // header upgrade 07.09.
   var last = lastMsgE(dry), now = fmtDT(new Date());
   var out = rows.map(function (a) {
     var c = info[a.uid] || {}, stage = a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait')));
-    return [a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.amount, a.lastDate, a.reason, a.item, c.lifecycle || 'not in client list', c.billing || '', stage, last[a.uid] || '', now];
+    return [a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.exhausted ? 'no' : 'yes', a.hidden ? 'yes' : '', a.amount, a.lastDate, a.reason, a.item, c.lifecycle || 'not in client list', c.billing || '', stage, last[a.uid] || '', now];
   });
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent();
   if (out.length) sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
-  sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[7]; }, 0)) + ' open, ' + now);
+  sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[9]; }, 0)) + ' open, ' + out.filter(function (r) { return r[8] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[7] === 'no'; }).length + ' with auto-retries exhausted. Converted values: ' + JSON.stringify(rows.convVals || {}) + '. ' + now);
 }
 function lastMsgE(dry) { // uid -> latest dry-run message for Flow E
   var m = {}, n = dry.getLastRow(); if (n < TR_ROW0) return m;
