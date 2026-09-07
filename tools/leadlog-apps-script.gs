@@ -1491,6 +1491,10 @@ function buildLTV(ss) {
   list.forEach(function (c) {
     var e = c.endCand && c.lastAbo <= c.endCand ? c.endCand : ''; if (c.debt && c.lastAbo <= c.debt && (!e || c.debt < e)) e = c.debt;
     c.end = e; c.migrated = hasFlags ? !!(flags[c.uid] && flags[c.uid].mig) : false;
+    // Gebuendelte erste Belastung (v. a. Zuerich: Abo + Starterpaket in EINER Charge, Purchase Type "Subscription/Package, ProductVariant"):
+    // der Mehrbetrag der ersten Abo-Zahlung gegenueber der ueblichen Monatszahlung des Kunden zaehlt als Starterpaket, nicht als Abo
+    var later = Object.keys(c.abo).filter(function (mk) { return mk > c.first && c.abo[mk] > 0; }).map(function (mk) { return c.abo[mk]; }).sort(function (a, b) { return a - b; });
+    if (later.length) { var reg = later[Math.floor(later.length / 2)], ex = (c.abo[c.first] || 0) - reg; if ((c.abo[c.first] || 0) > 1.5 * reg && ex > 20) { c.abo[c.first] -= ex; c.one[c.first] = (c.one[c.first] || 0) + ex; c.bundled = ex; } }
   });
   // Starterpaket = Einmalkaeufe im Startfenster (Monat vor der ersten Abo-Zahlung bis Monat danach); uebrige Einmalkaeufe = Shop, Events usw.
   var inStart = function (c, mk) { return mk >= prevMonth(c.first) && mk <= nextMonth(c.first); };
@@ -1499,7 +1503,7 @@ function buildLTV(ss) {
   sh.getRange('A2').setValue('Netto-Umsatz (ohne MwSt, nach Rückerstattungen; Abos und Einmalkäufe) je Kunde und Monat aus dem Report Charges, Zahlungen bis ' + lastFull + ', Kündigungen bis ' + (kLast || '–') + '. Kunde = mindestens eine Abo-Zahlung; Testzahlungen unter CHF 5 ausgeschlossen. '
     + 'VERLOREN ist nur, wer offiziell gekündigt hat (Kündigung wirksam, Paketwechsel zählen nicht) oder wegen Nichtzahlung in "Debt collection" ging (Entscheid Ruben 05.09.2026); Zahlungslücken zählen nicht. '
     + (hasFlags ? 'Migrierte = Konten mit den Tags Migrating / imported / Bexio (Startdatum unbekannt) – sie bleiben aus Kohorten und Prognose draussen. ' : '⚠️ Kunden-Flags fehlen noch, Migrierte nicht ausgeschlossen. ')
-    + 'Ø Monat = Abo-Umsatz plus übrige Einmalkäufe je aktivem Neukunden (letzte 3 Monate); das Starterpaket (Einmalkäufe ±1 Monat um die erste Abo-Zahlung, Median-Monatszahlung ' + Math.round(med) + ' CHF; Jahreszahler auf die bezahlten Monate verteilt) zählt einmal je Kunde und nicht im Monatswert (Ruben 06.09.2026). '
+    + 'Ø Monat = Abo-Umsatz plus übrige Einmalkäufe je aktivem Neukunden (letzte 3 Monate); das Starterpaket zählt einmal je Kunde und nicht im Monatswert (Ruben 06.09.2026): Einmalkäufe ±1 Monat um die erste Abo-Zahlung plus der Mehrbetrag der ersten Abo-Belastung gegenüber der üblichen Monatszahlung des Kunden (in Zürich wird das Starterpaket meist mit der ersten Abo-Belastung zusammen abgebucht). Median-Monatszahlung ' + Math.round(med) + ' CHF; Jahreszahler auf die bezahlten Monate verteilt. '
     + 'Prognose-LTV = Ø Monat × erwartete Dauer + Starterpaket, Dauer = 1/(monatliche Verlustquote), Verlustquote = wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch die aktiven Neukunden. Monatlicher Kundenwert und LTV stehen auch im Monatsabschluss.').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 130);
   var r = 4, N = [3, 6, 9, 12], store = [];
@@ -1570,7 +1574,7 @@ function buildLTV(ss) {
 // Kennzahlen des Finanzplans und Funnel je Standort, Monate als Spalten. Daten aus der Cloudflare-Funktion (action 'monat'),
 // gespeichert im versteckten Tab MonatsHistorie (Monat, Standort, Kennzahl, Wert) und Kohorten (Probetrainer je Monat).
 // Kohorten-Conversion wird bei jedem Lauf fuer die letzten drei Monate neu gerechnet (Nachzuegler).
-var MA_SHEET = 'Monatsabschluss', MA_HIST = 'MonatsHistorie', MA_COHORT = 'Kohorten';
+var MA_SHEET = 'Monatsabschluss', MA_HIST = 'MonatsHistorie', MA_COHORT = 'Kohorten', MA_FROM = '2026-01'; // Spalten ab Jan 2026 (Kundenwert-Reihen reichen bis Jun 2025 zurueck)
 var MA_ROWS = [
   ['leads_web', 'Leads Website (Log)', '0'],
   ['leads_all', 'Leads gesamt in exercise.com (alle Quellen)', '0'],
@@ -1713,7 +1717,7 @@ var MA_NOTE = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, 
   + 'Diagramme rechts: "Leads" = alle Quellen aus exercise.com, für Monate ohne diesen Wert (vor August 2026) die Website-Leads. Interessen stehen nur noch im Diagramm, nicht mehr in der Liste. '
   + 'Cash: Zahlungen je Tag aus dem Charges-Report (Betrag inkl. MwSt, Rückerstattungen, Stripe-Gebühren 2 %, MwSt 8.1 %); Stripe zahlt 7 Kalendertage nach der Belastung aus, deshalb ist "erwarteter Bankeingang" nach Auszahlungsmonat gerechnet und passt zum Kontoauszug (Abgleich Juli/August 2026 auf 0.2 %); Ist-Werte aus dem Tab Bank. '
   + 'Tab Bank: Stripe, Adyen (zweiter Zahlungsanbieter, Zuordnung offen), Überweisungen von Mitgliedern und Stiftungen (Umsatz ausserhalb exercise.com), Übrige (kein Umsatz). Show-up-Rate = 1 − No-Show-Quote, damit alle Quoten nach oben zeigen sollen. '
-  + 'Kundenwert: Abo-Umsatz netto je zahlendem Kunden aus dem Charges-Report (Jahreszahler auf die bezahlten Monate verteilt), Starterpaket = Einmalkäufe ±1 Monat um die erste Abo-Zahlung, über die erwartete Dauer verteilt; LTV = monatlicher Kundenwert × erwartete Dauer (Tab LTV). '
+  + 'Kundenwert: Abo-Umsatz netto je zahlendem Kunden aus dem Charges-Report (Jahreszahler auf die bezahlten Monate verteilt), Starterpaket = Einmalkäufe ±1 Monat um die erste Abo-Zahlung plus Mehrbetrag der ersten Abo-Belastung (Zürich bucht Abo und Starterpaket zusammen ab), über die erwartete Dauer verteilt; LTV = monatlicher Kundenwert × erwartete Dauer (Tab LTV). '
   + 'Werbung: Media-Kosten aus Google Ads (Skript) und Meta (API) je Standort nach Kampagnenname, Agenturkosten aus dem Tab Einstellungen nach Media-Anteil verteilt; CPL/CAC je Kanal nach Klick-ID des Leads (letzter Klick, Richtwert), CAC gesamt = belastbare Zahl.';
 function buildMonatsabschluss(ss) {
   var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
@@ -1722,7 +1726,7 @@ function buildMonatsabschluss(ss) {
   var hist = ss.getSheetByName(MA_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 4).getValues() : [];
   var months = {}; hv.forEach(function (r) { months[mkOf(r[0])] = 1; });
   months[Utilities.formatDate(new Date(), TZ, 'yyyy-MM')] = 1; // laufender Monat immer dabei (Leads Website, Kanal live)
-  var keys = Object.keys(months).sort().slice(-12);
+  var keys = Object.keys(months).filter(function (k) { return k >= MA_FROM; }).sort().slice(-12);
   var val = {}; hv.forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
   var vOf = function (k, loc, name) { var v = val[k + '|' + loc + '|' + name]; return v === undefined || v === '' ? '' : v; };
   var dt = function (k) { return new Date(k + '-01T00:00:00'); };

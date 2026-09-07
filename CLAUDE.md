@@ -183,6 +183,11 @@ Starterpaket; Monatlicher Kundenwert = Oe Monat + Starterpaket/Dauer. Monatsabsc
 Monat ueber ALLE Kunden inkl. migriert: cv_paying, cv_abo, cv_other, cv_starter, cv_month (MonatsHistorie, geschrieben von buildLTV
 ueber maStoreMetricsMany in einem Rutsch); Payback = CAC inkl. Agentur / cv_month (laufender Monat leer, weil Charges nur bis zum
 letzten vollen Monat geladen werden).
+NACHTRAG 07.09.: In Zuerich wird das Starterpaket meist mit der ersten Abo-Belastung in EINER Charge abgebucht (Purchase Type
+"Subscription/Package, ProductVariant", Juni 35 Charges a ~415) und landet damit im Abo-Netto - deshalb war cv_starter ZH 12-75 vs. WT
+~150. Heuristik in buildLTV: Mehrbetrag der ersten Abo-Zahlung gegenueber der ueblichen (Median der spaeteren) Monatszahlung des Kunden
+(wenn > 1.5x und > 20 CHF) wandert von abo nach one (c.bundled). Monatsabschluss-Spalten ab MA_FROM = 2026-01 (die Kundenwert-Reihen
+reichen bis Jun 2025 zurueck und haetten das 12-Monats-Fenster sonst nach Okt 2025 verschoben).
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
