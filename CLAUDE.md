@@ -445,3 +445,11 @@ Reihenfolge mehr erzwungen (Ruben schiebt selbst), MA_TAB_HIDE versteckt Kuendig
 Finanzplan-Uebertrag, Methodik. Bank/Einstellungen zum Eintragen einblenden. (4) Ruben-Frage "manuell reinschreiben": alle
 Berichtstabs werden bei jedem Lauf komplett neu gebaut (clearSheet loescht Zeilen) - Handaenderungen dort halten hoechstens eine
 Stunde. Eingaben nur in Bank, Einstellungen, Team-KPIs Anrufspalten, Finanzplan-Kopie.
+DEFINITIONEN ABGENOMMEN (Ruben 08.09.2026 frueh, Commit 3bc1745): Abos verlaengern sich immer automatisch, es gibt keine
+auslaufenden Vertraege -> Verlust = Kuendigung oder Debt collection, sonst nichts (Paketwechsel nicht). Zeile 35 Umsatz = nur
+exercise.com (Stripe), Magicline/Ueberweisungen nur im Bankeingang. EINE LTV-Zahl: Abo-Umsatz netto je Kunde x Dauer + Starterpaket
++ uebrige Einmalkaeufe x Dauer ("LTV netto (CHF, Prognose)"); dazu der monatliche Abo-Wert brutto/netto. Finanzplan-Uebertrag
+ersetzt in den Eingabezeilen ab Juni bis zum laufenden Monat auch Planformeln (alte Formel im Protokoll), ab Folgemonat nichts.
+ARBEITSWEISE (Ruben 07.09. spaet, "red wie ein 60-jaehriger CEO"): weniger bauen, mehr pruefen; Definitionen sind eingefroren,
+Aenderungen nur mit Rubens Ja; Berichte in Geschaeftssprache (Hebel: Verluste, Show-up, Zahlungsausfaelle), nicht in Zeilen.
+Parallele Session hat f7926d5 (tools/whatsapp/dryrun.gs) committet - nur eigene Pfade adden.
