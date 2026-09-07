@@ -214,6 +214,17 @@ per window.__wantPage die Seitenzahl im Body umschreibt, 20 Zeilen/Seite, page_s
 im MCP-Tab: Nav-Menues und Toolbar-Knoepfe (Save, Scheduled running, Export) reagieren nicht auf synthetische Klicks/dispatchEvent,
 solange die Onboarding-Tour (.visual-guide-area) liegt; nach Speichern und Neuoeffnen des Berichts gingen die Knoepfe per find()+ref.
 Pager ">" bleibt haengen; cmd+a im Namensfeld markiert die ganze Seite. TikTok-Report-Export = Download (nicht genutzt).
+LESBARKEIT (Ruben 07.09., "ja" zum Vorschlag): Monatsabschluss zeigt je Standort ~35 Kernzeilen, Detailzeilen (MA_ROWS 4. Element 'd',
+Kanal-Unterzeilen, put(..., {detail:true})) liegen in einklappbaren Google-Sheets-Zeilengruppen (shiftRowGroupDepth, Toggle BEFORE,
+collapseAllRowGroups; clearSheet entfernt alte Gruppen). Kurzdefinitionen als Zellnotiz an der Zeilenbezeichnung (MA_NOTES, LTV kv[3]),
+Methodik-Texte oben nur noch 2 Saetze (MA_NOTE/WR_NOTE/WK_NOTE), Volltexte (MA_NOTE_FULL, WR_NOTE_FULL, WK_NOTE_FULL, LTV_NOTE_FULL,
+TR_T.de.rule) im Tab "Methodik" (buildMethodik, aus buildMonatsabschluss). Laufender Monat im Kopf "Sep 2026 (laufend)" per
+Zahlenformat. Tab-Reihenfolge/-Farben: maArrangeTabs (MA_TAB_ORDER; Events/Cancellations gelb, Bank/Einstellungen gruen, Methodik grau).
+Wochenreport: 16-Wochen-Block ohne Kanal-Unterzeilen, nur "davon bezahlt". dropTestRows() auch fuer Cancellations (First name/Last
+name/Email/Reason, Wortgrenze, "Attest" bleibt). Team-Tabs: A2 = ruleShort mit Volltext als Notiz (Rebuild, wenn A2 abweicht),
+"Gebuchte Trials" statt "Placed Trials" (de), Wochentage per Zahlenformat "Mo "dd.MM. (Wert bleibt Datum), Kanal "kein Web-Lead" mit
+exercise.com-Quelle als Zellnotiz (r.srcNote -> kNotes), kuenftige Tage ohne Nullen, Events-Spiegel als letzter Tab, ZH/WT auf 1/2.
+Rote Zeile mit Zukunftstermin = Pruefregel "booked" (Stage nicht Trial Booked), korrekt. LTV-Labels kurz, Spalte A 340.
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
