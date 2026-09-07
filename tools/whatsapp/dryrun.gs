@@ -32,7 +32,8 @@ var TEXT = {
         en: 'Hi {name}, how did you like your trial on {date}? Is there anything still open for you?' }
 };
 var CF_URL = 'https://www.impact-martialarts.com/api/wa', CF_TOKEN = 'PASTE_LEADLOG_TOKEN_HERE'; // Token = Zeile "var TOKEN" im Leads-Log-Script; nur im Editor eintragen, nie ins Repo
-var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 90, HIST_D: 90, MAX_ATTEMPTS: 3 }; // MAX_ATTEMPTS: exercise.com/Stripe stop retrying after ~3 attempts (Ruben 07.09.), then only a manual retry or a direct payment settles the charge // Ruben 07.09.2026: W1 zwei Tage nach der ersten Sichtung (Abbuchung geht oft von selbst noch durch), W2 Tag 6, W3 Tag 14, W4 einen Tag nach der naechsten Faelligkeit
+var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 90, HIST_D: 90, MAX_ATTEMPTS: 5, RETRY_WINDOW_D: 14 }; // exercise.com KB (06/2025): Stripe Smart Retries, up to 4 retries within 2 weeks, timing chosen by Stripe, not configurable; afterwards no automatic attempt (subscription stays past-due at IMPACT). MAX_ATTEMPTS = 1 failure + 4 retries.
+var HARD_DECLINE = /lost|stolen|incorrect number|invalid account|authentication required|not allowed|does not support/i; // Stripe does not retry these until a new card is on file // Ruben 07.09.2026: W1 zwei Tage nach der ersten Sichtung (Abbuchung geht oft von selbst noch durch), W2 Tag 6, W3 Tag 14, W4 einen Tag nach der naechsten Faelligkeit
 var TEXT_E = {
   W1: { de: 'Hey {name} 👋 wir haben gesehen, dass die letzte Zahlung bei deinem Abo leider nicht durchgegangen ist. Kannst du bitte kurz deine Zahlungsdaten und die Deckung deines Kontos prüfen, damit wir es in den nächsten Tagen erneut abbuchen können? Wenn du Hilfe brauchst, sag kurz Bescheid 🙏 Danke dir!',
         en: "Hey {name} 👋 We noticed that the last payment for your membership didn't go through. Could you please check your payment details and make sure your account has sufficient funds, so we can retry the charge in the next few days? If you need any help, just let us know 🙏 Thanks so much!" },
@@ -222,7 +223,7 @@ function buildArrears() { // one entry per member with at least one open (unconv
     open.sort(function (x, y) { return x.date < y.date ? -1 : 1; });
     var first = open[0].date, newest = open[open.length - 1];
     var att = open.reduce(function (m, c) { return Math.max(m, c.attempts); }, 0);
-    rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS });
+    rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS || daysBetween(first, end) > RULE_E.RETRY_WINDOW_D || HARD_DECLINE.test(newest.reason) });
   });
   rows.sort(function (x, y) { return y.days - x.days; });
   rows.convVals = convVals; rows.chVals = chVals;
