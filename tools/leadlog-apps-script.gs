@@ -1310,7 +1310,7 @@ function buildWerbekosten(ss) {
   var agg = wkMonthAgg(ss), months = Object.keys(agg).sort().slice(-12), now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
   if (months.indexOf(now) < 0) months.push(now);
   sh.getRange('A1').setValue('IMPACT Werbekosten').setFontSize(16).setFontWeight('bold');
-  sh.getRange('A2').setValue('Media-Kosten je Monat und Standort aus dem versteckten Tab WerbekostenDaten (Google Ads: Google-Ads-Skript täglich; Meta: Marketing API täglich 06:30; TikTok folgt). Standort aus dem Kampagnennamen, Kampagnen ohne Standort nach dem Split im Tab Einstellungen aufgeteilt. Agenturkosten aus dem Tab Einstellungen, nach Media-Anteil auf die Standorte verteilt. Kosten pro Lead, CAC und LTV stehen im Monatsabschluss.').setFontColor('#666666').setWrap(true);
+  sh.getRange('A2').setValue('Media-Kosten je Monat und Standort aus dem versteckten Tab WerbekostenDaten (Google Ads: Google-Ads-Skript täglich; Meta: Marketing API täglich 06:30; TikTok: täglicher Report-Anhang per Mail, Betreff "IMPACT TikTok"). Standort aus dem Kampagnennamen, Kampagnen ohne Standort nach dem Split im Tab Einstellungen aufgeteilt. Agenturkosten aus dem Tab Einstellungen, nach Media-Anteil auf die Standorte verteilt. Kosten pro Lead, CAC und LTV stehen im Monatsabschluss.').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:H2').merge(); sh.setRowHeight(2, 64);
   var r = 4;
   ['Zurich', 'Winterthur'].forEach(function (loc) {
@@ -1342,6 +1342,56 @@ function buildWerbekosten(ss) {
   else sh.getRange(r, 1).setValue('noch keine Daten – Google-Ads-Skript und Meta-Token einrichten').setFontColor('#999999');
   sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 320); sh.setColumnWidth(3, 320); sh.setFrozenColumns(0);
 }
+// ------------------------------------------------------------ TikTok Ads (07.09.2026, Ruben: "TikTok auch anlegen")
+// TikTok hat keine Server-API ohne App-Freigabe, deshalb: der TikTok Ads Manager schickt einen Kampagnen-Report (Tagesaufloesung)
+// als CSV-Anhang per Mail an Ruben, Betreff enthaelt TK_SUBJECT. tkImport() liest diese Mails der letzten TK_DAYS Tage aus Gmail,
+// erkennt die Spalten am Kopf (Datum, Kampagne, Kosten, Klicks, Impressionen, Waehrung) und schreibt sie wie Google/Meta nach
+// WerbekostenDaten (Upsert je Tag+Kampagne). Historie: alten Export als CSV an sich selbst mailen, gleicher Betreff, dann
+// tkImport(30). Erster Lauf im Editor noetig (Gmail-Freigabe durch Ruben).
+var TK_SUBJECT = 'IMPACT TikTok', TK_ACCOUNT = 'TikTok Ads Manager', TK_DAYS = 4;
+function tkParseDate(v) {
+  var s = String(v || '').trim(), m;
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return m[1] + '-' + m[2] + '-' + m[3];
+  if ((m = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/))) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+  if ((m = s.match(/^(\d{4})(\d{2})(\d{2})$/))) return m[1] + '-' + m[2] + '-' + m[3];
+  if (!/\d{4}/.test(s)) return '';
+  var d = new Date(s); return isNaN(d) ? '' : fmtD(d);
+}
+function tkNum(v) { var s = String(v || '').replace(/[^\d.,\-]/g, ''); if (/,\d{1,2}$/.test(s) && s.indexOf('.') < 0) s = s.replace(',', '.'); return Number(s.replace(/,/g, '')) || 0; }
+function tkRowsFromCsv(text) {
+  var rows = Utilities.parseCsv(String(text || '').replace(/^﻿/, '')), out = [], hi = -1, col = {};
+  for (var i = 0; i < Math.min(rows.length, 10) && hi < 0; i++) {
+    var c = {};
+    rows[i].forEach(function (cell, j) {
+      var x = String(cell || '').trim().toLowerCase();
+      if (c.date === undefined && /^(date|day|by day|datum|tag|time|stat_time_day)$/.test(x)) c.date = j;
+      if (c.camp === undefined && /campaign.?name|kampagnenname|^campaign$|^kampagne$/.test(x)) c.camp = j;
+      if (c.cost === undefined && /^(cost|spend|total cost|kosten|ausgaben)/.test(x)) c.cost = j;
+      if (c.clicks === undefined && /^(clicks|klicks|clicks \(destination\)|clicks \(all\))$/.test(x)) c.clicks = j;
+      if (c.imp === undefined && /^(impressions|impressionen)$/.test(x)) c.imp = j;
+      if (c.cur === undefined && /currency|währung|waehrung/.test(x)) c.cur = j;
+    });
+    if (c.date !== undefined && c.camp !== undefined && c.cost !== undefined) { hi = i; col = c; }
+  }
+  if (hi < 0) throw new Error('TikTok-CSV: Spalten Datum/Kampagne/Kosten nicht gefunden (Kopf: ' + (rows[0] || []).join(' | ').slice(0, 200) + ')');
+  for (var r = hi + 1; r < rows.length; r++) {
+    var d = tkParseDate(rows[r][col.date]); if (!d) continue; // Summenzeilen ohne Datum
+    out.push({ date: d, platform: 'TikTok Ads', account: TK_ACCOUNT, campaign: String(rows[r][col.camp] || '').trim(), spend: tkNum(rows[r][col.cost]),
+      clicks: col.clicks === undefined ? 0 : tkNum(rows[r][col.clicks]), impressions: col.imp === undefined ? 0 : tkNum(rows[r][col.imp]), currency: col.cur === undefined ? 'CHF' : String(rows[r][col.cur] || 'CHF') });
+  }
+  return out;
+}
+function tkImport(days) {
+  var ss = SpreadsheetApp.openById(SHEET_ID), st = stGet(ss), rate = Number(st['EUR in CHF']) || 1;
+  var threads = GmailApp.search('subject:"' + TK_SUBJECT + '" has:attachment newer_than:' + (days || TK_DAYS) + 'd', 0, 30), all = [], files = 0;
+  threads.forEach(function (t) { t.getMessages().forEach(function (msg) { msg.getAttachments().forEach(function (a) {
+    if (!/\.csv$/i.test(String(a.getName() || ''))) return;
+    files++; all = all.concat(tkRowsFromCsv(a.getDataAsString('UTF-8')));
+  }); }); });
+  all.forEach(function (x) { if (String(x.currency).toUpperCase() === 'EUR') x.spend = x.spend * rate; });
+  return 'TikTok: ' + files + ' CSV, ' + all.length + ' Zeilen, ' + (all.length ? wkUpsert(ss, all) : 'nichts zu schreiben');
+}
+function tkImportHistory() { return tkImport(60); } // einmalig nach dem Mailen des alten Exports (Editor)
 function runWerbekosten() {
   var ss = SpreadsheetApp.openById(SHEET_ID), st = stGet(ss), now = new Date(), notes = [];
   var r = klassenCall({ action: 'ads', start: fmtD(addD(now, -14)), end: fmtD(now) });
@@ -1353,13 +1403,14 @@ function runWerbekosten() {
     notes.push('Meta: ' + wkUpsert(ss, r.rows || []));
     if (r.errors && r.errors.length) notes.push('Meta-Fehler: ' + JSON.stringify(r.errors).slice(0, 300));
   }
+  try { notes.push(tkImport()); } catch (e) { notes.push('TikTok-Fehler: ' + String(e && e.message ? e.message : e).slice(0, 200)); }
   buildWerbekosten(ss);
   buildMonatsabschluss(ss); // CPL/CAC im Monatsabschluss lesen die Werbedaten beim Bauen, deshalb taeglich mit neu bauen
   Logger.log('Werbekosten: ' + notes.join(' | '));
   return notes.join(' | ');
 }
 function runWerbekostenDaily() {
-  try { var t = runWerbekosten(); if (/Meta-Fehler/.test(t)) mailOnce('werbekosten', '[Sheet] Werbekosten mit Fehlern', t); }
+  try { var t = runWerbekosten(); if (/Meta-Fehler|TikTok-Fehler/.test(t)) mailOnce('werbekosten', '[Sheet] Werbekosten mit Fehlern', t); }
   catch (e) { mailOnce('werbekosten', '[Sheet] Werbekosten FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e)); }
 }
 
