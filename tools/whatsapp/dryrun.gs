@@ -39,10 +39,10 @@ var TEXT_E = {
         en: "Hey {name} 👋 We noticed that the last payment for your membership didn't go through. Could you please check your payment details and make sure your account has sufficient funds, so we can retry the charge in the next few days? If you need any help, just let us know 🙏 Thanks so much!" },
   W2: { de: 'Hey {name}, wir konnten die offene Zahlung leider immer noch nicht abbuchen. Bitte prüfe heute kurz deine Zahlungsdaten oder die Deckung deines Kontos, wir versuchen die Abbuchung dann nochmals. Danke dir!',
         en: 'Hey {name}, unfortunately we still could not collect the outstanding payment. Please check your payment details or the funds on your account today, and we will retry the charge. Thanks!' },
-  W3: { de: 'Hey {name}, wir melden uns nochmals wegen der weiterhin offenen Zahlung (seit über 10 Tagen). Bitte bring das heute in Ordnung, damit dein Abo sauber weiterläuft. Falls es gerade schwierig ist: melde dich kurz, dann finden wir eine Lösung.',
-        en: "Hi {name}, we're reaching out again regarding the payment that is still outstanding, which has been due since {due_date}. Please take care of this today by updating your payment details so your membership keeps running smoothly. If things are difficult at the moment, just send us a quick message and we'll find a solution together. Thanks for your attention to this!" },
-  W4: { de: 'Hey {name}, leider sind inzwischen mehrere Zahlungen offen und auch die neue Zahlung ist erneut fehlgeschlagen. Wenn wir bis morgen keinen Zahlungseingang bzw. keine Rückmeldung erhalten, müssen wir den offenen Betrag an unser Inkasso-/Mahnverfahren weitergeben. Bitte melde dich heute kurz oder aktualisiere die Zahlungsdaten direkt, damit wir das vermeiden können.',
-        en: "Hi {name}, unfortunately several payments are still overdue, and the most recent payment attempt has failed again. If we don't receive an update or payment from you by tomorrow, we'll need to move forward with our debt collection process. Please update your payment details or contact us today so we can avoid taking further steps. Thank you for your prompt attention." }
+  W3: { de: 'Hey {name}, die Zahlung von CHF {amount} ist seit dem {due_date} offen, und die automatischen Abbuchungen sind ausgeschöpft. Bitte begleiche sie heute direkt hier: {pay_link} Falls es gerade schwierig ist: melde dich kurz, dann finden wir eine Lösung.',
+        en: "Hi {name}, the payment of CHF {amount} has been outstanding since {due_date} and the automatic charges have run out. Please settle it directly today here: {pay_link} If things are difficult at the moment, just send us a quick message and we'll find a solution together." },
+  W4: { de: 'Hey {name}, leider sind inzwischen mehrere Zahlungen offen und auch die neue Zahlung ist erneut fehlgeschlagen. Wenn wir bis morgen keinen Zahlungseingang bzw. keine Rückmeldung erhalten, müssen wir den offenen Betrag an unser Inkasso-/Mahnverfahren weitergeben. Bitte begleiche den offenen Betrag von CHF {amount} heute direkt hier: {pay_link} Oder melde dich kurz, damit wir das vermeiden können.',
+        en: "Hi {name}, unfortunately several payments are still overdue, and the most recent payment attempt has failed again. If we don't receive an update or payment from you by tomorrow, we'll need to move forward with our debt collection process. Please settle the outstanding CHF {amount} directly here today: {pay_link} Or get in touch, so we can avoid further steps. Thank you for your prompt attention." }
 };
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
@@ -91,7 +91,7 @@ function waDryRunHourly() {
     arr.forEach(function (a) {
       var c = info[a.uid];
       if (!c || c.cancel_pending || /debt|inactive|non-client|lost/i.test(c.lifecycle) || !/^billed$/i.test(c.billing)) return; // not in the client list (cancelled/inactive), debt collection, paused: by hand
-      var lang = leadLang[nname(a.name)] || 'de', vars = { due_date: deDate(a.first, lang) };
+      var lang = leadLang[nname(a.name)] || 'de', vars = { due_date: deDate(a.first, lang), amount: String(a.amount), pay_link: '{pay_link}' }; // pay_link: link to pay the open charge, still to be defined (07.09.)
       function pushE(msg, trig) { var pre = 'E:' + msg + ':' + a.uid; if (sent[pre]) return; sent[pre] = today; pushRow('E', msg, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E); }
       var money = 'CHF ' + a.amount + ' open, ' + a.attempts + ' attempts, ' + (a.reason || 'no reason given');
       if (a.days >= RULE_E.W1_D) pushE('W1', 'W1: ' + a.days + ' days since the first open charge (' + a.first + '), ' + money);
@@ -101,7 +101,7 @@ function waDryRunHourly() {
     });
   }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
-  if (arr) { writeArrears(ss, arr, info || {}, sh); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
+  if (arr) { writeArrears(ss, arr, info || {}, sh); writeRetryList(ss, arr, info || {}); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
   sh.getRange('A3').setValue('Last run ' + fmtDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', failed payments: ' + (pay ? pay.length : 'n/a') + ', in arrears: ' + (arr ? arr.length : 'n/a') + '.' + payNote);
   Logger.log('Dry run ' + fmtDT(now) + ': ' + out.length + ' new rows');
@@ -251,6 +251,25 @@ function writeArrears(ss, rows, info, dry) {
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent();
   if (out.length) sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
   sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[9]; }, 0)) + ' open, ' + out.filter(function (r) { return r[8] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[7] === 'no'; }).length + ' with auto-retries exhausted. Converted values: ' + JSON.stringify(rows.convVals || {}) + ', charge status values: ' + JSON.stringify(rows.chVals || {}) + '. ' + now);
+}
+var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open charges', 'Amount open CHF', 'Later invoice paid', 'Failure message', 'Suggested action', 'Updated'];
+function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose automatic retries are exhausted -> Waseem retries by hand
+  var sh = ss.getSheetByName('Retry today');
+  if (!sh) {
+    sh = ss.insertSheet('Retry today');
+    sh.getRange('A1').setValue('Retry today: manual retry needed (automatic retries exhausted)').setFontSize(14).setFontWeight('bold');
+    sh.getRange('A2').setValue('Rebuilt every hour. Active, billed members with an open failed charge where Stripe will not retry any more (5 attempts, or older than 14 days, or a hard decline). "Later invoice paid" = a newer charge went through, so the card works and a manual retry should succeed. Hard declines need a new card first. In Phase 1 this list goes to Waseem by e-mail every morning.').setFontColor('#666666').setWrap(true);
+    sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 60);
+    sh.getRange(4, 1, 1, RETRY_HEAD.length).setValues([RETRY_HEAD]).setFontWeight('bold').setBackground('#d9ead3');
+    sh.setFrozenRows(4);
+    [80, 180, 90, 50, 60, 90, 70, 260, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+  }
+  var now = fmtDT(new Date());
+  var out = rows.filter(function (a) { var c = info[a.uid]; return a.exhausted && c && !c.cancel_pending && !/debt|inactive|non-client|lost/i.test(c.lifecycle) && /^billed$/i.test(c.billing); })
+    .map(function (a) { return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.hidden ? 'yes' : '', a.reason, HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry' : (a.hidden ? 'Retry today, card works' : 'Retry today'), now]; });
+  if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, RETRY_HEAD.length).clearContent();
+  if (out.length) sh.getRange(5, 1, out.length, RETRY_HEAD.length).setValues(out);
+  sh.getRange('A3').setValue(out.length + ' members to retry by hand, CHF ' + r2(out.reduce(function (s, r) { return s + r[5]; }, 0)) + ' open, ' + now);
 }
 function lastMsgE(dry) { // uid -> latest dry-run message for Flow E
   var m = {}, n = dry.getLastRow(); if (n < TR_ROW0) return m;
