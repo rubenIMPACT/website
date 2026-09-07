@@ -202,6 +202,18 @@ ADYEN = MAGICLINE (Ruben 07.09.): die woechentlichen Adyen-Gutschriften auf dem 
 Magicline (Mitglieder, die noch dort abgebucht werden; Jun 3'102, Jul 4'811, Aug 2'104). Bank-Tab-Spalte heisst "Magicline (Adyen)",
 Monatsabschluss "davon Magicline". Diese Mitglieder fehlen in exercise.com (Kandidaten fuer die Migration). Ruben ist nicht technisch:
 Cloudflare-/Token-Dinge in einfachen Worten erklaeren, keine Fachbegriffe ohne Erklaerung.
+TIKTOK LIVE (07.09.2026): Ads Manager "IMPACT Martial Arts AG" (aadvid 7649350938695876624), zwei Kampagnen mit Standort im
+Namen ("UC // MK // Lead // Zuerich // Brand", "UC // Lead // Brand // Winterthur"), Spend seit 29.06.2026 (~25 CHF/Tag je
+Kampagne). Custom Report "IMPACT TikTok" (reportId 7682730287242018834; Dimensionen Campaign name + By Day, Metriken Spend,
+Impressions, Clicks (destination)) mit Scheduled running: taeglich (Zeitraum "Yesterday"), CSV, Empfaenger ruben@. Apps Script
+tkImport() liest Gmail (Betreff "IMPACT TikTok", CSV-Anhang, letzte TK_DAYS Tage) im Werbekosten-Lauf 06:30; Gmail-Freigabe hat
+Ruben am 07.09. erteilt (neuer Scope -> Autorisierungsdialog, blockiert bis dahin auch die Trigger). Historie 29.06.-06.09.2026
+(137 Zeilen, 3'208.84 CHF) per RUN_NOW aus dem Bericht uebernommen: TikTok signiert seine API-Aufrufe (msToken/X-Bogus/CSRF),
+Nachbauen scheitert; funktioniert hat ein XMLHttpRequest-Hook in der Seite, der die eigenen Requests des Berichts mitliest (und
+per window.__wantPage die Seitenzahl im Body umschreibt, 20 Zeilen/Seite, page_size wird serverseitig gedeckelt). Lehren TikTok-UI
+im MCP-Tab: Nav-Menues und Toolbar-Knoepfe (Save, Scheduled running, Export) reagieren nicht auf synthetische Klicks/dispatchEvent,
+solange die Onboarding-Tour (.visual-guide-area) liegt; nach Speichern und Neuoeffnen des Berichts gingen die Knoepfe per find()+ref.
+Pager ">" bleibt haengen; cmd+a im Namensfeld markiert die ganze Seite. TikTok-Report-Export = Download (nicht genutzt).
 LEHRE Editor 04.09. abends: Funktionswaehler und Toolbar-Klicks reagieren zeitweise gar nicht; Ausweg ist ein Selbstheilungs-Flag
 im Code statt eines manuellen Laufs. Speichern klappt zuverlaessig ueber ein synthetisches Cmd+S auf .monaco-editor textarea.inputarea.
 LIFECYCLE ALS EINZIGE SPRACHE (Ruben 04.09. 13:50, 15:00 verschaerft): Team-Sheet hat KEINE manuellen Spalten mehr (Personen automatisch aus
