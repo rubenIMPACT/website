@@ -400,3 +400,11 @@ UMBAU 07.09.2026 ABEND (Ruben: "alles deutlich vereinfachen", Entscheide 1-4 + T
   als Diktierfehler gelesen - bei Widerspruch einfach umdrehen: tOf-Sortierung in trUpsert).
 - EVENTS/CANCELLATIONS leer = nur Testzeilen, von dropTestRows entfernt; gelb = Formular-Tabs. Funktionieren unveraendert.
 - Trigger neu (TR_TRIG_VER wm2): runMonatsabschlussDaily 04:30 (laufender Monat aus exercise.com + fpTransfer).
+NACHTRAG 07.09. spaet: (1) exercise.com-Reports liefern "Start Time" als "yyyy/MM/dd hh:mm AM/PM" - slice(11,19) verlor das PM
+(Team-KPIs zeigten 04:30 statt 16:30); klassen.js to24() rechnet auf 24 h um (56186c8). (2) clearSheet loescht jetzt alle Zeilen ab 2
+und fuegt sie neu ein (aafe97d): getRowGroup().remove() liess Altgruppen ebenfalls stehen. (3) Editor-Run: nach dem Konto-Popup
+"OK" registriert der erste Run-Klick oft nicht; IMMER per find "Stop the execution"/"Execution started" pruefen und sonst nochmals
+klicken; browser_batch mit >~150 s Wartezeit bricht ab. (4) Der Stundenlauf stoesst den Monatsabschluss-Bau per Einmal-Trigger
+runMonatsabschlussBuild an (gesehen 19:28, laeuft ~1-2 min). (5) Finanzplan-Uebertrag Erstlauf: 34 Zellen, Trials-Zeile im Plan
+bekommt jetzt Erstbesuche inkl. No-Shows (ZH Jun 145 statt Rubens 93) - Definition mit Ruben klaeren; laufender Monat ueberschreibt
+Rubens Planwert (Neue Verkaeufe Sep 45 -> 8), so gewollt; Kuendigungen ab Sep sind im Plan Formeln und bleiben unangetastet.
