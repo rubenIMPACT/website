@@ -270,7 +270,7 @@ function writeArrears(ss, rows, info, dry) {
     return [priorityOf(a, c), a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.exhausted ? 'no' : 'yes', a.hidden ? 'yes' : '', a.amount, a.lastDate, a.reason, a.item, c ? c.lifecycle : 'not in client list', c ? c.billing : '', stage, nextStepOf(a, c), last[a.uid] || '', now];
   });
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent();
-  if (out.length) sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
+  if (out.length) { sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out); sh.getRange(5, 11, out.length, 1).setNumberFormat('0.00'); sh.getRange(5, 5, out.length, 1).setNumberFormat('@'); sh.getRange(5, 12, out.length, 1).setNumberFormat('@'); }
   sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[10]; }, 0)) + ' open, ' + out.filter(function (r) { return r[9] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[8] === 'no'; }).length + ' with auto-retries exhausted. Priority 1 = second charge open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused, 5 = not in client list. ' + now);
 }
 var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open charges', 'Amount open CHF', 'Later invoice paid', 'Failure message', 'Suggested action', 'Updated'];
@@ -289,7 +289,7 @@ function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose
   var out = rows.filter(function (a) { return a.exhausted && activeClient(info[a.uid]); }).sort(function (x, y) { return y.amount - x.amount; })
     .map(function (a) { return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.hidden ? 'yes' : '', a.reason, HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry' : (a.hidden ? 'Retry today, card works' : 'Retry today'), now]; });
   if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, RETRY_HEAD.length).clearContent();
-  if (out.length) sh.getRange(5, 1, out.length, RETRY_HEAD.length).setValues(out);
+  if (out.length) { sh.getRange(5, 1, out.length, RETRY_HEAD.length).setValues(out); sh.getRange(5, 6, out.length, 1).setNumberFormat('0.00'); }
   sh.getRange('A3').setValue(out.length + ' members to retry by hand, CHF ' + r2(out.reduce(function (s, r) { return s + r[5]; }, 0)) + ' open, ' + now);
 }
 function lastMsgE(dry) { // uid -> latest dry-run message for Flow E
