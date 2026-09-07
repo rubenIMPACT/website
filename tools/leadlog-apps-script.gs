@@ -240,10 +240,13 @@ function getOrCreate(ss, name) { return ss.getSheetByName(name) || ss.insertShee
 // sh.clear() laesst Zahlenformate stehen (Lehre 05.09.2026: alte Prozent-/Datumsformate machten aus 27 Trials "2700%" und aus
 // 15 Leads "15.01.1900"), deshalb zusaetzlich das ganze Blatt auf Standardformat zuruecksetzen.
 function clearSheet(sh) {
-  dropRowGroups(sh); // vor clear(), siehe dropRowGroups
-  var f = sh.getFilter(); if (f) f.remove(); sh.clear();
-  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearFormat().setNumberFormat('General');
+  var f = sh.getFilter(); if (f) f.remove();
   var cs = sh.getCharts(); for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]);
+  // Alle Zeilen ab 2 loeschen und neu einfuegen: nimmt Zeilengruppen, Verbindungen, Notizen und Formate sicher mit. Lehre 07.09.:
+  // shiftRowGroupDepth(-1) und auch getRowGroup().remove() liessen alte Gruppen stehen, Kernzeilen verschwanden in eingeklappten Altgruppen.
+  try { var fr = sh.getFrozenRows(); if (fr) sh.setFrozenRows(0); var mr = sh.getMaxRows(); if (mr > 1) sh.deleteRows(2, mr - 1); sh.insertRowsAfter(1, Math.max(mr - 1, 100)); if (fr) sh.setFrozenRows(fr); } catch (e) { Logger.log('clearSheet Zeilen: ' + e); }
+  sh.clear();
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearFormat().setNumberFormat('General');
 }
 
 // Leads Historie (manuelle Monatszahlen aus HISTORY) wandert in die MonatsHistorie (Kennzahl leads_web), der Tab entfaellt (Ruben 04.09.2026)
@@ -2463,15 +2466,6 @@ function runMonatsabschlussDaily() { // 04:30: laufender Monat neu aus exercise.
   try { runMonatsabschluss(start, fmtD(now)); } catch (e) { mailOnce('madaily', '[Sheet] Monatsabschluss laufender Monat FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e)); }
   try { fpTransfer(); } catch (e2) { mailOnce('fp', '[Sheet] Finanzplan-Uebertrag FEHLGESCHLAGEN', String(e2 && e2.stack ? e2.stack : e2)); }
 }
-// Alle Zeilengruppen eines Tabs entfernen. shiftRowGroupDepth(-1) ueber den ganzen Tab wirft auf Zeilen ohne Gruppe und liess alte Gruppen
-// stehen (Lehre 07.09.: "Zahlende Abo-Kunden" verschwand in einer Altgruppe). Vor sh.clear() aufrufen, weil getLastRow() danach 0 ist.
-function dropRowGroups(sh) {
-  try {
-    var n = Math.min(sh.getMaxRows(), sh.getLastRow() + 5), r = 1, guard = 0;
-    while (r <= n && guard++ < 3000) { var d = sh.getRowGroupDepth(r); if (d > 0) { sh.getRowGroup(r, d).remove(); continue; } r++; }
-  } catch (e) { Logger.log('Zeilengruppen entfernen: ' + e); }
-}
-
 // ---------------------------------------------------------------- Finanzplan-Uebertrag (Ruben 07.09.2026): Ist-Zahlen in die Monatsspalten des Finanzplans
 // Schreibt je Standort in den Tab des Finanzplans (Zeile per Bezeichnung, Spalte per Monatskopf "M.yyyy") die Ist-Werte ab FP_FROM bis zum
 // laufenden Monat. Nie ueber Formeln, nur in leere oder Zahlenzellen; jede Aenderung steht im Tab "Finanzplan-Übertrag" in Analytics (alt/neu).
