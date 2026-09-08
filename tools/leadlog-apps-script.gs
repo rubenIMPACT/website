@@ -2149,7 +2149,7 @@ function trCall(body) { body.action = 'trials'; return klassenCall(body); }
 function trNoTrial(r) { return LC_EXCLUDE.indexOf(String(r[CI.lifecycle] || '').trim()) >= 0; }
 function trIsTrial(r) { var art = trC(r[CI.art]), lc = String(r[CI.lifecycle] || ''); if (trNoTrial(r)) return false; return art === 'Trial' || (art.indexOf('Wiederholer') === 0 && LC_POST.indexOf(lc) >= 0); }
 function trPers(r) { return 1; } // seit 06.09.: eine Zeile = eine Person (Kinder als eigene Zeilen)
-function trSold(r) { return trIsTrial(r) && !!dOfCell(r[CI.contract]); }
+function trSold(r) { return !trNoTrial(r) && !!dOfCell(r[CI.contract]); } // Unterschrift = Verkauf, auch bei Gebucht/No-Show (Ruben 08.09.)
 function trNsDates(r) { return String(r[CI.ns] || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean); }
 // Pruefung Fakt gegen Lifecycle-Stage (Ruben 04.09.2026: ein Tag nach dem Termin; Zahlung offen ab 7 Tagen)
 function trCheck(r, today, T) {
@@ -2326,7 +2326,7 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) 
     if (trNoTrial(r)) return;
     var p = trPers(r), c = dOfCell(r[CI.contract]), b = dOfCell(r[CI.created]);
     if (trIsTrial(r)) D(d).trials += p;
-    if (c && trIsTrial(r)) D(c).sold += p;
+    if (c) D(c).sold += p; // Verkauf zaehlt am Unterschriftstag, auch bei Gebucht/No-Show (Unterschrift vor dem Trial, Ruben 08.09.)
     if (b) D(b).placed += 1;
     trNsDates(r).forEach(function (x) { D(x).ns += 1; });
   });

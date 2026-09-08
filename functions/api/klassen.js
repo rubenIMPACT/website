@@ -420,14 +420,17 @@ function computeMonat(inp) {
   const lifeCur = {}; inp.life.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) lifeCur[e] = String(r["Current"] || ""); });
   const uidLoc = {}; subs.forEach((s) => { uidLoc[s.uid] = s.loc; });
   comp.forEach((x) => { const u = String(x[vix("User ID")]); if (!uidLoc[u]) uidLoc[u] = /winterthur/i.test(String(x[vix("Location")] || "")) ? "Winterthur" : "Zurich"; });
-  const signedBy = {}; (inp.waiver || []).forEach((r) => { const u = String(r["User ID"] || ""), d = chDate(r["Signed"]), e = String(r["Email"] || "").toLowerCase().trim(); if (!u || !d || !inMonth(d)) return; if (!signedBy[u] || signedBy[u].date > d) signedBy[u] = { date: d, email: e }; });
+  const signedBy = {}; (inp.waiver || []).forEach((r) => { const u = String(r["User ID"] || ""), d = chDate(r["Signed"]), e = String(r["Email"] || "").toLowerCase().trim(); if (!u || !d || !inMonth(d)) return; if (!signedBy[u] || signedBy[u].date > d) signedBy[u] = { date: d, email: e, created: chDate(r["Created Account"]) }; });
   // Nur Abo-Verkaeufe, nur der erste Vertrag (Ruben 08.09., gleiche Regel wie im Team-Sheet): lief mehr als 60 Tage vor der Unterschrift
   // schon ein Abo (nicht PT) = Paketwechsel/Verlaengerung, kein Verkauf; Stage "Client" ohne (auch geplantes) Abo und ohne
   // Kuendigung = Einmalkauf (z.B. PT-Paket), kein Verkauf.
   const subsByUid = {}; subs.forEach((s) => { if (!isPT(s.pkg)) (subsByUid[s.uid] = subsByUid[s.uid] || []).push(s); });
+  const fvUids = new Set(); LOCS.forEach((l) => (inp.fv[l] || []).forEach((f) => fvUids.add(String(f.uid))));
   Object.keys(signedBy).forEach((u) => {
-    const d = signedBy[u].date, from = addDaysStr(d, -60), mine = subsByUid[u] || [];
+    const d = signedBy[u].date, from = addDaysStr(d, -60), mine = subsByUid[u] || [], created = signedBy[u].created;
     if (mine.some((s) => s.date && s.date < from)) { delete signedBy[u]; return; }
+    // Konto aelter als 90 Tage ohne Erstbesuch im Monat und ohne Besuch = bestehendes/frueheres Mitglied (Baraa Selmi), kein Verkauf
+    if (created && created < addDaysStr(d, -90) && !fvUids.has(u) && !visitsByUser[u]) { delete signedBy[u]; return; }
     if (!mine.length && !cancelledUids.has(u) && lifeCur[signedBy[u].email] === "Client") delete signedBy[u];
   });
   const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
@@ -779,7 +782,7 @@ function computeTrials(inp) {
   const subsBy = {}; subs.forEach((s) => { (subsBy[s.uid] = subsBy[s.uid] || []).push(s); });
   const canc = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), ended: chDate(r["Ended At"]), pkg: String(r["Subscribeable"] || ""), converted: /yes/i.test(String(r["Converted"] || "")) }));
   const cancBy = {}; canc.forEach((c) => { (cancBy[c.uid] = cancBy[c.uid] || []).push(c); });
-  const waiv = inp.waiver.map((r) => ({ uid: String(r["User ID"]), date: chDate(r["Signed"]), by: String(r["Signed By"] || ""), email: String(r["Email"] || "").toLowerCase().trim(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim() }));
+  const waiv = inp.waiver.map((r) => ({ uid: String(r["User ID"]), date: chDate(r["Signed"]), by: String(r["Signed By"] || ""), email: String(r["Email"] || "").toLowerCase().trim(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), created: chDate(r["Created Account"]) }));
   const waivBy = {}; waiv.forEach((w) => { (waivBy[w.uid] = waivBy[w.uid] || []).push(w); });
   // Lifecycle-Stage (exercise.com "Current") je E-Mail, letzter Uebergang im Fenster gewinnt
   const lifeBy = {}; (inp.life || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (!e) return; if (!lifeBy[e] || lifeBy[e].date <= d) lifeBy[e] = { date: d, cur: String(r["Current"] || ""), src: String(r["Source"] || ""), loc: String(r["Location"] || "") }; });
@@ -872,6 +875,9 @@ function computeTrials(inp) {
       if (!ws.length) return;
       const w = ws[0], old = fvOld[uid], email = w.email || (old ? old.email : ""), name = w.name || (old ? old.name : "");
       if (!name || staff.has(name.toLowerCase())) return;
+      // Konto aelter als 90 Tage, kein Erstbesuch in den letzten Monaten, kein Besuch im Fenster = bestehendes oder frueheres Mitglied
+      // (Baraa Selmi, Mitglied seit 2025, altes Abo in keinem Report mehr): Paketwechsel/Verlaengerung, kein Verkauf
+      if (!old && w.created && w.created < addDaysStr(w.date, -90)) return;
       const trialDate = old ? old.date : w.date, sale = saleOf(uid, trialDate, email);
       if (!sale.date) return; // bestehendes Mitglied oder Einmalkauf: kein Abo-Verkauf
       const loc = old ? old.loc : locBy(email, w.by);
