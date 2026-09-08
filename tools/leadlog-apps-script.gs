@@ -2305,7 +2305,9 @@ function trSheetUids(ss) {
 function trOpenRows(ss, loc, start) {
   var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return [];
   var v = sh.getRange(TR_ROW0, TR_P0, sh.getLastRow() - TR_ROW0 + 1, TR_NCOL).getValues(), out = [];
-  v.forEach(function (r) { var d = dOfCell(r[CI.date]); if (d && d < start && r[CI.uid] && !dOfCell(r[CI.contract])) out.push({ uid: String(r[CI.uid]), date: d }); });
+  // alte Zeilen ohne Abschluss UND alte Zeilen mit Abschluss ab TR_SALE_FROM: beide werden jeden Lauf neu bewertet (ein Paketwechsel
+  // oder eine Korrektur in exercise.com nimmt den Abschluss wieder weg; Lehre 08.09. Leonid Berisha)
+  v.forEach(function (r) { var d = dOfCell(r[CI.date]), c = dOfCell(r[CI.contract]); if (d && d < start && r[CI.uid] && (!c || c >= TR_SALE_FROM)) out.push({ uid: String(r[CI.uid]), date: d }); });
   return out.slice(0, 600);
 }
 function trProtect(sh, editors, desc) {
