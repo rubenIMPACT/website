@@ -477,3 +477,12 @@ liefen ins Leere. Neue Phase 'cid' in klassen.js liest /api/v4/clients (4401 Kun
 liefert user_id -> id; Apps Script merkt die Zuordnung im versteckten Team-Sheet-Tab 'ClientIds' (trCidLookup, nur fehlende UIDs),
 Fallback ohne Nummer = Kundensuche-Link "CRM (Suche)". Offen: Rubens Team meldete 6 ZH-Verkaeufe am 07.09., exercise.com kennt 5
 (Waiver, Lifecycle, Assessments); kein geplantes Abo vom 07.09. - Name des sechsten von Ruben ausstehend.
+NACHTRAG 08.09. ~09:30 (Commit de73b90 + Lauf): (a) Baraa Selmi (WT, Mitglied seit 09/2025) bekam trotzdem eine "no check-in"-Zeile:
+sein altes Abo steht in keinem Report mehr (active_subscription zeigt nur das neue ab 01.09., cancelled_subscriptions Aug-Sep leer).
+Neue Regel in saleOf/computeMonat: Waiver-Spalte "Created Account" mehr als 90 Tage vor der Unterschrift UND kein Erstbesuch
+(3 Monate) UND kein Besuch im Fenster = bestehendes/frueheres Mitglied, kein Verkauf. (b) Tageszahl "Verkauft" zaehlt jede Zeile
+mit Abschlussdatum (auch Gebucht/No-Show), trSold ebenso. (c) LEHRE: trUpsert behaelt alte Zeilen (byUid aus dem Blatt) - eine
+Zeile, die klassen.js nicht mehr liefert, bleibt stehen. Falsche Zeile loswerden = UID-Zelle leeren (Zeilen ohne UID fallen beim
+naechsten Lauf weg), so bei Selmi gemacht. (d) Editor: Run-Klick per Koordinate wird vom Konto-Popup geschluckt; zuverlaessig ist
+find "OK button" + find "Run button" und Klick per ref, dann find "Execution started". get_page_text NIE auf der Editor-Seite
+(zeigt die Token-Zeile). Ergebnis: ZH September Verkauft 13 (= 14 Unterschriften - Nicolaj PT), WT 9 (= 10 - Selmi).
