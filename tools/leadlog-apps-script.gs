@@ -1592,7 +1592,7 @@ var MA_NOTES = {
   trial_attended: 'Erstbesucher mit erstem Check-in überhaupt, ohne Altkunden und Staff (Regel Team-Sheet). Ab September 2026 Woche und Monat aus derselben Quelle, davor Monatsreport von exercise.com. Geht so in den Finanzplan (Anzahl Trials).',
   trial_noshow: 'Gebucht und nicht erschienen.',
   showup_rate: 'Erschienene Probetrainer geteilt durch erschienene plus No-Shows.',
-  sales_signed: 'Vertragsunterschriften (Waiver) nach Datum der Unterschrift in exercise.com, je Woche und Monat, auch wenn das Abo später startet.',
+  sales_signed: 'Vertragsunterschriften (Waiver) nach Datum der Unterschrift in exercise.com, je Woche und Monat, auch wenn das Abo später startet. Nur der erste Abo-Vertrag einer Person: PT-Pakete, Paketwechsel und Verlängerungen zählen nicht (Ruben 08.09.).',
   new_customers: 'Abo-Starts ohne Paketwechsel und ohne Personal Training, nach Startdatum des Abos in exercise.com. Geht so in den Finanzplan.',
   conv_sales_trial: 'Verkäufe des Monats geteilt durch durchgeführte Probetrainings des Monats.',
   conv_sales_lead: 'Verkäufe des Monats geteilt durch neue Kontakte in exercise.com.',
@@ -1674,7 +1674,7 @@ function runMonatsabschluss(start, end) {
 // Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
 // reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
-var MA_CATCHUP = '2026-09-08 Tageswerte Reparatur Jun-Aug'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP = '2026-09-08b Verkaeufe nur erstes Abo Jun-Aug'; // Marke aendern = Nachlauf laeuft erneut
 var MA_CATCHUP_MONTHS = ['2026-06', '2026-07', '2026-08'];
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;
@@ -2081,6 +2081,12 @@ var TR_MAIL_TEAM = false; // Mail an Abdi/Bogdan erst nach der Einfuehrung (Rube
 var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
 var TR_LANG = { Zurich: 'de', Winterthur: 'en' };
 var TR_ROW0 = 5, TR_DAY_N = 7, TR_P0 = 8, TR_NCOL = 19, TR_CHECK_DAYS = 1, TR_PAY_DAYS = 7;
+// Ruben 08.09.: Verkauf = Unterschrift des ERSTEN Abo-Vertrags, zaehlt am Unterschriftstag, auch vor dem Probetraining oder ohne Check-in.
+// Unterschreiber ohne Zeile werden ab TR_SALE_FROM nachgetragen (Zeile am ersten Check-in bis TR_FV_BACK Tage zurueck, sonst am
+// Unterschriftstag mit "ohne Check-in" als Klasse; zaehlt sofort als Trial und Verkauf, kein roter Hinweis). PT-Pakete, Paketwechsel
+// und Verlaengerungen sind keine Verkaeufe (klassen.js saleOf / computeMonat). Zahlungshinweis entfaellt bei geplantem Abo-Start.
+var TR_SALE_FROM = '2026-09-01', TR_FV_BACK = 60;
+var TR_CID_SHEET = 'ClientIds'; // versteckter Tab im Team-Sheet: Report-User-ID -> Profilnummer (CRM-Link), waechst je Lauf
 var DI = { day: 0, att: 1, conv: 2, placed: 3, trials: 4, noshow: 5, sold: 6 };
 // Ruben 06.09.: Spalte Personen raus (zwei Kinder = Zeile kopieren und Namen aendern, die Kopie bleibt erhalten), Vertragsstart neu
 var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, lifecycle: 7, check: 8, contract: 9, start: 10, seller: 11, pkg: 12, note: 13, crm: 14, created: 15, uid: 16, ns: 17, stamp: 18 };
@@ -2093,32 +2099,32 @@ var TR_TRIG_VER = 'wm2'; // Marke aendern = Trigger werden beim naechsten Stunde
 var TR_T = {
   de: {
     title: 'Probetrainings Zürich',
-    ruleShort: 'Trial = erster Check-in überhaupt bei IMPACT (ohne Staff, Gäste, Altkunden; Events und Open Mat zählen nicht). Eure Eingaben: nur „Anrufe versucht“ und „Anrufe geführt“, alles andere kommt aus exercise.com. Rote Zeilen: Fakt und Lifecycle-Stage passen nicht zusammen, bitte in exercise.com nachziehen. Alle Regeln stehen als Notiz an dieser Zelle.',
+    ruleShort: 'Trial = erster Check-in überhaupt bei IMPACT (ohne Staff, Gäste, Altkunden; Events und Open Mat zählen nicht). Eure Eingaben: nur „Anrufe versucht“ und „Anrufe geführt“, alles andere kommt aus exercise.com. Rote Zeilen: Fakt und Lifecycle-Stage passen nicht zusammen, bitte in exercise.com nachziehen. Verkauf = Unterschrift des ersten Abo-Vertrags, zählt am Unterschriftstag, auch vor dem Probetraining oder ohne Check-in (dann steht „ohne Check-in“ bei der Klasse). Alle Regeln stehen als Notiz an dieser Zelle.',
     dHead: ['Tag', 'Anrufe versucht', 'Anrufe geführt', 'Gebuchte Trials', 'Trials', 'No-Shows', 'Verkauft'],
-    dNotes: ['Kalendertag. Die Personen dieses Tages stehen rechts daneben.', 'EURE SPALTE: Anrufversuche an diesem Tag.', 'EURE SPALTE: tatsächlich geführte Gespräche an diesem Tag.', 'An diesem Tag angelegte Trial-Buchungen (egal, wann das Trial stattfindet). Automatisch.', 'Probetrainings, die an diesem Tag stattgefunden haben. Automatisch.', 'An diesem Tag gebucht und nicht erschienen. Automatisch aus den Besuchsdaten.', 'Verträge, die an diesem Tag unterschrieben wurden. Automatisch.'],
+    dNotes: ['Kalendertag. Die Personen dieses Tages stehen rechts daneben.', 'EURE SPALTE: Anrufversuche an diesem Tag.', 'EURE SPALTE: tatsächlich geführte Gespräche an diesem Tag.', 'An diesem Tag angelegte Trial-Buchungen (egal, wann das Trial stattfindet). Automatisch.', 'Probetrainings, die an diesem Tag stattgefunden haben. Automatisch.', 'An diesem Tag gebucht und nicht erschienen. Automatisch aus den Besuchsdaten.', 'Erste Abo-Verträge, die an diesem Tag unterschrieben wurden, auch vor dem Probetraining oder ohne Check-in. Automatisch.'],
     head: ['Trial-Datum', 'Name', 'Art', 'Klasse', 'Trainer', 'Gebucht von', 'Kanal', 'Personen', 'Lifecycle-Stage', 'Prüfen', 'Abschluss am', 'Verkäufer', 'Paket', 'Letzte Notiz', 'CRM', 'Buchung erstellt am', 'UID', 'NS', 'Stand'],
     notes: ['Datum des ersten Check-ins. Bei No-Show, Storniert oder Gebucht: Datum des gebuchten Termins. Automatisch aus exercise.com.', 'Name in exercise.com. Automatisch.', 'Trial stattgefunden = die Person war da (erster Check-in überhaupt). Gebucht (kommend) = Termin liegt noch vor uns. No-Show = nicht erschienen. Storniert. Wiederholer (prüfen). Rückkehrer. Event (kein Trial). Automatisch.', 'Uhrzeit und Klasse des ersten Check-ins (bei Gebucht: des Termins). Die Personen eines Tages stehen nach Uhrzeit sortiert. Automatisch.', 'Trainer dieser Klasse. Automatisch.', 'Wer die Buchung in exercise.com angelegt hat. Automatisch.', 'Herkunft der Website-Anfrage: Klick-ID (Google Ads, Meta Ads, TikTok Ads), sonst UTM, sonst verweisende Seite. "kein Web-Lead" = kein Formular auf der Website gefunden. Automatisch.', 'Anzahl Personen, automatisch 2 bei Geschwistern auf einem Account ("&" oder "+" im Namen).', 'Aktuelle Lifecycle-Stage in exercise.com. Wird dort gepflegt, hier nur gelesen. "Non-Client" (Assistant Coach, Friends & Family) nimmt die Zeile aus der Zählung. Automatisch.', 'Abweichung zwischen Fakt (Buchung, Check-in, Vertrag) und Lifecycle-Stage, ab einem Tag nach dem Termin. Rot = bitte in exercise.com die Stage setzen; beim nächsten Lauf verschwindet der Hinweis. Automatisch.', 'Tag der Vertragsunterschrift in exercise.com (Waiver). Das ist der Verkauf, nicht der Abo-Start; der Start kann später liegen. Automatisch.', 'Wer den Vertrag unterschreiben liess. Automatisch.', 'Abgeschlossenes Paket. Automatisch.', 'Datum und Typ der letzten Notiz in exercise.com. Automatisch.', 'Link auf die Notizen der Person in exercise.com.', 'Wann die Trial-Buchung in exercise.com erstellt wurde. Zählt als Placed Trial für diesen Tag. Automatisch.', 'exercise.com User-ID, der Schlüssel der Zeile. Nicht ändern.', 'No-Show-Daten dieser Person, Grundlage der Tageszählung. Nicht ändern.', 'Letzte Aktualisierung (stündlich 09–22 Uhr).'],
-    art: { 'Trial': 'Trial stattgefunden', 'Gebucht': 'Gebucht (kommend)' }, kanal: {},
+    noVisit: 'ohne Check-in', art: { 'Trial': 'Trial stattgefunden', 'Gebucht': 'Gebucht (kommend)' }, kanal: {},
     payHead: ['Zahlung offen', 'seit', 'Tage', 'CRM'],
     nsNote: 'No-Show am {ns}, neu gebucht für {d}.',
     chk: { nolc: 'Trial am {d} vorbei, keine Lifecycle-Stage bekannt', stuck: 'Trial am {d} vorbei, Stage noch "{lc}"', noshow: 'No-Show am {d}, Stage noch "{lc}"', canc: 'Storniert am {d}, Stage noch "{lc}"', booked: 'Termin {d} gebucht, Stage "{lc}" statt Trial Booked', wdh: 'Wiederholer: Stage in exercise.com setzen oder auf "Non-Client" stellen', clientNoContract: 'Stage Client, aber kein Vertrag gefunden', contractNoClient: 'Vertrag am {d}, Stage aber "{lc}"', pay: 'Seit {n} Tagen unterschrieben, Zahlung fehlt', noteYes: ' (letzte Notiz {n})', noteNo: ' (keine Notiz seit dem Termin)' },
     mail: { subject: '[Team] Probetrainings Zürich {d}', today: 'Heute', yest: 'Gestern', checks: 'Bitte in exercise.com nachziehen', pay: 'Zahlung offen (ab 7 Tagen)', none: 'keine', month: 'Monat bisher: {t} Trials, {s} verkauft, {c} zu prüfen' },
-    rule: 'Regel (Ruben, 04.09.2026): Trial = erster Check-in überhaupt bei IMPACT, egal welches Paket exercise.com dranhängt; ohne Staff, Gäste und Altkunden. Events, Seminare und Open Mat sind keine Trials. Zwei Kinder auf einem Account = 2 Personen. Kein Trial (Assistant Coach, Friends & Family, Datenfehler) = Stage "Non-Client" in exercise.com setzen. Der Zustand einer Person ist ihre Lifecycle-Stage in exercise.com; das Sheet hat keine eigenen Status-Spalten. "Prüfen" zeigt ab einem Tag nach dem Termin, wo Fakt und Stage nicht zusammenpassen (rot): bitte in exercise.com nachziehen, der Hinweis verschwindet beim nächsten Lauf. Abschluss am = Unterschrift (Waiver), nicht Abo-Start. Links der Tagesblock: eure einzigen Eingaben sind Anrufe versucht und Anrufe geführt. Ganz rechts "Zahlung offen": unterschrieben, aber ohne Zahlungsdaten. Aktualisierung stündlich 09–22 Uhr. Spaltenerklärungen: Notiz auf der Überschrift.'
+    rule: 'Regel (Ruben, 04.09.2026): Trial = erster Check-in überhaupt bei IMPACT, egal welches Paket exercise.com dranhängt; ohne Staff, Gäste und Altkunden. Events, Seminare und Open Mat sind keine Trials. Zwei Kinder auf einem Account = 2 Personen. Kein Trial (Assistant Coach, Friends & Family, Datenfehler) = Stage "Non-Client" in exercise.com setzen. Der Zustand einer Person ist ihre Lifecycle-Stage in exercise.com; das Sheet hat keine eigenen Status-Spalten. "Prüfen" zeigt ab einem Tag nach dem Termin, wo Fakt und Stage nicht zusammenpassen (rot): bitte in exercise.com nachziehen, der Hinweis verschwindet beim nächsten Lauf. Abschluss am = Unterschrift (Waiver), nicht Abo-Start. Verkauf (Ruben 08.09.): nur der erste Abo-Vertrag einer Person, PT-Pakete, Paketwechsel und Verlängerungen zählen nicht; die Unterschrift zählt am Unterschriftstag, auch wenn sie vor dem Probetraining liegt oder kein Check-in da ist. Dann steht die Person am Unterschriftstag mit „ohne Check-in“ bei der Klasse und zählt als Trial und Verkauf. Links der Tagesblock: eure einzigen Eingaben sind Anrufe versucht und Anrufe geführt. Ganz rechts "Zahlung offen": unterschrieben, aber ohne Zahlungsdaten. Aktualisierung stündlich 09–22 Uhr. Spaltenerklärungen: Notiz auf der Überschrift.'
   },
   en: {
     title: 'Trials Winterthur',
-    ruleShort: 'Trial = first ever check-in at IMPACT (no staff, guests or existing members; events and open mat do not count). Your inputs: only "Calls attempted" and "Calls conducted", everything else comes from exercise.com. Red rows: fact and lifecycle stage do not match, please update in exercise.com. All rules are in the note on this cell.',
+    ruleShort: 'Trial = first ever check-in at IMPACT (no staff, guests or existing members; events and open mat do not count). Your inputs: only "Calls attempted" and "Calls conducted", everything else comes from exercise.com. Red rows: fact and lifecycle stage do not match, please update in exercise.com. Sale = signature of the first membership contract, counts on the signing day, even before the trial or without a check-in (then "no check-in" is shown as the class). All rules are in the note on this cell.',
     dHead: ['Day', 'Calls attempted', 'Calls conducted', 'Placed trials', 'Trials', 'No-shows', 'Sold'],
-    dNotes: ['Calendar day. The people of that day are listed to the right.', 'YOUR COLUMN: call attempts on that day.', 'YOUR COLUMN: conversations actually held on that day.', 'Trial bookings created on that day (no matter when the trial takes place). Automatic.', 'Trials that took place on that day. Automatic.', 'Booked for that day and did not show up. Automatic from the visit data.', 'Contracts signed on that day. Automatic.'],
+    dNotes: ['Calendar day. The people of that day are listed to the right.', 'YOUR COLUMN: call attempts on that day.', 'YOUR COLUMN: conversations actually held on that day.', 'Trial bookings created on that day (no matter when the trial takes place). Automatic.', 'Trials that took place on that day. Automatic.', 'Booked for that day and did not show up. Automatic from the visit data.', 'First membership contracts signed on that day, even before the trial or without a check-in. Automatic.'],
     head: ['Trial date', 'Name', 'Type', 'Class', 'Coach', 'Booked by', 'Channel', 'People', 'Lifecycle stage', 'Check', 'Contract signed', 'Sold by', 'Package', 'Last note', 'CRM', 'Booking created', 'UID', 'NS', 'Updated'],
     notes: ['Date of the first check-in. For No-show, Cancelled or Booked: date of the booked session. Automatic from exercise.com.', 'Name in exercise.com. Automatic.', 'Trial done = the person came (first ever check-in). Booked (upcoming) = session still ahead. No-show. Cancelled. Repeat visitor (check). Returning ex-member. Event (no trial). Automatic.', 'Time and class of the first check-in (for Booked: of the session). People of a day are sorted by time. Automatic.', 'Coach of that class. Automatic.', 'Who created the booking in exercise.com. Automatic.', 'Origin of the website enquiry: click ID (Google Ads, Meta Ads, TikTok Ads), otherwise UTM, otherwise referring site. "no web lead" = no form found on the website. Automatic.', 'Number of people, automatically 2 for siblings on one account ("&" or "+" in the name).', 'Current lifecycle stage in exercise.com. Maintained there, only read here. "Non-Client" (assistant coach, friends & family) removes the row from the count. Automatic.', 'Mismatch between fact (booking, check-in, contract) and lifecycle stage, from one day after the session. Red = please set the stage in exercise.com; the hint disappears with the next run. Automatic.', 'Day the contract was signed in exercise.com (waiver). That is the sale, not the subscription start, which can be later. Automatic.', 'Who had the contract signed. Automatic.', 'Package sold. Automatic.', 'Date and type of the last note in exercise.com. Automatic.', 'Link to the notes of that person in exercise.com.', 'When the trial booking was created in exercise.com. Counts as a placed trial for that day. Automatic.', 'exercise.com user ID, the key of the row. Do not change.', 'No-show dates of this person, the basis of the daily count. Do not change.', 'Last update (hourly 9am-10pm).'],
-    art: { 'Trial': 'Trial done', 'No-Show': 'No-show', 'Storniert': 'Cancelled', 'Gebucht': 'Booked (upcoming)', 'Wiederholer (prüfen)': 'Repeat visitor (check)', 'Rückkehrer (Ex-Mitglied)': 'Returning ex-member', 'Event (kein Trial)': 'Event (no trial)' },
+    noVisit: 'no check-in', art: { 'Trial': 'Trial done', 'No-Show': 'No-show', 'Storniert': 'Cancelled', 'Gebucht': 'Booked (upcoming)', 'Wiederholer (prüfen)': 'Repeat visitor (check)', 'Rückkehrer (Ex-Mitglied)': 'Returning ex-member', 'Event (kein Trial)': 'Event (no trial)' },
     kanal: { 'Google organisch': 'Google organic', 'Instagram/Facebook organisch': 'Instagram/Facebook organic', 'TikTok organisch': 'TikTok organic', 'Direkt': 'Direct', 'Andere': 'Other', 'kein Web-Lead': 'no web lead' },
     payHead: ['Payment open', 'since', 'days', 'CRM'],
     nsNote: 'No-show on {ns}, re-booked for {d}.',
     chk: { nolc: 'Trial on {d} is over, no lifecycle stage known', stuck: 'Trial on {d} is over, stage still "{lc}"', noshow: 'No-show on {d}, stage still "{lc}"', canc: 'Cancelled on {d}, stage still "{lc}"', booked: 'Session {d} booked, stage "{lc}" instead of Trial Booked', wdh: 'Repeat visitor: set the stage in exercise.com or set it to "Non-Client"', clientNoContract: 'Stage Client, but no contract found', contractNoClient: 'Contract on {d}, but stage "{lc}"', pay: 'Signed {n} days ago, payment still missing', noteYes: ' (last note {n})', noteNo: ' (no note since the session)' },
     mail: { subject: '[Team] Trials Winterthur {d}', today: 'Today', yest: 'Yesterday', checks: 'Please update in exercise.com', pay: 'Payment open (7 days and more)', none: 'none', month: 'Month so far: {t} trials, {s} sold, {c} to check' },
-    rule: 'Rule (Ruben, 4 Sep 2026): Trial = first ever check-in at IMPACT, whatever package exercise.com attaches; no staff, guests or existing members. Events, seminars and open mat are not trials. Two kids on one account = 2 people. Not a trial (assistant coach, friends & family, data error) = set the stage "Non-Client" in exercise.com. A person\'s state is their lifecycle stage in exercise.com; the sheet has no status columns of its own. "Check" shows, from one day after the session, where fact and stage do not match (red): please update in exercise.com, the hint disappears with the next run. Contract signed = signature (waiver), not subscription start. On the left the day block: your only inputs are calls attempted and calls conducted. On the far right "Payment open": signed, but no payment details. Updated every hour 9am-10pm. Column explanations: note on the header cell.'
+    rule: 'Rule (Ruben, 4 Sep 2026): Trial = first ever check-in at IMPACT, whatever package exercise.com attaches; no staff, guests or existing members. Events, seminars and open mat are not trials. Two kids on one account = 2 people. Not a trial (assistant coach, friends & family, data error) = set the stage "Non-Client" in exercise.com. A person\'s state is their lifecycle stage in exercise.com; the sheet has no status columns of its own. "Check" shows, from one day after the session, where fact and stage do not match (red): please update in exercise.com, the hint disappears with the next run. Contract signed = signature (waiver), not subscription start. Sale (Ruben, 8 Sep): only a person\'s first membership contract, PT packages, package changes and renewals do not count; the signature counts on the signing day, even before the trial or without a check-in. Then the person is listed on the signing day with "no check-in" as the class and counts as trial and sale. On the left the day block: your only inputs are calls attempted and calls conducted. On the far right "Payment open": signed, but no payment details. Updated every hour 9am-10pm. Column explanations: note on the header cell.'
   }
 };
 // Umbau 06.09.2026 (Ruben): Spalte "Personen" entfaellt, "Vertragsstart" kommt hinter "Abschluss am"; Kinder = Zeile kopieren
@@ -2151,7 +2157,8 @@ function trCheck(r, today, T) {
   if (!d || trNoTrial(r)) return '';
   var due = today > addDs(d, TR_CHECK_DAYS), msg = '', dd = deD(d), noteD = String(r[CI.note] || '').slice(0, 10), noteIso = noteD ? noteD.slice(6, 10) + '-' + noteD.slice(3, 5) + '-' + noteD.slice(0, 2) : '';
   var f = function (key, dx) { return T.chk[key].replace('{d}', dx || dd).replace('{lc}', lc); };
-  if (lc === LC_PAY_OPEN && contract) { var age = Math.round((new Date(today + 'T12:00:00') - new Date(contract + 'T12:00:00')) / 864e5); if (age >= TR_PAY_DAYS) return T.chk.pay.replace('{n}', age); }
+  var startD = dOfCell(r[CI.start]); // Abo mit Start in der Zukunft: Zahlung ist geregelt, kein Hinweis (Ruben 08.09.)
+  if (lc === LC_PAY_OPEN && contract && !(startD && startD > today)) { var age = Math.round((new Date(today + 'T12:00:00') - new Date(contract + 'T12:00:00')) / 864e5); if (age >= TR_PAY_DAYS) return T.chk.pay.replace('{n}', age); }
   if (art === 'Trial') {
     if (due) { if (!lc) msg = f('nolc'); else if (LC_POST.indexOf(lc) < 0) msg = f('stuck'); else if (lc === 'Client' && !contract && today > addDs(d, 2)) msg = f('clientNoContract'); }
     if (!msg && contract && LC_CLIENT.indexOf(lc) < 0 && today > addDs(contract, 2)) msg = f('contractNoClient', deD(contract));
@@ -2185,7 +2192,7 @@ function trFindLead(map, email, name, date) {
 function runProbetrainings(startOpt) {
   var now = new Date(), today = fmtD(now), end = fmtD(addD(now, 14));
   var start = startOpt || fmtD(addD(now, -33)); // Fenster ~47 Tage (2 Besuche-Bloecke); aeltere Zeilen bleiben im Tab stehen
-  var base = { start: start, end: end, today: today, sales_start: fmtD(addD(now, -180)) };
+  var base = { start: start, end: end, today: today, sales_start: fmtD(addD(now, -180)), fv_back: TR_FV_BACK, sale_rows_from: TR_SALE_FROM };
   var main = SpreadsheetApp.openById(SHEET_ID), ss = teamSs(), open = [];
   Object.keys(TR_SHEETS).forEach(function (loc) { open = open.concat(trOpenRows(ss, loc, start)); });
   var p1 = trCall(Object.assign({ phase: 't1' }, base)); if (p1.error) throw new Error('Trials t1: ' + JSON.stringify(p1).slice(0, 300));
@@ -2207,13 +2214,43 @@ function runProbetrainings(startOpt) {
   for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open, life: life }, base)); if (p3.error) { if (++errs >= 3) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); continue; } if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Trials t3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
   var data = p3.data, lines = [], leadMap = trLeadMap(main);
-  Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, (data.payopen || {})[loc] || [], start, today, leadMap)); });
-  try { lines.push('Open payments: ' + payWrite(data.payopen || {}, today)); } catch (e0) { Logger.log('Open payments: ' + e0); }
+  var uids = trSheetUids(ss);
+  Object.keys(TR_SHEETS).forEach(function (loc) { (data.rows[loc] || []).forEach(function (x) { uids.push(String(x.uid)); }); ((data.payopen || {})[loc] || []).forEach(function (x) { if (x.uid) uids.push(String(x.uid)); }); });
+  var cidMap = {}; try { cidMap = trCidLookup(ss, uids); } catch (e5) { Logger.log('ClientIds: ' + e5); cidMap = trCidMap(ss); }
+  Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, (data.payopen || {})[loc] || [], start, today, leadMap, cidMap)); });
+  try { lines.push('Open payments: ' + payWrite(data.payopen || {}, today, cidMap)); } catch (e0) { Logger.log('Open payments: ' + e0); }
   try { teamMirrorEvents(main, ss); } catch (e1) { Logger.log('Events-Spiegel: ' + e1); }
   try { maScheduleBuild(); } catch (e2) { Logger.log('Monatsabschluss-Bau: ' + e2); } // Wochenwerte stehen im Monatsabschluss (seit 07.09.); Bau eine Minute spaeter in eigener Ausfuehrung
   Logger.log('Probetrainings ' + start + '..' + end + ': ' + lines.join(' | '));
   try { PropertiesService.getScriptProperties().setProperty('trLastOk', String(Date.now())); } catch (e9) {}
   return lines.join('\n');
+}
+// exercise.com: die Reports liefern die User-ID, die Profil-Adresse /ex4/clients/<id> braucht die Client-ID (Lehre 08.09.2026:
+// alle CRM-Links liefen ins Leere). Zuordnung einmal je Person ueber die Cloudflare-Funktion (Phase 'cid'), im versteckten Tab gemerkt.
+function trCidMap(ss) { var sh = ss.getSheetByName(TR_CID_SHEET), m = {}; if (!sh || sh.getLastRow() < 2) return m; sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().forEach(function (r) { if (r[0] && r[1]) m[String(r[0])] = String(r[1]); }); return m; }
+function trCidLookup(ss, uids) {
+  var map = trCidMap(ss), miss = {}; uids.forEach(function (u) { u = String(u || ''); if (u && !map[u]) miss[u] = 1; });
+  var list = Object.keys(miss); if (!list.length) return map;
+  var d = fmtD(new Date()), res = trCall({ phase: 'cid', uids: list.slice(0, 2000), start: d, end: d });
+  if (res.error || !res.map) { Logger.log('ClientIds: ' + JSON.stringify(res).slice(0, 200)); return map; }
+  var sh = ss.getSheetByName(TR_CID_SHEET) || ss.insertSheet(TR_CID_SHEET), add = [];
+  if (sh.getLastRow() < 1) sh.getRange(1, 1, 1, 3).setValues([['User ID', 'Client ID', 'Since']]).setFontWeight('bold');
+  Object.keys(res.map).forEach(function (u) { map[u] = String(res.map[u]); add.push([u, String(res.map[u]), d]); });
+  if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 3).setNumberFormat('@').setValues(add);
+  try { sh.hideSheet(); } catch (e) {}
+  Logger.log('ClientIds: ' + add.length + ' neu, ' + (list.length - add.length) + ' nicht gefunden (' + res.pages + ' Seiten)');
+  return map;
+}
+function trCrmLink(map, uid, name) {
+  var cid = map && uid ? map[String(uid)] : '';
+  if (cid) return '=HYPERLINK("https://app.impact-martialarts.com/ex4/clients/' + cid + '/notes","CRM")';
+  if (name) return '=HYPERLINK("https://app.impact-martialarts.com/ex4/clients?client_search=' + encodeURIComponent(String(name)).replace(/"/g, '') + '","CRM (Suche)")'; // Profilnummer (noch) unbekannt: Kundensuche
+  return '';
+}
+function trSheetUids(ss) {
+  var out = [];
+  Object.keys(TR_SHEETS).forEach(function (loc) { var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return; sh.getRange(TR_ROW0, TR_P0 + CI.uid, sh.getLastRow() - TR_ROW0 + 1, 1).getValues().forEach(function (r) { if (r[0]) out.push(String(r[0])); }); });
+  return out;
 }
 function trOpenRows(ss, loc, start) {
   var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return [];
@@ -2246,7 +2283,7 @@ function trInit(ss, sh, loc) {
   trProtect(sh, TR_ACCESS[loc] || [], 'Nur Ruben und ' + (TR_ACCESS[loc] || []).join(', '));
   ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 1 : 2); // Events-Spiegel kommt ans Ende
 }
-function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
+function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) {
   var T = trT(loc), sh = getOrCreate(ss, TR_SHEETS[loc]);
   // erst die bisherigen Zeilen lesen (Anrufe, Kopien), dann bei geaenderter Kopfzeile neu aufbauen - so ueberleben die Handeingaben den Umbau
   var n = Math.max(0, sh.getLastRow() - TR_ROW0 + 1);
@@ -2263,15 +2300,15 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
   var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm');
   var toDate = function (s) { return s ? new Date(s + 'T12:00:00') : ''; };
   var noteTxt = function (nt) { return nt && nt.date ? nt.date.slice(8, 10) + '.' + nt.date.slice(5, 7) + '.' + nt.date.slice(0, 4) + (nt.type ? ' ' + nt.type : '') : ''; };
-  var crm = function (uid) { return uid ? '=HYPERLINK("https://app.impact-martialarts.com/ex4/clients/' + uid + '/notes","CRM")' : ''; };
+  var crm = function (uid, name) { return trCrmLink(cidMap, uid, name); }; // Profilnummer statt Report-User-ID (Ruben 08.09.: Links liefen ins Leere)
   var seen = {};
   rows.forEach(function (x) {
     var o = byUid[x.uid], s = x.sale || {}, lead = leadMap ? trFindLead(leadMap, x.email, x.name, x.date) : null, r = [];
-    r[CI.date] = toDate(x.date); r[CI.name] = x.name; r[CI.art] = trL(loc, 'art', x.art); r[CI.cls] = (x.time ? String(x.time).slice(0, 5) + ' ' : '') + (x.cls || ''); // Uhrzeit vor der Klasse (Ruben 07.09.) r[CI.coach] = x.trainer || ''; r[CI.booked] = x.bookedBy || '';
+    r[CI.date] = toDate(x.date); r[CI.name] = x.name; r[CI.art] = trL(loc, 'art', x.art); r[CI.cls] = x.noVisit ? T.noVisit : (x.time ? String(x.time).slice(0, 5) + ' ' : '') + (x.cls || ''); // Uhrzeit vor der Klasse (Ruben 07.09.) r[CI.coach] = x.trainer || ''; r[CI.booked] = x.bookedBy || '';
     r[CI.kanal] = trL(loc, 'kanal', lead ? lead.kanal : 'kein Web-Lead'); r.srcNote = !lead && x.source ? 'Quelle in exercise.com: ' + String(x.source).replace(/^\s*-\s*/, '') : ''; // Quelle als Notiz statt im Text (Ruben 07.09.)
     r[CI.lifecycle] = x.lifecycle || (o ? o[CI.lifecycle] : ''); r[CI.check] = '';
     r[CI.contract] = toDate(s.date); r[CI.start] = toDate(s.start); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || '';
-    r[CI.note] = x.lastNote ? noteTxt(x.lastNote) : (o ? o[CI.note] : ''); r[CI.crm] = crm(x.uid);
+    r[CI.note] = x.lastNote ? noteTxt(x.lastNote) : (o ? o[CI.note] : ''); r[CI.crm] = crm(x.uid, x.name);
     r[CI.created] = toDate((x.bk && x.bk.length ? x.bk[x.bk.length - 1] : x.bookedAt) || ''); r[CI.uid] = String(x.uid);
     r[CI.ns] = (x.ns || []).join(','); r[CI.stamp] = stamp;
     byUid[x.uid] = r; seen[x.uid] = true;
@@ -2279,7 +2316,7 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap) {
   Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.date); o[CI.start] = toDate(s.start); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; });
   var all = Object.keys(byUid).map(function (k) { return byUid[k]; });
   Object.keys(extras).forEach(function (u) { var base = byUid[u]; if (!base) return; extras[u].forEach(function (nm) { var c = base.slice(); c[CI.name] = nm; all.push(c); }); });
-  all.forEach(function (r) { r[CI.check] = trCheck(r, today, T); if (!r[CI.crm]) r[CI.crm] = crm(r[CI.uid]); if (/^(ohne Website-Lead|no website lead)/.test(String(r[CI.kanal] || ''))) r[CI.kanal] = trL(loc, 'kanal', 'kein Web-Lead'); }); // alte Beschriftung angleichen
+  all.forEach(function (r) { r[CI.check] = trCheck(r, today, T); r[CI.crm] = crm(r[CI.uid], r[CI.name]); if (/^(ohne Website-Lead|no website lead)/.test(String(r[CI.kanal] || ''))) r[CI.kanal] = trL(loc, 'kanal', 'kein Web-Lead'); }); // alte Beschriftung angleichen
   // Tageswerte: Trials, No-Shows (aus den NS-Daten, nicht aus der Art), Verkauft (Vertragstag), Placed Trials (Buchungstag)
   var day = {}, D = function (d) { return day[d] = day[d] || { placed: 0, trials: 0, ns: 0, sold: 0 }; };
   var byDate = {};
@@ -2415,7 +2452,7 @@ function paySs() {
   pr.setProperty('payId', ss.getId());
   return ss;
 }
-function payWrite(payopen, today) {
+function payWrite(payopen, today, cidMap) {
   var ss = paySs(), sh = ss.getSheets()[0]; if (sh.getName() !== PAY_SHEET) sh.setName(PAY_SHEET);
   clearSheet(sh);
   if (PAY_ACCESS.length) { try { ss.addEditors(PAY_ACCESS); } catch (e) { Logger.log('Open Payments Freigabe: ' + e); } }
@@ -2429,7 +2466,7 @@ function payWrite(payopen, today) {
   var rows = list.map(function (x) {
     var age = x.since ? Math.round((new Date(today + 'T12:00:00') - new Date(x.since + 'T12:00:00')) / 864e5) : '';
     var nt = x.note && x.note.date ? x.note.date.slice(8, 10) + '.' + x.note.date.slice(5, 7) + '.' + (x.note.type ? ' ' + x.note.type : '') : '';
-    return [x.name, trLocDE(x.loc), x.since ? new Date(x.since + 'T12:00:00') : '', age, x.stage || LC_PAY_OPEN, nt, x.uid ? '=HYPERLINK("https://app.impact-martialarts.com/ex4/clients/' + x.uid + '/notes","CRM")' : '', stamp];
+    return [x.name, trLocDE(x.loc), x.since ? new Date(x.since + 'T12:00:00') : '', age, x.stage || LC_PAY_OPEN, nt, trCrmLink(cidMap, x.uid, x.name), stamp];
   });
   if (rows.length) { sh.getRange(5, 1, rows.length, PAY_HEAD.length).setValues(rows); sh.getRange(5, 3, rows.length, 1).setNumberFormat('dd.MM.yyyy'); for (var i = 0; i < rows.length; i++) if (Number(rows[i][3]) >= 30) sh.getRange(5 + i, 1, 1, PAY_HEAD.length).setBackground('#fce4e4'); }
   else sh.getRange(5, 1).setValue('none').setFontColor('#999999');

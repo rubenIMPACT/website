@@ -459,3 +459,21 @@ sammelt je TAG (out.day) und wrWeekOf/weekOf summiert die Tage der Woche innerha
 Wochenquellen = Monatsquellen: Verkaeufe je Woche aus signed_d: (Waiver-Datum, klassen.js signed_by_day), Buchungen (placed) und
 Kohorte (csold = Vertragsstart gesetzt) ab MA_TEAM_FROM je Woche UND Monat aus dem Team-Sheet. Damit ergeben die Wochen eines
 Monats zusammen exakt den Monat (Team-"sold" wird nicht mehr genutzt).
+VERKAUF = UNTERSCHRIFT DES ERSTEN ABOS (Ruben 08.09.2026 vormittags, nach Fund "Cain Schmid fehlt im Team-Sheet"): Befund: ZH September
+14 Unterschriften in exercise.com, Team-Sheet zeigte 10 - Unterschrift vor dem gebuchten Trial (Corina Buralli, Max Taubenheim) hing
+nicht an der Zeile (saleOf nahm nur Waiver >= Trial-Datum), Unterschreiber ohne Check-in/Buchung (Cain Schmid, Nicolaj Welten) hatten
+keine Zeile. Rubens Entscheide: (1) Verkauf zaehlt am Tag der Unterschrift, auch vor dem Probetraining (klassen.js SALE_BACK = 60 Tage
+vor dem Trial-Datum) oder ohne Check-in. (2) Nur Abos, nur der ERSTE Vertrag: lief > 60 Tage vor der Unterschrift schon ein Abo (nicht
+PT) = Paketwechsel/Verlaengerung (Baraa Selmi), kein Verkauf; Stage "Client" ohne (auch geplantes) Abo und ohne Kuendigung = Einmalkauf
+(Nicolaj Welten, 16x PT), kein Verkauf. Gilt im Team-Sheet (saleOf) UND im Monatsabschluss (computeMonat signedBy-Filter; Nachlauf
+MA_CATCHUP '2026-09-08b' Jun-Aug). (3) Unterschreiber ohne Zeile ab TR_SALE_FROM 2026-09-01: Zeile am ersten Check-in bis TR_FV_BACK
+60 Tage vor dem Fenster (fv-Reports laufen ab start-60, computeTrials fvOld; Zeilen entstehen daraus NUR fuer Unterschreiber), sonst
+am Unterschriftstag mit Klasse "ohne Check-in"/"no check-in" (T.noVisit); zaehlt SOFORT als Trial und Verkauf, KEIN roter Hinweis
+(Ruben: irrelevant, rote Hinweise an nicht verkaufsrelevanten Stellen verwirren die Sales-Leute). Standort aus dem Profil (Lifecycle
+Location), zur Not Verkaeufer (Bogdan = WT). (4) Zahlungshinweis "Seit n Tagen unterschrieben, Zahlung fehlt" und Liste "Zahlung
+offen" NICHT bei Abo mit geplantem Start in der Zukunft (Guipie, Start 01.10.). (5) CRM-Links: exercise.com-Reports liefern die
+User-ID, die Profil-URL /ex4/clients/<id> braucht die Client-ID (Jamie Cujak: Report 3074376, Profil 2989977) - alle bisherigen Links
+liefen ins Leere. Neue Phase 'cid' in klassen.js liest /api/v4/clients (4401 Kunden, je 500, parallel, kein Filter moeglich) und
+liefert user_id -> id; Apps Script merkt die Zuordnung im versteckten Team-Sheet-Tab 'ClientIds' (trCidLookup, nur fehlende UIDs),
+Fallback ohne Nummer = Kundensuche-Link "CRM (Suche)". Offen: Rubens Team meldete 6 ZH-Verkaeufe am 07.09., exercise.com kennt 5
+(Waiver, Lifecycle, Assessments); kein geplantes Abo vom 07.09. - Name des sechsten von Ruben ausstehend.
