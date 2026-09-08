@@ -418,6 +418,23 @@ function waProbeClient() { // one-off (Ruben 08.09.): structure of one debtor's 
   Logger.log('probe ' + r.getResponseCode() + ' len ' + t.length);
   for (var i = 0; i < t.length; i += 1500) Logger.log('P' + (i / 1500) + ' ' + t.slice(i, i + 1500));
 }
+function waProbeInvoices() { // one-off (Ruben 08.09.): does fp/invoices give a pay link (hosted_invoice_url) + paid status per failed charge? read-only, log only
+  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Retry today');
+  var uid = String(sh.getRange(5, 1).getValue() || '').replace(/\D/g, '');
+  var tests = [
+    ['past-due invoices UID ' + uid, { action: 'invoices', uid: uid, per: 20 }],
+    ['all invoices UID ' + uid, { action: 'invoices', uid: uid, per: 20, past_due: false }],
+    ['charges UID ' + uid, { action: 'charges', uid: uid, per: 20 }],
+    ['ALL past-due invoices (platform)', { action: 'invoices', per: 100 }]
+  ];
+  tests.forEach(function (test) {
+    var body = test[1]; body.token = CF_TOKEN;
+    var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true });
+    var t = r.getContentText() || '';
+    Logger.log('=== ' + test[0] + ' -> ' + r.getResponseCode() + ' len ' + t.length);
+    for (var i = 0; i < t.length && i < 15000; i += 1500) Logger.log('P' + (i / 1500) + ' ' + t.slice(i, i + 1500));
+  });
+}
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();

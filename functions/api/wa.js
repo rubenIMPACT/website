@@ -8,6 +8,12 @@
 //   exercise.com-Report (/api/v4/reports/<key>, gleicher Cache-Mechanismus wie klassen.js: refresh=true stoesst die
 //   Generierung an, danach ohne refresh abholen; {ready:false} = noch am Rechnen, spaeter nochmals rufen).
 //   Grundlage fuer das Verzugskonto (Report "failed_payments" = jede geplatzte Abbuchung einzeln).
+//   action "invoices" {uid?, past_due? (default true), status?, per?, page?}: Rechnungen ueber den Endpunkt der
+//   Admin-Oberflaeche (GET /api/v4/fp/invoices?user_id=U&q[past_due]=1, gefunden 08.09.2026 im Code der Seite
+//   "Payment Details"). Liefert pro Rechnung u.a. hosted_invoice_url (Stripe-Bezahlseite), paid_at, attempt_count,
+//   next_payment_attempt, charge_failure - Grundlage fuer den Rechnungslink in W3/W4 und das automatische Schliessen.
+//   action "charges" {uid?, status?, per?, page?}: Abbuchungen (GET /api/v4/fp/charges/?user_id=U&curTab=overview).
+//   Beide geben nie Namen, E-Mails oder Kartendaten zurueck (sanitize).
 const API = "https://app.impact-martialarts.com";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -23,6 +29,8 @@ export async function onRequestPost(context) {
     if (p.action === "failed_payments") return j(await failedPayments(H, Math.min(Math.max(Number(p.days) || 30, 1), 120)));
     if (p.action === "report") return j(await report(H, p));
     if (p.action === "probe_client") return j(await probeClient(H, String(p.uid || "").replace(/\D/g, "")));
+    if (p.action === "invoices") return j(await fpList(H, "/api/v4/fp/invoices", p));
+    if (p.action === "charges") return j(await fpList(H, "/api/v4/fp/charges/", p));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
     return j({ error: "exception", detail: String(e && e.message ? e.message : e).slice(0, 200) }, 502);
@@ -123,6 +131,33 @@ function describe(x, depth) {
     return o;
   }
   return typeof x;
+}
+
+// Rechnungen / Abbuchungen ueber die Endpunkte der Admin-Oberflaeche (nur lesend, keine PII).
+async function fpList(H, path, p) {
+  const uid = String(p.uid || "").replace(/\D/g, ""), per = Math.min(Math.max(Number(p.per) || 50, 1), 200), page = Math.max(Number(p.page) || 1, 1);
+  const isCharges = path.indexOf("charges") >= 0;
+  let q = "page=" + page + "&per=" + per + (uid ? "&user_id=" + uid : "");
+  if (isCharges) q += "&curTab=overview";
+  else if (p.past_due !== false) q += "&q%5Bpast_due%5D=1";
+  if (p.status) q += "&q%5Bstatus_eq%5D=" + encodeURIComponent(String(p.status));
+  const r = await getJson(H, API + path + "?" + q);
+  if (r.status !== 200 || !r.json) return { ok: false, path, status: r.status, body: JSON.stringify(r.json || "").slice(0, 300) };
+  const b = r.json, list = Array.isArray(b) ? b : (b.invoice || b.invoices || b.charge || b.charges || b.data || []);
+  const arr = Array.isArray(list) ? list : [];
+  return { ok: true, path, uid, page, per, top: Array.isArray(b) ? ["array"] : Object.keys(b).slice(0, 10), meta: b.meta || null, keys: arr.length ? Object.keys(arr[0]) : [], count: arr.length, rows: arr.map(sanitize) };
+}
+const PII = /(^|_)(first_name|last_name|full_name|formatted_name|paid_by_name|name|email|phone|address|street|city|zip|card|last4|brand|exp_month|exp_year|fingerprint|token|password|birthday)($|_)/i;
+function sanitize(x) {
+  const o = {};
+  Object.keys(x || {}).forEach((k) => {
+    if (PII.test(k) && !/^(item_name|plan_name|product_name|location_name)$/.test(k)) return;
+    const v = x[k];
+    if (v === null || v === undefined) o[k] = null;
+    else if (typeof v === "object") o[k] = describe(v, 1);
+    else o[k] = typeof v === "string" ? v.slice(0, 200) : v;
+  });
+  return o;
 }
 
 async function signIn(env) {
