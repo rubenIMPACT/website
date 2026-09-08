@@ -530,3 +530,8 @@ NACHTRAG 08.09. 14:20: Andreas March (Familienkonto) fehlte im Team-Sheet, weil 
 als Paketwechsel nahm (seine lag im April). Jetzt in beiden Sheets: Paketwechsel = Kuendigung zwischen 60 Tagen vor und 30 Tagen nach
 dem neuen Start, egal ob "Converted". Damit Team-Sheet = Monatsabschluss (September ZH 19, WT 14). Parallel laufende Report-Fenster
 (Nachlauf maCatchUp, Tageslauf) lassen runProbetrainings mit "t3 nicht fertig" scheitern - vor Handlaeufen die Executions pruefen.
+ENDSTAND 08.09. 14:40 (Commits 2e5566d, 819ae6f): Paketwechsel-Pruefung im Team-Sheet relativ zum ABO-START (nicht zum Trial-Datum;
+Leonid Berisha, Trial 08.07., Upgrade 07.09.). trOpenRows liefert alte Zeilen auch MIT Abschluss ab TR_SALE_FROM, damit ein spaeter
+erkannter Paketwechsel den Abschluss wieder entfernt. September: ZH 19 Verkaeufe, WT 14 in Team-Sheet und Monatsabschluss identisch.
+Apps Script UrlFetch auf /api/klassen meldete einmal "Address unavailable" (kurz nach einem Cloudflare-Deploy) - der Stundenlauf hat
+den zweiten Versuch, Handlaeufe einfach wiederholen.
