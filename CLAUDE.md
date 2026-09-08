@@ -505,3 +505,16 @@ NACHTRAG CPL (08.09. 11:30, Ruben: "CPL ist nicht 2'000+, hoechstens 100"): Ursa
 Kampagnentabelle nimmt jetzt Kosten UND Leads ab max(heute-30, WK_ATTR_FROM); Titel sagt es. Monatstabelle je Standort hat Leads +
 CPL (CHF) = Media / Website-Leads des Monats (wkLeadsByMonth: ab LOG_START aus wrCollect, davor MonatsHistorie leads_web) - dieselbe
 Zahl wie "Kosten pro Website-Lead" im Monatsabschluss, keine neue Methode.
+VERKAUF = PAKET AKTIVIERT (Ruben 08.09.2026 13:xx, ersetzt "Verkauf = Unterschrift" vom Vormittag; Anlass Melvin Pappu: Trial 19.08.,
+Unterschrift 20.08., Jahresrechnung am 01.09. bezahlt, Paket am 07.09. manuell aktiviert, kein Stripe-Abo -> "Sold Packages" des Teams
+zaehlt 6 am 07.09., Waiver nur 5). Definition in BEIDEN Sheets: Verkauf = erstes Abo-Paket einer Person aktiviert = Abo-Start in
+exercise.com (active_subscription "Start Date", geplante Starts am Starttag; Report liefert ALLE laufenden Abos unabhaengig vom
+Fenster) ODER, fuer Personen ohne Abo und ohne Kuendigung, das Paket aus dem Report client_packages ("Activation"; Vorsicht: bei
+Monatsabos ist Activation der Start der LAUFENDEN Abrechnungsperiode, deshalb nur fuer Personen ohne Abo = Rechnungskunden).
+Mitgliedschaftspakete = alles ausser Personal Training / Single Session / Trial / Event (isMemberPkg). Kein Verkauf: aelteres Abo,
+Paketwechsel (cancelled Converted / Ende nahe), PT. Die Unterschrift (Waiver) liefert nur noch den Verkaeufer. Monatsabschluss:
+sales_signed = new_customers = Abo-Starts ohne Wechsel/PT + Rechnungspakete (eine Zahl; Zeile "Abos gestartet" und Wochenspalte
+"Abo-Starts" entfernt), starts_d: = signed_d:, sales_open = davon Stage "Signed but no payment", sales_invoice = davon Rechnung.
+Team-Sheet: "Abschluss am" = Aktivierungstag, "Kaeufer ohne Zeile" aus Abo-Starts + Rechnungspaketen (nur Datum <= heute).
+Verworfen: sold_packages-Report (JSON nur Summen ohne Datum/E-Mail, CSV-Endpunkt liefert HTML). Nachlauf MA_CATCHUP 'e' Jun-Aug
+(Historie = Abo-Starts wie bisher new_customers; gekuendigte Abos fehlen dort, bekannte Luecke).

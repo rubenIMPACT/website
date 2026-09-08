@@ -336,7 +336,8 @@ function monatUrls(start, end, cohortStart, today) {
     fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
     salesZH: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
     salesWT: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
-    waiver: { url: API + "/api/v4/reports/waiver?" + qM + "&per=3000", start }, // Vertragsunterschriften des Monats
+    waiver: { url: API + "/api/v4/reports/waiver?" + qM + "&per=3000", start }, // Vertragsunterschriften des Monats (nur noch Verkaeufer)
+    pkgs: { url: API + "/api/v4/reports/client_packages?" + qM + "&per=8000", start }, // laufende Pakete (Rechnungskunden ohne Abo, Ruben 08.09.)
   };
 }
 function rowsOf(cs) {
@@ -361,7 +362,7 @@ async function monat(H, p, start, end) {
   }
   if (phase === "m1") {
     const out = {};
-    for (const k of ["life", "visits", "cancelled", "subs", "fvZH", "salesZH", "waiver"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    for (const k of ["life", "visits", "cancelled", "subs", "fvZH", "salesZH", "waiver", "pkgs"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
     return { ok: true, started: out };
   }
   if (phase === "m2") {
@@ -376,7 +377,7 @@ async function monat(H, p, start, end) {
   }
   if (phase === "m3") {
     const got = {};
-    for (const k of ["fvWT", "salesWT", "life", "visits", "cancelled", "subs", "waiver"]) {
+    for (const k of ["fvWT", "salesWT", "life", "visits", "cancelled", "subs", "waiver", "pkgs"]) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
       if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
@@ -384,7 +385,7 @@ async function monat(H, p, start, end) {
     }
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: rowsOf(got.fvWT).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) })) };
     const sales = { Zurich: Array.isArray(p.sales_zh) ? p.sales_zh : [], Winterthur: rowsOf(got.salesWT).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) })) };
-    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), waiver: rowsOf(got.waiver), fv, sales }) };
+    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), waiver: rowsOf(got.waiver), pkgs: rowsOf(got.pkgs), fv, sales }) };
   }
   return { error: "phase" };
 }
@@ -420,18 +421,12 @@ function computeMonat(inp) {
   const lifeCur = {}; inp.life.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) lifeCur[e] = String(r["Current"] || ""); });
   const uidLoc = {}; subs.forEach((s) => { uidLoc[s.uid] = s.loc; });
   comp.forEach((x) => { const u = String(x[vix("User ID")]); if (!uidLoc[u]) uidLoc[u] = /winterthur/i.test(String(x[vix("Location")] || "")) ? "Winterthur" : "Zurich"; });
-  const signedBy = {}; (inp.waiver || []).forEach((r) => { const u = String(r["User ID"] || ""), d = chDate(r["Signed"]), e = String(r["Email"] || "").toLowerCase().trim(); if (!u || !d || !inMonth(d)) return; if (!signedBy[u] || signedBy[u].date > d) signedBy[u] = { date: d, email: e, created: chDate(r["Created Account"]) }; });
-  // Nur Abo-Verkaeufe, nur der erste Vertrag (Ruben 08.09., gleiche Regel wie im Team-Sheet): lief mehr als 60 Tage vor der Unterschrift
-  // schon ein Abo (nicht PT) = Paketwechsel/Verlaengerung, kein Verkauf; Stage "Client" ohne (auch geplantes) Abo und ohne
-  // Kuendigung = Einmalkauf (z.B. PT-Paket), kein Verkauf.
+  // Verkaeufe = erstes Abo-Paket aktiviert (Ruben 08.09.): Abo-Starts des Monats ohne Paketwechsel und ohne PT (wie "Abos gestartet")
+  // plus Rechnungskunden ohne Abo (client_packages, Activation im Monat). Die Unterschrift zaehlt nicht mehr.
   const subsByUid = {}; subs.forEach((s) => { if (!isPT(s.pkg)) (subsByUid[s.uid] = subsByUid[s.uid] || []).push(s); });
-  Object.keys(signedBy).forEach((u) => {
-    const d = signedBy[u].date, from = addDaysStr(d, -60), mine = subsByUid[u] || [];
-    if (mine.some((s) => s.date && s.date < from)) { delete signedBy[u]; return; }
-    // Paketwechsel/Verlaengerung: altes Abo als "Converted" beendet oder Ende nahe am neuen Vertrag = kein neuer Verkauf
-    if (cancelled.some((c) => c.uid === u && !isPT(c.pkg) && (c.converted || (c.date && c.date >= from && c.date <= addDaysStr(d, 30))))) { delete signedBy[u]; return; }
-    if (!mine.length && !cancelledUids.has(u) && lifeCur[signedBy[u].email] === "Client") delete signedBy[u];
-  });
+  const uidByEmail = {}; inp.subs.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) uidByEmail[e] = String(r["User ID"]); }); (inp.waiver || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) uidByEmail[e] = String(r["User ID"]); });
+  const invAll = invoicePackages(inp.pkgs, (uid) => (subsByUid[uid] || []).length > 0 || cancelledUids.has(uid), uidByEmail);
+  const invoiceM = Object.keys(invAll).map((k) => invAll[k]).filter((v) => inMonth(v.date));
   const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
   for (const loc of LOCS) {
     const L = {};
@@ -470,16 +465,18 @@ function computeMonat(inp) {
     L.cancellations = caL.filter((c) => !c.converted && !startedUids.has(c.uid)).length;
     L.cancellations_converted = caL.length - L.cancellations;
     const dayCount = (list, f) => { const o = {}; list.forEach((s) => { const d = f(s); if (d) o[d] = (o[d] || 0) + 1; }); return o; }; // je Tag fuer die Wochenspalten (Ruben 07.09.)
-    L.starts_by_day = dayCount(nonPT.filter((s) => !switchUids.has(s.uid)), (s) => s.date);
     L.cancels_by_day = dayCount(caL.filter((c) => !c.converted && !startedUids.has(c.uid)), (c) => c.date);
     L.leads_by_day = dayCount(lf.filter((x) => x.to === "Lead"), (x) => x.date);
     const debtL = lf.filter((x) => /debt/i.test(x.to)); L.debt_collection = debtL.length; L.debt_by_day = dayCount(debtL, (x) => x.date); // Verluste = Kuendigungen + Debt collection (Ruben 07.09.)
     const reasons = {}; caL.forEach((c) => { const k = c.reason || "ohne Grund"; reasons[k] = (reasons[k] || 0) + 1; }); L.cancel_reasons = reasons;
-    const sg = Object.keys(signedBy).filter((u) => (uidLoc[u] || "Zurich") === loc);
-    L.sales_signed = sg.length;
-    L.signed_by_day = dayCount(sg.map((u) => signedBy[u]), (x) => x.date); // Verkaeufe je Tag fuer die Wochenspalten (Ruben 08.09.)
-    L.sales_open = sg.filter((u) => lifeCur[signedBy[u].email] === "Signed but no payment").length;
-    out.signed[loc] = sg.map((u) => ({ email: signedBy[u].email, date: signedBy[u].date }));
+    // Verkaeufe (Paket aktiviert) = Abo-Starts ohne Wechsel/PT + Rechnungspakete; "Abos gestartet" ist dieselbe Zahl (Ruben: ein Hauptding)
+    const newSubs = {}; nonPT.filter((s) => !switchUids.has(s.uid)).forEach((s) => { if (!newSubs[s.uid] || newSubs[s.uid].date > s.date) newSubs[s.uid] = { email: s.email, date: s.date }; });
+    const salesL = Object.keys(newSubs).map((u) => newSubs[u]).concat(invoiceM.filter((v) => v.loc === loc && !newSubs[v.uid]).map((v) => ({ email: v.email, date: v.date })));
+    L.sales_invoice = salesL.length - Object.keys(newSubs).length;
+    L.new_customers = salesL.length; L.sales_signed = salesL.length;
+    L.starts_by_day = dayCount(salesL, (x) => x.date); L.signed_by_day = L.starts_by_day; // Verkaeufe je Tag fuer die Wochenspalten
+    L.sales_open = salesL.filter((x) => lifeCur[x.email] === "Signed but no payment").length;
+    out.signed[loc] = salesL.slice();
     L.net_growth = L.new_customers - L.cancellations;
     // Abos (Stand Lauf)
     const sAll = subs.filter((s) => s.loc === loc), sL = sAll.filter((s) => s.type !== "Scheduled");
@@ -533,6 +530,7 @@ function trialUrls(p) {
     waiver: { url: API + "/api/v4/reports/waiver?" + qS + "&per=3000", start: sStart },
     tot: { url: API + "/api/v4/reports/total_visits_per_client?" + query(tStart, tEnd) + "&per=5000", start: tStart },
     notes: { url: API + "/api/v4/reports/account_notes?" + qW + "&per=6000", start }, // letzte Notiz je Person (Date, Title)
+    pkgs: { url: API + "/api/v4/reports/client_packages?" + qS + "&per=8000", start: sStart }, // laufende Pakete (Rechnungskunden ohne Abo)
   };
   if (c2Start <= end) U.v2 = { url: API + "/api/v4/reports/detailed_visits?" + query(c2Start, end) + "&per=8000", start: c2Start };
   // Lifecycle ("Current" = aktuelle Stage je Person, per E-Mail) ueber das Verkaufsfenster fuer "Zahlung offen".
@@ -702,7 +700,7 @@ async function trials(H, p) {
   }
   if (phase === "t1") {
     const out = {};
-    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "notes"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
+    for (const k of ["fvZH", "v1", "subs", "cancelled", "waiver", "tot", "notes", "pkgs"]) { const r = await getJson(H, U[k].url + "&refresh=true"); out[k] = r.status; }
     return { ok: true, started: out, life_blocks: lifeKeys(U).length };
   }
   if (phase === "lr" || phase === "lg") {
@@ -731,7 +729,7 @@ async function trials(H, p) {
     return { ready: true, fv_zh: fvC, v1: vC };
   }
   if (phase === "t3") {
-    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "notes"].concat(U.v2 ? ["v2"] : []);
+    const got = {}, keys = ["fvWT", "subs", "cancelled", "waiver", "tot", "notes", "pkgs"].concat(U.v2 ? ["v2"] : []);
     for (const k of keys) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
@@ -741,7 +739,7 @@ async function trials(H, p) {
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: fvCompact(rowsOf(got.fvWT)) };
     const vis = (Array.isArray(p.v1) ? p.v1 : []).concat(U.v2 ? visCompact(got.v2) : []);
     const prior = new Set(rowsOf(got.tot).filter((r) => num(r["Total Completed"]) > 0).map((r) => String(r["User ID"] || "")).filter(Boolean));
-    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), life: lifeExpand(p.life), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [], saleRowsFrom: String(p.sale_rows_from || "") }) };
+    return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: rowsOf(got.subs), cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), pkgs: rowsOf(got.pkgs), life: lifeExpand(p.life), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [], saleRowsFrom: String(p.sale_rows_from || "") }) };
   }
   if (phase === "cid") {
     // Profilnummer je Report-"User ID" (Ruben 08.09.: CRM-Links liefen ins Leere - die Profil-URL /ex4/clients/<id> nutzt die
@@ -767,6 +765,21 @@ function chDate(v) {
   m = /(\d{4})[\/-](\d{2})[\/-](\d{2})/.exec(s);
   return m ? m[1] + "-" + m[2] + "-" + m[3] : "";
 }
+// Verkauf = erstes Abo-Paket aktiviert (Ruben 08.09.2026, "Hauptding fuer alles"): Abo-Start in exercise.com (auch geplante Starts am
+// Starttag) oder, fuer Kunden ohne Abo (Rechnung, Melvin Pappu), das manuell aktivierte Paket aus dem Report client_packages.
+// client_packages listet nur laufende Pakete, "Activation" = Start der laufenden Abrechnungsperiode - deshalb dort nur Personen OHNE Abo.
+const isMemberPkg = (name) => !/personal training|single|trial|event|seminar|workshop|drop.?in/i.test(String(name || ""));
+function invoicePackages(pkgRows, hasSub, uidByEmail) { // je E-Mail das frueheste laufende Mitgliedschaftspaket ohne Abo -> {uid|email: {date, pkg, email, name, loc}}
+  const seen = new Set(), out = {};
+  (pkgRows || []).forEach((r) => {
+    const id = String(r["ID"] || ""), name = String(r["Name"] || ""), e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Activation"]);
+    if (!id || seen.has(id) || !e || !d || !isMemberPkg(name)) return; seen.add(id);
+    const uid = uidByEmail[e] || ""; if (uid && hasSub(uid)) return;
+    const k = uid || e, cur = out[k];
+    if (!cur || cur.date > d) out[k] = { uid, email: e, date: d, pkg: name, name: String(r["Users"] || "").trim(), loc: /winterthur/i.test(String(r["Client Location"] || "")) ? "Winterthur" : "Zurich" };
+  });
+  return out;
+}
 function addDaysStr(d, n) { const t = new Date(d + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
 const TR_EVENT = /seminar|event|open mat|camp|workshop/i;
 function computeTrials(inp) {
@@ -776,7 +789,7 @@ function computeTrials(inp) {
   const byUser = {}; vis.forEach((v) => { (byUser[v.uid] = byUser[v.uid] || []).push(v); });
   const srt = (a, b) => (a.date + a.time < b.date + b.time ? -1 : 1);
   Object.keys(byUser).forEach((u) => byUser[u].sort(srt));
-  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), date: chDate(r["Start Date"]), type: String(r["Active Subscription Type"] || ""), pkg: String(r["Subscribed To"] || "") }));
+  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), date: chDate(r["Start Date"]), type: String(r["Active Subscription Type"] || ""), pkg: String(r["Subscribed To"] || ""), email: String(r["Email"] || "").toLowerCase().trim(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: /winterthur/i.test(String(r["Location"] || "")) ? "Winterthur" : (/z[uü]rich/i.test(String(r["Location"] || r["Destination"] || "")) ? "Zurich" : "") }));
   const SALE_BACK = 60; // Unterschrift bis 60 Tage VOR dem Trial-Datum gehoert zur Zeile (Assessment vor dem Probetraining, Ruben 08.09.)
   const subsBy = {}; subs.forEach((s) => { (subsBy[s.uid] = subsBy[s.uid] || []).push(s); });
   const canc = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), ended: chDate(r["Ended At"]), pkg: String(r["Subscribeable"] || ""), converted: /yes/i.test(String(r["Converted"] || "")) }));
@@ -794,6 +807,10 @@ function computeTrials(inp) {
   // Check-in. Nur das erste Abo: lief davor schon ein Abo (nicht PT) = bestehendes Mitglied, kein Verkauf. Nur Abos: Stage "Client"
   // ohne (auch geplantes) Abo und ohne Kuendigung = Einmalkauf (z.B. PT-Paket), kein Verkauf.
   const NONE = { status: "Offen", date: "", by: "", pkg: "", days: "", start: "" };
+  // Verkauf = erstes Abo-Paket aktiviert (Ruben 08.09.): Abo-Start (auch geplanter Start am Starttag) oder Rechnungspaket ohne Abo.
+  // Die Unterschrift (Waiver) liefert nur noch den Verkaeufer. Kein Verkauf: aelteres Abo (bestehendes Mitglied), Paketwechsel, PT.
+  const uidByEmail0 = {}; subs.forEach((s) => { if (s.email) uidByEmail0[s.email] = s.uid; }); (inp.vis || []).forEach((v) => { if (v.email) uidByEmail0[v.email] = v.uid; }); waiv.forEach((w) => { if (w.email) uidByEmail0[w.email] = w.uid; });
+  const invBy = invoicePackages(inp.pkgs, (uid) => (subsBy[uid] || []).some((s) => !isPT(s.pkg)) || (cancBy[uid] || []).length > 0, uidByEmail0);
   const saleOf = (uid, trialDate, email) => {
     const from = addDaysStr(trialDate, -SALE_BACK);
     if ((subsBy[uid] || []).some((s) => !isPT(s.pkg) && s.date && s.date < from)) return Object.assign({}, NONE);
@@ -802,12 +819,12 @@ function computeTrials(inp) {
     const ws = (waivBy[uid] || []).filter((w) => w.date && w.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const ss = (subsBy[uid] || []).filter((s) => !isPT(s.pkg) && s.date && s.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const cs = (cancBy[uid] || []).filter((c) => !isPT(c.pkg) && c.ended && c.ended >= from);
-    if (!ws.length && !ss.length && !cs.length) return Object.assign({}, NONE);
-    if (ws.length && !ss.length && !cs.length && lifeOf(email) === "Client") return Object.assign({}, NONE);
-    const date = ws.length ? ws[0].date : (ss.length ? ss[0].date : "");
+    const inv = invBy[uid] && invBy[uid].date >= from ? invBy[uid] : null;
+    if (!ss.length && !inv && !cs.length) return Object.assign({}, NONE);
+    const date = ss.length ? ss[0].date : (inv ? inv.date : (ws.length ? ws[0].date : cs[0].ended));
     const days = date ? Math.round((Date.parse(date) - Date.parse(trialDate)) / 86400000) : "";
-    const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (cs.length ? "Verkauft, wieder gekündigt" : "Unterschrieben, kein Abo aktiv");
-    return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (cs.length ? cs[0].pkg : ""), days, start: ss.length ? ss[0].date : "" };
+    const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (inv ? "Verkauft (Rechnung)" : "Verkauft, wieder gekündigt");
+    return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (inv ? inv.pkg : cs[0].pkg), days, start: ss.length ? ss[0].date : "" };
   };
   // Zahlung offen: Personen, deren aktuelle Stage "Signed but no payment" ist, mit dem Datum des Uebergangs in diese Stage
   const payInto = {}; (inp.life || []).forEach((r) => { if (String(r["Transitioned To"] || "") !== "Signed but no payment") return; const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (e && d && (!payInto[e] || payInto[e] < d)) payInto[e] = d; });
@@ -863,22 +880,24 @@ function computeTrials(inp) {
     const ex = (cancBy[uid] || []).some((c) => c.ended && c.ended < v.date);
     out.rows[loc].push({ uid, name: v.name, email: v.email, loc, personen: 1, source: srcOf(v.email), lifecycle: lifeOf(v.email), lastNote: noteOf(uid), ns: byUser[uid].filter((z) => /noshow/i.test(z.status)).map((z) => z.date), bk: Array.from(new Set(byUser[uid].filter((z) => !/cancel/i.test(z.status)).map((z) => z.bookedAt).filter(Boolean))), date: v.date, time: v.time, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: ex ? "Rückkehrer (Ex-Mitglied)" : "Wiederholer (prüfen)", visits: cand.length, sale: saleOf(uid, v.date, v.email) });
   });
-  // Unterschreiber ohne Zeile (Ruben 08.09.): ab saleRowsFrom bekommt jeder Abo-Verkauf eine Zeile - am Tag des ersten Check-ins
-  // (bis fv_back Tage zurueck), sonst am Unterschriftstag mit "ohne Check-in" als Klasse. Zaehlt sofort als Trial UND Verkauf
-  // (Ruben: kein roter Hinweis, jedes Probetraining hat stattgefunden). Standort aus dem Profil (Lifecycle), zur Not der Verkaeufer.
+  // Kaeufer ohne Zeile (Ruben 08.09.): ab saleRowsFrom bekommt jeder Abo-Verkauf (Abo-Start oder Rechnungspaket, Datum <= heute) eine
+  // Zeile - am Tag des ersten Check-ins (bis fv_back Tage zurueck), sonst am Verkaufstag mit "ohne Check-in" als Klasse. Zaehlt sofort
+  // als Trial UND Verkauf (Ruben: kein roter Hinweis). Standort aus dem Abo/Paket, sonst Profil (Lifecycle), zur Not der Verkaeufer.
   const saleFrom = String(inp.saleRowsFrom || "");
   if (saleFrom) {
     const listed = new Set(); ["Zurich", "Winterthur"].forEach((l) => out.rows[l].forEach((r) => listed.add(String(r.uid))));
     const locBy = (email, by) => { const l = lifeBy[String(email || "").toLowerCase().trim()]; if (l && l.loc) return /winterthur/i.test(l.loc) ? "Winterthur" : "Zurich"; return /bogdan/i.test(by) ? "Winterthur" : "Zurich"; };
-    Object.keys(waivBy).forEach((uid) => {
+    const cand = {}; // uid -> {date, name, email, loc}
+    subs.forEach((s) => { if (!isPT(s.pkg) && s.date && s.date >= saleFrom && s.date <= today && (!cand[s.uid] || cand[s.uid].date > s.date)) cand[s.uid] = { date: s.date, name: s.name, email: s.email, loc: s.loc }; });
+    Object.keys(invBy).forEach((k) => { const v = invBy[k]; if (v.uid && v.date >= saleFrom && v.date <= today && !cand[v.uid]) cand[v.uid] = { date: v.date, name: v.name, email: v.email, loc: v.loc }; });
+    Object.keys(cand).forEach((uid) => {
       if (listed.has(uid) || prior.has(uid)) return;
-      const ws = waivBy[uid].filter((w) => w.date && w.date >= saleFrom && w.date <= today).sort((a, b) => (a.date < b.date ? -1 : 1));
-      if (!ws.length) return;
-      const w = ws[0], old = fvOld[uid], email = w.email || (old ? old.email : ""), name = w.name || (old ? old.name : "");
+      const c = cand[uid], old = fvOld[uid], email = c.email || (old ? old.email : ""), name = c.name || (old ? old.name : "");
       if (!name || staff.has(name.toLowerCase())) return;
-      const trialDate = old ? old.date : w.date, sale = saleOf(uid, trialDate, email);
-      if (!sale.date) return; // bestehendes Mitglied oder Einmalkauf: kein Abo-Verkauf
-      const loc = old ? old.loc : locBy(email, w.by);
+      const trialDate = old ? old.date : c.date, sale = saleOf(uid, trialDate, email);
+      if (!sale.date || sale.date < saleFrom || sale.date > today) return; // bestehendes Mitglied, Paketwechsel oder noch nicht gestartet
+      const by = (waivBy[uid] || []).map((w) => w.by).filter(Boolean)[0] || "";
+      const loc = old ? old.loc : (c.loc || locBy(email, by));
       out.rows[loc].push({ uid, name, email, loc, personen: 1, source: srcOf(email), lifecycle: lifeOf(email), lastNote: noteOf(uid), ns: [], bk: [], date: trialDate, time: "", cls: "", trainer: "", bookedBy: "", bookedAt: "", art: "Trial", visits: old ? 1 : 0, sale, noVisit: !old });
       listed.add(uid);
     });
