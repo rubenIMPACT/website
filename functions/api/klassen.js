@@ -816,14 +816,16 @@ function computeTrials(inp) {
   const saleOf = (uid, trialDate, email) => {
     const from = addDaysStr(trialDate, -SALE_BACK);
     // Kein Ausschluss mehr wegen aelterem Abo auf demselben Konto (Familienkonto: zweites Kind = neuer Verkauf; Lehre 08.09. Andreas March)
-    // Paketwechsel/Verlaengerung: altes Abo endete zwischen 60 Tagen vor und 30 Tagen nach dem neuen Start = kein neuer Verkauf.
-    // Nur zeitnah, auch bei "Converted" (Lehre 08.09.: Andreas March, Kuendigung April, Neustart September = Verkauf)
-    if ((cancBy[uid] || []).some((c) => !isPT(c.pkg) && c.ended && c.ended >= from && c.ended <= addDaysStr(trialDate, 30))) return Object.assign({}, NONE);
     const ws = (waivBy[uid] || []).filter((w) => w.date && w.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const ss = (subsBy[uid] || []).filter((s) => !isPT(s.pkg) && s.date && s.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const cs = (cancBy[uid] || []).filter((c) => !isPT(c.pkg) && c.ended && c.ended >= from);
     const inv = invBy[uid] && invBy[uid].date >= from ? invBy[uid] : null;
     if (!ss.length && !inv && !cs.length) return Object.assign({}, NONE);
+    // Paketwechsel/Verlaengerung: altes Abo endete zwischen 60 Tagen vor und 30 Tagen nach dem NEUEN START (nicht dem Trial-Datum;
+    // Lehre 08.09. Leonid Berisha) = kein neuer Verkauf. Nur zeitnah, auch bei "Converted" (Andreas March: Kuendigung April, Neustart
+    // September = Verkauf). Gleiche Regel wie isSwitch im Monatsabschluss.
+    const sd = ss.length ? ss[0].date : (inv ? inv.date : "");
+    if (sd && (cancBy[uid] || []).some((c) => !isPT(c.pkg) && c.ended && c.ended >= addDaysStr(sd, -60) && c.ended <= addDaysStr(sd, 30))) return Object.assign({}, NONE);
     const date = ss.length ? ss[0].date : (inv ? inv.date : (ws.length ? ws[0].date : cs[0].ended));
     const days = date ? Math.round((Date.parse(date) - Date.parse(trialDate)) / 86400000) : "";
     const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (inv ? "Verkauft (Rechnung)" : "Verkauft, wieder gekündigt");
