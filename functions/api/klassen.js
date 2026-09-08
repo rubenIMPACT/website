@@ -330,7 +330,7 @@ function monatUrls(start, end, cohortStart, today) {
   return {
     life: { url: API + "/api/v4/reports/lifecycle?" + qM + "&per=5000", start, arr: false },
     visits: { url: API + "/api/v4/reports/detailed_visits?" + qM + "&per=5000", start, arr: false },
-    cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qM + "&per=2000", start, arr: true },
+    cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + query(addDaysStr(start, -60), end) + "&per=3000", start: addDaysStr(start, -60), arr: true }, // 60 Tage Vorlauf: Paketwechsel erkennen (wie Team-Sheet)
     subs: { url: API + "/api/v4/reports/active_subscription?" + qM + "&per=2000&only_active=true", start, arr: true },
     fvZH: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
     fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
@@ -411,6 +411,8 @@ function computeMonat(inp) {
   const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: chDate(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
   const cancelledUids = new Set(cancelled.map((c) => c.uid)), convertedUids = new Set(cancelled.filter((c) => c.converted).map((c) => c.uid));
   const startedUids = new Set(startedM.map((s) => s.uid));
+  // Paketwechsel = neuer Abo-Start mit altem Abo, das als "Converted" oder zwischen 60 Tagen davor und 30 Tagen danach endete (wie Team-Sheet)
+  const isSwitch = (s) => cancelled.some((c) => c.uid === s.uid && !isPT(c.pkg) && (c.converted || (c.date && c.date >= addDaysStr(s.date, -60) && c.date <= addDaysStr(s.date, 30))));
   const parse = (str) => { const m = /Fr([\d,.]+)\/(month|year|(\d+) months|(\d+) years)/.exec(str || ""); if (!m) return null; const amt = parseFloat(m[1].replace(/,/g, "")); let mo = 1; if (m[2] === "year") mo = 12; else if (m[3]) mo = +m[3]; else if (m[4]) mo = +m[4] * 12; return amt / mo; };
   const coup = (str, v) => { if (!str) return v; let m = /(\d+)% off/.exec(str); if (m) return v * (1 - m[1] / 100); m = /Fr([\d.]+) off/.exec(str); if (m) return Math.max(0, v - parseFloat(m[1])); return v; };
   const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: chDate(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
@@ -457,11 +459,11 @@ function computeMonat(inp) {
     const stL = startedM.filter((s) => s.loc === loc);
     const pt = stL.filter((s) => isPT(s.pkg)).length;
     const nonPT = stL.filter((s) => !isPT(s.pkg));
-    const switchUids = new Set(nonPT.filter((s) => cancelledUids.has(s.uid)).map((s) => s.uid));
+    const switchUids = new Set(nonPT.filter(isSwitch).map((s) => s.uid));
     L.subs_started = nonPT.length; L.switches = switchUids.size; L.pt_started = pt;
     L.new_customers = new Set(nonPT.filter((s) => !switchUids.has(s.uid)).map((s) => s.uid)).size;
     const byPkg = {}; nonPT.filter((s) => !switchUids.has(s.uid)).forEach((s) => { byPkg[s.pkg] = (byPkg[s.pkg] || 0) + 1; }); L.new_by_package = byPkg;
-    const caL = cancelled.filter((c) => c.loc === loc);
+    const caL = cancelled.filter((c) => c.loc === loc && inMonth(c.date)); // Kuendigungen nur im Monat (Report laeuft 60 Tage frueher los)
     L.cancellations = caL.filter((c) => !c.converted && !startedUids.has(c.uid)).length;
     L.cancellations_converted = caL.length - L.cancellations;
     const dayCount = (list, f) => { const o = {}; list.forEach((s) => { const d = f(s); if (d) o[d] = (o[d] || 0) + 1; }); return o; }; // je Tag fuer die Wochenspalten (Ruben 07.09.)
@@ -813,7 +815,7 @@ function computeTrials(inp) {
   const invBy = invoicePackages(inp.pkgs, (uid) => (subsBy[uid] || []).some((s) => !isPT(s.pkg)) || (cancBy[uid] || []).length > 0, uidByEmail0);
   const saleOf = (uid, trialDate, email) => {
     const from = addDaysStr(trialDate, -SALE_BACK);
-    if ((subsBy[uid] || []).some((s) => !isPT(s.pkg) && s.date && s.date < from)) return Object.assign({}, NONE);
+    // Kein Ausschluss mehr wegen aelterem Abo auf demselben Konto (Familienkonto: zweites Kind = neuer Verkauf; Lehre 08.09. Andreas March)
     // Paketwechsel/Verlaengerung: altes Abo als "Converted" beendet oder Ende nahe am neuen Vertrag = kein neuer Verkauf
     if ((cancBy[uid] || []).some((c) => !isPT(c.pkg) && (c.converted || (c.ended && c.ended >= from && c.ended <= addDaysStr(trialDate, 30))))) return Object.assign({}, NONE);
     const ws = (waivBy[uid] || []).filter((w) => w.date && w.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -891,7 +893,7 @@ function computeTrials(inp) {
     subs.forEach((s) => { if (!isPT(s.pkg) && s.date && s.date >= saleFrom && s.date <= today && (!cand[s.uid] || cand[s.uid].date > s.date)) cand[s.uid] = { date: s.date, name: s.name, email: s.email, loc: s.loc }; });
     Object.keys(invBy).forEach((k) => { const v = invBy[k]; if (v.uid && v.date >= saleFrom && v.date <= today && !cand[v.uid]) cand[v.uid] = { date: v.date, name: v.name, email: v.email, loc: v.loc }; });
     Object.keys(cand).forEach((uid) => {
-      if (listed.has(uid) || prior.has(uid)) return;
+      if (listed.has(uid)) return;
       const c = cand[uid], old = fvOld[uid], email = c.email || (old ? old.email : ""), name = c.name || (old ? old.name : "");
       if (!name || staff.has(name.toLowerCase())) return;
       const trialDate = old ? old.date : c.date, sale = saleOf(uid, trialDate, email);

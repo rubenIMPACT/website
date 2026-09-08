@@ -521,3 +521,8 @@ Verworfen: sold_packages-Report (JSON nur Summen ohne Datum/E-Mail, CSV-Endpunkt
 NACHTRAG 08.09. 14:00: computeMonat nahm fuer Abo-Start, Kuendigungs-Ende und Besuchszeit dOf (UTC-Datum abgeschnitten) statt chDate
 (Schweizer Datum) -> Starts nach 22:00 UTC landeten am Vortag, am Monatsanfang sogar im Vormonat (WT September 12 statt 13, Tage
 verschoben). Jetzt ueberall chDate wie im Team-Sheet. Nachlauf 'e' rechnet Jun-Aug damit neu.
+NACHTRAG 08.09. 14:10 (Abgleich Team-Sheet 17/13 vs Monatsabschluss 19/14): Antonio Vieni, Andreas March (Familienkonto, Little
+Ninjas) und Aline Roig sind echte Abo-Starts ohne Kuendigung davor. Team-Sheet uebersprang sie: (1) saleOf schloss aus, wenn auf dem
+Konto schon ein aelteres Abo lief (zweites Kind = neuer Verkauf, Ruben-Regel "Paket aktiviert") -> Ausschluss entfernt, Paketwechsel-
+Regel bleibt; (2) "Kaeufer ohne Zeile" uebersprang prior (Besuch vor dem Fenster) -> entfernt. Monatsabschluss: cancelled-Report 60
+Tage vor dem Monat laden, Paketwechsel wie im Team-Sheet (Converted oder Ende -60/+30 Tage um den Start), Kuendigungszahlen inMonth.
