@@ -33,7 +33,7 @@ var TEXT = {
 };
 var CF_URL = 'https://www.impact-martialarts.com/api/wa', CF_TOKEN = 'PASTE_LEADLOG_TOKEN_HERE'; // Token = Zeile "var TOKEN" im Leads-Log-Script; nur im Editor eintragen, nie ins Repo
 var PAY_LINK = 'https://app.impact-martialarts.com/ex4/me/account/?card=true'; // member billing page (update card); same for everyone
-var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 90, HIST_D: 90, MAX_ATTEMPTS: 5, RETRY_WINDOW_D: 14 }; // exercise.com KB (06/2025): Stripe Smart Retries, up to 4 retries within 2 weeks, timing chosen by Stripe, not configurable; afterwards no automatic attempt (subscription stays past-due at IMPACT). MAX_ATTEMPTS = 1 failure + 4 retries.
+var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 180, HIST_D: 180, MAX_ATTEMPTS: 5, RETRY_WINDOW_D: 14 }; // Ruben 08.09.: 180 Tage zurueck // exercise.com KB (06/2025): Stripe Smart Retries, up to 4 retries within 2 weeks, timing chosen by Stripe, not configurable; afterwards no automatic attempt (subscription stays past-due at IMPACT). MAX_ATTEMPTS = 1 failure + 4 retries.
 var HARD_DECLINE = /lost|stolen|incorrect number|invalid account|authentication required|not allowed|does not support/i; // Stripe does not retry these until a new card is on file // Ruben 07.09.2026: W1 zwei Tage nach der ersten Sichtung (Abbuchung geht oft von selbst noch durch), W2 Tag 6, W3 Tag 14, W4 einen Tag nach der naechsten Faelligkeit
 var TEXT_E = {
   W1: { de: 'Hey {name} 👋 wir haben gesehen, dass die letzte Zahlung bei deinem Abo leider nicht durchgegangen ist. Kannst du bitte kurz deine Zahlungsdaten und die Deckung deines Kontos prüfen, damit wir es in den nächsten Tagen erneut abbuchen können? Wenn du Hilfe brauchst, sag kurz Bescheid 🙏 Danke dir!',
@@ -88,9 +88,11 @@ function waDryRunHourly() {
   if (pay === null || arr === null) payNote = ' Flow E skipped (no token / report error).';
   else {
     var info = {}; pay.forEach(function (c) { info[c.uid] = c; });
+    var resolved = readResolved(ss); arr.forEach(function (a) { a.resolved = resolved[a.uid + ':' + a.first] || null; });
     var sent = sentPrefixes(sh, today);
     arr.forEach(function (a) {
       var c = info[a.uid];
+      if (a.resolved) return; // closed by hand: no messages
       if (!c || c.cancel_pending || /debt|inactive|non-client|lost/i.test(c.lifecycle) || !/^billed$/i.test(c.billing)) return; // not in the client list (cancelled/inactive), debt collection, paused: by hand
       var lang = leadLang[nname(a.name)] || 'de', vars = { due_date: deDate(a.first, lang), amount: String(a.amount), pay_link: PAY_LINK }; // PAY_LINK = the member's own billing page (card update); a direct pay link per invoice needs an exercise.com invoice (Send Invoice, by hand for now)
       function pushE(msg, trig) { var pre = 'E:' + msg + ':' + a.uid; if (sent[pre]) return; sent[pre] = today; pushRow('E', msg, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E); }
@@ -197,10 +199,10 @@ function buildArrears() { // one entry per member with at least one open (unconv
   var end = fmtD(new Date()), start = addDs(end, -RULE_E.HIST_D);
   var fp = fetchReport('failed_payments', start, end, 5000, ['User ID', 'First Name', 'Last Name', 'Location', 'Date', 'Item Name', 'Amount', 'Failure Code', 'Failure Message', 'Charge ID', 'Attempts Within This Time Period', 'Converted']);
   if (fp === null) return null;
-  var ch = fetchReport('charges', start, end, 8000, ['User ID', 'Date', 'Amount', 'Status']);
+  var ch = fetchReport('charges', start, end, 15000, ['User ID', 'Date', 'Amount', 'Status', 'Purchase Type', 'Item Type']);
   if (ch === null) return null;
-  var ok = {}, chVals = {};
-  ch.forEach(function (r) { var stv = String(r['Status'] === undefined ? '' : r['Status']); chVals[stv] = (chVals[stv] || 0) + 1; if (/succe|paid|complete/i.test(stv)) { var u = String(r['User ID'] || ''); (ok[u] = ok[u] || []).push({ date: dOfAny(r['Date']), amount: num(r['Amount']) }); } });
+  var ok = {}, chVals = {}, ptVals = {};
+  ch.forEach(function (r) { var stv = String(r['Status'] === undefined ? '' : r['Status']); chVals[stv] = (chVals[stv] || 0) + 1; var pt = String(r['Purchase Type'] || '') + '/' + String(r['Item Type'] || ''); ptVals[pt] = (ptVals[pt] || 0) + 1; if (/succe|paid|complete/i.test(stv)) { var u = String(r['User ID'] || ''); (ok[u] = ok[u] || []).push({ date: dOfAny(r['Date']), amount: num(r['Amount']) }); } });
   var byUid = {}, convVals = {};
   fp.forEach(function (r) {
     var u = String(r['User ID'] || ''); if (!u) return;
@@ -227,15 +229,23 @@ function buildArrears() { // one entry per member with at least one open (unconv
     rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS || daysBetween(first, end) > RULE_E.RETRY_WINDOW_D || HARD_DECLINE.test(newest.reason) });
   });
   rows.sort(function (x, y) { return y.days - x.days; }); // provisional; the final order (priority) is set in writeArrears once the client status is known
-  rows.convVals = convVals; rows.chVals = chVals;
-  Logger.log('Arrears: ' + rows.length + ' members, Converted values ' + JSON.stringify(convVals) + ', charge status values ' + JSON.stringify(chVals) + ', hidden cases ' + rows.filter(function (a) { return a.hidden; }).length);
+  rows.convVals = convVals; rows.chVals = chVals; rows.ptVals = ptVals;
+  Logger.log('Debtors: ' + rows.length + ' members, Converted values ' + JSON.stringify(convVals) + ', charge status values ' + JSON.stringify(chVals) + ', purchase types ' + JSON.stringify(ptVals) + ', hidden cases ' + rows.filter(function (a) { return a.hidden; }).length);
   return rows;
+}
+var RESOLVED_HEAD = ['UID', 'Name', 'First failed', 'Resolved on', 'Note'];
+function resolvedSheet(ss) { var s = ss.getSheetByName('Resolved'); if (!s) { s = ss.insertSheet('Resolved'); s.getRange('A1').setValue('Resolved by hand: cases closed outside exercise.com (payment plan, bank transfer, cash, goodwill). Written from the checkbox in "Retry today"; a later new failure of the same member is a new case.').setFontColor('#666666').setWrap(true); s.getRange('A1:E1').merge(); s.setRowHeight(1, 45); s.getRange(2, 1, 1, RESOLVED_HEAD.length).setValues([RESOLVED_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); s.setFrozenRows(2); [80, 180, 90, 90, 320].forEach(function (w, i) { s.setColumnWidth(1 + i, w); }); } return s; }
+function readResolved(ss) { // 'uid:firstFailed' -> {date, note}
+  var s = resolvedSheet(ss), m = {}, n = s.getLastRow();
+  if (n >= 3) s.getRange(3, 1, n - 2, RESOLVED_HEAD.length).getValues().forEach(function (r) { if (r[0]) m[String(r[0]) + ':' + dOf(r[2])] = { date: dOf(r[3]), note: String(r[4] || '') }; });
+  return m;
 }
 var ARR_HEAD = ['Priority', 'UID', 'Name', 'Location', 'First failed', 'Days', 'Open charges', 'Attempts', 'Auto-retries left', 'Later invoice paid', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Next step', 'Last message', 'Updated'];
 var ARR_W = [60, 80, 180, 90, 90, 50, 60, 60, 70, 70, 90, 90, 260, 200, 110, 80, 60, 300, 120, 120];
 function stageOf(a) { return a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait'))); }
 function activeClient(c) { return !!c && !c.cancel_pending && !/debt|inactive|non-client|lost/i.test(c.lifecycle) && /^billed$/i.test(c.billing); }
 function priorityOf(a, c) { // 1 = most urgent. Active members first (the automation can still act), ordered by dunning stage, then by amount.
+  if (a.resolved) return 4;                            // closed by hand (payment plan, transfer, cash): no more messages
   if (!c) return 5;                                   // not in the client list: cancelled / inactive, by hand
   if (/debt/i.test(c.lifecycle)) return 4;            // already in debt collection
   if (!activeClient(c)) return 4;                     // paused, pending cancellation, inactive
@@ -243,6 +253,7 @@ function priorityOf(a, c) { // 1 = most urgent. Active members first (the automa
   return st === 'W4' ? 1 : (st === 'W3' ? 2 : 3);     // W4 = second charge open, W3 = retries exhausted, W1/W2/wait = still in the automatic window
 }
 function nextStepOf(a, c) {
+  if (a.resolved) return 'Resolved by hand on ' + a.resolved.date + ': ' + a.resolved.note;
   if (!c) return 'By hand: account not in client list (cancelled or inactive)';
   if (/debt/i.test(c.lifecycle)) return 'Debt collection running (Sam)';
   if (!activeClient(c)) return 'By hand: subscription paused or pending cancellation';
@@ -270,11 +281,15 @@ function writeArrears(ss, rows, info, dry) {
     var c = info[a.uid] || null, stage = stageOf(a);
     return [priorityOf(a, c), a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.exhausted ? 'no' : 'yes', a.hidden ? 'yes' : '', a.amount, a.lastDate, a.reason, a.item, c ? c.lifecycle : 'not in client list', c ? c.billing : '', stage, nextStepOf(a, c), last[a.uid] || '', now];
   });
-  if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent();
-  if (out.length) { sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out); sh.getRange(5, 11, out.length, 1).setNumberFormat('0.00'); sh.getRange(5, 5, out.length, 1).setNumberFormat('@'); sh.getRange(5, 12, out.length, 1).setNumberFormat('@'); }
+  if (sh.getLastRow() >= 5) { sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent().setBackground(null).setFontColor(null); }
+  if (out.length) {
+    sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out); sh.getRange(5, 11, out.length, 1).setNumberFormat('0.00'); sh.getRange(5, 5, out.length, 1).setNumberFormat('@'); sh.getRange(5, 12, out.length, 1).setNumberFormat('@');
+    var bg = sorted.map(function (a) { var c = info[a.uid]; var col = (c && /debt/i.test(c.lifecycle)) ? '#f4cccc' : (a.resolved ? '#eeeeee' : null); return ARR_HEAD.map(function () { return col; }); }); // red = debt collection (Ruben 08.09.), grey = resolved by hand
+    sh.getRange(5, 1, out.length, ARR_HEAD.length).setBackgrounds(bg);
+  }
   sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[10]; }, 0)) + ' open, ' + out.filter(function (r) { return r[9] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[8] === 'no'; }).length + ' with auto-retries exhausted. Priority 1 = second charge open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused, 5 = not in client list. ' + now);
 }
-var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open charges', 'Amount open CHF', 'Later invoice paid', 'Failure message', 'Suggested action', 'Listed since', 'Done (Waseem)', 'Note', 'Updated'];
+var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open charges', 'Amount open CHF', 'Later invoice paid', 'Failure message', 'Suggested action', 'Listed since', 'Done (Waseem)', 'Resolved by hand', 'Note', 'Updated'];
 var RETRY_LOG_HEAD = ['Log date', 'UID', 'Name', 'Location', 'Amount open CHF', 'Listed since', 'Done (Waseem)', 'Note', 'Outcome'];
 function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose automatic retries are exhausted -> Waseem retries by hand.
   // 08.09. (Ruben): checkbox "Done (Waseem)" + note per member; both survive the hourly rebuild (keyed by UID). Every morning the
@@ -284,17 +299,17 @@ function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose
   if (!sh) {
     sh = ss.insertSheet('Retry today');
     sh.getRange('A1').setValue('Retry today: manual retry needed (automatic retries exhausted)').setFontSize(14).setFontWeight('bold');
-    sh.getRange('A2').setValue('Rebuilt every hour. Active, billed members with an open failed charge where Stripe will not retry any more (5 attempts, older than 14 days, or a hard decline). A member stays on the list until the charge succeeds or the account is no longer active; then the row moves to "Retry log" with its outcome. "Later invoice paid" = a newer charge went through, so the card works. Tick "Done (Waseem)" after the manual retry and add a note if needed; the tick is archived every morning and reset for the new day.').setFontColor('#666666').setWrap(true);
-    sh.getRange('A2:M2').merge(); sh.setRowHeight(2, 70);
+    sh.getRange('A2').setValue('Rebuilt every hour. Active, billed members with an open failed charge where Stripe will not retry any more (5 attempts, older than 14 days, or a hard decline). A member stays on the list until the charge succeeds, the account is no longer active, or the case is resolved by hand; then the row moves to "Retry log" with its outcome. "Later invoice paid" = a newer charge went through, so the card works. Tick "Done (Waseem)" after the manual retry; the tick is archived every morning and reset. Tick "Resolved by hand" plus a note for cases settled outside exercise.com (payment plan, bank transfer, cash): the member then leaves the list, gets no more messages, and the note is kept in tab "Resolved".').setFontColor('#666666').setWrap(true);
+    sh.getRange('A2:N2').merge(); sh.setRowHeight(2, 70);
     sh.getRange(4, 1, 1, RETRY_HEAD.length).setValues([RETRY_HEAD]).setFontWeight('bold').setBackground('#d9ead3');
     sh.setFrozenRows(4);
-    [80, 180, 90, 50, 60, 90, 70, 240, 200, 90, 90, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    [80, 180, 90, 50, 60, 90, 70, 240, 200, 90, 90, 90, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
   }
-  if (sh.getRange(4, 11).getValue() !== 'Done (Waseem)') { // header upgrade 08.09.
+  if (sh.getRange(4, 12).getValue() !== 'Resolved by hand') { // header upgrade 08.09.
     if (sh.getMaxColumns() < RETRY_HEAD.length) sh.insertColumnsAfter(sh.getMaxColumns(), RETRY_HEAD.length - sh.getMaxColumns());
     sh.getRange(4, 1, 1, RETRY_HEAD.length).setValues([RETRY_HEAD]).setFontWeight('bold').setBackground('#d9ead3');
-    [80, 180, 90, 50, 60, 90, 70, 240, 200, 90, 90, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-    sh.getRange('A2:M2').merge();
+    [80, 180, 90, 50, 60, 90, 70, 240, 200, 90, 90, 90, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    try { sh.getRange('A2:N2').merge(); } catch (e) {}
   }
   var log = ss.getSheetByName('Retry log');
   if (!log) {
@@ -306,29 +321,34 @@ function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose
   }
   // previous state (keyed by UID)
   var prev = {}, n = sh.getLastRow();
-  if (n >= 5) sh.getRange(5, 1, n - 4, RETRY_HEAD.length).getValues().forEach(function (r) { var u = String(r[0] || ''); if (u) prev[u] = { name: r[1], loc: r[2], amount: r[5], since: dOf(r[9]) || today, done: r[10] === true, note: String(r[11] || '') }; });
+  if (n >= 5) sh.getRange(5, 1, n - 4, RETRY_HEAD.length).getValues().forEach(function (r) { var u = String(r[0] || ''); if (u) prev[u] = { name: r[1], loc: r[2], amount: r[5], since: dOf(r[9]) || today, done: r[10] === true, resolve: r[11] === true, note: String(r[12] || '') }; });
+  // "Resolved by hand" ticked with a note -> write to tab Resolved (case = uid + first failed date), the row then leaves the list
+  var resSheet = resolvedSheet(ss), resolvedNow = {};
+  rows.forEach(function (a) { var p = prev[a.uid]; if (p && p.resolve && p.note.trim()) { resSheet.appendRow([a.uid, a.name, a.first, today, p.note.trim()]); a.resolved = { date: today, note: p.note.trim() }; resolvedNow[a.uid] = p.note.trim(); } });
   var inArrears = {}; rows.forEach(function (a) { inArrears[a.uid] = true; });
   var lastLog = dOf(sh.getRange('Z1').getValue());
   var logRows = [];
   if (lastLog && lastLog !== today) { // new day: archive yesterday's list with the checkbox state, then reset the ticks
     Object.keys(prev).forEach(function (u) { var p = prev[u]; logRows.push([lastLog, u, p.name, p.loc, p.amount, p.since, p.done ? 'yes' : 'no', p.note, inArrears[u] ? 'still open' : 'charge succeeded or account closed']); p.done = false; });
   }
-  var out = rows.filter(function (a) { return a.exhausted && activeClient(info[a.uid]); }).sort(function (x, y) { return y.amount - x.amount; });
+  var out = rows.filter(function (a) { return a.exhausted && !a.resolved && activeClient(info[a.uid]); }).sort(function (x, y) { return y.amount - x.amount; });
   var current = {};
   var vals = out.map(function (a) {
     current[a.uid] = true; var p = prev[a.uid] || {};
-    return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.hidden ? 'yes' : '', a.reason, HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry' : (a.hidden ? 'Retry today, card works' : 'Retry today'), p.since || today, p.done === true, p.note || '', now];
+    var action = HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry' : (a.hidden ? 'Retry today, card works' : 'Retry today');
+    if (p.resolve && !(p.note || '').trim()) action = 'Note required to resolve by hand';
+    return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.hidden ? 'yes' : '', a.reason, action, p.since || today, p.done === true, p.resolve === true, p.note || '', now];
   });
-  Object.keys(prev).forEach(function (u) { if (!current[u]) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, p.done ? 'yes' : 'no', p.note, inArrears[u] ? 'no longer listed (status changed)' : 'charge succeeded or account closed']); } });
-  if (n >= 5) { sh.getRange(5, 1, n - 4, RETRY_HEAD.length).clearContent(); sh.getRange(5, 11, n - 4, 1).clearDataValidations(); }
+  Object.keys(prev).forEach(function (u) { if (!current[u]) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, p.done ? 'yes' : 'no', p.note, resolvedNow[u] ? 'resolved by hand: ' + resolvedNow[u] : (inArrears[u] ? 'no longer listed (status changed)' : 'charge succeeded or account closed')]); } });
+  if (n >= 5) { sh.getRange(5, 1, n - 4, RETRY_HEAD.length).clearContent(); sh.getRange(5, 11, n - 4, 2).clearDataValidations(); }
   if (vals.length) {
     sh.getRange(5, 1, vals.length, RETRY_HEAD.length).setValues(vals);
     sh.getRange(5, 6, vals.length, 1).setNumberFormat('0.00'); sh.getRange(5, 10, vals.length, 1).setNumberFormat('@');
-    sh.getRange(5, 11, vals.length, 1).insertCheckboxes(); sh.getRange(5, 11, vals.length, 1).setValues(vals.map(function (r) { return [r[10]]; }));
+    sh.getRange(5, 11, vals.length, 2).insertCheckboxes(); sh.getRange(5, 11, vals.length, 2).setValues(vals.map(function (r) { return [r[10], r[11]]; }));
   }
   if (logRows.length) log.getRange(log.getLastRow() + 1, 1, logRows.length, RETRY_LOG_HEAD.length).setValues(logRows);
   sh.getRange('Z1').setValue(today); sh.hideColumns(26);
-  sh.getRange('A3').setValue(vals.length + ' members to retry by hand, CHF ' + r2(vals.reduce(function (s, r) { return s + r[5]; }, 0)) + ' open, ' + vals.filter(function (r) { return r[10] === true; }).length + ' ticked as done today, ' + now);
+  sh.getRange('A3').setValue(vals.length + ' members to retry by hand, CHF ' + r2(vals.reduce(function (s, r) { return s + r[5]; }, 0)) + ' open, ' + vals.filter(function (r) { return r[10] === true; }).length + ' ticked as done today. Tick "Resolved by hand" plus a note to close a case outside exercise.com (payment plan, transfer, cash). ' + now);
 }
 function lastMsgE(dry) { // uid -> latest dry-run message for Flow E
   var m = {}, n = dry.getLastRow(); if (n < TR_ROW0) return m;
