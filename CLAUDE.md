@@ -486,3 +486,9 @@ Zeile, die klassen.js nicht mehr liefert, bleibt stehen. Falsche Zeile loswerden
 naechsten Lauf weg), so bei Selmi gemacht. (d) Editor: Run-Klick per Koordinate wird vom Konto-Popup geschluckt; zuverlaessig ist
 find "OK button" + find "Run button" und Klick per ref, dann find "Execution started". get_page_text NIE auf der Editor-Seite
 (zeigt die Token-Zeile). Ergebnis: ZH September Verkauft 13 (= 14 Unterschriften - Nicolaj PT), WT 9 (= 10 - Selmi).
+KORREKTUR 08.09. 10:30 (Commit nach 1ad27f5): Baraa Selmi war KEIN Altmitglied - Lead seit 09/2025, Trial Booked 02/2026, Assessment +
+Unterschrift 01.09.2026, einziges Paket IMPACT PRO ab 01.09. = echter Neukunde (WT September 10 Verkaeufe sind richtig). Die
+"90-Tage-Konto"-Regel (de73b90/1ad27f5) war auf einer falschen Annahme gebaut und schloss auch Marina Knoepfel (Lead seit 11/2025,
+Kauf 03.09.) aus -> ENTFERNT in saleOf und computeMonat. Bleibt: nur Abos (kein PT), nur erster Vertrag = kein aelteres laufendes Abo
+UND kein Paketwechsel (cancelled_subscriptions "Converted" oder Ende zwischen 60 Tage vor und 30 Tage nach der Unterschrift).
+Nachlauf MA_CATCHUP '2026-09-08d'. LEHRE: "Sign up"-Datum in exercise.com = Konto-/Lead-Anlage, NICHT Mitgliedschaftsbeginn.

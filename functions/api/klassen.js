@@ -327,16 +327,13 @@ function REVENUE(vs, subsStats) {
 // Wechsel und ohne Personal Training; Kuendigungen = ohne "Converted"; Wechsel separat.
 function monatUrls(start, end, cohortStart, today) {
   const qM = query(start, end), qC = query(cohortStart, today);
-  // Erstbesuche 90 Tage vor dem Monat mit (Ruben 08.09.: Unterschreiber mit Konto > 90 Tage und ohne Erstbesuch in 3 Monaten =
-  // bestehendes Mitglied, kein Verkauf); computeMonat zaehlt Probetrainings weiterhin nur aus Erstbesuchen IM Monat
-  const fvStart = addDaysStr(start, -90), qF = query(fvStart, end);
   return {
     life: { url: API + "/api/v4/reports/lifecycle?" + qM + "&per=5000", start, arr: false },
     visits: { url: API + "/api/v4/reports/detailed_visits?" + qM + "&per=5000", start, arr: false },
     cancelled: { url: API + "/api/v4/reports/cancelled_subscriptions?" + qM + "&per=2000", start, arr: true },
     subs: { url: API + "/api/v4/reports/active_subscription?" + qM + "&per=2000&only_active=true", start, arr: true },
-    fvZH: { url: API + "/api/v4/reports/clients_first_visit?" + qF + "&per=3000&location_id=2508", start: fvStart, arr: false, loc: "Zurich" },
-    fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qF + "&per=3000&location_id=2222", start: fvStart, arr: false, loc: "Winterthur" },
+    fvZH: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
+    fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
     salesZH: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
     salesWT: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
     waiver: { url: API + "/api/v4/reports/waiver?" + qM + "&per=3000", start }, // Vertragsunterschriften des Monats
@@ -428,12 +425,11 @@ function computeMonat(inp) {
   // schon ein Abo (nicht PT) = Paketwechsel/Verlaengerung, kein Verkauf; Stage "Client" ohne (auch geplantes) Abo und ohne
   // Kuendigung = Einmalkauf (z.B. PT-Paket), kein Verkauf.
   const subsByUid = {}; subs.forEach((s) => { if (!isPT(s.pkg)) (subsByUid[s.uid] = subsByUid[s.uid] || []).push(s); });
-  const fvUids = new Set(); LOCS.forEach((l) => (inp.fv[l] || []).forEach((f) => fvUids.add(String(f.uid)))); // Erstbesuche Monat + 90 Tage davor
   Object.keys(signedBy).forEach((u) => {
-    const d = signedBy[u].date, from = addDaysStr(d, -60), mine = subsByUid[u] || [], created = signedBy[u].created;
+    const d = signedBy[u].date, from = addDaysStr(d, -60), mine = subsByUid[u] || [];
     if (mine.some((s) => s.date && s.date < from)) { delete signedBy[u]; return; }
-    // Konto aelter als 90 Tage und kein Erstbesuch in den 3 Monaten = bestehendes/frueheres Mitglied (Baraa Selmi), kein Verkauf
-    if (created && created < addDaysStr(d, -90) && !fvUids.has(u)) { delete signedBy[u]; return; }
+    // Paketwechsel/Verlaengerung: altes Abo als "Converted" beendet oder Ende nahe am neuen Vertrag = kein neuer Verkauf
+    if (cancelled.some((c) => c.uid === u && !isPT(c.pkg) && (c.converted || (c.date && c.date >= from && c.date <= addDaysStr(d, 30))))) { delete signedBy[u]; return; }
     if (!mine.length && !cancelledUids.has(u) && lifeCur[signedBy[u].email] === "Client") delete signedBy[u];
   });
   const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
@@ -449,7 +445,6 @@ function computeMonat(inp) {
     const fv = inp.fv[loc] || [], seen = new Set(), cohort = [];
     let excluded = 0, attended = 0, signedAtTrial = 0, nostaff = 0;
     fv.forEach((f) => {
-      if (f.date && !inMonth(dOf(f.date))) return; // Erstbesuch vor dem Monat (nur fuer die Verkaufsregel geladen)
       if (seen.has(f.uid)) return; seen.add(f.uid);
       if (staff.has(f.name.toLowerCase())) { excluded++; nostaff++; return; }
       if (preExisting.has(f.uid)) { excluded++; return; }
@@ -802,6 +797,8 @@ function computeTrials(inp) {
   const saleOf = (uid, trialDate, email) => {
     const from = addDaysStr(trialDate, -SALE_BACK);
     if ((subsBy[uid] || []).some((s) => !isPT(s.pkg) && s.date && s.date < from)) return Object.assign({}, NONE);
+    // Paketwechsel/Verlaengerung: altes Abo als "Converted" beendet oder Ende nahe am neuen Vertrag = kein neuer Verkauf
+    if ((cancBy[uid] || []).some((c) => !isPT(c.pkg) && (c.converted || (c.ended && c.ended >= from && c.ended <= addDaysStr(trialDate, 30))))) return Object.assign({}, NONE);
     const ws = (waivBy[uid] || []).filter((w) => w.date && w.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const ss = (subsBy[uid] || []).filter((s) => !isPT(s.pkg) && s.date && s.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const cs = (cancBy[uid] || []).filter((c) => !isPT(c.pkg) && c.ended && c.ended >= from);
@@ -879,9 +876,6 @@ function computeTrials(inp) {
       if (!ws.length) return;
       const w = ws[0], old = fvOld[uid], email = w.email || (old ? old.email : ""), name = w.name || (old ? old.name : "");
       if (!name || staff.has(name.toLowerCase())) return;
-      // Konto aelter als 90 Tage, kein Erstbesuch in den letzten Monaten, kein Besuch im Fenster = bestehendes oder frueheres Mitglied
-      // (Baraa Selmi, Mitglied seit 2025, altes Abo in keinem Report mehr): Paketwechsel/Verlaengerung, kein Verkauf
-      if (!old && w.created && w.created < addDaysStr(w.date, -90)) return;
       const trialDate = old ? old.date : w.date, sale = saleOf(uid, trialDate, email);
       if (!sale.date) return; // bestehendes Mitglied oder Einmalkauf: kein Abo-Verkauf
       const loc = old ? old.loc : locBy(email, w.by);
