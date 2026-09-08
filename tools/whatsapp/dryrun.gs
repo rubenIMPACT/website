@@ -409,6 +409,15 @@ function waProbeReports() { // one-off: which payment reports exist in exercise.
     Logger.log(k + ' -> ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 900));
   });
 }
+function waProbeClient() { // one-off (Ruben 08.09.): structure of one debtor's payment endpoints, read-only, log only
+  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Retry today');
+  var uid = String(sh.getRange(5, 1).getValue() || '').replace(/\D/g, '');
+  if (!uid) { Logger.log('no uid on Retry today'); return; }
+  var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'probe_client', uid: uid }), muteHttpExceptions: true });
+  var t = r.getContentText() || '';
+  Logger.log('probe ' + r.getResponseCode() + ' len ' + t.length);
+  for (var i = 0; i < t.length; i += 1500) Logger.log('P' + (i / 1500) + ' ' + t.slice(i, i + 1500));
+}
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();

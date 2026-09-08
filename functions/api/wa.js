@@ -22,6 +22,7 @@ export async function onRequestPost(context) {
     if (!H) return j({ error: "signin_failed" }, 502);
     if (p.action === "failed_payments") return j(await failedPayments(H, Math.min(Math.max(Number(p.days) || 30, 1), 120)));
     if (p.action === "report") return j(await report(H, p));
+    if (p.action === "probe_client") return j(await probeClient(H, String(p.uid || "").replace(/\D/g, "")));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
     return j({ error: "exception", detail: String(e && e.message ? e.message : e).slice(0, 200) }, 502);
@@ -90,6 +91,38 @@ function unixCH(dateStr, endOfDay) {
   const dstStart = Date.UTC(y, 2, lastSun(2), 1), dstEnd = Date.UTC(y, 9, lastSun(9), 1);
   const offset = (t >= dstStart && t < dstEnd) ? 2 : 1;
   return Math.floor(t / 1000) - offset * 3600;
+}
+
+// Read-only structure probe of one client's payment endpoints (08.09.2026, Ruben's OK): which endpoints exist and whether a
+// per-charge pay / hosted invoice link is exposed. Returns key names, array sizes, URL values and a few status/amount fields,
+// never names, e-mails or card data.
+async function probeClient(H, uid) {
+  if (!uid) return { error: "no_uid" };
+  const paths = ["/api/v4/users/" + uid, "/api/v4/users/" + uid + "/charges", "/api/v4/users/" + uid + "/invoices", "/api/v4/users/" + uid + "/subscriptions", "/api/v4/users/" + uid + "/events", "/api/v4/users/" + uid + "/payment_details", "/api/v4/charges?user_id=" + uid, "/api/v4/invoices?user_id=" + uid, "/api/v2/clients/" + uid + "/charges", "/api/v4/users/" + uid + "/failed_payments", "/api/v4/subscriptions?user_id=" + uid, "/api/v4/users/" + uid + "/activity"];
+  const out = {};
+  for (const path of paths) {
+    try {
+      const r = await fetch(API + path + (path.includes("?") ? "&" : "?") + "per=50&per_page=50", { headers: H });
+      let json = null; try { json = await r.json(); } catch {}
+      out[path] = { status: r.status, shape: r.status === 200 ? describe(json, 0) : (json && json.error ? String(json.error).slice(0, 60) : null) };
+    } catch (e) { out[path] = { error: String(e).slice(0, 80) }; }
+  }
+  return { ok: true, uid, out };
+}
+function describe(x, depth) {
+  if (x === null || x === undefined) return null;
+  if (Array.isArray(x)) return { array: x.length, item: x.length ? describe(x[0], depth + 1) : null };
+  if (typeof x === "object") {
+    const o = {};
+    Object.keys(x).slice(0, 80).forEach((k) => {
+      const v = x[k];
+      if (typeof v === "string" && /^https?:\/\//.test(v)) o[k] = v.slice(0, 140);
+      else if (v && typeof v === "object" && depth < 2) o[k] = describe(v, depth + 1);
+      else o[k] = typeof v + (/(url|link|invoice|hosted|retry|status|fail|paid|due|attempt|amount|type|kind|event|action)/i.test(k) && v !== null && typeof v !== "object" ? "=" + String(v).slice(0, 50) : "");
+    });
+    return o;
+  }
+  return typeof x;
 }
 
 async function signIn(env) {
