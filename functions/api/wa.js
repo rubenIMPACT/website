@@ -13,7 +13,9 @@
 //   "Payment Details"). Liefert pro Rechnung u.a. hosted_invoice_url (Stripe-Bezahlseite), paid_at, attempt_count,
 //   next_payment_attempt, charge_failure - Grundlage fuer den Rechnungslink in W3/W4 und das automatische Schliessen.
 //   action "charges" {uid?, status?, per?, page?}: Abbuchungen (GET /api/v4/fp/charges/?user_id=U&curTab=overview).
-//   Beide geben nie Namen, E-Mails oder Kartendaten zurueck (sanitize).
+//   Beide geben nie Namen, E-Mails oder Kartendaten zurueck (sanitize). Optional start/end (YYYY-MM-DD) = Datumsfilter.
+//   action "clients" {uids: [...]}: Status einzelner Mitglieder (GET /api/v4/users/{id}) fuer Schuldner, die nicht in der
+//   Kundenliste "Failed Payments" stehen (alte gesendete Rechnungen). action "locations": Standort-IDs -> Namen.
 const API = "https://app.impact-martialarts.com";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -31,6 +33,8 @@ export async function onRequestPost(context) {
     if (p.action === "probe_client") return j(await probeClient(H, String(p.uid || "").replace(/\D/g, "")));
     if (p.action === "invoices") return j(await fpList(H, "/api/v4/fp/invoices", p));
     if (p.action === "charges") return j(await fpList(H, "/api/v4/fp/charges/", p));
+    if (p.action === "clients") return j(await clients(H, p.uids));
+    if (p.action === "locations") return j(await locations(H));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
     return j({ error: "exception", detail: String(e && e.message ? e.message : e).slice(0, 200) }, 502);
@@ -51,6 +55,7 @@ async function failedPayments(H, days) {
       uid: String(c.user_id || ""), cid: String(c.id || ""),
       name: [c.first_name, c.last_name].filter(Boolean).join(" ").trim(),
       email: String(c.email || c.client_email || "").toLowerCase(), phone: String(c.client_phone_number || ""),
+      location: String(c.location_name || (c.location && c.location.name) || c.home_location_name || (c.home_location && c.home_location.name) || ""),
       lifecycle: String(c.lifecycle_stage_name || ""), billing: String(c.billing_status || ""),
       failed: c.failed_payment, has_sub: !!c.has_subscription, cancel_pending: !!c.cancel_pending,
       next_payment: c.next_payment && c.next_payment.date ? new Date(Number(c.next_payment.date) * 1000).toISOString().slice(0, 10) : "",
@@ -141,6 +146,8 @@ async function fpList(H, path, p) {
   if (isCharges) q += "&curTab=overview";
   else if (p.past_due !== false) q += "&q%5Bpast_due%5D=1";
   if (p.status) q += "&q%5Bstatus_eq%5D=" + encodeURIComponent(String(p.status));
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(p.start || ""))) q += "&start_date=" + unixCH(String(p.start), false);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(p.end || ""))) q += "&end_date=" + unixCH(String(p.end), true);
   const r = await getJson(H, API + path + "?" + q);
   if (r.status !== 200 || !r.json) return { ok: false, path, status: r.status, body: JSON.stringify(r.json || "").slice(0, 300) };
   const b = r.json, list = Array.isArray(b) ? b : (b.invoice || b.invoices || b.charge || b.charges || b.data || []);
@@ -158,6 +165,33 @@ function sanitize(x) {
     else o[k] = typeof v === "string" ? v.slice(0, 200) : v;
   });
   return o;
+}
+
+// Client status for a list of user ids (read-only). Field names of /api/v4/users/{id} are guessed with fallbacks; "keys"
+// lists the real top-level keys of the first record so the mapping can be corrected.
+async function clients(H, uids) {
+  const out = {}, keys = [];
+  const list = (Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean).slice(0, 80);
+  for (const uid of list) {
+    const r = await getJson(H, API + "/api/v4/users/" + uid);
+    const u = r.json && (r.json.user || r.json);
+    if (r.status !== 200 || !u || typeof u !== "object") { out[uid] = null; continue; }
+    if (!keys.length) keys.push(...Object.keys(u).slice(0, 100));
+    const pick = (...ks) => { for (const k of ks) { const v = k.split(".").reduce((o, q) => (o && o[q] !== undefined ? o[q] : undefined), u); if (v !== undefined && v !== null && v !== "") return v; } return ""; };
+    out[uid] = { uid, name: [pick("first_name"), pick("last_name")].filter(Boolean).join(" ").trim() || String(pick("name", "full_name")), email: String(pick("email")).toLowerCase(), phone: String(pick("phone", "client_phone_number", "phone_number", "mobile_phone")), lifecycle: String(pick("lifecycle_stage_name", "lifecycle_stage.name", "lifecycle_stage", "lifecycle")), billing: String(pick("billing_status", "billing")), cancel_pending: !!pick("cancel_pending"), has_sub: !!pick("has_subscription"), location: String(pick("location_name", "location.name", "home_location_name", "home_location.name", "default_location.name")), active: pick("active", "is_active", "status", "state") };
+  }
+  return { ok: true, count: Object.keys(out).length, keys, clients: out };
+}
+// Location ids -> names (invoices carry destination_id of type Fbm::Location). Two candidate endpoints, both read-only.
+async function locations(H) {
+  const out = { ok: true, nodes: {}, locations: {}, info: {} };
+  for (const [key, path] of [["nodes", "/api/v4/fbm/platform_nodes?fetch_all=true"], ["locations", "/api/v4/fbm/locations?fetch_all=true&per=100"]]) {
+    const r = await getJson(H, API + path), b = r.json;
+    const list = Array.isArray(b) ? b : (b && (b.platform_nodes || b.platform_node || b.locations || b.location || b.nodes || b.data)) || [];
+    (Array.isArray(list) ? list : []).forEach((n) => { if (n && n.id !== undefined) out[key][String(n.id)] = String(n.name || n.title || n.label || ""); });
+    out.info[key] = { status: r.status, top: Array.isArray(b) ? ["array"] : Object.keys(b || {}).slice(0, 8), sample: Array.isArray(list) && list[0] ? Object.keys(list[0]).slice(0, 25) : [] };
+  }
+  return out;
 }
 
 async function signIn(env) {
