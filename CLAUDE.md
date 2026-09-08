@@ -500,3 +500,8 @@ Google Ads neu einfuegen), bis dahin Heuristik Standort + Little Ninjas/Erwachse
 zuordenbare bezahlte Leads stehen als Zeile "ohne Kampagnen-Zuordnung" je Plattform. wkLeadsByCampaign liest Daten und Leads
 zeilenweise (Daten ist eine ARRAYFORMULA ueber Leads, gleiche Zeilennummern). Kein CPL in der Monatstabelle (der Monatsabschluss hat
 CPL je Standort = Media / Website-Leads; keine parallele Methode).
+NACHTRAG CPL (08.09. 11:30, Ruben: "CPL ist nicht 2'000+, hoechstens 100"): Ursache = Zeitraeume passten nicht: Kosten ab 09.08.
+(30 Tage), Leads aber nur ab 01.09. (Daten "Zaehlt" gilt ab LOG_START) und Kampagne im Link erst seit 04.09. (WK_ATTR_FROM). Die
+Kampagnentabelle nimmt jetzt Kosten UND Leads ab max(heute-30, WK_ATTR_FROM); Titel sagt es. Monatstabelle je Standort hat Leads +
+CPL (CHF) = Media / Website-Leads des Monats (wkLeadsByMonth: ab LOG_START aus wrCollect, davor MonatsHistorie leads_web) - dieselbe
+Zahl wie "Kosten pro Website-Lead" im Monatsabschluss, keine neue Methode.

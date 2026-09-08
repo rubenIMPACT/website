@@ -1235,7 +1235,16 @@ function wkAgency(ss, mk, agg) {
 var WK_NOTE = 'Media-Kosten je Monat und Standort: Google Ads (Skript), Meta (API) und TikTok (Report-Mail) täglich, Agentur aus dem Tab Einstellungen. Unten je Kampagne der letzten 30 Tage: Kosten, Klicks, Website-Leads und Cost per Lead (Notiz an der Spalte). Definitionen im Tab Methodik.';
 var WK_NOTE_FULL = 'Kampagnentabelle unten: Website-Leads je Kampagne aus dem Anzeigen-Link (Meta/TikTok: utm_campaign = Kampagnenname; Google: Kampagnen-ID gad_campaignid, zugeordnet über das Google-Ads-Skript, sonst Standort plus Little Ninjas/Erwachsene) und CPL = Kosten / Leads, beides letzte 30 Tage. Media-Kosten je Monat und Standort aus dem versteckten Tab WerbekostenDaten (Google Ads: Google-Ads-Skript täglich; Meta: Marketing API täglich 06:30; TikTok: täglicher Report-Anhang per Mail, Betreff "IMPACT TikTok"). Standort aus dem Kampagnennamen, Kampagnen ohne Standort nach dem Split im Tab Einstellungen aufgeteilt. Agenturkosten aus dem Tab Einstellungen, nach Media-Anteil auf die Standorte verteilt. Kosten pro Lead, CAC und LTV stehen im Monatsabschluss.';
 var WK_LEADS_NOTE = 'Website-Leads (Formular, zählend wie im Tab Daten) der letzten 30 Tage, deren Anzeigen-Link diese Kampagne nennt: Meta und TikTok hängen den Kampagnennamen als utm_campaign an, Google nur die Kampagnen-ID (gad_campaignid), die über das Google-Ads-Skript zugeordnet wird; fehlt die ID, zählt Standort plus Little Ninjas/Erwachsene. "ohne Kampagnen-Zuordnung" = bezahlte Leads ohne erkennbare Kampagne.';
+var WK_ATTR_FROM = '2026-09-04'; // seit dann steht die Kampagne aus dem Anzeigen-Link (utm_campaign / gad_campaignid) im Lead-Log (Commit d146bdb)
 function wkCampKey(name) { return String(name || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+// Website-Leads je Monat und Standort: ab LOG_START aus dem Log (Daten, Zaehlt = 1), davor die Monatszahlen aus der MonatsHistorie (leads_web)
+function wkLeadsByMonth(ss) {
+  var out = {}, hs = ss.getSheetByName(MA_HIST);
+  if (hs && hs.getLastRow() > 1) hs.getRange(2, 1, hs.getLastRow() - 1, 4).getValues().forEach(function (r) { if (String(r[2]) !== 'leads_web') return; var mk = mkOf(r[0]); if (!mk || mk >= LOG_START.slice(0, 7)) return; (out[mk] = out[mk] || {})[String(r[1])] = Number(r[3]) || 0; });
+  var wr = wrCollect(ss, null).month;
+  Object.keys(wr).forEach(function (mk) { out[mk] = { Zurich: wr[mk].leads.Zurich, Winterthur: wr[mk].leads.Winterthur }; });
+  return out;
+}
 // Website-Leads je Kampagne ab 'since': Daten (Datum, Standort, Interesse, Zaehlt, Kanal) und Leads (Seite, utm_campaign) Zeile fuer Zeile
 function wkLeadsByCampaign(ss, since, all) {
   var out = { by: {}, open: {} }, dn = ss.getSheetByName('Daten'), ld = ss.getSheetByName('Leads');
@@ -1264,15 +1273,18 @@ function buildWerbekosten(ss) {
   var sh = getOrCreate(ss, WK_VIEW); clearSheet(sh);
   var agg = wkMonthAgg(ss), months = Object.keys(agg).sort().slice(-12), now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
   if (months.indexOf(now) < 0) months.push(now);
+  var lm = wkLeadsByMonth(ss); // Website-Leads je Monat und Standort, gleiche Quelle wie der Monatsabschluss (Ruben 08.09.: CPL je Monat und Standort)
   sh.getRange('A1').setValue('IMPACT Werbekosten').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue(WK_NOTE).setFontColor('#666666').setWrap(true);
   sh.getRange('A2:H2').merge(); sh.setRowHeight(2, 64);
   var r = 4;
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     sh.getRange(r, 1).setValue(loc === 'Zurich' ? 'Zürich' : 'Winterthur').setFontWeight('bold').setFontSize(13); r++;
-    var head = ['Monat'].concat(WK_PLATFORMS).concat(['Media gesamt', 'Agentur', 'Gesamt', 'Klicks']);
-    sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
-    var rows = months.map(function (mk) { var o = (agg[mk] || {})[loc] || wkBlank(), ag = wkAgency(ss, mk, agg)[loc]; return [new Date(mk + '-01T00:00:00')].concat(WK_PLATFORMS.map(function (pn) { return Math.round(o.plat[pn] || 0); })).concat([Math.round(o.media), Math.round(ag), Math.round(o.media + ag), Math.round(o.clicks)]); });
+    var head = ['Monat'].concat(WK_PLATFORMS).concat(['Media gesamt', 'Agentur', 'Gesamt', 'Klicks', 'Leads', 'CPL (CHF)']);
+    sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
+    sh.getRange(r, head.length - 1).setNote('Website-Leads des Monats an diesem Standort (Log, ohne Dubletten und Tests; vor September 2026 die von Hand gezählten Monatszahlen), dieselbe Zahl wie "davon über die Website" im Monatsabschluss.');
+    sh.getRange(r, head.length).setNote('Cost per Lead = Media-Kosten des Monats geteilt durch die Website-Leads des Monats, dieselbe Zahl wie "Kosten pro Website-Lead" im Monatsabschluss. Ohne Agentur.'); r++;
+    var rows = months.map(function (mk) { var o = (agg[mk] || {})[loc] || wkBlank(), ag = wkAgency(ss, mk, agg)[loc], le = (lm[mk] || {})[loc] || 0; return [new Date(mk + '-01T00:00:00')].concat(WK_PLATFORMS.map(function (pn) { return Math.round(o.plat[pn] || 0); })).concat([Math.round(o.media), Math.round(ag), Math.round(o.media + ag), Math.round(o.clicks), le, le && o.media ? Math.round(o.media / le) : '']); });
     sh.getRange(r, 1, rows.length, head.length).setValues(rows); sh.getRange(r, 1, rows.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 2, rows.length, head.length - 1).setNumberFormat('#,##0');
     r += rows.length + 2;
   });
@@ -1288,11 +1300,14 @@ function buildWerbekosten(ss) {
     sh.getRange(r, 1, crows.length, ch.length).setValues(crows); sh.getRange(r, 4, crows.length, months.length).setNumberFormat('#,##0'); r += crows.length;
   }
   r += 2;
-  var since = fmtD(addD(new Date(), -30)), by = {};
+  // Fenster: letzte 30 Tage, aber nicht vor WK_ATTR_FROM - die Kampagne im Anzeigen-Link wird erst seit dann im Formular erfasst;
+  // Kosten und Leads muessen denselben Zeitraum haben (Lehre 08.09.: Kosten ab 09.08. gegen Leads ab 04.09. ergab CPL 2'000+)
+  var since = fmtD(addD(new Date(), -30)), clipped = since < WK_ATTR_FROM; if (clipped) since = WK_ATTR_FROM;
+  var by = {};
   all.forEach(function (x) { if (x.d < since) return; var k = x.plat + '|' + x.camp, o = by[k] = by[k] || { plat: x.plat, camp: x.camp, loc: x.loc, cost: 0, clicks: 0 }; o.cost += x.cost; o.clicks += x.clicks; });
   var list = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return b.cost - a.cost; });
   var lk = wkLeadsByCampaign(ss, since, all); // Website-Leads je Kampagne (Ruben 08.09.: Cost per Lead je Kampagne)
-  sh.getRange(r, 1).setValue('Kampagnen der letzten 30 Tage (ab ' + since + ')').setFontWeight('bold').setFontSize(13); r++;
+  sh.getRange(r, 1).setValue(clipped ? 'Kampagnen seit ' + deD(since) + ' (Kampagne im Anzeigen-Link wird seit dann erfasst; ab ' + deD(addDs(WK_ATTR_FROM, 30)) + ' rollierend 30 Tage)' : 'Kampagnen der letzten 30 Tage (ab ' + deD(since) + ')').setFontWeight('bold').setFontSize(13); r++;
   sh.getRange(r, 1, 1, 7).setValues([['Plattform', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks', 'Leads', 'CPL (CHF)']]).setFontWeight('bold').setBackground('#f3f3f3');
   sh.getRange(r, 6).setNote(WK_LEADS_NOTE); sh.getRange(r, 7).setNote('Kosten der Kampagne geteilt durch ihre Website-Leads im gleichen Zeitraum (letzte 30 Tage). Leer = keine Leads.'); r++;
   var lrows = list.map(function (o) { var n = lk.by[o.plat + '|' + wkCampKey(o.camp)] || 0; return [o.plat, o.camp, o.loc === 'Zurich' ? 'Zürich' : o.loc, Math.round(o.cost), Math.round(o.clicks), n, n ? Math.round(o.cost / n) : '']; });
