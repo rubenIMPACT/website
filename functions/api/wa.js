@@ -180,7 +180,23 @@ async function clients(H, uids) {
     const pick = (...ks) => { for (const k of ks) { const v = k.split(".").reduce((o, q) => (o && o[q] !== undefined ? o[q] : undefined), u); if (v !== undefined && v !== null && v !== "") return v; } return ""; };
     out[uid] = { uid, name: [pick("first_name"), pick("last_name")].filter(Boolean).join(" ").trim() || String(pick("name", "full_name")), email: String(pick("email")).toLowerCase(), phone: String(pick("phone", "client_phone_number", "phone_number", "mobile_phone")), lifecycle: String(pick("lifecycle_stage_name", "lifecycle_stage.name", "lifecycle_stage", "lifecycle")), billing: String(pick("billing_status", "billing")), cancel_pending: !!pick("cancel_pending"), has_sub: !!pick("has_subscription"), location: String(pick("location_name", "location.name", "home_location_name", "home_location.name", "default_location.name")), active: pick("active", "is_active", "status", "state") };
   }
-  return { ok: true, count: Object.keys(out).length, keys, clients: out };
+  // /users/{id} carries no lifecycle / billing status: take those from the client list (v2), scanning pages until every id is found
+  const want = new Set(list.filter((u) => out[u] && !out[u].billing));
+  let pages = 0;
+  for (let page = 1; page <= 20 && want.size; page++) {
+    const r = await getJson(H, API + "/api/v2/clients/?page=" + page + "&per=100");
+    const b = r.json, arr = b && (Array.isArray(b.client) ? b.client : (Array.isArray(b.clients) ? b.clients : []));
+    if (r.status !== 200 || !arr || !arr.length) break;
+    pages++;
+    arr.forEach((c) => {
+      const u = String(c.user_id || "");
+      if (!want.has(u)) return;
+      want.delete(u);
+      Object.assign(out[u], { lifecycle: String(c.lifecycle_stage_name || ""), billing: String(c.billing_status || ""), cancel_pending: !!c.cancel_pending, has_sub: !!c.has_subscription, phone: out[u].phone || String(c.client_phone_number || ""), cid: String(c.id || ""), location: out[u].location || String(c.location_name || (c.location && c.location.name) || c.home_location_name || ""), in_client_list: true });
+    });
+    if (arr.length < 100) break;
+  }
+  return { ok: true, count: Object.keys(out).length, keys, clients: out, client_list_pages: pages, unresolved: [...want] };
 }
 // Location ids -> names (invoices carry destination_id of type Fbm::Location). Two candidate endpoints, both read-only.
 async function locations(H) {
