@@ -214,10 +214,19 @@ function fetchFailedCharges() { // latest failed charge per member (date + reaso
   Logger.log('failed charges read: ' + Object.keys(m).length + ' members, dates ' + min + ' to ' + max);
   return m;
 }
-function fetchClients(uids, statusUids) { // name + studio (location_id of the user) for every debtor; lifecycle/billing from the client list for statusUids (members without an entry in the failed-payment list); {} on error
+function fetchClients(uids) { // name + studio (location_id of the user) per debtor, 40 ids per call (Cloudflare subrequest limit); {} on error
+  var out = {}, n = 0;
+  for (var i = 0; i < uids.length; i += 40) {
+    var b = cfPost({ action: 'clients', uids: uids.slice(i, i + 40) }); if (!b) continue;
+    Object.keys(b.clients || {}).forEach(function (u) { if (b.clients[u]) { out[u] = b.clients[u]; n++; } });
+  }
+  Logger.log('clients looked up: ' + uids.length + ', found ' + n);
+  return out;
+}
+function fetchClientStatus(uids) { // lifecycle/billing from the client list for members without an entry in the failed-payment list; {} on error
   if (!uids.length) return {};
-  var b = cfPost({ action: 'clients', uids: uids, status_uids: statusUids || [] }); if (!b) return {};
-  Logger.log('clients looked up: ' + uids.length + ' (status for ' + (statusUids || []).length + ', client list pages ' + b.client_list_pages + ', unresolved ' + JSON.stringify(b.unresolved || []) + ')');
+  var b = cfPost({ action: 'client_status', uids: uids }); if (!b) return {};
+  Logger.log('client status: ' + uids.length + ' asked, ' + b.found + ' found in ' + b.pages + ' pages, unresolved ' + JSON.stringify(b.unresolved || []));
   return b.clients || {};
 }
 function fetchLocations() { // location id -> name (invoices carry destination_id); {} on error
@@ -268,10 +277,12 @@ function buildDebtors(info) { // one entry per member with at least one open deb
     rows.push({ uid: u, name: c ? c.name : '', loc: (c && c.location) || '', first: first, second: second, days: daysBetween(first, today), open: open.length, attempts: att, amount: r2(open.reduce(function (sum, d) { return sum + d.amount; }, 0)), lastDate: f.date || '', reason: f.reason || '', item: open[open.length - 1].item, exhausted: !retries.length, nextRetry: retries[0] || '', sent: debts.filter(function (d) { return d.sent; }).length, dupes: debts.filter(function (d) { return d.dupe; }).length, link: open[0].link, debts: open });
   });
   var missing = rows.filter(function (a) { return !info[a.uid]; }).map(function (a) { return a.uid; });
-  var extra = fetchClients(rows.map(function (a) { return a.uid; }), missing); // studio for everyone (invoices only carry the platform location), status for the missing ones
+  var status = fetchClientStatus(missing); // lifecycle/billing for members without a failed-payment entry (old sent invoices, exhausted retries older than the report window)
+  rows.forEach(function (a) { if (!info[a.uid] && status[a.uid]) { info[a.uid] = status[a.uid]; a.name = status[a.uid].name || a.name; } });
+  var extra = fetchClients(rows.map(function (a) { return a.uid; })); // studio + name for everyone (invoices only carry the platform location)
   rows.forEach(function (a) { var x = extra[a.uid]; if (!x) return; if (!info[a.uid]) info[a.uid] = x; a.name = a.name || x.name || ''; a.loc = x.location || a.loc || ''; });
   rows.sort(function (x, y) { return y.days - x.days; }); // provisional; the final order (priority) is set in writeArrears once the client status is known
-  Logger.log('Debtors: ' + rows.length + ' members from ' + inv.length + ' open invoices, ' + rows.filter(function (a) { return a.exhausted; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice, ' + missing.length + ' looked up separately (' + Object.keys(extra).filter(function (k) { return extra[k]; }).length + ' found)');
+  Logger.log('Debtors: ' + rows.length + ' members from ' + inv.length + ' open invoices, ' + rows.filter(function (a) { return a.exhausted; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice, ' + missing.length + ' without failed-payment entry (' + Object.keys(status).length + ' found in the client list)');
   return rows;
 }
 var RESOLVED_HEAD = ['UID', 'Name', 'First failed', 'Resolved on', 'Note'];

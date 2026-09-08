@@ -14,8 +14,8 @@
 //   next_payment_attempt, charge_failure - Grundlage fuer den Rechnungslink in W3/W4 und das automatische Schliessen.
 //   action "charges" {uid?, status?, per?, page?}: Abbuchungen (GET /api/v4/fp/charges/?user_id=U&curTab=overview).
 //   Beide geben nie Namen, E-Mails oder Kartendaten zurueck (sanitize). Optional start/end (YYYY-MM-DD) = Datumsfilter.
-//   action "clients" {uids: [...], status_uids?: [...]}: Name + Standort (location_id) je Mitglied aus GET /api/v4/users/{id};
-//   fuer status_uids zusaetzlich Lifecycle/Billing aus der Kundenliste v2 (Schuldner ohne Eintrag in "Failed Payments").
+//   action "clients" {uids: [...]} (max 40): Name + Standort (location_id) je Mitglied aus GET /api/v4/users/{id}.
+//   action "client_status" {uids: [...]}: Lifecycle/Billing aus der Kundenliste v2 (Schuldner ohne Eintrag in "Failed Payments").
 //   action "locations": Standort-IDs -> Namen (Diagnose).
 const API = "https://app.impact-martialarts.com";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -34,7 +34,8 @@ export async function onRequestPost(context) {
     if (p.action === "probe_client") return j(await probeClient(H, String(p.uid || "").replace(/\D/g, "")));
     if (p.action === "invoices") return j(await fpList(H, "/api/v4/fp/invoices", p));
     if (p.action === "charges") return j(await fpList(H, "/api/v4/fp/charges/", p));
-    if (p.action === "clients") return j(await clients(H, p.uids, p.status_uids));
+    if (p.action === "clients") return j(await clients(H, p.uids));
+    if (p.action === "client_status") return j(await clientStatus(H, p.uids));
     if (p.action === "locations") return j(await locations(H));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
@@ -171,9 +172,10 @@ function sanitize(x) {
 // Client status for a list of user ids (read-only). Field names of /api/v4/users/{id} are guessed with fallbacks; "keys"
 // lists the real top-level keys of the first record so the mapping can be corrected.
 const LOC_NAMES = { "2508": "Zürich", "2222": "Winterthur" }; // location_id of the user object (same ids as lead.js)
-async function clients(H, uids, statusUids) {
+// Cloudflare allows only ~50 subrequests per call, so the script sends at most 40 ids per call.
+async function clients(H, uids) {
   const out = {}, keys = [];
-  const list = (Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean).slice(0, 80);
+  const list = (Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean).slice(0, 40);
   for (const uid of list) {
     const r = await getJson(H, API + "/api/v4/users/" + uid);
     const u = r.json && (r.json.user || r.json);
@@ -182,9 +184,13 @@ async function clients(H, uids, statusUids) {
     const pick = (...ks) => { for (const k of ks) { const v = k.split(".").reduce((o, q) => (o && o[q] !== undefined ? o[q] : undefined), u); if (v !== undefined && v !== null && v !== "") return v; } return ""; };
     out[uid] = { uid, name: [pick("first_name"), pick("last_name")].filter(Boolean).join(" ").trim() || String(pick("name", "full_name")), email: String(pick("email")).toLowerCase(), phone: String(pick("phone", "client_phone_number", "phone_number", "mobile_phone")), lifecycle: String(pick("lifecycle_stage_name", "lifecycle_stage.name", "lifecycle_stage", "lifecycle")), billing: String(pick("billing_status", "billing")), cancel_pending: !!pick("cancel_pending"), has_sub: !!pick("has_subscription"), location_id: String(pick("location_id")), location: LOC_NAMES[String(pick("location_id"))] || String(pick("location_name", "location.name", "home_location_name", "home_location.name")), active: pick("active", "is_active", "status", "state") };
   }
-  // /users/{id} carries no lifecycle / billing status: for the ids in status_uids take those from the client list (v2), scanning pages until every id is found
-  const wantIds = (Array.isArray(statusUids) ? statusUids : []).map((u) => String(u).replace(/\D/g, ""));
-  const want = new Set(wantIds.filter((u) => out[u] && !out[u].billing));
+  return { ok: true, count: Object.keys(out).length, keys, clients: out };
+}
+// Lifecycle / billing status from the client list (v2) for members that are not in the "Failed Payments" client filter:
+// scans the list page by page (max 20 pages = 2000 clients) until every id is found. Read-only.
+async function clientStatus(H, uids) {
+  const want = new Set((Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean));
+  const out = {};
   let pages = 0;
   for (let page = 1; page <= 20 && want.size; page++) {
     const r = await getJson(H, API + "/api/v2/clients/?page=" + page + "&per=100");
@@ -195,11 +201,11 @@ async function clients(H, uids, statusUids) {
       const u = String(c.user_id || "");
       if (!want.has(u)) return;
       want.delete(u);
-      Object.assign(out[u], { lifecycle: String(c.lifecycle_stage_name || ""), billing: String(c.billing_status || ""), cancel_pending: !!c.cancel_pending, has_sub: !!c.has_subscription, phone: out[u].phone || String(c.client_phone_number || ""), cid: String(c.id || ""), location: out[u].location || String(c.location_name || (c.location && c.location.name) || c.home_location_name || ""), in_client_list: true });
+      out[u] = { uid: u, cid: String(c.id || ""), name: [c.first_name, c.last_name].filter(Boolean).join(" ").trim(), phone: String(c.client_phone_number || ""), lifecycle: String(c.lifecycle_stage_name || ""), billing: String(c.billing_status || ""), cancel_pending: !!c.cancel_pending, has_sub: !!c.has_subscription, in_client_list: true };
     });
     if (arr.length < 100) break;
   }
-  return { ok: true, count: Object.keys(out).length, keys, clients: out, client_list_pages: pages, unresolved: [...want] };
+  return { ok: true, pages, found: Object.keys(out).length, unresolved: [...want], clients: out };
 }
 // Location ids -> names (invoices carry destination_id of type Fbm::Location). Two candidate endpoints, both read-only.
 async function locations(H) {
