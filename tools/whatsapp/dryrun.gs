@@ -418,22 +418,68 @@ function waProbeClient() { // one-off (Ruben 08.09.): structure of one debtor's 
   Logger.log('probe ' + r.getResponseCode() + ' len ' + t.length);
   for (var i = 0; i < t.length; i += 1500) Logger.log('P' + (i / 1500) + ' ' + t.slice(i, i + 1500));
 }
-function waProbeInvoices() { // one-off (Ruben 08.09.): does fp/invoices give a pay link (hosted_invoice_url) + paid status per failed charge? read-only, log only
+function waProbeInvoices() { // one-off (Ruben 08.09.): does fp/invoices give a pay link (hosted_invoice_url) + paid status per failed charge? read-only, log only (compact projection, no names/e-mails)
   var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Retry today');
   var uid = String(sh.getRange(5, 1).getValue() || '').replace(/\D/g, '');
+  var F_INV = ['id', 'user_id', 'status', 'collection_method', 'manual', 'amount_due', 'amount_paid', 'attempt_count', 'next_payment_attempt', 'charge_failure', 'last_charge_attempt', 'charge_status', 'charge_id', 'subscription_id', 'item_name', 'due_date', 'paid_at', 'created_at', 'hosted_invoice_url'];
+  var F_CH = ['id', 'user_id', 'status', 'amount', 'paid_at', 'failure_code', 'failure_message', 'subscription_id', 'purchase_id', 'processor_type', 'created_at'];
   var tests = [
-    ['past-due invoices UID ' + uid, { action: 'invoices', uid: uid, per: 20 }],
-    ['all invoices UID ' + uid, { action: 'invoices', uid: uid, per: 20, past_due: false }],
-    ['charges UID ' + uid, { action: 'charges', uid: uid, per: 20 }],
-    ['ALL past-due invoices (platform)', { action: 'invoices', per: 100 }]
+    ['all invoices UID ' + uid, { action: 'invoices', uid: uid, per: 50, past_due: false }, F_INV],
+    ['charges UID ' + uid, { action: 'charges', uid: uid, per: 50 }, F_CH],
+    ['ALL past-due invoices (platform)', { action: 'invoices', per: 100 }, F_INV],
+    ['ALL open invoices (platform, status open)', { action: 'invoices', per: 100, past_due: false, status: 'open' }, F_INV]
   ];
   tests.forEach(function (test) {
     var body = test[1]; body.token = CF_TOKEN;
     var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true });
-    var t = r.getContentText() || '';
-    Logger.log('=== ' + test[0] + ' -> ' + r.getResponseCode() + ' len ' + t.length);
-    for (var i = 0; i < t.length && i < 15000; i += 1500) Logger.log('P' + (i / 1500) + ' ' + t.slice(i, i + 1500));
+    var t = r.getContentText() || '', o = null; try { o = JSON.parse(t); } catch (e) {}
+    Logger.log('=== ' + test[0] + ' -> ' + r.getResponseCode() + ' len ' + t.length + (o ? ' meta ' + JSON.stringify(o.meta) + ' count ' + o.count : ' ' + t.slice(0, 300)));
+    if (!o || !o.rows) return;
+    o.rows.forEach(function (row, i) {
+      var parts = test[2].map(function (k) {
+        var v = row[k];
+        if (k === 'hosted_invoice_url') v = v ? 'URL' : '-';
+        if (/_at$|date|attempt$/.test(k) && typeof v === 'number' && v > 1e9) v = new Date(v * 1000).toISOString().slice(0, 10);
+        if (v && typeof v === 'object') v = JSON.stringify(v).slice(0, 40);
+        return k + '=' + v;
+      });
+      Logger.log('R' + i + ' ' + parts.join(' | '));
+    });
   });
+}
+function waProbeReconcile() { // one-off (08.09.): compare the Debtors tab (report-based) with exercise.com's open invoices (fp/invoices), log only, no names
+  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Debtors');
+  var last = sh.getLastRow(), deb = {};
+  if (last >= 5) sh.getRange(5, 1, last - 4, 17).getValues().forEach(function (r) { var u = String(r[1] || '').replace(/\D/g, ''); if (u) deb[u] = { prio: r[0], amt: Number(r[10]) || 0, life: String(r[14] || ''), stage: String(r[16] || '') }; });
+  var inv = [];
+  for (var page = 1; page <= 3; page++) {
+    var body = { token: CF_TOKEN, action: 'invoices', per: 100, page: page, past_due: false, status: 'open' };
+    var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true });
+    var o = null; try { o = JSON.parse(r.getContentText()); } catch (e) {}
+    if (!o || !o.rows) { Logger.log('page ' + page + ' failed ' + r.getResponseCode()); break; }
+    inv = inv.concat(o.rows);
+    if (o.rows.length < 100) break;
+  }
+  var per = {};
+  inv.forEach(function (i) {
+    var u = String(i.user_id), p = per[u] || (per[u] = { man: 0, manAmt: 0, autoTried: 0, autoTriedAmt: 0, autoNew: 0, npa: '', maxAtt: 0, oldest: '' });
+    var amt = (Number(i.amount_due) || 0) / 100, cr = i.created_at ? new Date(i.created_at * 1000).toISOString().slice(0, 10) : '';
+    if (i.manual || i.collection_method === 'send_invoice') { p.man++; p.manAmt += amt; }
+    else if ((Number(i.attempt_count) || 0) > 0) { p.autoTried++; p.autoTriedAmt += amt; p.maxAtt = Math.max(p.maxAtt, Number(i.attempt_count)); p.npa = i.next_payment_attempt ? new Date(i.next_payment_attempt * 1000).toISOString().slice(0, 10) : (p.npa || 'none'); }
+    else p.autoNew++;
+    if (!p.oldest || cr < p.oldest) p.oldest = cr;
+  });
+  var onlyDeb = [], both = [], onlyInv = [];
+  Object.keys(deb).forEach(function (u) { if (per[u] && (per[u].man || per[u].autoTried)) both.push(u); else onlyDeb.push(u); });
+  Object.keys(per).forEach(function (u) { if (!deb[u] && (per[u].man || per[u].autoTried)) onlyInv.push(u); });
+  Logger.log('=== open invoices fetched ' + inv.length + ' | users with open invoices ' + Object.keys(per).length + ' | Debtors rows ' + Object.keys(deb).length);
+  Logger.log('=== BOTH ' + both.length + ' | only in Debtors (no open invoice) ' + onlyDeb.length + ' | only in invoices (not in Debtors) ' + onlyInv.length);
+  var line = function (u) { var p = per[u] || {}, d = deb[u] || {}; return 'u=' + u + ' deb[prio=' + d.prio + ' amt=' + d.amt + ' life=' + d.life + ' stage=' + d.stage + '] inv[man=' + (p.man || 0) + '/' + (p.manAmt || 0) + ' autoTried=' + (p.autoTried || 0) + '/' + (p.autoTriedAmt || 0) + ' maxAtt=' + (p.maxAtt || 0) + ' npa=' + (p.npa || '-') + ' autoNew=' + (p.autoNew || 0) + ' oldest=' + (p.oldest || '') + ']'; };
+  onlyDeb.forEach(function (u) { Logger.log('D ' + line(u)); });
+  onlyInv.forEach(function (u) { Logger.log('I ' + line(u)); });
+  both.forEach(function (u) { Logger.log('B ' + line(u)); });
+  var newOnly = Object.keys(per).filter(function (u) { return !per[u].man && !per[u].autoTried; });
+  Logger.log('=== users with only untried open auto invoices (upcoming) ' + newOnly.length);
 }
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
