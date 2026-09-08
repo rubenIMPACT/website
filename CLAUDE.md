@@ -518,3 +518,6 @@ sales_signed = new_customers = Abo-Starts ohne Wechsel/PT + Rechnungspakete (ein
 Team-Sheet: "Abschluss am" = Aktivierungstag, "Kaeufer ohne Zeile" aus Abo-Starts + Rechnungspaketen (nur Datum <= heute).
 Verworfen: sold_packages-Report (JSON nur Summen ohne Datum/E-Mail, CSV-Endpunkt liefert HTML). Nachlauf MA_CATCHUP 'e' Jun-Aug
 (Historie = Abo-Starts wie bisher new_customers; gekuendigte Abos fehlen dort, bekannte Luecke).
+NACHTRAG 08.09. 14:00: computeMonat nahm fuer Abo-Start, Kuendigungs-Ende und Besuchszeit dOf (UTC-Datum abgeschnitten) statt chDate
+(Schweizer Datum) -> Starts nach 22:00 UTC landeten am Vortag, am Monatsanfang sogar im Vormonat (WT September 12 statt 13, Tage
+verschoben). Jetzt ueberall chDate wie im Team-Sheet. Nachlauf 'e' rechnet Jun-Aug damit neu.

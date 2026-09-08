@@ -401,19 +401,19 @@ function computeMonat(inp) {
   const vH = (inp.visits && inp.visits.headers) || [], vix = (n) => vH.indexOf(n), vRows = [];
   (((inp.visits || {}).reports) || []).forEach((g) => (g.items || []).forEach((it) => vRows.push(it)));
   const comp = vRows.filter((x) => x[vix("Status")] === "Completed");
-  const visitsByUser = {}; comp.forEach((x) => { const u = String(x[vix("User ID")]); (visitsByUser[u] = visitsByUser[u] || []).push(dOf(x[vix("Start Time")])); });
+  const visitsByUser = {}; comp.forEach((x) => { const u = String(x[vix("User ID")]); (visitsByUser[u] = visitsByUser[u] || []).push(chDate(x[vix("Start Time")])); }); // chDate: UTC-Stempel -> Schweizer Datum (Lehre 08.09.: dOf verschob Abo-Starts um einen Tag)
   const staff = new Set(); vRows.forEach((x) => { [x[vix("Primary Staff")], x[vix("Secondary Staff")]].forEach((s) => { if (s) String(s).split(",").forEach((n) => staff.add(n.trim().toLowerCase())); }); });
   // Abos
   // Abo-Starts aus den laufenden Abos (Start Date); der Report "Started Subscriptions" ist fuer den API-Benutzer gesperrt (403).
   // Abos, die im selben Monat gestartet und schon wieder beendet wurden, fehlen damit (selten).
-  const started = inp.subs.filter((r) => String(r["Active Subscription Type"] || "") !== "Scheduled").map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: dOf(r["Start Date"]), pkg: String(r["Subscribed To"] || "") })).filter((s) => s.date >= inp.cohortStart);
+  const started = inp.subs.filter((r) => String(r["Active Subscription Type"] || "") !== "Scheduled").map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: chDate(r["Start Date"]), pkg: String(r["Subscribed To"] || "") })).filter((s) => s.date >= inp.cohortStart);
   const startedM = started.filter((s) => inMonth(s.date));
-  const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: dOf(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
+  const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: chDate(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
   const cancelledUids = new Set(cancelled.map((c) => c.uid)), convertedUids = new Set(cancelled.filter((c) => c.converted).map((c) => c.uid));
   const startedUids = new Set(startedM.map((s) => s.uid));
   const parse = (str) => { const m = /Fr([\d,.]+)\/(month|year|(\d+) months|(\d+) years)/.exec(str || ""); if (!m) return null; const amt = parseFloat(m[1].replace(/,/g, "")); let mo = 1; if (m[2] === "year") mo = 12; else if (m[3]) mo = +m[3]; else if (m[4]) mo = +m[4] * 12; return amt / mo; };
   const coup = (str, v) => { if (!str) return v; let m = /(\d+)% off/.exec(str); if (m) return v * (1 - m[1] / 100); m = /Fr([\d.]+) off/.exec(str); if (m) return Math.max(0, v - parseFloat(m[1])); return v; };
-  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: dOf(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
+  const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: chDate(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
   const preExisting = new Set(subs.filter((s) => s.date && s.date < start).map((s) => s.uid));
   // Lifecycle
   const life = inp.life.map((r) => ({ loc: locOf(r["Location"]), from: String(r["Transitioned From"] || ""), to: String(r["Transitioned To"] || ""), date: chDate(r["Date"]) }));
