@@ -214,10 +214,10 @@ function fetchFailedCharges() { // latest failed charge per member (date + reaso
   Logger.log('failed charges read: ' + Object.keys(m).length + ' members, dates ' + min + ' to ' + max);
   return m;
 }
-function fetchClients(uids) { // status of members that are not in the failed-payment client list (old sent invoices); {} on error
+function fetchClients(uids, statusUids) { // name + studio (location_id of the user) for every debtor; lifecycle/billing from the client list for statusUids (members without an entry in the failed-payment list); {} on error
   if (!uids.length) return {};
-  var b = cfPost({ action: 'clients', uids: uids }); if (!b) return {};
-  Logger.log('clients looked up: ' + uids.length + ', keys of /users/{id}: ' + JSON.stringify(b.keys || []).slice(0, 600));
+  var b = cfPost({ action: 'clients', uids: uids, status_uids: statusUids || [] }); if (!b) return {};
+  Logger.log('clients looked up: ' + uids.length + ' (status for ' + (statusUids || []).length + ', client list pages ' + b.client_list_pages + ', unresolved ' + JSON.stringify(b.unresolved || []) + ')');
   return b.clients || {};
 }
 function fetchLocations() { // location id -> name (invoices carry destination_id); {} on error
@@ -244,14 +244,14 @@ function buildDebtors(info) { // one entry per member with at least one open deb
   // Debt = subscription invoice that failed at least once and is still open (status open, attempts >= 1), or an unpaid invoice sent by hand.
   // A sent invoice that repeats an older open subscription invoice of the same amount is the SAME debt (Waseem's manual invoices): counted once, link of the original.
   var inv = fetchInvoices('open', 5); if (inv === null) return null;
-  var fails = fetchFailedCharges(), locs = fetchLocations(), today = fmtD(new Date());
+  var fails = fetchFailedCharges(), today = fmtD(new Date());
   var byUid = {};
   inv.forEach(function (i) {
     var u = String(i.user_id || ''); if (!u) return;
     var sent = i.collection_method === 'send_invoice', att = Number(i.attempt_count) || 0;
     if (!sent && att < 1) return; // subscription invoice not charged yet (upcoming)
     var created = i.created_at ? fmtD(new Date(i.created_at * 1000)) : today, due = i.due_date ? fmtD(new Date(i.due_date * 1000)) : '';
-    (byUid[u] = byUid[u] || []).push({ id: String(i.id || ''), sent: sent, amount: r2((Number(i.amount_due) || 0) / 100), created: created, date: sent ? (due && due < today ? due : created) : created, due: due, attempts: att, npa: i.next_payment_attempt ? fmtD(new Date(i.next_payment_attempt * 1000)) : '', link: String(i.hosted_invoice_url || ''), item: String(i.item_name || i.description || ''), locId: i.destination_type === 'Fbm::Location' && i.destination_id ? String(i.destination_id) : '', dupe: false, dupeOf: '' });
+    (byUid[u] = byUid[u] || []).push({ id: String(i.id || ''), sent: sent, amount: r2((Number(i.amount_due) || 0) / 100), created: created, date: sent ? (due && due < today ? due : created) : created, due: due, attempts: att, npa: i.next_payment_attempt ? fmtD(new Date(i.next_payment_attempt * 1000)) : '', link: String(i.hosted_invoice_url || ''), item: String(i.item_name || i.description || ''), dupe: false, dupeOf: '' });
   });
   var rows = [];
   Object.keys(byUid).forEach(function (u) {
@@ -265,11 +265,11 @@ function buildDebtors(info) { // one entry per member with at least one open deb
     var att = open.reduce(function (m, d) { return Math.max(m, d.attempts); }, 0);
     var retries = open.filter(function (d) { return d.npa && d.npa >= today; }).map(function (d) { return d.npa; }).sort();
     var f = fails[u] || {}, c = info[u];
-    rows.push({ uid: u, name: c ? c.name : '', loc: (c && c.location) || locs[open[0].locId] || '', first: first, second: second, days: daysBetween(first, today), open: open.length, attempts: att, amount: r2(open.reduce(function (sum, d) { return sum + d.amount; }, 0)), lastDate: f.date || '', reason: f.reason || '', item: open[open.length - 1].item, exhausted: !retries.length, nextRetry: retries[0] || '', sent: debts.filter(function (d) { return d.sent; }).length, dupes: debts.filter(function (d) { return d.dupe; }).length, link: open[0].link, debts: open });
+    rows.push({ uid: u, name: c ? c.name : '', loc: (c && c.location) || '', first: first, second: second, days: daysBetween(first, today), open: open.length, attempts: att, amount: r2(open.reduce(function (sum, d) { return sum + d.amount; }, 0)), lastDate: f.date || '', reason: f.reason || '', item: open[open.length - 1].item, exhausted: !retries.length, nextRetry: retries[0] || '', sent: debts.filter(function (d) { return d.sent; }).length, dupes: debts.filter(function (d) { return d.dupe; }).length, link: open[0].link, debts: open });
   });
   var missing = rows.filter(function (a) { return !info[a.uid]; }).map(function (a) { return a.uid; });
-  var extra = fetchClients(missing);
-  rows.forEach(function (a) { var x = extra[a.uid]; if (!info[a.uid] && x) { info[a.uid] = x; a.name = x.name || a.name; a.loc = a.loc || x.location || ''; } });
+  var extra = fetchClients(rows.map(function (a) { return a.uid; }), missing); // studio for everyone (invoices only carry the platform location), status for the missing ones
+  rows.forEach(function (a) { var x = extra[a.uid]; if (!x) return; if (!info[a.uid]) info[a.uid] = x; a.name = a.name || x.name || ''; a.loc = x.location || a.loc || ''; });
   rows.sort(function (x, y) { return y.days - x.days; }); // provisional; the final order (priority) is set in writeArrears once the client status is known
   Logger.log('Debtors: ' + rows.length + ' members from ' + inv.length + ' open invoices, ' + rows.filter(function (a) { return a.exhausted; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice, ' + missing.length + ' looked up separately (' + Object.keys(extra).filter(function (k) { return extra[k]; }).length + ' found)');
   return rows;

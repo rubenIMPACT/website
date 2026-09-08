@@ -14,8 +14,9 @@
 //   next_payment_attempt, charge_failure - Grundlage fuer den Rechnungslink in W3/W4 und das automatische Schliessen.
 //   action "charges" {uid?, status?, per?, page?}: Abbuchungen (GET /api/v4/fp/charges/?user_id=U&curTab=overview).
 //   Beide geben nie Namen, E-Mails oder Kartendaten zurueck (sanitize). Optional start/end (YYYY-MM-DD) = Datumsfilter.
-//   action "clients" {uids: [...]}: Status einzelner Mitglieder (GET /api/v4/users/{id}) fuer Schuldner, die nicht in der
-//   Kundenliste "Failed Payments" stehen (alte gesendete Rechnungen). action "locations": Standort-IDs -> Namen.
+//   action "clients" {uids: [...], status_uids?: [...]}: Name + Standort (location_id) je Mitglied aus GET /api/v4/users/{id};
+//   fuer status_uids zusaetzlich Lifecycle/Billing aus der Kundenliste v2 (Schuldner ohne Eintrag in "Failed Payments").
+//   action "locations": Standort-IDs -> Namen (Diagnose).
 const API = "https://app.impact-martialarts.com";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -33,7 +34,7 @@ export async function onRequestPost(context) {
     if (p.action === "probe_client") return j(await probeClient(H, String(p.uid || "").replace(/\D/g, "")));
     if (p.action === "invoices") return j(await fpList(H, "/api/v4/fp/invoices", p));
     if (p.action === "charges") return j(await fpList(H, "/api/v4/fp/charges/", p));
-    if (p.action === "clients") return j(await clients(H, p.uids));
+    if (p.action === "clients") return j(await clients(H, p.uids, p.status_uids));
     if (p.action === "locations") return j(await locations(H));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
@@ -169,7 +170,8 @@ function sanitize(x) {
 
 // Client status for a list of user ids (read-only). Field names of /api/v4/users/{id} are guessed with fallbacks; "keys"
 // lists the real top-level keys of the first record so the mapping can be corrected.
-async function clients(H, uids) {
+const LOC_NAMES = { "2508": "Zürich", "2222": "Winterthur" }; // location_id of the user object (same ids as lead.js)
+async function clients(H, uids, statusUids) {
   const out = {}, keys = [];
   const list = (Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean).slice(0, 80);
   for (const uid of list) {
@@ -178,10 +180,11 @@ async function clients(H, uids) {
     if (r.status !== 200 || !u || typeof u !== "object") { out[uid] = null; continue; }
     if (!keys.length) keys.push(...Object.keys(u).slice(0, 100));
     const pick = (...ks) => { for (const k of ks) { const v = k.split(".").reduce((o, q) => (o && o[q] !== undefined ? o[q] : undefined), u); if (v !== undefined && v !== null && v !== "") return v; } return ""; };
-    out[uid] = { uid, name: [pick("first_name"), pick("last_name")].filter(Boolean).join(" ").trim() || String(pick("name", "full_name")), email: String(pick("email")).toLowerCase(), phone: String(pick("phone", "client_phone_number", "phone_number", "mobile_phone")), lifecycle: String(pick("lifecycle_stage_name", "lifecycle_stage.name", "lifecycle_stage", "lifecycle")), billing: String(pick("billing_status", "billing")), cancel_pending: !!pick("cancel_pending"), has_sub: !!pick("has_subscription"), location: String(pick("location_name", "location.name", "home_location_name", "home_location.name", "default_location.name")), active: pick("active", "is_active", "status", "state") };
+    out[uid] = { uid, name: [pick("first_name"), pick("last_name")].filter(Boolean).join(" ").trim() || String(pick("name", "full_name")), email: String(pick("email")).toLowerCase(), phone: String(pick("phone", "client_phone_number", "phone_number", "mobile_phone")), lifecycle: String(pick("lifecycle_stage_name", "lifecycle_stage.name", "lifecycle_stage", "lifecycle")), billing: String(pick("billing_status", "billing")), cancel_pending: !!pick("cancel_pending"), has_sub: !!pick("has_subscription"), location_id: String(pick("location_id")), location: LOC_NAMES[String(pick("location_id"))] || String(pick("location_name", "location.name", "home_location_name", "home_location.name")), active: pick("active", "is_active", "status", "state") };
   }
-  // /users/{id} carries no lifecycle / billing status: take those from the client list (v2), scanning pages until every id is found
-  const want = new Set(list.filter((u) => out[u] && !out[u].billing));
+  // /users/{id} carries no lifecycle / billing status: for the ids in status_uids take those from the client list (v2), scanning pages until every id is found
+  const wantIds = (Array.isArray(statusUids) ? statusUids : []).map((u) => String(u).replace(/\D/g, ""));
+  const want = new Set(wantIds.filter((u) => out[u] && !out[u].billing));
   let pages = 0;
   for (let page = 1; page <= 20 && want.size; page++) {
     const r = await getJson(H, API + "/api/v2/clients/?page=" + page + "&per=100");
