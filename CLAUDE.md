@@ -535,3 +535,13 @@ Leonid Berisha, Trial 08.07., Upgrade 07.09.). trOpenRows liefert alte Zeilen au
 erkannter Paketwechsel den Abschluss wieder entfernt. September: ZH 19 Verkaeufe, WT 14 in Team-Sheet und Monatsabschluss identisch.
 Apps Script UrlFetch auf /api/klassen meldete einmal "Address unavailable" (kurz nach einem Cloudflare-Deploy) - der Stundenlauf hat
 den zweiten Versuch, Handlaeufe einfach wiederholen.
+WERBEKOSTEN-TAB NEU (Ruben 08.09.2026 nachmittags, "konsistent wie der Monatsabschluss"): maContext(ss) liefert Daten + Spalten fuer
+BEIDE Tabs (aus buildMonatsabschlussCore herausgeloest), maHeader(sh, r, ctx) die Kopfzeile. buildWerbekostenCore(ss, ctx): drei
+Bloecke ZH/WT/Gesamt, Zeilen = Werbekosten Media (+ Plattform, ++ Kampagne), Agentur, gesamt, CPL (+ Plattform, ++ Kampagne), CPT
+(+ Plattform aus Team-Sheet-Kanal, wrCollect tk), CAC Media (+ Verkaeufe je Plattform, + CAC je Plattform), CAC inkl. Agentur, Anteil
+Verkaeufe aus bezahlten Kanaelen, LTV : CAC, Payback; Werte (keine Zellformeln), Jahr = Summe bzw. Quote aus Summen (yRatio); zwei
+Gruppenstufen (det/det2); drei Diagramme je Block (Media gestapelt, CPL/CPT/CAC, LTV:CAC + Payback), Daten in WKDiagramm. Kampagnen:
+wkCampAgg (Tag/Monat, "Beide" anteilig), Leads je Kampagne wkLeadsByCampaignDaily (ab WK_ATTR_FROM). Im Monatsabschluss sind die
+Werbezeilen weg (nur LTV bleibt). Bau: buildMonatsabschlussCore plant wkScheduleBuild -> runWerbekostenBuild eine Minute spaeter
+(eigene Ausfuehrung, 6-Minuten-Limit); runWerbekosten (06:30) ruft nur noch buildMonatsabschluss. Alte Tabellen (Monatsliste,
+Kampagnen je Monat, letzte 30 Tage) und wkLeadsByMonth/wkLeadsByCampaign sind entfernt. Marketing-Quote bewusst NICHT (Ruben).
