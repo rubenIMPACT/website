@@ -412,7 +412,7 @@ function computeMonat(inp) {
   const cancelledUids = new Set(cancelled.map((c) => c.uid)), convertedUids = new Set(cancelled.filter((c) => c.converted).map((c) => c.uid));
   const startedUids = new Set(startedM.map((s) => s.uid));
   // Paketwechsel = neuer Abo-Start mit altem Abo, das als "Converted" oder zwischen 60 Tagen davor und 30 Tagen danach endete (wie Team-Sheet)
-  const isSwitch = (s) => cancelled.some((c) => c.uid === s.uid && !isPT(c.pkg) && (c.converted || (c.date && c.date >= addDaysStr(s.date, -60) && c.date <= addDaysStr(s.date, 30))));
+  const isSwitch = (s) => cancelled.some((c) => c.uid === s.uid && !isPT(c.pkg) && c.date && c.date >= addDaysStr(s.date, -60) && c.date <= addDaysStr(s.date, 30)); // nur zeitnah, auch bei "Converted"
   const parse = (str) => { const m = /Fr([\d,.]+)\/(month|year|(\d+) months|(\d+) years)/.exec(str || ""); if (!m) return null; const amt = parseFloat(m[1].replace(/,/g, "")); let mo = 1; if (m[2] === "year") mo = 12; else if (m[3]) mo = +m[3]; else if (m[4]) mo = +m[4] * 12; return amt / mo; };
   const coup = (str, v) => { if (!str) return v; let m = /(\d+)% off/.exec(str); if (m) return v * (1 - m[1] / 100); m = /Fr([\d.]+) off/.exec(str); if (m) return Math.max(0, v - parseFloat(m[1])); return v; };
   const subs = inp.subs.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), type: String(r["Active Subscription Type"] || ""), date: chDate(r["Start Date"]), chf: coup(r["Current Coupon Discount"], parse(r["Payment Plan Price"]) || 0), pkg: String(r["Subscribed To"] || "") }));
@@ -816,8 +816,9 @@ function computeTrials(inp) {
   const saleOf = (uid, trialDate, email) => {
     const from = addDaysStr(trialDate, -SALE_BACK);
     // Kein Ausschluss mehr wegen aelterem Abo auf demselben Konto (Familienkonto: zweites Kind = neuer Verkauf; Lehre 08.09. Andreas March)
-    // Paketwechsel/Verlaengerung: altes Abo als "Converted" beendet oder Ende nahe am neuen Vertrag = kein neuer Verkauf
-    if ((cancBy[uid] || []).some((c) => !isPT(c.pkg) && (c.converted || (c.ended && c.ended >= from && c.ended <= addDaysStr(trialDate, 30))))) return Object.assign({}, NONE);
+    // Paketwechsel/Verlaengerung: altes Abo endete zwischen 60 Tagen vor und 30 Tagen nach dem neuen Start = kein neuer Verkauf.
+    // Nur zeitnah, auch bei "Converted" (Lehre 08.09.: Andreas March, Kuendigung April, Neustart September = Verkauf)
+    if ((cancBy[uid] || []).some((c) => !isPT(c.pkg) && c.ended && c.ended >= from && c.ended <= addDaysStr(trialDate, 30))) return Object.assign({}, NONE);
     const ws = (waivBy[uid] || []).filter((w) => w.date && w.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const ss = (subsBy[uid] || []).filter((s) => !isPT(s.pkg) && s.date && s.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1));
     const cs = (cancBy[uid] || []).filter((c) => !isPT(c.pkg) && c.ended && c.ended >= from);

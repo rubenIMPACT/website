@@ -526,3 +526,7 @@ Ninjas) und Aline Roig sind echte Abo-Starts ohne Kuendigung davor. Team-Sheet u
 Konto schon ein aelteres Abo lief (zweites Kind = neuer Verkauf, Ruben-Regel "Paket aktiviert") -> Ausschluss entfernt, Paketwechsel-
 Regel bleibt; (2) "Kaeufer ohne Zeile" uebersprang prior (Besuch vor dem Fenster) -> entfernt. Monatsabschluss: cancelled-Report 60
 Tage vor dem Monat laden, Paketwechsel wie im Team-Sheet (Converted oder Ende -60/+30 Tage um den Start), Kuendigungszahlen inMonth.
+NACHTRAG 08.09. 14:20: Andreas March (Familienkonto) fehlte im Team-Sheet, weil saleOf jede "Converted"-Kuendigung im 180-Tage-Fenster
+als Paketwechsel nahm (seine lag im April). Jetzt in beiden Sheets: Paketwechsel = Kuendigung zwischen 60 Tagen vor und 30 Tagen nach
+dem neuen Start, egal ob "Converted". Damit Team-Sheet = Monatsabschluss (September ZH 19, WT 14). Parallel laufende Report-Fenster
+(Nachlauf maCatchUp, Tageslauf) lassen runProbetrainings mit "t3 nicht fertig" scheitern - vor Handlaeufen die Executions pruefen.
