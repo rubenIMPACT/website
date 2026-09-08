@@ -252,10 +252,11 @@ function nextStepOf(a, c) {
   return 'Wait for Stripe retries; ' + st + ' message due';
 }
 function writeArrears(ss, rows, info, dry) {
-  var sh = ss.getSheetByName('Arrears');
+  var sh = ss.getSheetByName('Debtors') || ss.getSheetByName('Arrears'); // renamed 08.09. (Ruben)
+  if (sh && sh.getName() !== 'Debtors') { sh.setName('Debtors'); sh.getRange('A1').setValue('Debtors: members with open failed charges'); }
   if (!sh) {
-    sh = ss.insertSheet('Arrears');
-    sh.getRange('A1').setValue('Arrears: members with open failed charges').setFontSize(14).setFontWeight('bold');
+    sh = ss.insertSheet('Debtors');
+    sh.getRange('A1').setValue('Debtors: members with open failed charges').setFontSize(14).setFontWeight('bold');
     sh.getRange('A2').setValue('Rebuilt every hour from the exercise.com reports "Failed Payments" and "Charges" (last 90 days), sorted by Priority (1 = most urgent), then by open amount. Open = failed charge that exercise.com has not marked as converted (paid later). A later paid invoice does NOT close an older open charge (column "Later invoice paid" flags exactly these hidden cases). Auto-retries left = no once Stripe stopped retrying (5 attempts, 14 days, or a hard decline); then only a manual retry after the card update or a direct payment settles it. Stage = dunning step: W1 from day 2, W2 from day 6, W3 from day 14, W4 as soon as a second charge is open. Next step = what a human still has to do. Debt collection, paused and accounts outside the client list are listed at the bottom and get no automatic message.').setFontColor('#666666').setWrap(true);
     sh.getRange('A2:T2').merge(); sh.setRowHeight(2, 90);
     sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
@@ -273,24 +274,61 @@ function writeArrears(ss, rows, info, dry) {
   if (out.length) { sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out); sh.getRange(5, 11, out.length, 1).setNumberFormat('0.00'); sh.getRange(5, 5, out.length, 1).setNumberFormat('@'); sh.getRange(5, 12, out.length, 1).setNumberFormat('@'); }
   sh.getRange('A3').setValue(out.length + ' members in arrears, CHF ' + r2(out.reduce(function (s, r) { return s + r[10]; }, 0)) + ' open, ' + out.filter(function (r) { return r[9] === 'yes'; }).length + ' with a later invoice paid (old charge still open), ' + out.filter(function (r) { return r[8] === 'no'; }).length + ' with auto-retries exhausted. Priority 1 = second charge open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused, 5 = not in client list. ' + now);
 }
-var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open charges', 'Amount open CHF', 'Later invoice paid', 'Failure message', 'Suggested action', 'Updated'];
-function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose automatic retries are exhausted -> Waseem retries by hand
-  var sh = ss.getSheetByName('Retry today');
+var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open charges', 'Amount open CHF', 'Later invoice paid', 'Failure message', 'Suggested action', 'Listed since', 'Done (Waseem)', 'Note', 'Updated'];
+var RETRY_LOG_HEAD = ['Log date', 'UID', 'Name', 'Location', 'Amount open CHF', 'Listed since', 'Done (Waseem)', 'Note', 'Outcome'];
+function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members whose automatic retries are exhausted -> Waseem retries by hand.
+  // 08.09. (Ruben): checkbox "Done (Waseem)" + note per member; both survive the hourly rebuild (keyed by UID). Every morning the
+  // previous day's list is archived to "Retry log" with the checkbox state, and the checkboxes are reset. A member who leaves
+  // the list is logged with the outcome (charge succeeded / no longer listed).
+  var sh = ss.getSheetByName('Retry today'), today = fmtD(new Date()), now = fmtDT(new Date());
   if (!sh) {
     sh = ss.insertSheet('Retry today');
     sh.getRange('A1').setValue('Retry today: manual retry needed (automatic retries exhausted)').setFontSize(14).setFontWeight('bold');
-    sh.getRange('A2').setValue('Rebuilt every hour. Active, billed members with an open failed charge where Stripe will not retry any more (5 attempts, or older than 14 days, or a hard decline). "Later invoice paid" = a newer charge went through, so the card works and a manual retry should succeed. Hard declines need a new card first. In Phase 1 this list goes to Waseem by e-mail every morning.').setFontColor('#666666').setWrap(true);
-    sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 60);
+    sh.getRange('A2').setValue('Rebuilt every hour. Active, billed members with an open failed charge where Stripe will not retry any more (5 attempts, older than 14 days, or a hard decline). A member stays on the list until the charge succeeds or the account is no longer active; then the row moves to "Retry log" with its outcome. "Later invoice paid" = a newer charge went through, so the card works. Tick "Done (Waseem)" after the manual retry and add a note if needed; the tick is archived every morning and reset for the new day.').setFontColor('#666666').setWrap(true);
+    sh.getRange('A2:M2').merge(); sh.setRowHeight(2, 70);
     sh.getRange(4, 1, 1, RETRY_HEAD.length).setValues([RETRY_HEAD]).setFontWeight('bold').setBackground('#d9ead3');
     sh.setFrozenRows(4);
-    [80, 180, 90, 50, 60, 90, 70, 260, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    [80, 180, 90, 50, 60, 90, 70, 240, 200, 90, 90, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
   }
-  var now = fmtDT(new Date());
-  var out = rows.filter(function (a) { return a.exhausted && activeClient(info[a.uid]); }).sort(function (x, y) { return y.amount - x.amount; })
-    .map(function (a) { return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.hidden ? 'yes' : '', a.reason, HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry' : (a.hidden ? 'Retry today, card works' : 'Retry today'), now]; });
-  if (sh.getLastRow() >= 5) sh.getRange(5, 1, sh.getLastRow() - 4, RETRY_HEAD.length).clearContent();
-  if (out.length) { sh.getRange(5, 1, out.length, RETRY_HEAD.length).setValues(out); sh.getRange(5, 6, out.length, 1).setNumberFormat('0.00'); }
-  sh.getRange('A3').setValue(out.length + ' members to retry by hand, CHF ' + r2(out.reduce(function (s, r) { return s + r[5]; }, 0)) + ' open, ' + now);
+  if (sh.getRange(4, 11).getValue() !== 'Done (Waseem)') { // header upgrade 08.09.
+    if (sh.getMaxColumns() < RETRY_HEAD.length) sh.insertColumnsAfter(sh.getMaxColumns(), RETRY_HEAD.length - sh.getMaxColumns());
+    sh.getRange(4, 1, 1, RETRY_HEAD.length).setValues([RETRY_HEAD]).setFontWeight('bold').setBackground('#d9ead3');
+    [80, 180, 90, 50, 60, 90, 70, 240, 200, 90, 90, 220, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    sh.getRange('A2:M2').merge();
+  }
+  var log = ss.getSheetByName('Retry log');
+  if (!log) {
+    log = ss.insertSheet('Retry log');
+    log.getRange('A1').setValue('Retry log: one line per member and day, written every morning (and when a member leaves the list)').setFontSize(12).setFontWeight('bold');
+    log.getRange(2, 1, 1, RETRY_LOG_HEAD.length).setValues([RETRY_LOG_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
+    log.setFrozenRows(2);
+    [90, 80, 180, 90, 90, 90, 90, 240, 200].forEach(function (w, i) { log.setColumnWidth(1 + i, w); });
+  }
+  // previous state (keyed by UID)
+  var prev = {}, n = sh.getLastRow();
+  if (n >= 5) sh.getRange(5, 1, n - 4, RETRY_HEAD.length).getValues().forEach(function (r) { var u = String(r[0] || ''); if (u) prev[u] = { name: r[1], loc: r[2], amount: r[5], since: dOf(r[9]) || today, done: r[10] === true, note: String(r[11] || '') }; });
+  var inArrears = {}; rows.forEach(function (a) { inArrears[a.uid] = true; });
+  var lastLog = dOf(sh.getRange('Z1').getValue());
+  var logRows = [];
+  if (lastLog && lastLog !== today) { // new day: archive yesterday's list with the checkbox state, then reset the ticks
+    Object.keys(prev).forEach(function (u) { var p = prev[u]; logRows.push([lastLog, u, p.name, p.loc, p.amount, p.since, p.done ? 'yes' : 'no', p.note, inArrears[u] ? 'still open' : 'charge succeeded or account closed']); p.done = false; });
+  }
+  var out = rows.filter(function (a) { return a.exhausted && activeClient(info[a.uid]); }).sort(function (x, y) { return y.amount - x.amount; });
+  var current = {};
+  var vals = out.map(function (a) {
+    current[a.uid] = true; var p = prev[a.uid] || {};
+    return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.hidden ? 'yes' : '', a.reason, HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry' : (a.hidden ? 'Retry today, card works' : 'Retry today'), p.since || today, p.done === true, p.note || '', now];
+  });
+  Object.keys(prev).forEach(function (u) { if (!current[u]) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, p.done ? 'yes' : 'no', p.note, inArrears[u] ? 'no longer listed (status changed)' : 'charge succeeded or account closed']); } });
+  if (n >= 5) { sh.getRange(5, 1, n - 4, RETRY_HEAD.length).clearContent(); sh.getRange(5, 11, n - 4, 1).clearDataValidations(); }
+  if (vals.length) {
+    sh.getRange(5, 1, vals.length, RETRY_HEAD.length).setValues(vals);
+    sh.getRange(5, 6, vals.length, 1).setNumberFormat('0.00'); sh.getRange(5, 10, vals.length, 1).setNumberFormat('@');
+    sh.getRange(5, 11, vals.length, 1).insertCheckboxes(); sh.getRange(5, 11, vals.length, 1).setValues(vals.map(function (r) { return [r[10]]; }));
+  }
+  if (logRows.length) log.getRange(log.getLastRow() + 1, 1, logRows.length, RETRY_LOG_HEAD.length).setValues(logRows);
+  sh.getRange('Z1').setValue(today); sh.hideColumns(26);
+  sh.getRange('A3').setValue(vals.length + ' members to retry by hand, CHF ' + r2(vals.reduce(function (s, r) { return s + r[5]; }, 0)) + ' open, ' + vals.filter(function (r) { return r[10] === true; }).length + ' ticked as done today, ' + now);
 }
 function lastMsgE(dry) { // uid -> latest dry-run message for Flow E
   var m = {}, n = dry.getLastRow(); if (n < TR_ROW0) return m;
