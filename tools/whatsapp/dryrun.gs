@@ -33,7 +33,7 @@ var TEXT = {
 };
 var CF_URL = 'https://www.impact-martialarts.com/api/wa', CF_TOKEN = 'PASTE_LEADLOG_TOKEN_HERE'; // Token = Zeile "var TOKEN" im Leads-Log-Script; nur im Editor eintragen, nie ins Repo
 var PAY_LINK = 'https://app.impact-martialarts.com/ex4/me/account/?card=true'; // member billing page (update card); same for everyone
-var RULE_E = { W1_D: 2, W2_D: 6, W3_D: 14, DAYS: 180, HIST_D: 180, MAX_ATTEMPTS: 5, RETRY_WINDOW_D: 14 }; // Ruben 08.09.: 180 Tage zurueck // exercise.com KB (06/2025): Stripe Smart Retries, up to 4 retries within 2 weeks, timing chosen by Stripe, not configurable; afterwards no automatic attempt (subscription stays past-due at IMPACT). MAX_ATTEMPTS = 1 failure + 4 retries.
+var RULE_E = { W1_D: 3, W2_D: 6, W3_D: 14, DAYS: 180, HIST_D: 180, MAX_ATTEMPTS: 5, RETRY_WINDOW_D: 14, W4_GRACE_D: 7 }; // Ruben 08.09.: W1 am Tag 3, 180 Tage zurueck, W4 mit 7 Tagen Frist, Inkasso-Stage erst 7 Tage nach der zweiten geplatzten Rechnung // exercise.com KB (06/2025): Stripe Smart Retries, up to 4 retries within 2 weeks, timing chosen by Stripe, not configurable; afterwards no automatic attempt (subscription stays past-due at IMPACT). MAX_ATTEMPTS = 1 failure + 4 retries.
 var HARD_DECLINE = /lost|stolen|incorrect number|invalid account|authentication required|not allowed|does not support/i; // Stripe does not retry these until a new card is on file // Ruben 07.09.2026: W1 zwei Tage nach der ersten Sichtung (Abbuchung geht oft von selbst noch durch), W2 Tag 6, W3 Tag 14, W4 einen Tag nach der naechsten Faelligkeit
 var TEXT_E = {
   W1: { de: 'Hey {name} 👋 wir haben gesehen, dass die letzte Zahlung bei deinem Abo leider nicht durchgegangen ist. Kannst du bitte kurz deine Zahlungsdaten und die Deckung deines Kontos prüfen, damit wir es in den nächsten Tagen erneut abbuchen können? Wenn du Hilfe brauchst, sag kurz Bescheid 🙏 Danke dir!',
@@ -42,8 +42,8 @@ var TEXT_E = {
         en: 'Hey {name}, unfortunately we still could not collect the outstanding payment. Please check your payment details or the funds on your account today, and we will retry the charge. Thanks!' },
   W3: { de: 'Hey {name}, die Zahlung von CHF {amount} ist seit dem {due_date} offen, und die automatischen Abbuchungen sind ausgeschöpft. Bitte aktualisiere heute deine Zahlungsdaten hier: {pay_link} Danach buchen wir den Betrag erneut ab. Wenn du lieber direkt bezahlen willst, sag kurz Bescheid, dann schicke ich dir die Rechnung mit Zahlungslink. Falls es gerade schwierig ist: melde dich, dann finden wir eine Lösung.',
         en: "Hi {name}, the payment of CHF {amount} has been outstanding since {due_date} and the automatic charges have run out. Please update your payment details today here: {pay_link} We will then charge the amount again. If you prefer to pay directly, just let me know and I will send you the invoice with a payment link. If things are difficult at the moment, get in touch and we will find a solution together." },
-  W4: { de: 'Hey {name}, leider sind inzwischen mehrere Zahlungen offen und auch die neue Zahlung ist erneut fehlgeschlagen. Wenn wir bis morgen keinen Zahlungseingang bzw. keine Rückmeldung erhalten, müssen wir den offenen Betrag an unser Inkasso-/Mahnverfahren weitergeben. Bitte aktualisiere heute deine Zahlungsdaten hier: {pay_link} oder melde dich kurz für die Rechnung mit Zahlungslink (CHF {amount}), damit wir das vermeiden können.',
-        en: "Hi {name}, unfortunately several payments are still overdue, and the most recent payment attempt has failed again. If we don't receive an update or payment from you by tomorrow, we'll need to move forward with our debt collection process. Please update your payment details today here: {pay_link} or get in touch for the invoice with a payment link (CHF {amount}), so we can avoid further steps. Thank you for your prompt attention." }
+  W4: { de: 'Hey {name}, leider sind inzwischen mehrere Zahlungen offen und auch die neue Zahlung ist erneut fehlgeschlagen. Wenn wir innerhalb von 7 Tagen keinen Zahlungseingang bzw. keine Rückmeldung erhalten, müssen wir den offenen Betrag an unser Inkasso-/Mahnverfahren weitergeben. Bitte aktualisiere heute deine Zahlungsdaten hier: {pay_link} oder melde dich kurz für die Rechnung mit Zahlungslink (CHF {amount}), damit wir das vermeiden können.',
+        en: "Hi {name}, unfortunately several payments are still overdue, and the most recent payment attempt has failed again. If we don't receive an update or payment from you within 7 days, we'll need to move forward with our debt collection process. Please update your payment details today here: {pay_link} or get in touch for the invoice with a payment link (CHF {amount}), so we can avoid further steps. Thank you for your prompt attention." }
 };
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
@@ -224,9 +224,9 @@ function buildArrears() { // one entry per member with at least one open (unconv
     var a = byUid[u], open = Object.keys(a.charges).map(function (k) { return a.charges[k]; }).filter(function (c) { return !c.settled && c.date; });
     if (!open.length) return;
     open.sort(function (x, y) { return x.date < y.date ? -1 : 1; });
-    var first = open[0].date, newest = open[open.length - 1];
+    var first = open[0].date, newest = open[open.length - 1], second = open.length > 1 ? open[1].date : '';
     var att = open.reduce(function (m, c) { return Math.max(m, c.attempts); }, 0);
-    rows.push({ uid: u, name: a.name, loc: a.loc, first: first, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS || daysBetween(first, end) > RULE_E.RETRY_WINDOW_D || HARD_DECLINE.test(newest.reason) });
+    rows.push({ uid: u, name: a.name, loc: a.loc, first: first, second: second, days: daysBetween(first, end), open: open.length, attempts: att, amount: r2(open.reduce(function (s, c) { return s + c.amount; }, 0)), lastDate: newest.last, reason: newest.reason, item: newest.item, hidden: open.some(function (c) { return c.laterPaid; }), exhausted: att >= RULE_E.MAX_ATTEMPTS || daysBetween(first, end) > RULE_E.RETRY_WINDOW_D || HARD_DECLINE.test(newest.reason) });
   });
   rows.sort(function (x, y) { return y.days - x.days; }); // provisional; the final order (priority) is set in writeArrears once the client status is known
   rows.convVals = convVals; rows.chVals = chVals; rows.ptVals = ptVals;
@@ -258,7 +258,7 @@ function nextStepOf(a, c) {
   if (/debt/i.test(c.lifecycle)) return 'Debt collection running (Sam)';
   if (!activeClient(c)) return 'By hand: subscription paused or pending cancellation';
   var st = stageOf(a);
-  if (st === 'W4') return 'W4 sent or due: escalate to Sam if no payment tomorrow';
+  if (st === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D), today = fmtD(new Date()); return (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (deadline ' + esc + ' passed)' : 'W4 sent or due; escalate to Sam and set "Debt collection" on ' + esc + ' if still unpaid'); }
   if (a.exhausted) return HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry by hand' : 'Retry by hand (see Retry today)';
   return 'Wait for Stripe retries; ' + st + ' message due';
 }
