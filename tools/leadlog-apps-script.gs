@@ -1148,7 +1148,10 @@ function doGet(e) {
 // Standort aus dem Kampagnennamen; ohne Standort = "Beide", Aufteilung nach Einstellung. Agenturkosten (3'800 EUR/Monat, Ruben
 // 05.09., Agentur wird gekuendigt) stehen im Tab Einstellungen und werden nach Media-Anteil auf die Standorte verteilt; CAC gibt
 // es deshalb mit und ohne Agentur. CPL/CAC/LTV stehen je Standort im Monatsabschluss (Block "Werbung und Kundenwert").
-var WK_SHEET = 'WerbekostenDaten', WK_VIEW = 'Werbekosten', WK_HEAD = ['Datum', 'Plattform', 'Konto', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks', 'Impressionen', 'Stand'];
+var WK_SHEET = 'WerbekostenDaten', WK_VIEW = 'Werbekosten', WK_HEAD = ['Datum', 'Plattform', 'Konto', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks', 'Impressionen', 'Stand', 'Kampagnen-ID'];
+// Kampagnen-ID (Spalte J, seit 08.09.2026): Google Ads schreibt campaign.id (tools/google-ads-spend-script.js), damit Google-Leads ueber
+// gad_campaignid im Anzeigen-Link der Kampagne zugeordnet werden koennen (Google haengt keinen Kampagnennamen an den Link,
+// Meta und TikTok schon: utm_campaign = Kampagnenname). Solange die ID fehlt: Zuordnung ueber Standort + Little Ninjas/Erwachsene.
 var WK_PLATFORMS = ['Google Ads', 'Meta Ads', 'TikTok Ads']; // gleiche Namen wie die Lead-Kanaele (KANAL_ORDER)
 var ST_SHEET = 'Einstellungen';
 var ST_DEFAULTS = [
@@ -1185,18 +1188,20 @@ function wkLocOf(name) { var s = String(name || ''); if (/winterthur|\bWT\b|wint
 function wkRead(ss) {
   var sh = ss.getSheetByName(WK_SHEET); if (sh && !sh.isSheetHidden()) sh.hideSheet(); // Rohdaten bleiben versteckt (Ruben 06.09.)
   if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().map(function (r) { return { d: dOfCell(r[0]), plat: String(r[1] || ''), acct: String(r[2] || ''), camp: String(r[3] || ''), loc: String(r[4] || ''), cost: Number(r[5]) || 0, clicks: Number(r[6]) || 0, imp: Number(r[7]) || 0 }; }).filter(function (x) { return x.d && x.plat; });
+  return sh.getRange(2, 1, sh.getLastRow() - 1, WK_HEAD.length).getValues().map(function (r) { return { d: dOfCell(r[0]), plat: String(r[1] || ''), acct: String(r[2] || ''), camp: String(r[3] || ''), loc: String(r[4] || ''), cost: Number(r[5]) || 0, clicks: Number(r[6]) || 0, imp: Number(r[7]) || 0, cid: String(r[9] || '').replace(/\.0$/, '') }; }).filter(function (x) { return x.d && x.plat; });
 }
 function wkUpsert(ss, rows) {
   var sh = getOrCreate(ss, WK_SHEET);
   if (sh.getLastRow() === 0) { sh.appendRow(WK_HEAD); sh.getRange(1, 1, 1, WK_HEAD.length).setFontWeight('bold'); sh.setFrozenRows(1); }
+  else if (String(sh.getRange(1, WK_HEAD.length).getValue()) !== WK_HEAD[WK_HEAD.length - 1]) sh.getRange(1, 1, 1, WK_HEAD.length).setValues([WK_HEAD]).setFontWeight('bold'); // neue Spalte Kampagnen-ID
   if (!sh.isSheetHidden()) sh.hideSheet();
   var n = Math.max(0, sh.getLastRow() - 1), ex = n ? sh.getRange(2, 1, n, WK_HEAD.length).getValues() : [], idx = {};
   ex.forEach(function (r, i) { idx[dOfCell(r[0]) + '|' + r[1] + '|' + r[2] + '|' + r[3]] = i; });
   var stamp = Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm'), add = [], upd = 0;
   rows.forEach(function (x) {
     if (!x.date) return;
-    var row = [x.date, x.platform, x.account, x.campaign, wkLocOf(x.campaign), Math.round(x.spend * 100) / 100, x.clicks, x.impressions, stamp], k = x.date + '|' + x.platform + '|' + x.account + '|' + x.campaign;
+    var k = x.date + '|' + x.platform + '|' + x.account + '|' + x.campaign;
+    var row = [x.date, x.platform, x.account, x.campaign, wkLocOf(x.campaign), Math.round(x.spend * 100) / 100, x.clicks, x.impressions, stamp, x.campaign_id ? String(x.campaign_id) : (k in idx ? ex[idx[k]][9] : '')];
     if (k in idx) { ex[idx[k]] = row; upd++; } else add.push(row);
   });
   if (n) sh.getRange(2, 1, n, WK_HEAD.length).setValues(ex);
@@ -1227,8 +1232,34 @@ function wkAgency(ss, mk, agg) {
   var o = agg[mk], tz = o ? (o.Zurich.plat['TikTok Ads'] || 0) : 0, tw = o ? (o.Winterthur.plat['TikTok Ads'] || 0) : 0, tot = tz + tw, sz = tot ? tz / tot : 0.5;
   return { Zurich: (zh + tk * sz) * rate, Winterthur: (wt + tk * (1 - sz)) * rate };
 }
-var WK_NOTE = 'Media-Kosten je Monat und Standort: Google Ads (Skript), Meta (API) und TikTok (Report-Mail) täglich, Agentur aus dem Tab Einstellungen. Definitionen im Tab Methodik.';
-var WK_NOTE_FULL = 'Media-Kosten je Monat und Standort aus dem versteckten Tab WerbekostenDaten (Google Ads: Google-Ads-Skript täglich; Meta: Marketing API täglich 06:30; TikTok: täglicher Report-Anhang per Mail, Betreff "IMPACT TikTok"). Standort aus dem Kampagnennamen, Kampagnen ohne Standort nach dem Split im Tab Einstellungen aufgeteilt. Agenturkosten aus dem Tab Einstellungen, nach Media-Anteil auf die Standorte verteilt. Kosten pro Lead, CAC und LTV stehen im Monatsabschluss.';
+var WK_NOTE = 'Media-Kosten je Monat und Standort: Google Ads (Skript), Meta (API) und TikTok (Report-Mail) täglich, Agentur aus dem Tab Einstellungen. Unten je Kampagne der letzten 30 Tage: Kosten, Klicks, Website-Leads und Cost per Lead (Notiz an der Spalte). Definitionen im Tab Methodik.';
+var WK_NOTE_FULL = 'Kampagnentabelle unten: Website-Leads je Kampagne aus dem Anzeigen-Link (Meta/TikTok: utm_campaign = Kampagnenname; Google: Kampagnen-ID gad_campaignid, zugeordnet über das Google-Ads-Skript, sonst Standort plus Little Ninjas/Erwachsene) und CPL = Kosten / Leads, beides letzte 30 Tage. Media-Kosten je Monat und Standort aus dem versteckten Tab WerbekostenDaten (Google Ads: Google-Ads-Skript täglich; Meta: Marketing API täglich 06:30; TikTok: täglicher Report-Anhang per Mail, Betreff "IMPACT TikTok"). Standort aus dem Kampagnennamen, Kampagnen ohne Standort nach dem Split im Tab Einstellungen aufgeteilt. Agenturkosten aus dem Tab Einstellungen, nach Media-Anteil auf die Standorte verteilt. Kosten pro Lead, CAC und LTV stehen im Monatsabschluss.';
+var WK_LEADS_NOTE = 'Website-Leads (Formular, zählend wie im Tab Daten) der letzten 30 Tage, deren Anzeigen-Link diese Kampagne nennt: Meta und TikTok hängen den Kampagnennamen als utm_campaign an, Google nur die Kampagnen-ID (gad_campaignid), die über das Google-Ads-Skript zugeordnet wird; fehlt die ID, zählt Standort plus Little Ninjas/Erwachsene. "ohne Kampagnen-Zuordnung" = bezahlte Leads ohne erkennbare Kampagne.';
+function wkCampKey(name) { return String(name || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+// Website-Leads je Kampagne ab 'since': Daten (Datum, Standort, Interesse, Zaehlt, Kanal) und Leads (Seite, utm_campaign) Zeile fuer Zeile
+function wkLeadsByCampaign(ss, since, all) {
+  var out = { by: {}, open: {} }, dn = ss.getSheetByName('Daten'), ld = ss.getSheetByName('Leads');
+  if (!dn || !ld || dn.getLastRow() < 2 || ld.getLastRow() < 2) return out;
+  var n = Math.min(dn.getLastRow(), ld.getLastRow()) - 1, dv = dn.getRange(2, 1, n, 10).getValues(), lv = ld.getRange(2, 1, n, 24).getValues();
+  var names = {}, byId = {}, cands = {};
+  (all || []).forEach(function (x) { if (!x.camp) return; var k = x.plat + '|' + wkCampKey(x.camp); names[k] = x.camp; if (x.cid) byId[x.plat + '|' + x.cid] = x.camp; if (x.d >= since) (cands[x.plat + '|' + x.loc] = cands[x.plat + '|' + x.loc] || {})[x.camp] = 1; });
+  for (var i = 0; i < n; i++) {
+    var d = dOfCell(dv[i][0]), plat = String(dv[i][9] || ''), loc = String(dv[i][3] || '');
+    if (!d || d < since || Number(dv[i][6]) !== 1 || WK_PLATFORMS.indexOf(plat) < 0) continue;
+    var camp = '', utm = wkCampKey(lv[i][23]), page = String(lv[i][13] || '');
+    if (utm && names[plat + '|' + utm]) camp = names[plat + '|' + utm];
+    if (!camp && plat === 'Google Ads') {
+      var m = page.match(/[?&]gad_campaignid=(\d+)/); if (m && byId[plat + '|' + m[1]]) camp = byId[plat + '|' + m[1]];
+      if (!camp) { // ohne ID: Standort + Little Ninjas/Erwachsene, nur wenn genau eine Kampagne passt
+        var kids = /little ninjas|kids/i.test(String(dv[i][4] || '') + ' ' + String(lv[i][7] || '')), lk = loc === 'Zürich' ? 'Zurich' : loc;
+        var cs = Object.keys(cands[plat + '|' + lk] || {}).filter(function (c) { return /ninja|kids/i.test(c) === kids; });
+        if (cs.length === 1) camp = cs[0];
+      }
+    }
+    if (camp) { var key = plat + '|' + wkCampKey(camp); out.by[key] = (out.by[key] || 0) + 1; } else out.open[plat] = (out.open[plat] || 0) + 1;
+  }
+  return out;
+}
 function buildWerbekosten(ss) {
   var sh = getOrCreate(ss, WK_VIEW); clearSheet(sh);
   var agg = wkMonthAgg(ss), months = Object.keys(agg).sort().slice(-12), now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
@@ -1260,9 +1291,13 @@ function buildWerbekosten(ss) {
   var since = fmtD(addD(new Date(), -30)), by = {};
   all.forEach(function (x) { if (x.d < since) return; var k = x.plat + '|' + x.camp, o = by[k] = by[k] || { plat: x.plat, camp: x.camp, loc: x.loc, cost: 0, clicks: 0 }; o.cost += x.cost; o.clicks += x.clicks; });
   var list = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return b.cost - a.cost; });
+  var lk = wkLeadsByCampaign(ss, since, all); // Website-Leads je Kampagne (Ruben 08.09.: Cost per Lead je Kampagne)
   sh.getRange(r, 1).setValue('Kampagnen der letzten 30 Tage (ab ' + since + ')').setFontWeight('bold').setFontSize(13); r++;
-  sh.getRange(r, 1, 1, 5).setValues([['Plattform', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks']]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
-  if (list.length) { sh.getRange(r, 1, list.length, 5).setValues(list.map(function (o) { return [o.plat, o.camp, o.loc === 'Zurich' ? 'Zürich' : o.loc, Math.round(o.cost), Math.round(o.clicks)]; })); sh.getRange(r, 4, list.length, 2).setNumberFormat('#,##0'); }
+  sh.getRange(r, 1, 1, 7).setValues([['Plattform', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks', 'Leads', 'CPL (CHF)']]).setFontWeight('bold').setBackground('#f3f3f3');
+  sh.getRange(r, 6).setNote(WK_LEADS_NOTE); sh.getRange(r, 7).setNote('Kosten der Kampagne geteilt durch ihre Website-Leads im gleichen Zeitraum (letzte 30 Tage). Leer = keine Leads.'); r++;
+  var lrows = list.map(function (o) { var n = lk.by[o.plat + '|' + wkCampKey(o.camp)] || 0; return [o.plat, o.camp, o.loc === 'Zurich' ? 'Zürich' : o.loc, Math.round(o.cost), Math.round(o.clicks), n, n ? Math.round(o.cost / n) : '']; });
+  WK_PLATFORMS.forEach(function (pn) { if (lk.open[pn]) lrows.push([pn, 'ohne Kampagnen-Zuordnung', '', '', '', lk.open[pn], '']); });
+  if (lrows.length) { sh.getRange(r, 1, lrows.length, 7).setValues(lrows); sh.getRange(r, 4, lrows.length, 4).setNumberFormat('#,##0'); r += lrows.length; }
   else sh.getRange(r, 1).setValue('noch keine Daten – Google-Ads-Skript und Meta-Token einrichten').setFontColor('#999999');
   sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 320); sh.setColumnWidth(3, 320); sh.setFrozenColumns(0);
 }

@@ -492,3 +492,11 @@ Unterschrift 01.09.2026, einziges Paket IMPACT PRO ab 01.09. = echter Neukunde (
 Kauf 03.09.) aus -> ENTFERNT in saleOf und computeMonat. Bleibt: nur Abos (kein PT), nur erster Vertrag = kein aelteres laufendes Abo
 UND kein Paketwechsel (cancelled_subscriptions "Converted" oder Ende zwischen 60 Tage vor und 30 Tage nach der Unterschrift).
 Nachlauf MA_CATCHUP '2026-09-08d'. LEHRE: "Sign up"-Datum in exercise.com = Konto-/Lead-Anlage, NICHT Mitgliedschaftsbeginn.
+COST PER LEAD JE KAMPAGNE (Ruben 08.09.2026 mittags, Tab Werbekosten, Tabelle "Kampagnen der letzten 30 Tage"): neue Spalten Leads und
+CPL (CHF) hinter Klicks. Leads = Website-Leads (Daten "Zaehlt" = 1, Kanal = bezahlte Plattform) der letzten 30 Tage, Kampagne aus
+dem Anzeigen-Link: Meta/TikTok haengen utm_campaign = exakter Kampagnenname an (Leads Spalte X), Google nur gad_campaignid in der
+Seite (Leads N) -> WerbekostenDaten Spalte J "Kampagnen-ID" (Google-Ads-Skript schreibt campaign.id; Ruben muss das Skript in
+Google Ads neu einfuegen), bis dahin Heuristik Standort + Little Ninjas/Erwachsene, wenn genau eine Kampagne passt. Nicht
+zuordenbare bezahlte Leads stehen als Zeile "ohne Kampagnen-Zuordnung" je Plattform. wkLeadsByCampaign liest Daten und Leads
+zeilenweise (Daten ist eine ARRAYFORMULA ueber Leads, gleiche Zeilennummern). Kein CPL in der Monatstabelle (der Monatsabschluss hat
+CPL je Standort = Media / Website-Leads; keine parallele Methode).

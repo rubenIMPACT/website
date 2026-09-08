@@ -7,11 +7,12 @@
 var SHEET_ID = '1nlA8MOSqYFwj-rI0SYRFh06-VmMTdoUPYEsHf3zwtlE';
 var TAB = 'WerbekostenDaten';
 var DAYS = 14;
-var HEAD = ['Datum', 'Plattform', 'Konto', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks', 'Impressionen', 'Stand'];
+var HEAD = ['Datum', 'Plattform', 'Konto', 'Kampagne', 'Standort', 'Kosten CHF', 'Klicks', 'Impressionen', 'Stand', 'Kampagnen-ID']; // Kampagnen-ID seit 08.09.2026 (Cost per Lead je Kampagne: gad_campaignid im Anzeigen-Link)
 
 function main() {
   var ss = SpreadsheetApp.openById(SHEET_ID), sh = ss.getSheetByName(TAB) || ss.insertSheet(TAB);
   if (sh.getLastRow() === 0) { sh.appendRow(HEAD); sh.getRange(1, 1, 1, HEAD.length).setFontWeight('bold'); sh.setFrozenRows(1); }
+  else if (String(sh.getRange(1, HEAD.length).getValue()) !== HEAD[HEAD.length - 1]) sh.getRange(1, 1, 1, HEAD.length).setValues([HEAD]).setFontWeight('bold');
   var acc = AdsApp.currentAccount(), tz = acc.getTimeZone(), name = acc.getName(), cur = acc.getCurrencyCode();
   // Erstlauf: solange keine Google-Zeile aelter als 60 Tage im Tab liegt, 400 Tage nachladen (Historie fuer den Monatsabschluss)
   var days = DAYS, old = new Date(Date.now() - 60 * 86400000), hasOld = false;
@@ -19,12 +20,12 @@ function main() {
   if (!hasOld) days = 400;
   var end = new Date(), start = new Date(end.getTime() - days * 86400000);
   var f = function (d) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); };
-  var q = "SELECT segments.date, campaign.name, metrics.cost_micros, metrics.clicks, metrics.impressions FROM campaign " +
+  var q = "SELECT segments.date, campaign.name, campaign.id, metrics.cost_micros, metrics.clicks, metrics.impressions FROM campaign " +
     "WHERE segments.date BETWEEN '" + f(start) + "' AND '" + f(end) + "' AND metrics.cost_micros > 0";
   var it = AdsApp.report(q).rows(), out = [];
   while (it.hasNext()) {
     var r = it.next();
-    out.push({ date: String(r['segments.date']), campaign: String(r['campaign.name']), cost: Number(r['metrics.cost_micros']) / 1e6, clicks: Number(r['metrics.clicks']), imp: Number(r['metrics.impressions']) });
+    out.push({ date: String(r['segments.date']), campaign: String(r['campaign.name']), cid: String(r['campaign.id']), cost: Number(r['metrics.cost_micros']) / 1e6, clicks: Number(r['metrics.clicks']), imp: Number(r['metrics.impressions']) });
   }
   if (cur !== 'CHF') Logger.log('ACHTUNG: Kontowaehrung ist ' + cur + ', Kosten werden unveraendert als CHF eingetragen');
   var res = upsert(sh, out, name);
@@ -39,7 +40,7 @@ function upsert(sh, rows, account) {
   ex.forEach(function (r, i) { idx[dOf(r[0]) + '|' + r[1] + '|' + r[2] + '|' + r[3]] = i; });
   var stamp = Utilities.formatDate(new Date(), 'Europe/Zurich', 'dd.MM. HH:mm'), add = [], upd = 0;
   rows.forEach(function (x) {
-    var row = [x.date, 'Google Ads', account, x.campaign, locOf(x.campaign), Math.round(x.cost * 100) / 100, x.clicks, x.imp, stamp];
+    var row = [x.date, 'Google Ads', account, x.campaign, locOf(x.campaign), Math.round(x.cost * 100) / 100, x.clicks, x.imp, stamp, x.cid || ''];
     var k = x.date + '|Google Ads|' + account + '|' + x.campaign;
     if (k in idx) { ex[idx[k]] = row; upd++; } else add.push(row);
   });
