@@ -2190,21 +2190,18 @@ function runProbetrainings(startOpt) {
   Object.keys(TR_SHEETS).forEach(function (loc) { open = open.concat(trOpenRows(ss, loc, start)); });
   var p1 = trCall(Object.assign({ phase: 't1' }, base)); if (p1.error) throw new Error('Trials t1: ' + JSON.stringify(p1).slice(0, 300));
   var p2 = null, p3 = null, i;
-  var errs = 0; // voruebergehende Fetch-Fehler (z.B. fetch_t2 am 07.09.) nicht sofort abbrechen, sondern bis 3x wiederholen
-  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p2 = trCall(Object.assign({ phase: 't2' }, base)); if (p2.error) { if (++errs >= 3) throw new Error('Trials t2: ' + JSON.stringify(p2).slice(0, 300)); continue; } if (p2.ready) break; }
+  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p2 = trCall(Object.assign({ phase: 't2' }, base)); if (p2.error) throw new Error('Trials t2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Trials t2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
   // Lifecycle in Bloecken nacheinander (ein Cache je Report), waehrend fvWT und v2 im Hintergrund generieren
   var life = [], nb = Number(p1.life_blocks) || 0, b, lg;
   for (b = 1; b <= nb; b++) {
     var lr = trCall(Object.assign({ phase: 'lr', i: b }, base)); if (lr.error) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lr).slice(0, 300));
     lg = null;
-    errs = 0;
-    for (i = 0; i < 8; i++) { Utilities.sleep(8000); lg = trCall(Object.assign({ phase: 'lg', i: b }, base)); if (lg.error) { if (++errs >= 3) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lg).slice(0, 300)); continue; } if (lg.ready) break; }
+    for (i = 0; i < 8; i++) { Utilities.sleep(8000); lg = trCall(Object.assign({ phase: 'lg', i: b }, base)); if (lg.error) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lg).slice(0, 300)); if (lg.ready) break; }
     if (!lg || !lg.ready) throw new Error('Trials Lifecycle-Block ' + b + ' nicht fertig: ' + JSON.stringify(lg).slice(0, 200));
     life = life.concat(lg.rows || []);
   }
-  errs = 0;
-  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open, life: life }, base)); if (p3.error) { if (++errs >= 3) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); continue; } if (p3.ready) break; }
+  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open, life: life }, base)); if (p3.error) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Trials t3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
   var data = p3.data, lines = [], leadMap = trLeadMap(main);
   Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, (data.payopen || {})[loc] || [], start, today, leadMap)); });
@@ -2212,7 +2209,6 @@ function runProbetrainings(startOpt) {
   try { teamMirrorEvents(main, ss); } catch (e1) { Logger.log('Events-Spiegel: ' + e1); }
   try { maScheduleBuild(); } catch (e2) { Logger.log('Monatsabschluss-Bau: ' + e2); } // Wochenwerte stehen im Monatsabschluss (seit 07.09.); Bau eine Minute spaeter in eigener Ausfuehrung
   Logger.log('Probetrainings ' + start + '..' + end + ': ' + lines.join(' | '));
-  try { PropertiesService.getScriptProperties().setProperty('trLastOk', String(Date.now())); } catch (e9) {}
   return lines.join('\n');
 }
 function trOpenRows(ss, loc, start) {
@@ -2393,8 +2389,7 @@ function trDailyMail() {
     lines.push(''); lines.push(T.mail.checks + ' (' + chk.length + '):'); if (!chk.length) lines.push('  ' + T.mail.none);
     chk.forEach(function (r) { lines.push('  - ' + r[CI.name] + ': ' + r[CI.check]); });
     lines.push(''); lines.push(T.mail.month.replace('{t}', cnt(mv, trIsTrial)).replace('{s}', cnt(mv, trSold)).replace('{c}', chk.length));
-    lines.push(''); lines.push('Stand (letzter erfolgreicher Lauf): ' + trLastOkText());
-    lines.push('https://docs.google.com/spreadsheets/d/' + TEAM_ID);
+    lines.push(''); lines.push('https://docs.google.com/spreadsheets/d/' + TEAM_ID);
     var to = TR_MAIL_TEAM ? (TR_ACCESS[loc] || [MAIL.fallback]).join(',') : MAIL.fallback;
     var msg = { to: to, subject: T.mail.subject.replace('{d}', deD(today) + today.slice(0, 4)), body: lines.join('\n') };
     if (TR_MAIL_TEAM) msg.cc = MAIL.fallback;
@@ -2450,26 +2445,7 @@ function runProbetrainingsHourly() {
   try { var pr1 = PropertiesService.getScriptProperties(); if (pr1.getProperty('teamShareVer') !== String(TEAM_SHARED)) { Logger.log(teamShare()); pr1.setProperty('teamShareVer', String(TEAM_SHARED)); } } catch (e3) { Logger.log('Team-Freigabe: ' + e3); }
   try { maQueueCatchUp(); } catch (e1) { Logger.log('Monats-Nachlauf: ' + e1); }
   try { ltvQueueInit(); } catch (e2) { Logger.log('LTV-Nachladen: ' + e2); }
-  try { runProbetrainings(); }
-  catch (e) {
-    Logger.log('Probetrainings Fehler (1. Versuch): ' + e);
-    try { Utilities.sleep(30000); runProbetrainings(); Logger.log('Probetrainings: 2. Versuch ok'); }
-    catch (e2) { Logger.log('Probetrainings Fehler (2. Versuch): ' + e2); mailOnce('probetrainings', '[Team] Probetrainings FEHLGESCHLAGEN', String(e2 && e2.stack ? e2.stack : e2) + '\n\nZeit: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm') + '\n\n' + trStaleText()); }
-  }
-  trStaleAlarm();
-}
-function trLastOkText() { // "07.09. 12:04" oder "nie"
-  var t = Number(PropertiesService.getScriptProperties().getProperty('trLastOk') || 0);
-  return t ? Utilities.formatDate(new Date(t), TZ, 'dd.MM. HH:mm') : 'nie';
-}
-function trStaleText() { return 'Letzter erfolgreicher Probetrainings-Lauf: ' + trLastOkText() + '. Bis dahin ist das Team-Sheet vollstaendig; der naechste erfolgreiche Lauf holt alle Buchungen der letzten 33 Tage nach (nichts geht verloren).'; }
-function trStaleAlarm() { // kein erfolgreicher Lauf seit > 3 h innerhalb 10-22 Uhr -> Alarm (einmal je Tag und Stand)
-  try {
-    var h = Number(Utilities.formatDate(new Date(), TZ, 'H')); if (h < 12 || h > 22) return;
-    var t = Number(PropertiesService.getScriptProperties().getProperty('trLastOk') || 0);
-    if (t && Date.now() - t < 3 * 3600 * 1000) return;
-    mailOnce('trStale', '[Team] Probetrainings seit ' + (t ? Math.round((Date.now() - t) / 3600000) + ' h' : 'unbekannt') + ' nicht aktualisiert', trStaleText() + '\n\nBitte Ruben/Claude informieren, wenn das laenger als einen halben Tag anhaelt.');
-  } catch (e) { Logger.log('Stale-Alarm: ' + e); }
+  try { runProbetrainings(); } catch (e) { Logger.log('Probetrainings Fehler: ' + e); mailOnce('probetrainings', '[Team] Probetrainings FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e) + '\n\nZeit: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm')); }
 }
 function installTrialTriggers() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail', 'runWerbekostenDaily', 'runLTVMonthly', 'runMonatsabschlussDaily'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });

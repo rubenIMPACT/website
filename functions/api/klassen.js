@@ -110,10 +110,18 @@ function isReady(key, json, start) {
   const f = filtersOf(key, json), want = start.replace(/-/g, "/");
   return !json.refreshing && f.indexOf("Start Date: " + want) >= 0 && (!(key in LOC) || f.indexOf("Location: " + key) >= 0);
 }
-async function getJson(H, url) {
-  const r = await fetch(url, { headers: H });
-  let json = null; try { json = await r.json(); } catch {}
-  return { status: r.status, json };
+async function getJson(H, url) { // bis zu 3 Versuche: exercise.com liefert gelegentlich 200 ohne JSON oder 5xx (Trials-Ausfall 07.09.2026 13:47)
+  let last = { status: 0, json: null };
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch(url, { headers: H });
+      let json = null; try { json = await r.json(); } catch {}
+      last = { status: r.status, json };
+      if (json || (r.status >= 400 && r.status < 500)) return last;
+    } catch (e) { last = { status: 0, json: null }; }
+    await new Promise((res) => setTimeout(res, 1500 * (i + 1)));
+  }
+  return last;
 }
 
 // ---------------------------------------------------------------- Rechnung (Port von build_import.py)
