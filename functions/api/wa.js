@@ -18,6 +18,7 @@
 //   Mitglied aus GET /api/v4/users/{id}; Grundlage fuer die Sprachwahl (Ruben 09.09.: Webseiten-Sprache + Sprache des Textes).
 //   action "client_status" {uids: [...]}: Lifecycle/Billing aus der Kundenliste v2 (Schuldner ohne Eintrag in "Failed Payments").
 //   action "locations": Standort-IDs -> Namen (Diagnose).
+//   action "invoice_refresh" {ids: [...]} (max 40): Rechnung aus Stripe neu einlesen -> frischer hosted_invoice_url.
 const API = "https://app.impact-martialarts.com";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -36,6 +37,7 @@ export async function onRequestPost(context) {
     if (p.action === "invoices") return j(await fpList(H, "/api/v4/fp/invoices", p));
     if (p.action === "charges") return j(await fpList(H, "/api/v4/fp/charges/", p));
     if (p.action === "clients") return j(await clients(H, p.uids));
+    if (p.action === "invoice_refresh") return j(await invoiceRefresh(H, p.ids));
     if (p.action === "client_status") return j(await clientStatus(H, p.uids));
     if (p.action === "locations") return j(await locations(H));
     return j({ error: "unknown_action" }, 400);
@@ -174,6 +176,18 @@ function sanitize(x) {
 // Client status for a list of user ids (read-only). Field names of /api/v4/users/{id} are guessed with fallbacks; "keys"
 // lists the real top-level keys of the first record so the mapping can be corrected.
 const LOC_NAMES = { "2508": "Zürich", "2222": "Winterthur" }; // location_id of the user object (same ids as lead.js)
+// Fresh Stripe pay links: exercise.com's own "refresh" re-reads an invoice from Stripe (GET /api/v4/fp/invoices/{id}/refresh/,
+// the same call the admin UI makes). Stripe hosted invoice URLs expire; a URL retrieved anew is valid for at least 10 days
+// (Stripe support, 09.09.2026 via Waseem). Max 40 ids per call. Returns the sanitized invoices (no names / e-mails).
+async function invoiceRefresh(H, ids) {
+  const out = {}, list = (Array.isArray(ids) ? ids : []).map((x) => String(x).replace(/[^A-Za-z0-9\-]/g, "")).filter(Boolean).slice(0, 40);
+  for (const id of list) {
+    const r = await getJson(H, API + "/api/v4/fp/invoices/" + id + "/refresh/");
+    const inv = r.json && (r.json.invoice || r.json);
+    out[id] = r.status === 200 && inv && typeof inv === "object" ? sanitize(inv) : { error: r.status };
+  }
+  return { ok: true, count: list.length, invoices: out };
+}
 // Cloudflare allows only ~50 subrequests per call, so the script sends at most 40 ids per call.
 async function clients(H, uids) {
   const out = {}, keys = [];

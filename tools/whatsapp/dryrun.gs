@@ -576,6 +576,18 @@ function waProbeLang() { // one-off (09.09.): does the language pick work on rea
   t.forEach(function (x) { if (!cl[x.uid]) return; var c = cl[x.uid], p = langPick(c, leadLang[x.nname]); src[p.src] = (src[p.src] || 0) + 1; Logger.log('L ' + x.uid + ' msg=' + (c.message ? c.message.length : 0) + ' tags=' + String(c.tags || '').replace(/\n/g, ' ').slice(0, 40) + ' lead=' + (leadLang[x.nname] || '-') + ' -> ' + p.lang + '/' + p.src); });
   Logger.log('lang sources: ' + JSON.stringify(src));
 }
+function waProbeRefresh() { // one-off (09.09.): is the stored Stripe pay link stale, and does exercise.com's refresh give a fresh one? log only (URLs, no names)
+  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Retry today');
+  var uid = String(sh.getRange(5, 1).getValue() || '').replace(/\D/g, '');
+  var b = cfPost({ action: 'invoices', uid: uid, per: 20, past_due: false, status: 'open' }); if (!b) { Logger.log('no invoices'); return; }
+  var open = (b.rows || []).filter(function (i) { return i.collection_method === 'send_invoice' || (Number(i.attempt_count) || 0) > 0; }).sort(function (x, y) { return (x.created_at || 0) - (y.created_at || 0); });
+  if (!open.length) { Logger.log('no open debt for ' + uid); return; }
+  var inv = open[0];
+  Logger.log('BEFORE id=' + inv.id + ' status=' + inv.status + ' updated=' + (inv.updated_at ? fmtD(new Date(inv.updated_at * 1000)) : '') + ' url=' + inv.hosted_invoice_url);
+  var r = cfPost({ action: 'invoice_refresh', ids: [inv.id] }); if (!r) { Logger.log('refresh failed'); return; }
+  var n = (r.invoices || {})[inv.id] || {};
+  Logger.log('AFTER  id=' + inv.id + ' status=' + n.status + ' updated=' + (n.updated_at ? fmtD(new Date(n.updated_at * 1000)) : '') + ' url=' + n.hosted_invoice_url + ' same=' + (n.hosted_invoice_url === inv.hosted_invoice_url));
+}
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();
