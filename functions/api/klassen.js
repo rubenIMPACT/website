@@ -478,7 +478,8 @@ function computeMonat(inp) {
   // ein aelteres laufendes Abo auf demselben Konto ist KEIN Ausschluss (Familienkonten, Ruben 08.09.). Spiegelbild auf der Verlustseite: isRestart.
   const isSwitchSale = (o) => !!o.uid && cancelled.some((c) => c.uid === o.uid && !isPT(c.pkg) && c.date && c.date >= addDaysStr(o.date, -60) && c.date <= addDaysStr(o.date, 30));
   // Staff (Trainer laut Check-ins, Firmen-E-Mail) zaehlt weder als Verkauf noch als Verlust (Waseem Samour, Sep 2026)
-  const isStaff = (name, email) => staff.has(String(name || "").toLowerCase()) || /@impact-martialarts\.com$/i.test(String(email || ""));
+  const STAFF_EXTRA = ["waseem samour", "wasem samour"]; // Trainer, deren Kundenkonto anders heisst als der Staff-Eintrag in den Check-ins
+  const isStaff = (name, email) => { const n = nameKey(name); return staff.has(String(name || "").toLowerCase()) || staff.has(n) || STAFF_EXTRA.indexOf(n) >= 0 || /@impact-martialarts\.com$/i.test(String(email || "")); };
   const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o) && !isReactivation(o) && !isOlderMember(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
   const noUid = soldM.filter((o) => !o.uid).length;
   const isRestart = (c) => (subsByUid[c.uid] || []).some((s) => s.date && s.date >= addDaysStr(c.date, -30) && s.date <= addDaysStr(c.date, 60)); // neues Abo rund um das Ende = Wechsel/Wiedereinstieg, kein Verlust
