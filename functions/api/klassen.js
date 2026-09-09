@@ -417,7 +417,7 @@ function computeMonat(inp) {
   // Abos, die im selben Monat gestartet und schon wieder beendet wurden, fehlen damit (selten).
   const started = inp.subs.filter((r) => String(r["Active Subscription Type"] || "") !== "Scheduled").map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: chDate(r["Start Date"]), pkg: String(r["Subscribed To"] || "") })).filter((s) => s.date >= inp.cohortStart);
   const startedM = started.filter((s) => inMonth(s.date));
-  const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: chDate(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
+  const cancelled = inp.cancelled.map((r) => ({ uid: String(r["User ID"]), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), email: String(r["Email"] || "").toLowerCase().trim(), loc: r["Location"] ? locOf(r["Location"]) : destLoc(r["Destination"]), date: chDate(r["Ended At"]), converted: /yes/i.test(String(r["Converted"] || "")), reason: String(r["Reason"] || "").trim(), pkg: String(r["Subscribeable"] || "") }));
   const cancelledUids = new Set(cancelled.map((c) => c.uid)), convertedUids = new Set(cancelled.filter((c) => c.converted).map((c) => c.uid));
   const startedUids = new Set(startedM.map((s) => s.uid));
   // Paketwechsel = neuer Abo-Start mit altem Abo, das als "Converted" oder zwischen 60 Tagen davor und 30 Tagen danach endete (wie Team-Sheet)
@@ -451,7 +451,9 @@ function computeMonat(inp) {
   // Paketwechsel / bestehendes Mitglied: ein Abo, das zwischen 60 Tagen vor und 30 Tagen nach dem Verkaufstag endete (auch Converted), wie im Team-Sheet;
   // ein aelteres laufendes Abo auf demselben Konto ist KEIN Ausschluss (Familienkonten, Ruben 08.09.). Spiegelbild auf der Verlustseite: isRestart.
   const isSwitchSale = (o) => !!o.uid && cancelled.some((c) => c.uid === o.uid && !isPT(c.pkg) && c.date && c.date >= addDaysStr(o.date, -60) && c.date <= addDaysStr(o.date, 30));
-  const soldM = persons(inp.sold).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
+  // Staff (Trainer laut Check-ins, Firmen-E-Mail) zaehlt weder als Verkauf noch als Verlust (Waseem Samour, Sep 2026)
+  const isStaff = (name, email) => staff.has(String(name || "").toLowerCase()) || /@impact-martialarts\.com$/i.test(String(email || ""));
+  const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
   const noUid = soldM.filter((o) => !o.uid).length;
   const isRestart = (c) => (subsByUid[c.uid] || []).some((s) => s.date && s.date >= addDaysStr(c.date, -30) && s.date <= addDaysStr(c.date, 60)); // neues Abo rund um das Ende = Wechsel/Wiedereinstieg, kein Verlust
   // Gratis-Personen (alle Abo-Pakete der letzten 12 Monate "free", kein Tag Rechnung): ihr Abo-Ende ist keine Kuendigung
@@ -503,7 +505,7 @@ function computeMonat(inp) {
     // kein Paketwechsel (Converted oder neues Abo rund um das Ende), keine Gratis-Person, eine Person einmal
     const caL = cancelled.filter((c) => c.loc === loc && inMonth(c.date) && isMemberPkg(c.pkg) && !isPT(c.pkg));
     const lossSeen = new Set(), lostRows = [];
-    caL.forEach((c) => { if (c.converted || isRestart(c) || freeUids.has(c.uid) || lossSeen.has(c.uid)) return; lossSeen.add(c.uid); lostRows.push(c); });
+    caL.forEach((c) => { if (c.converted || isRestart(c) || freeUids.has(c.uid) || isStaff(c.name, c.email) || lossSeen.has(c.uid)) return; lossSeen.add(c.uid); lostRows.push(c); });
     L.cancellations = lostRows.length; L.cancellations_converted = caL.length - lostRows.length; L.losses = lostRows.length;
     L.cancels_by_day = dayCount(lostRows, (c) => c.date);
     const reasons = {}; lostRows.forEach((c) => { const k = c.reason || "ohne Grund"; reasons[k] = (reasons[k] || 0) + 1; }); L.cancel_reasons = reasons;
