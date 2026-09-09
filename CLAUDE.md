@@ -571,3 +571,9 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Team-Sheet: Gratis-Abo (Payment Plan Price 0 / Coupon 100 %) ist kein Verkauf, ausser Tag Rechnung; Rechnungspakete ohne Abo nur mit Tag.
 - Nachlauf Jun–Aug über MA_CATCHUP 'g'; Kontrolle Juli ZH gegen Abdis Liste (45 Pakete = 42 Personen, davon 3 Bestandskunden,
   1 Gratis, 1 August-Start) in der Chat-Antwort vom 09.09.
+- NACHTRAG 09.09. 17:40: Staff (Trainer laut Check-ins, @impact-martialarts.com) zählt weder als Verkauf noch als Verlust. "Nur der erste Vertrag":
+  Sold Packages listet auch Bestandskunden, deren laufendes Abo nur neu verbucht wurde (Juli: Roman Smagulov, Mladen Arsov, Shpend Gashi,
+  Gentian Sopi, Jan Zihler) → hatte die Person in den 12 Vormonaten (sold12 = [Monatsanfang−365, Monatsanfang−1]) schon Abo-Pakete und nicht
+  mehr laufende Abos als Vorpakete (kein zusätzliches Abo, z. B. zweites Kind), ist es kein Verkauf (`isReactivation`).
+- exercise.com-Report-Cache ist je Login-Session: Browser-Reads/Refreshes (Rubens Session) stören die Cloudflare-Läufe nicht; Kollisionen nur
+  zwischen Apps-Script-Läufen. Die v4-Kundenliste liefert `tags` als Komma-String.
