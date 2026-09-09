@@ -387,12 +387,15 @@ async function monat(H, p, start, end) {
   }
   if (phase === "m3") {
     const got = {};
-    for (const k of ["fvWT", "salesWT", "life", "visits", "cancelled", "subs", "waiver", "pkgs", "sold"]) {
-      const r = await getJson(H, U[k].url);
+    const keys = ["fvWT", "salesWT", "life", "visits", "cancelled", "subs", "waiver", "pkgs", "sold"], t0 = Date.now();
+    const rs = await Promise.all(keys.map((k) => getJson(H, U[k].url))); // parallel (Nachlauf: neun Reports nacheinander dauerten zu lang)
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i], r = rs[i];
       if (!r.json) return { error: k + "_" + r.status };
-      if (!readyFor(U[k], r.json)) { if (k === "sold" && !r.json.refreshing) await getJson(H, U.sold.url + "&refresh=true"); return { ready: false, waiting: k, why: whyNot(U[k], r.json) }; } // Monatsfenster ggf. erneut anstossen (Nachlauf Juni 09.09.: blieb auf 12-Monats-Fenster)
+      if (!readyFor(U[k], r.json)) { if (k === "sold" && !r.json.refreshing) await getJson(H, U.sold.url + "&refresh=true"); return { ready: false, waiting: k, why: whyNot(U[k], r.json) }; } // Monatsfenster ggf. erneut anstossen
       got[k] = r.json.cached_stats;
     }
+    try {
     const sold = soldCompact(rowsOf(got.sold));
     let clients, tags = {};
     if (p.clients_by_name && typeof p.clients_by_name === "object") { // aus Phase mc (Apps Script), keine Kundenabfrage in m3
@@ -406,7 +409,10 @@ async function monat(H, p, start, end) {
     }
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: rowsOf(got.fvWT).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) })) };
     const sales = { Zurich: Array.isArray(p.sales_zh) ? p.sales_zh : [], Winterthur: rowsOf(got.salesWT).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) })) };
-    return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), waiver: rowsOf(got.waiver), pkgs: rowsOf(got.pkgs), fv, sales, sold, sold12: Array.isArray(p.sold12) ? p.sold12 : [], clients, tags, clientsTotal: clients.total }) };
+    const data = computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), waiver: rowsOf(got.waiver), pkgs: rowsOf(got.pkgs), fv, sales, sold, sold12: Array.isArray(p.sold12) ? p.sold12 : [], clients, tags, clientsTotal: clients.total });
+    data.ms = Date.now() - t0;
+    return { ready: true, data };
+    } catch (e) { return { error: "m3_exception", message: String(e && e.message ? e.message : e), stack: String(e && e.stack ? e.stack : "").slice(0, 400), ms: Date.now() - t0 }; }
   }
   return { error: "phase" };
 }
