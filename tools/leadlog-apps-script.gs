@@ -2243,7 +2243,7 @@ var TR_ACCESS = { Zurich: [MAIL.zh], Winterthur: [MAIL.wt] };
 var TR_MAIL_TEAM = false; // Mail an Abdi/Bogdan erst nach der Einfuehrung (Ruben 04.09.); bis dahin nur an Ruben
 var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
 var TR_LANG = { Zurich: 'de', Winterthur: 'en' };
-var TR_ROW0 = 5, TR_DAY_N = 7, TR_P0 = 8, TR_NCOL = 19, TR_CHECK_DAYS = 1, TR_PAY_DAYS = 7;
+var TR_ROW0 = 5, TR_DAY_N = 8, TR_P0 = 9, TR_NCOL = 17, TR_CHECK_DAYS = 1, TR_PAY_DAYS = 7; // Umbau 09.09.: Tageskopf 8 Spalten (A-H), Personen ab I
 // Ruben 08.09. (mittags, ersetzt die Unterschrift-Regel vom Vormittag): Verkauf = ERSTES ABO-PAKET AKTIVIERT = Abo-Start in exercise.com
 // (geplante Starts am Starttag) oder Rechnungspaket ohne Abo (client_packages, Melvin Pappu). Die Unterschrift liefert nur den Verkaeufer.
 // Unterschreiber ohne Zeile werden ab TR_SALE_FROM nachgetragen (Zeile am ersten Check-in bis TR_FV_BACK Tage zurueck, sonst am
@@ -2251,9 +2251,10 @@ var TR_ROW0 = 5, TR_DAY_N = 7, TR_P0 = 8, TR_NCOL = 19, TR_CHECK_DAYS = 1, TR_PA
 // und Verlaengerungen sind keine Verkaeufe (klassen.js saleOf / computeMonat). Zahlungshinweis entfaellt bei geplantem Abo-Start.
 var TR_SALE_FROM = '2026-09-01', TR_FV_BACK = 60;
 var TR_CID_SHEET = 'ClientIds'; // versteckter Tab im Team-Sheet: Report-User-ID -> Profilnummer (CRM-Link), waechst je Lauf
-var DI = { day: 0, att: 1, conv: 2, placed: 3, trials: 4, noshow: 5, sold: 6 };
+var DI = { day: 0, att: 1, conv: 2, placed: 3, trials: 4, noshow: 5, signed: 6, sold: 7 }; // signed = Vertragsunterschrift, sold = Paketstart (Ruben 09.09.)
 // Ruben 06.09.: Spalte Personen raus (zwei Kinder = Zeile kopieren und Namen aendern, die Kopie bleibt erhalten), Vertragsstart neu
-var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, lifecycle: 7, check: 8, contract: 9, start: 10, seller: 11, pkg: 12, note: 13, crm: 14, created: 15, uid: 16, ns: 17, stamp: 18 };
+// Ruben 09.09.: Trainer und Gebucht von raus; contract = Vertragsunterschrift (Waiver), start = Paketstart (= Verkauf); created..stamp versteckt
+var CI = { date: 0, name: 1, art: 2, cls: 3, kanal: 4, lifecycle: 5, check: 6, contract: 7, start: 8, seller: 9, pkg: 10, note: 11, crm: 12, created: 13, uid: 14, ns: 15, stamp: 16 };
 var LC_POST = ['Client', 'Dependant client', 'Signed but no payment', 'Pending Decision', 'Missed the talk', 'Not Interested (Lost)'];
 var LC_CLIENT = ['Client', 'Dependant client', 'Signed but no payment'];
 var LC_NOSHOW_OK = ['re-engage no-shows', 're-engage cancelled trial'].concat(LC_POST);
@@ -2297,6 +2298,21 @@ var TR_T = {
     en: ['Contract start', 'Subscription start date from exercise.com (may be after the signing date). Automatic.', ' Two kids on one account: copy the row and enter the second child\'s name, the copy survives every run. Channel: click ID/UTM/referrer of the website request since 2 Sep 2026; "no web lead" = no website request found (phone, walk-in, app, or before 2 Sep), then the exercise.com source follows; "Direct" = website without an ad click.'] };
   ['de', 'en'].forEach(function (l) { var T = TR_T[l]; if (T.head.length !== 19 || T.head[7] === add[l][0] || T.head[10] === add[l][0]) return; T.head.splice(7, 1); T.notes.splice(7, 1); T.head.splice(10, 0, add[l][0]); T.notes.splice(10, 0, add[l][1]); T.rule += add[l][2]; });
 })();
+// Umbau 09.09.2026 (Ruben): Trainer und Gebucht von raus; "Abschluss am" -> Vertragsunterschrift (Waiver), "Vertragsstart" -> Paketstart
+// (= Verkauf, gleich wie im Analytics-Sheet); Tageskopf mit Vertragsunterschrift und Paketstart; Zustand "Kein Check-in (pruefen)"
+(function () {
+  var add = {
+    de: { sig: 'Vertragsunterschrift', sigN: 'Datum der Vertragsunterschrift in exercise.com (Waiver). Automatisch.', st: 'Paketstart', stN: 'Tag, an dem das erste Abo-Paket aktiviert wurde (Abo-Start oder Rechnungspaket). Das ist der Verkauf, gleich wie im Analytics-Sheet. Automatisch.', dSig: 'Verträge, die an diesem Tag unterschrieben wurden. Automatisch.', dSt: 'Erste Abo-Pakete, die an diesem Tag aktiviert wurden, auch vor dem Probetraining oder ohne Check-in. Automatisch.', kc: 'Kein Check-in (prüfen)' },
+    en: { sig: 'Contract signed', sigN: 'Date the contract (waiver) was signed in exercise.com. Automatic.', st: 'Package start', stN: 'Day the first membership package was activated (subscription start or invoice package). This is the sale, same as in the Analytics sheet. Automatic.', dSig: 'Contracts signed on that day. Automatic.', dSt: 'First membership packages activated on that day, also before the trial or without check-in. Automatic.', kc: 'No check-in (check)' }
+  };
+  ['de', 'en'].forEach(function (l) {
+    var T = TR_T[l], a = add[l]; if (T.head.length !== 19) return;
+    T.head.splice(4, 2); T.notes.splice(4, 2); // Trainer, Gebucht von
+    T.head[7] = a.sig; T.notes[7] = a.sigN; T.head[8] = a.st; T.notes[8] = a.stN;
+    T.dHead.splice(6, 0, a.sig); T.dNotes.splice(6, 0, a.dSig); T.dHead[7] = a.st; T.dNotes[7] = a.dSt;
+    T.art['KeinCheckin'] = a.kc;
+  });
+})();
 var TR_REV = {};
 (function () { var e = TR_T.en, d = TR_T.de; ['art', 'kanal'].forEach(function (kind) { Object.keys(e[kind]).forEach(function (k) { TR_REV[e[kind][k]] = k; }); Object.keys(d[kind]).forEach(function (k) { TR_REV[d[kind][k]] = k; }); }); })();
 function trC(v) { v = String(v || ''); return TR_REV[v] || v; }
@@ -2313,15 +2329,15 @@ function trCall(body) { body.action = 'trials'; return klassenCall(body); }
 function trNoTrial(r) { return LC_EXCLUDE.indexOf(String(r[CI.lifecycle] || '').trim()) >= 0; }
 function trIsTrial(r) { var art = trC(r[CI.art]), lc = String(r[CI.lifecycle] || ''); if (trNoTrial(r)) return false; return art === 'Trial' || (art.indexOf('Wiederholer') === 0 && LC_POST.indexOf(lc) >= 0); }
 function trPers(r) { return 1; } // seit 06.09.: eine Zeile = eine Person (Kinder als eigene Zeilen)
-function trSold(r) { return !trNoTrial(r) && !!dOfCell(r[CI.contract]); } // Paket aktiviert = Verkauf, auch bei Gebucht/No-Show (Ruben 08.09.)
+function trSold(r) { return !trNoTrial(r) && !!dOfCell(r[CI.start]); } // Paketstart = Verkauf, auch bei Gebucht/No-Show (Ruben 08.09.)
 function trNsDates(r) { return String(r[CI.ns] || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean); }
 // Pruefung Fakt gegen Lifecycle-Stage (Ruben 04.09.2026: ein Tag nach dem Termin; Zahlung offen ab 7 Tagen)
 function trCheck(r, today, T) {
-  var d = dOfCell(r[CI.date]), art = trC(r[CI.art]), lc = String(r[CI.lifecycle] || '').trim(), contract = dOfCell(r[CI.contract]);
+  var d = dOfCell(r[CI.date]), art = trC(r[CI.art]), lc = String(r[CI.lifecycle] || '').trim(), contract = dOfCell(r[CI.start]); // Paketstart = Verkauf
   if (!d || trNoTrial(r)) return '';
   var due = today > addDs(d, TR_CHECK_DAYS), msg = '', dd = deD(d), noteD = String(r[CI.note] || '').slice(0, 10), noteIso = noteD ? noteD.slice(6, 10) + '-' + noteD.slice(3, 5) + '-' + noteD.slice(0, 2) : '';
   var f = function (key, dx) { return T.chk[key].replace('{d}', dx || dd).replace('{lc}', lc); };
-  var startD = dOfCell(r[CI.start]); // Abo mit Start in der Zukunft: Zahlung ist geregelt, kein Hinweis (Ruben 08.09.)
+  var startD = contract; // Paketstart in der Zukunft (geplanter Abo-Start): Zahlung ist geregelt, kein Hinweis (Ruben 08.09.)
   if (lc === LC_PAY_OPEN && contract && !(startD && startD > today)) { var age = Math.round((new Date(today + 'T12:00:00') - new Date(contract + 'T12:00:00')) / 864e5); if (age >= TR_PAY_DAYS) return T.chk.pay.replace('{n}', age); }
   if (art === 'Trial') {
     if (due) { if (!lc) msg = f('nolc'); else if (LC_POST.indexOf(lc) < 0) msg = f('stuck'); else if (lc === 'Client' && !contract && today > addDs(d, 2)) msg = f('clientNoContract'); }
@@ -2384,6 +2400,7 @@ function runProbetrainings(startOpt) {
   Object.keys(TR_SHEETS).forEach(function (loc) { lines.push(trUpsert(ss, loc, data.rows[loc] || [], data.sales || {}, (data.payopen || {})[loc] || [], start, today, leadMap, cidMap)); });
   try { lines.push('Open payments: ' + payWrite(data.payopen || {}, today, cidMap)); } catch (e0) { Logger.log('Open payments: ' + e0); }
   try { teamMirrorEvents(main, ss); } catch (e1) { Logger.log('Events-Spiegel: ' + e1); }
+  try { lines.push('WA-Spiegel Cancellations: ' + waMirrorCancellations(main)); } catch (e4) { Logger.log('WA-Spiegel: ' + e4); }
   try { maScheduleBuild(); } catch (e2) { Logger.log('Monatsabschluss-Bau: ' + e2); } // Wochenwerte stehen im Monatsabschluss (seit 07.09.); Bau eine Minute spaeter in eigener Ausfuehrung
   Logger.log('Probetrainings ' + start + '..' + end + ': ' + lines.join(' | '));
   try { PropertiesService.getScriptProperties().setProperty('trLastOk', String(Date.now())); } catch (e9) {}
@@ -2413,17 +2430,18 @@ function trCrmLink(map, uid, name) {
 }
 function trSheetUids(ss) {
   var out = [];
-  Object.keys(TR_SHEETS).forEach(function (loc) { var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return; sh.getRange(TR_ROW0, TR_P0 + CI.uid, sh.getLastRow() - TR_ROW0 + 1, 1).getValues().forEach(function (r) { if (r[0]) out.push(String(r[0])); }); });
+  Object.keys(TR_SHEETS).forEach(function (loc) { var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0 || !trHeadOk(sh, loc)) return; sh.getRange(TR_ROW0, TR_P0 + CI.uid, sh.getLastRow() - TR_ROW0 + 1, 1).getValues().forEach(function (r) { if (r[0]) out.push(String(r[0])); }); });
   return out;
 }
 function trOpenRows(ss, loc, start) {
-  var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return [];
+  var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0 || !trHeadOk(sh, loc)) return []; // altes Layout: alles wird neu aufgebaut
   var v = sh.getRange(TR_ROW0, TR_P0, sh.getLastRow() - TR_ROW0 + 1, TR_NCOL).getValues(), out = [];
   // alte Zeilen ohne Abschluss UND alte Zeilen mit Abschluss ab TR_SALE_FROM: beide werden jeden Lauf neu bewertet (ein Paketwechsel
   // oder eine Korrektur in exercise.com nimmt den Abschluss wieder weg; Lehre 08.09. Leonid Berisha)
-  v.forEach(function (r) { var d = dOfCell(r[CI.date]), c = dOfCell(r[CI.contract]); if (d && d < start && r[CI.uid] && (!c || c >= TR_SALE_FROM)) out.push({ uid: String(r[CI.uid]), date: d }); });
+  v.forEach(function (r) { var d = dOfCell(r[CI.date]), c = dOfCell(r[CI.start]); if (d && d < start && r[CI.uid] && (!c || c >= TR_SALE_FROM)) out.push({ uid: String(r[CI.uid]), date: d }); });
   return out.slice(0, 600);
 }
+function trHeadOk(sh, loc) { return sh.getLastRow() >= 4 && sh.getRange(4, TR_P0, 1, TR_NCOL).getValues()[0].join('|') === trT(loc).head.join('|'); }
 function trProtect(sh, editors, desc) {
   sh.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(function (p) { p.remove(); });
   var p = sh.protect().setDescription(desc), me = Session.getEffectiveUser();
@@ -2443,9 +2461,9 @@ function trInit(ss, sh, loc) {
   sh.getRange(4, 1, 1, TR_DAY_N).setValues([T.dHead]).setNotes([T.dNotes]).setFontWeight('bold').setBackground('#e8eaed');
   sh.getRange(4, TR_P0, 1, TR_NCOL).setValues([T.head]).setNotes([T.notes]).setFontWeight('bold').setBackground('#f3f3f3');
   sh.setFrozenRows(4); // keine fixierten Spalten: A2:Z2 ist verbunden, Google erlaubt das Einfrieren dann nicht
-  [95, 110, 110, 95, 60, 75, 70].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-  [95, 200, 150, 200, 150, 150, 170, 170, 330, 95, 95, 150, 220, 150, 50, 110, 90, 160, 100].forEach(function (w, i) { sh.setColumnWidth(TR_P0 + i, w); });
-  sh.hideColumns(TR_P0 + CI.uid, 2); // UID und NS sind nur Schluessel (Ruben 04.09.)
+  [95, 110, 110, 95, 60, 60, 120, 80].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+  [95, 200, 150, 200, 170, 170, 330, 120, 95, 150, 220, 150, 50, 110, 90, 160, 100].forEach(function (w, i) { sh.setColumnWidth(TR_P0 + i, w); });
+  sh.hideColumns(TR_P0 + CI.created, 4); // Buchung erstellt am, UID, NS, Stand: nur Technik, eingeklappt (Ruben 09.09.)
   trProtect(sh, TR_ACCESS[loc] || [], 'Nur Ruben und ' + (TR_ACCESS[loc] || []).join(', '));
   ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 1 : 2); // Events-Spiegel kommt ans Ende
 }
@@ -2473,26 +2491,27 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) 
     r[CI.date] = toDate(x.date); r[CI.name] = x.name; r[CI.art] = trL(loc, 'art', x.art); r[CI.cls] = x.noVisit ? T.noVisit : (x.time ? String(x.time).slice(0, 5) + ' ' : '') + (x.cls || ''); // Uhrzeit vor der Klasse (Ruben 07.09.) r[CI.coach] = x.trainer || ''; r[CI.booked] = x.bookedBy || '';
     r[CI.kanal] = trL(loc, 'kanal', lead ? lead.kanal : 'kein Web-Lead'); r.srcNote = !lead && x.source ? 'Quelle in exercise.com: ' + String(x.source).replace(/^\s*-\s*/, '') : ''; // Quelle als Notiz statt im Text (Ruben 07.09.)
     r[CI.lifecycle] = x.lifecycle || (o ? o[CI.lifecycle] : ''); r[CI.check] = '';
-    r[CI.contract] = toDate(s.date); r[CI.start] = toDate(s.start); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || '';
+    r[CI.contract] = toDate(s.signed || ''); r[CI.start] = toDate(s.date); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || ''; // Unterschrift (Waiver) und Paketstart (= Verkauf)
     r[CI.note] = x.lastNote ? noteTxt(x.lastNote) : (o ? o[CI.note] : ''); r[CI.crm] = crm(x.uid, x.name);
     r[CI.created] = toDate((x.bk && x.bk.length ? x.bk[x.bk.length - 1] : x.bookedAt) || ''); r[CI.uid] = String(x.uid);
     r[CI.ns] = (x.ns || []).join(','); r[CI.stamp] = stamp;
     byUid[x.uid] = r; seen[x.uid] = true;
   });
-  Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.date); o[CI.start] = toDate(s.start); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; });
+  Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.signed || ''); o[CI.start] = toDate(s.date); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; });
   var all = Object.keys(byUid).map(function (k) { return byUid[k]; });
   Object.keys(extras).forEach(function (u) { var base = byUid[u]; if (!base) return; extras[u].forEach(function (nm) { var c = base.slice(); c[CI.name] = nm; all.push(c); }); });
   all.forEach(function (r) { r[CI.check] = trCheck(r, today, T); r[CI.crm] = crm(r[CI.uid], r[CI.name]); if (/^(ohne Website-Lead|no website lead)/.test(String(r[CI.kanal] || ''))) r[CI.kanal] = trL(loc, 'kanal', 'kein Web-Lead'); }); // alte Beschriftung angleichen
-  // Tageswerte: Trials, No-Shows (aus den NS-Daten, nicht aus der Art), Verkauft (Vertragstag), Placed Trials (Buchungstag)
-  var day = {}, D = function (d) { return day[d] = day[d] || { placed: 0, trials: 0, ns: 0, sold: 0 }; };
+  // Tageswerte: Trials, No-Shows (aus den NS-Daten, nicht aus der Art), Vertragsunterschriften (Unterschriftstag), Paketstarts (= Verkauf), Placed Trials (Buchungstag)
+  var day = {}, D = function (d) { return day[d] = day[d] || { placed: 0, trials: 0, ns: 0, signed: 0, sold: 0 }; };
   var byDate = {};
   all.forEach(function (r) {
     var d = dOfCell(r[CI.date]); if (!d) return;
     (byDate[d] = byDate[d] || []).push(r);
     if (trNoTrial(r)) return;
-    var p = trPers(r), c = dOfCell(r[CI.contract]), b = dOfCell(r[CI.created]);
+    var p = trPers(r), sg = dOfCell(r[CI.contract]), st = dOfCell(r[CI.start]), b = dOfCell(r[CI.created]);
     if (trIsTrial(r)) D(d).trials += p;
-    if (c) D(c).sold += p; // Verkauf zaehlt am Tag der Paket-Aktivierung, auch bei Gebucht/No-Show (Ruben 08.09.)
+    if (sg) D(sg).signed += p; // Unterschrift zaehlt am Unterschriftstag
+    if (st) D(st).sold += p; // Verkauf zaehlt am Tag der Paket-Aktivierung, auch bei Gebucht/No-Show (Ruben 08.09.)
     if (b) D(b).placed += 1;
     trNsDates(r).forEach(function (x) { D(x).ns += 1; });
   });
@@ -2505,10 +2524,10 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) 
   order.forEach(function (d) {
     var tOf = function (x) { var m = String(x[CI.cls] || '').match(/^(\d{2}):(\d{2})/); return m ? m[1] + m[2] : '9999'; }; // Personen des Tages nach Trainingszeit, frueheste zuerst (Ruben 07.09.)
     var ppl = (byDate[d] || []).sort(function (a, b) { var ta = tOf(a), tb = tOf(b); return ta < tb ? -1 : ta > tb ? 1 : String(a[CI.name]).localeCompare(String(b[CI.name])); });
-    var v = day[d] || { placed: 0, trials: 0, ns: 0, sold: 0 }, c = calls[d] || ['', ''];
+    var v = day[d] || { placed: 0, trials: 0, ns: 0, signed: 0, sold: 0 }, c = calls[d] || ['', ''];
     var lines = Math.max(1, ppl.length), fut = d > today; // kuenftige Tage ohne Nullen (Ruben 07.09.)
     for (var i = 0; i < lines; i++) {
-      dayOut.push(i === 0 ? [toDate(d), c[0], c[1], fut ? '' : v.placed, fut ? '' : v.trials, fut ? '' : v.ns, fut ? '' : v.sold] : ['', '', '', '', '', '', '']);
+      dayOut.push(i === 0 ? [toDate(d), c[0], c[1], fut ? '' : v.placed, fut ? '' : v.trials, fut ? '' : v.ns, fut ? '' : v.signed, fut ? '' : v.sold] : ['', '', '', '', '', '', '', '']);
       var r = ppl[i] || [];
       var row = []; for (var k = 0; k < TR_NCOL; k++) row[k] = (r[k] === undefined || r[k] === null) ? '' : r[k];
       perOut.push(row);
@@ -2540,17 +2559,33 @@ function trFormat(sh, n, loc) {
   var rules = [], T = trT(loc), q = function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
   if (n) {
     var rng = sh.getRange(TR_ROW0, TR_P0, n, TR_NCOL), r0 = TR_ROW0;
-    var cA = colL(TR_P0 + CI.art), cK = colL(TR_P0 + CI.check), cL = colL(TR_P0 + CI.lifecycle), cV = colL(TR_P0 + CI.contract);
-    var ns = trL(loc, 'art', 'No-Show'), st = trL(loc, 'art', 'Storniert'), gb = trL(loc, 'art', 'Gebucht');
+    var cA = colL(TR_P0 + CI.art), cK = colL(TR_P0 + CI.check), cL = colL(TR_P0 + CI.lifecycle), cV = colL(TR_P0 + CI.start); // gruen = Paketstart (Verkauf)
+    var ns = trL(loc, 'art', 'No-Show'), st = trL(loc, 'art', 'Storniert'), gb = trL(loc, 'art', 'Gebucht'), kc = trL(loc, 'art', 'KeinCheckin');
     var wd = trL(loc, 'art', 'Wiederholer (prüfen)'), ev = trL(loc, 'art', 'Event (kein Trial)'), rk = trL(loc, 'art', 'Rückkehrer (Ex-Mitglied)');
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$' + cL + r0 + '="Non-Client"').setFontColor('#9e9e9e').setStrikethrough(true).setRanges([rng]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$' + cK + r0 + '<>""').setBackground('#fce4e4').setRanges([rng]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=AND($' + cV + r0 + '<>"",$' + cL + r0 + '="' + LC_PAY_OPEN + '")').setBackground('#fdead1').setRanges([rng]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$' + cV + r0 + '<>""').setBackground('#e6f4ea').setRanges([rng]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=OR($' + cA + r0 + '=' + q(ns) + ',$' + cA + r0 + '=' + q(st) + ',$' + cA + r0 + '=' + q(gb) + ')').setFontColor('#9e9e9e').setRanges([rng]).build());
-    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=OR($' + cA + r0 + '=' + q(wd) + ',$' + cA + r0 + '=' + q(ev) + ',$' + cA + r0 + '=' + q(rk) + ')').setBackground('#fce8b2').setRanges([rng]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=OR($' + cA + r0 + '=' + q(wd) + ',$' + cA + r0 + '=' + q(ev) + ',$' + cA + r0 + '=' + q(rk) + ',$' + cA + r0 + '=' + q(kc) + ')').setBackground('#fce8b2').setRanges([rng]).build());
   }
   sh.setConditionalFormatRules(rules);
+}
+// Kuendigungs-Feedback (Tab Cancellations) als Lese-Spiegel ins WhatsApp-Automation-Sheet, mit dem Waseem arbeitet (Ruben 09.09.2026).
+// Das Sheet gehoert zum WhatsApp-Chat: hier wird NUR der Tab WA_CANCEL_TAB angefasst, und darin nur die gespiegelten Spalten;
+// rechts davon darf Waseem eigene Notizen fuehren, die bleiben stehen.
+var WA_SHEET_ID = '125Uy-sdroaNF25ZLO11O36iRfOVuxCBDNe6s-Od7ep0', WA_CANCEL_TAB = 'Cancellations';
+function waMirrorCancellations(main) {
+  var src = main.getSheetByName('Cancellations'); if (!src || src.getLastRow() < 1) return 'keine Daten';
+  var wa = SpreadsheetApp.openById(WA_SHEET_ID), dst = wa.getSheetByName(WA_CANCEL_TAB) || wa.insertSheet(WA_CANCEL_TAB, wa.getNumSheets());
+  var v = src.getDataRange().getValues(), w = v[0].length, oldN = Math.max(dst.getLastRow(), v.length, 1);
+  dst.getRange(1, 1, oldN, w).clearContent();
+  dst.getRange(1, 1, v.length, w).setValues(v);
+  dst.getRange(1, 1, 1, w).setFontWeight('bold').setBackground('#f3f3f3'); dst.setFrozenRows(1);
+  if (v.length > 1) dst.getRange(2, 1, v.length - 1, 1).setNumberFormat('dd.MM.yyyy HH:mm');
+  dst.getRange('A1').setNote('Mirror of the cancellation feedback form (Analytics sheet, tab Cancellations). Updated hourly, columns A-' + colL(w) + ' are overwritten. Your own notes to the right of that stay.');
+  if (!dst.getRange(1, w + 1).getValue()) dst.getRange(1, w + 1).setValue('Your notes').setFontWeight('bold').setBackground('#fff8e1');
+  return (v.length - 1) + ' rows';
 }
 // Events-Tab aus dem Leads-Log als Werte ins Team-Sheet spiegeln (nur lesen, nur Ruben darf editieren)
 function teamMirrorEvents(main, team) {
@@ -2592,7 +2627,7 @@ function trDailyMail() {
     lines.push(T.mail.today + ' (' + td.length + '):'); if (!td.length) lines.push('  ' + T.mail.none);
     td.forEach(function (r) { lines.push('  - ' + r[CI.name] + ' | ' + r[CI.cls] + ' | ' + trC(r[CI.art]) + ' | ' + r[CI.kanal]); });
     lines.push(''); lines.push(T.mail.yest + ' (' + yd.length + '):'); if (!yd.length) lines.push('  ' + T.mail.none);
-    yd.forEach(function (r) { lines.push('  - ' + r[CI.name] + ' | ' + trC(r[CI.art]) + ' | ' + (r[CI.lifecycle] || '?') + (dOfCell(r[CI.contract]) ? ' | ' + T.head[CI.contract] + ' ' + deD(dOfCell(r[CI.contract])) : '')); });
+    yd.forEach(function (r) { lines.push('  - ' + r[CI.name] + ' | ' + trC(r[CI.art]) + ' | ' + (r[CI.lifecycle] || '?') + (dOfCell(r[CI.start]) ? ' | ' + T.head[CI.start] + ' ' + deD(dOfCell(r[CI.start])) : '')); });
     lines.push(''); lines.push(T.mail.checks + ' (' + chk.length + '):'); if (!chk.length) lines.push('  ' + T.mail.none);
     chk.forEach(function (r) { lines.push('  - ' + r[CI.name] + ': ' + r[CI.check]); });
     lines.push(''); lines.push(T.mail.month.replace('{t}', cnt(mv, trIsTrial)).replace('{s}', cnt(mv, trSold)).replace('{c}', chk.length));

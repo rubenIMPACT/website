@@ -898,13 +898,15 @@ function computeTrials(inp) {
   // Verkauf (Ruben 08.09.): Unterschrift zaehlt am Unterschriftstag, auch vor dem Probetraining (bis SALE_BACK Tage davor) oder ohne
   // Check-in. Nur das erste Abo: lief davor schon ein Abo (nicht PT) = bestehendes Mitglied, kein Verkauf. Nur Abos: Stage "Client"
   // ohne (auch geplantes) Abo und ohne Kuendigung = Einmalkauf (z.B. PT-Paket), kein Verkauf.
-  const NONE = { status: "Offen", date: "", by: "", pkg: "", days: "", start: "" };
+  const NONE = { status: "Offen", date: "", by: "", pkg: "", days: "", start: "", signed: "" };
   // Verkauf = erstes Abo-Paket aktiviert (Ruben 08.09.): Abo-Start (auch geplanter Start am Starttag) oder Rechnungspaket ohne Abo.
   // Die Unterschrift (Waiver) liefert nur noch den Verkaeufer. Kein Verkauf: aelteres Abo (bestehendes Mitglied), Paketwechsel, PT.
   const uidByEmail0 = {}; subs.forEach((s) => { if (s.email) uidByEmail0[s.email] = s.uid; }); (inp.vis || []).forEach((v) => { if (v.email) uidByEmail0[v.email] = v.uid; }); waiv.forEach((w) => { if (w.email) uidByEmail0[w.email] = w.uid; });
   const createdBy0 = {}; waiv.forEach((w) => { if (w.email && w.created && (!createdBy0[w.email] || createdBy0[w.email] > w.created)) createdBy0[w.email] = w.created; });
   const tags0 = inp.tags || {}, invoiceTag0 = (uid) => /rechnung|invoice/i.test(String(tags0[uid] || ""));
   const invBy = invoicePackages(inp.pkgs, (uid) => (subsBy[uid] || []).some((s) => !isPT(s.pkg)) || (cancBy[uid] || []).length > 0, uidByEmail0, (e, uid, d) => !!createdBy0[e] && createdBy0[e] >= addDaysStr(d, -120));
+  const hm = (s) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(s || "")); return m ? (+m[1]) * 60 + (+m[2]) : -1; }; // "17:40" -> Minuten
+  const nowMin = hm(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()));
   const saleOf = (uid, trialDate, email) => {
     const from = addDaysStr(trialDate, -SALE_BACK);
     // Kein Ausschluss mehr wegen aelterem Abo auf demselben Konto (Familienkonto: zweites Kind = neuer Verkauf; Lehre 08.09. Andreas March)
@@ -921,7 +923,7 @@ function computeTrials(inp) {
     const date = ss.length ? ss[0].date : (inv ? inv.date : (ws.length ? ws[0].date : cs[0].ended));
     const days = date ? Math.round((Date.parse(date) - Date.parse(trialDate)) / 86400000) : "";
     const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (inv ? "Verkauft (Rechnung)" : "Verkauft, wieder gekündigt");
-    return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (inv ? inv.pkg : cs[0].pkg), days, start: ss.length ? ss[0].date : "" };
+    return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (inv ? inv.pkg : cs[0].pkg), days, start: ss.length ? ss[0].date : "", signed: ws.length ? ws[0].date : "" }; // signed = Vertragsunterschrift (Waiver), date = Paketstart (Team-Sheet, Ruben 09.09.)
   };
   // Zahlung offen: Personen, deren aktuelle Stage "Signed but no payment" ist, mit dem Datum des Uebergangs in diese Stage
   const payInto = {}; (inp.life || []).forEach((r) => { if (String(r["Transitioned To"] || "") !== "Signed but no payment") return; const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (e && d && (!payInto[e] || payInto[e] < d)) payInto[e] = d; });
@@ -957,9 +959,12 @@ function computeTrials(inp) {
         out.rows[loc].push(Object.assign(base, { date: v.date, time: v.time, cls: v.cls, trainer: v.staff, bookedBy: v.bookedBy, bookedAt: v.bookedAt, art: TR_EVENT.test(v.cls) ? "Event (kein Trial)" : "Trial", visits: comp.length, sale: saleOf(f.uid, v.date, f.email) }));
       } else {
         const fut = vs.filter((v) => v.date > today && !/cancel/i.test(v.status)), ns = vs.filter((v) => /noshow/i.test(v.status)), cn = vs.filter((v) => /cancel/i.test(v.status));
-        const b = fut[0] || ns[ns.length - 1] || cn[cn.length - 1];
+        // Termin vorbei (frueherer Tag, oder heute und Klassenbeginn mehr als 2 Stunden her), kein Check-in, kein No-Show, nicht storniert:
+        // "Kein Check-in (pruefen)" statt einer stehen gebliebenen Zeile "Gebucht (kommend)" (Ruben 09.09.: Victor Vigodski, Lucijana Dinkel)
+        const open = vs.filter((v) => v.status !== "Completed" && !/cancel|no.?show/i.test(v.status) && (v.date < today || (v.date === today && hm(v.time) >= 0 && hm(v.time) + 120 <= nowMin))).sort((a, b2) => (a.date < b2.date ? 1 : -1));
+        const b = fut[0] || open[0] || ns[ns.length - 1] || cn[cn.length - 1];
         if (!b) return;
-        out.rows[loc].push(Object.assign(base, { date: b.date, time: b.time, cls: b.cls, trainer: b.staff, bookedBy: b.bookedBy, bookedAt: b.bookedAt, art: fut.length ? "Gebucht" : (ns.length ? "No-Show" : "Storniert"), visits: 0, sale: saleOf(f.uid, b.date, f.email) }));
+        out.rows[loc].push(Object.assign(base, { date: b.date, time: b.time, cls: b.cls, trainer: b.staff, bookedBy: b.bookedBy, bookedAt: b.bookedAt, art: fut.length ? "Gebucht" : (open.length ? "KeinCheckin" : (ns.length ? "No-Show" : "Storniert")), visits: 0, sale: saleOf(f.uid, b.date, f.email) }));
       }
     });
   }
