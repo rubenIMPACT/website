@@ -378,7 +378,7 @@ async function monat(H, p, start, end) {
     if (!fv.json || !sa.json || !s12.json) return { error: "fetch_zh" };
     if (!readyFor(U.fvZH, fv.json)) return { ready: false, waiting: "fvZH", why: whyNot(U.fvZH, fv.json) };
     if (!readyFor(U.salesZH, sa.json)) return { ready: false, waiting: "salesZH", why: whyNot(U.salesZH, sa.json) };
-    if (!readyFor(U.sold12, s12.json)) return { ready: false, waiting: "sold12", why: whyNot(U.sold12, s12.json) };
+    if (!readyFor(U.sold12, s12.json)) { if (!s12.json.refreshing) await getJson(H, U.sold12.url + "&refresh=true"); return { ready: false, waiting: "sold12", why: whyNot(U.sold12, s12.json) }; } // Refresh ggf. erneut anstossen
     const fvC = rowsOf(fv.json.cached_stats).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) }));
     const saC = rowsOf(sa.json.cached_stats).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) }));
     await getJson(H, U.fvWT.url + "&refresh=true"); await getJson(H, U.salesWT.url + "&refresh=true");
@@ -390,7 +390,7 @@ async function monat(H, p, start, end) {
     for (const k of ["fvWT", "salesWT", "life", "visits", "cancelled", "subs", "waiver", "pkgs", "sold"]) {
       const r = await getJson(H, U[k].url);
       if (!r.json) return { error: k + "_" + r.status };
-      if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
+      if (!readyFor(U[k], r.json)) { if (k === "sold" && !r.json.refreshing) await getJson(H, U.sold.url + "&refresh=true"); return { ready: false, waiting: k, why: whyNot(U[k], r.json) }; } // Monatsfenster ggf. erneut anstossen (Nachlauf Juni 09.09.: blieb auf 12-Monats-Fenster)
       got[k] = r.json.cached_stats;
     }
     const sold = soldCompact(rowsOf(got.sold));
