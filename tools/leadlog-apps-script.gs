@@ -1799,7 +1799,10 @@ function runMonatsabschluss(start, end) {
   var p2 = null, p3 = null, i;
   for (i = 0; i < 7; i++) { Utilities.sleep(20000); p2 = maCall(Object.assign({ phase: 'm2' }, base)); if (p2.error) throw new Error('Monat m2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Monat m2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
-  for (i = 0; i < 7; i++) { Utilities.sleep(20000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh, sold12: p2.sold12 || [] }, base)); if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  var pc = null; // Kundenliste kompakt in eigener Phase (Cloudflare 502, wenn m3 sie selbst holt; 09.09.)
+  for (i = 0; i < 3 && !(pc && pc.ready); i++) { pc = maCall({ phase: 'mc' }); if (pc.error) Utilities.sleep(5000); }
+  if (!pc || !pc.ready) throw new Error('Monat mc: ' + JSON.stringify(pc).slice(0, 300));
+  for (i = 0; i < 8; i++) { Utilities.sleep(20000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh, sold12: p2.sold12 || [], clients_by_name: pc.byName }, base)); if (p3.error && /50\d|bad_json/.test(JSON.stringify(p3)) && i < 7) continue; if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 400));
   var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID), leadMap = trLeadMap(ss);
   maStoreCohorts(ss, mk, data.cohort || {});
@@ -1837,7 +1840,7 @@ function runMonatsabschluss(start, end) {
 // Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
 // reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
-var MA_CATCHUP = '2026-09-09g Sold Packages + Cancelled Subscriptions, Debt collection kein Verlust'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP = '2026-09-09h Sold Packages + Cancelled Subscriptions, Kundenliste in Phase mc'; // Marke aendern = Nachlauf laeuft erneut
 var MA_CATCHUP_MONTHS = ['2026-06', '2026-07', '2026-08'];
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;

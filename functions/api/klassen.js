@@ -368,6 +368,11 @@ async function monat(H, p, start, end) {
     return { ok: true, started: out };
   }
 
+  if (phase === "mc") { // Kundenliste kompakt, eigener Aufruf (m3 war mit Kundenliste + 12 Monaten Sold Packages zu schwer: 502 am 09.09.)
+    const c = await clientIndex(H), byName = {};
+    Object.keys(c.byName).forEach((k) => { const u = c.byName[k].uid, e = c.byName[k].email, t = c.byUid[u] ? c.byUid[u].tags : null; byName[k] = [u, e, /rechnung|invoice/i.test(String(t || "")) ? 1 : 0]; });
+    return { ready: true, byName, total: c.total };
+  }
   if (phase === "m2") {
     const fv = await getJson(H, U.fvZH.url), sa = await getJson(H, U.salesZH.url), s12 = await getJson(H, U.sold12.url);
     if (!fv.json || !sa.json || !s12.json) return { error: "fetch_zh" };
@@ -388,10 +393,17 @@ async function monat(H, p, start, end) {
       if (!readyFor(U[k], r.json)) return { ready: false, waiting: k, why: whyNot(U[k], r.json) };
       got[k] = r.json.cached_stats;
     }
-    const sold = soldCompact(rowsOf(got.sold)), clients = await clientIndex(H);
-    const freeUids = []; sold.forEach((r) => { if (r[2] === "free" && isMemberPkg(r[1])) { const c = clients.byName[nameKey(r[0])]; if (c) freeUids.push(c.uid); } });
-    (Array.isArray(p.sold12) ? p.sold12 : []).forEach((r) => { if (r[2] === "free" && isMemberPkg(r[1])) { const c = clients.byName[nameKey(r[0])]; if (c) freeUids.push(c.uid); } });
-    const tags = await tagsOf(H, freeUids, clients);
+    const sold = soldCompact(rowsOf(got.sold));
+    let clients, tags = {};
+    if (p.clients_by_name && typeof p.clients_by_name === "object") { // aus Phase mc (Apps Script), keine Kundenabfrage in m3
+      clients = { byName: {}, byUid: {}, total: Object.keys(p.clients_by_name).length };
+      Object.keys(p.clients_by_name).forEach((k) => { const v = p.clients_by_name[k]; if (!Array.isArray(v) || !v[0]) return; clients.byName[k] = { uid: String(v[0]), email: String(v[1] || "") }; clients.byUid[String(v[0])] = { email: String(v[1] || ""), tags: v[2] ? "Rechnung" : "" }; if (v[2]) tags[String(v[0])] = "Rechnung"; });
+    } else {
+      clients = await clientIndex(H);
+      const freeUids = []; sold.forEach((r) => { if (r[2] === "free" && isMemberPkg(r[1])) { const c = clients.byName[nameKey(r[0])]; if (c) freeUids.push(c.uid); } });
+      (Array.isArray(p.sold12) ? p.sold12 : []).forEach((r) => { if (r[2] === "free" && isMemberPkg(r[1])) { const c = clients.byName[nameKey(r[0])]; if (c) freeUids.push(c.uid); } });
+      tags = await tagsOf(H, freeUids, clients);
+    }
     const fv = { Zurich: Array.isArray(p.fv_zh) ? p.fv_zh : [], Winterthur: rowsOf(got.fvWT).map((r) => ({ uid: String(r["User ID"]), email: String(r["Email"] || "").toLowerCase(), name: ((r["First Name"] || "") + " " + (r["Last Name"] || "")).trim(), date: String(r["Start Time"] || "").slice(0, 10) })) };
     const sales = { Zurich: Array.isArray(p.sales_zh) ? p.sales_zh : [], Winterthur: rowsOf(got.salesWT).map((r) => ({ name: String(r["Name"] || r.__group || ""), gross: num(r["Gross"]), net: num(r["Net After Refunds"]), clients: num(r["Total Clients"]) })) };
     return { ready: true, data: computeMonat({ start, end, cohortStart, today, life: rowsOf(got.life), visits: got.visits, cancelled: rowsOf(got.cancelled), subs: rowsOf(got.subs), waiver: rowsOf(got.waiver), pkgs: rowsOf(got.pkgs), fv, sales, sold, sold12: Array.isArray(p.sold12) ? p.sold12 : [], clients, tags, clientsTotal: clients.total }) };
@@ -780,7 +792,7 @@ async function trials(H, p) {
     const emailUid = {}; subsRows.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) emailUid[e] = String(r["User ID"]); }); rowsOf(got.waiver).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) emailUid[e] = String(r["User ID"]); });
     const tagUids = subsRows.filter((r) => planPrice(r) === 0 && !/personal training/i.test(String(r["Subscribed To"] || ""))).map((r) => String(r["User ID"]))
       .concat(pkgRows.filter((r) => String(r["Amount"] || "").trim() === "" && isMemberPkg(r["Name"])).map((r) => emailUid[String(r["Email"] || "").toLowerCase().trim()] || "").filter(Boolean));
-    const tags = await tagsOf(H, tagUids, await clientIndex(H));
+    let tags = {}; try { tags = await tagsOf(H, tagUids, await clientIndex(H)); } catch (e) { tags = {}; } // Tags optional (Gratis-Abos ohne Tag = kein Verkauf)
     return { ready: true, data: computeTrials({ start: String(p.start), end: String(p.end), today: String(p.today || p.end), fv, vis, prior, subs: subsRows, cancelled: rowsOf(got.cancelled), waiver: rowsOf(got.waiver), pkgs: pkgRows, life: lifeExpand(p.life), notes: rowsOf(got.notes), open: Array.isArray(p.open_uids) ? p.open_uids : [], saleRowsFrom: String(p.sale_rows_from || ""), tags }) };
   }
   if (phase === "cid") {
