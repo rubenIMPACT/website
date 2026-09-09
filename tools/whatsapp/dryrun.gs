@@ -327,9 +327,10 @@ function actionOf(a, c, p, today) { // what a human has to do with this member t
   var dup = a.dupes ? 'Void the duplicate sent invoice. ' : '', st = stageOf(a);
   if (st === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (W4 deadline ' + esc + ' passed)' : 'W4 sent or due: wait for the payment via the links, escalate to Sam on ' + esc + ' if still unpaid'); }
   if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return dup + 'Retried by hand on ' + p.lastRetry + ', wait until ' + addDs(p.lastRetry, RETRY_WAIT_D);
-  if (a.manual.length) {
-    var which = a.manual.map(function (d) { return 'invoice of ' + d.date + (d.sent ? ' (sent by hand)' : ''); }).join(', ');
-    return dup + (HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry by hand: ' : 'Check for a payment via the pay link, else retry by hand: ') + which + (a.nextRetry ? '. Stripe still retries the newest invoice on ' + a.nextRetry : '');
+  if (a.manual.length) { // the pay link always points to the oldest open invoice, which is also the one to retry by hand
+    var head = HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry the invoice in Pay link by hand' : 'Check for a payment via the pay link, else retry that invoice by hand';
+    if (a.manual.length > 1) head += ' (' + a.manual.length + ' invoices without Stripe retry, Pay link = oldest)';
+    return dup + head + (a.nextRetry ? '. Stripe still retries the newest invoice on ' + a.nextRetry : '');
   }
   return dup + 'Wait for the Stripe retry on ' + a.nextRetry + '; ' + st + ' message due';
 }
