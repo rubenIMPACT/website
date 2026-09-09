@@ -914,7 +914,9 @@ function computeTrials(inp) {
     const ss = (subsBy[uid] || []).filter((s) => !isPT(s.pkg) && !(s.free && !invoiceTag0(uid)) && s.date && s.date >= from).sort((a, b) => (a.date < b.date ? -1 : 1)); // Gratis-Abo nur mit Tag Rechnung (Ruben 09.09.)
     const cs = (cancBy[uid] || []).filter((c) => !isPT(c.pkg) && c.ended && c.ended >= from);
     const inv = invBy[uid] && invBy[uid].date >= from && invoiceTag0(uid) ? invBy[uid] : null;
-    if (!ss.length && !inv && !cs.length) return Object.assign({}, NONE);
+    // Variante A (Ruben 09.09.): kein Verkauf, aber die Unterschrift wird trotzdem gemeldet - das Team-Sheet braucht sie fuer
+    // "unterschrieben, kein Paketstart, Zahlung fehlt" (orange). Ohne das blieb die Spalte Vertragsunterschrift bei diesen Leuten leer.
+    if (!ss.length && !inv && !cs.length) return Object.assign({}, NONE, { by: ws.length ? ws[0].by : "", signed: ws.length ? ws[0].date : "" });
     // Paketwechsel/Verlaengerung: altes Abo endete zwischen 60 Tagen vor und 30 Tagen nach dem NEUEN START (nicht dem Trial-Datum;
     // Lehre 08.09. Leonid Berisha) = kein neuer Verkauf. Nur zeitnah, auch bei "Converted" (Andreas March: Kuendigung April, Neustart
     // September = Verkauf). Gleiche Regel wie isSwitch im Monatsabschluss.

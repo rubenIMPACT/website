@@ -620,8 +620,21 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   einem lokalen Zwischenstand; (4) manuelle Läufe (RUN_NOW) nie zwischen :55 und :08 und nicht gleichzeitig mit dem anderen Chat, weil
   exercise.com-Report-Caches und das 6-Minuten-Limit geteilt sind; (5) nach dem Einspielen kurz im Editor prüfen, dass Marker des anderen
   Chats noch da sind (z. B. `WA_SHEET_ID` und `MA_CATCHUP`).
-- OFFEN FÜR CHAT A (Team-KPI), Entscheid Ruben 09.09. 20:40, Variante A: Orange-Regel im Team-Sheet reparieren = Vertragsunterschrift
-  vor mehr als 7 Tagen, kein Paketstart, Stage "Signed but no payment", geplante Starts (Paketstart in der Zukunft) ausgenommen. Dazu muss
-  klassen.js `saleOf` die Unterschrift (`signed`) auch ohne Verkauf zurückgeben (heute NONE ohne signed) und `trCheck`/`trFormat` auf die
-  Unterschrift statt auf den Paketstart prüfen. Die alte Regel (Paketstart + Signed but no payment) ist unsinnig: mit Paketstart wird die
-  Stage automatisch "Client". Ruben: vor solchen Regeländerungen erst fragen.
+- ERLEDIGT in Chat A am 09.09. 21:30 (Variante A, Entscheid Ruben 20:40): Orange = Vertragsunterschrift seit 7 Tagen oder länger,
+  KEIN Paketstart, Stage "Signed but no payment"; geplante Starts sind automatisch draussen (dann steht ein Datum in Paketstart).
+  klassen.js `saleOf` gibt `signed`/`by` jetzt auch ohne Verkauf zurück (vorher blieb die Spalte Vertragsunterschrift bei diesen Leuten
+  leer), `trCheck` prüft die Unterschrift statt den Paketstart, `T.chk.pay` neu formuliert, und die Orange-Regel steht in `trFormat` VOR
+  der roten Prüfen-Regel (sonst hätte Rot sie überdeckt). Die alte Regel (Paketstart + Signed but no payment) war unsinnig: mit Paketstart
+  wird die Stage automatisch "Client". Ruben: vor solchen Regeländerungen erst fragen.
+
+## ZEILE 2 IM TEAM-SHEET = NUR FARB-LEGENDE (09.09.2026, Entscheid Ruben)
+- Zeile 2 (A2, verbunden A2:Z2) zeigt nur noch die Farben der Zeilen (`TR_T.legend`), als Notiz an der Zelle hängt die ausführliche
+  Erklärung je Farbe (`TR_T.legendNote`). Alle anderen Erklärungen sind dort weg: `ruleShort` gibt es nicht mehr, `TR_T.rule` bleibt nur
+  noch als Quelle für den Abschnitt "Team KPIs" im Tab Methodik des Analytics-Sheets. Die Spaltenerklärungen bleiben als Notiz auf den
+  Überschriften (Zeile 4).
+- Farben (gelten immer für die ganze Personenzeile): satt grün #34a853 = Paketstart da (Verkauf) · hellgrün #b7e1cd = unterschrieben,
+  kein Paketstart · orange #fdead1 = Unterschrift ≥ 7 Tage, kein Paketstart, Stage "Signed but no payment" · rot #fce4e4 = "Prüfen" hat
+  Text · gelb #fce8b2 = Kein Check-in/Wiederholer/Rückkehrer/Event · graue Schrift = No-Show/Storniert/Gebucht · grau durchgestrichen =
+  Non-Client. Reihenfolge in `trFormat` ist die Priorität: Non-Client, orange, rot, satt grün, hellgrün, grau, gelb.
+- Neuer Legendentext löst KEINEN Neuaufbau der Tabs mehr aus: `trUpsert` vergleicht A2 nur noch, um über `trA2()` die Zeile 2
+  nachzuziehen; neu aufgebaut (mit Verlust der handkopierten Zeilen) wird nur bei geänderten Überschriften.
