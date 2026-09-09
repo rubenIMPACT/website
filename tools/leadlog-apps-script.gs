@@ -1500,8 +1500,8 @@ function runWerbekostenDaily() {
 }
 
 // ------------------------------------------------------------ LTV (05.09.2026, Entscheide Ruben: Netto-Umsatz mit allem; VERLOREN ist nur,
-// wer offiziell gekuendigt hat (Kuendigung wirksam, Report cancelled_subscriptions ohne Converted) oder wegen Nichtzahlung rausfliegt
-// (Lifecycle-Uebergang nach "Debt collection") - Zahlungsluecken zaehlen nicht; Migrierte ueber die Tags Migrating/imported/Bexio;
+// wessen Abo beendet wurde (Report cancelled_subscriptions ohne Converted); seit 09.09.2026 (Variante A) ist Debt collection KEIN Ende mehr,
+// Zahlungsluecken zaehlen nicht; Migrierte ueber die Tags Migrating/imported/Bexio;
 // Kohorten, ARPU, Retention und Prognose nur aus nicht migrierten Kunden).
 // Drei Monatsreihen aus der Cloudflare-Funktion (action 'ltv', kind charges/cancelled/lifecycle, ein Monat je Aufruf wegen des
 // Report-Caches) in versteckten Tabs, Nachladen ab LTV_START in Etappen (Kette ueber Einmal-Trigger, Script-Lock), monatlich am 1.
@@ -1598,10 +1598,10 @@ function runLTVChain() {
 }
 function runLTVMonthly() { runLTVChain(); }
 var LTV_NOTE_FULL = 'Brutto zuerst (Ruben 07.09.2026): alle Werte aus den Bruttobelastungen im Report Charges (Betrag nach Rückerstattungen, inkl. MwSt), netto = brutto geteilt durch 1.081. Kunde = mindestens eine Abo-Belastung; Testzahlungen unter CHF 5 ausgeschlossen. Jahreszahler zählen im Monat der Zahlung. '
-  + 'VERLOREN ist nur, wer offiziell gekündigt hat (Kündigung wirksam, Paketwechsel zählen nicht) oder wegen Nichtzahlung in "Debt collection" ging (Entscheid Ruben 05.09.2026); Zahlungslücken zählen nicht, solche Kunden stehen in "ohne Abo-Zahlung im Monat". '
+  + 'VERLOREN ist nur, wessen Abo beendet wurde (Report Cancelled Subscriptions, Paketwechsel zählen nicht; Entscheid Ruben 09.09.2026, Variante A: Nichtzahler in Debt collection sind kein Verlust, solange das Abo läuft); Zahlungslücken zählen nicht, solche Kunden stehen in "ohne Abo-Zahlung im Monat". '
   + 'Migrierte = Konten mit den Tags Migrating / imported / Bexio (Startdatum unbekannt), sie bleiben aus Kohorten und Prognose draussen. '
   + 'EINE Methode für den Kundenwert: Abo-Belastungen der letzten 3 vollen Monate geteilt durch alle Neukunden mit laufendem Abo in diesen Monaten, auch die ohne Zahlung im Monat; dieselbe Rechnung steht im Monatsabschluss als "Abo-Umsatz je Kunde" für alle Kunden. Starterpaket (Einmalkäufe ±1 Monat um die erste Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung, in Zürich meist mit dem Abo zusammen abgebucht) und übrige Einmalkäufe stehen getrennt und zählen im LTV dazu: Starterpaket einmal, übrige Einmalkäufe je Monat mal Dauer (Ruben 08.09.2026). '
-  + 'LTV netto = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer + Starterpaket + übrige Einmalkäufe × Dauer; Dauer = 1 / monatliche Verlustquote; Verlustquote = wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch die aktiven Neukunden. Kohorten unter 10 Kunden oder jünger als 3 Monate sind grau, weil Kündigungen dort noch nicht wirksam sein können.';
+  + 'LTV netto = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer + Starterpaket + übrige Einmalkäufe × Dauer; Dauer = 1 / monatliche Verlustquote; Verlustquote = beendete Abos der letzten 6 Monate geteilt durch die aktiven Neukunden. Kohorten unter 10 Kunden oder jünger als 3 Monate sind grau, weil Kündigungen dort noch nicht wirksam sein können.';
 function buildLTV(ss) {
   var sh = getOrCreate(ss, LTV_SHEET); clearSheet(sh);
   var rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.gross >= 5; }); // Testzahlungen (CHF 1-3) raus
@@ -1623,12 +1623,12 @@ function buildLTV(ss) {
     else c.one[x.mk] = (c.one[x.mk] || 0) + x.gross;
   });
   var byEmail = {}; Object.keys(cust).forEach(function (u) { if (cust[u].email) byEmail[cust[u].email] = cust[u]; });
-  // Ende = wirksame Kuendigung (ohne Converted = Paketwechsel) oder Uebergang nach Debt collection; hinfaellig, wenn danach wieder Abo-Zahlungen kamen
+  // Ende = beendetes Abo (Cancelled Subscriptions ohne Converted = Paketwechsel), hinfaellig, wenn danach wieder Abo-Zahlungen kamen; Debt collection ist seit 09.09.2026 kein Ende mehr (Variante A, wie im Monatsabschluss)
   ltvRows(ss, 'cancelled').forEach(function (r) { var c = cust[String(r[1])]; if (!c || String(r[1]) === '-' || Number(r[5]) === 1) return; var e = dOfCell(r[4]).slice(0, 7); if (/^\d{4}-\d{2}$/.test(e) && e > c.endCand) c.endCand = e; });
   ltvRows(ss, 'lifecycle').forEach(function (r) { if (!/debt/i.test(String(r[4] || ''))) return; var c = byEmail[String(r[1] || '').toLowerCase().trim()]; if (!c) return; var d = dOfCell(r[2]).slice(0, 7); if (/^\d{4}-\d{2}$/.test(d) && (!c.debt || d < c.debt)) c.debt = d; });
   var list = Object.keys(cust).map(function (u) { return cust[u]; }).filter(function (c) { return c.first; });
   list.forEach(function (c) {
-    var e = c.endCand && c.lastAbo <= c.endCand ? c.endCand : ''; if (c.debt && c.lastAbo <= c.debt && (!e || c.debt < e)) e = c.debt;
+    var e = c.endCand && c.lastAbo <= c.endCand ? c.endCand : '';
     c.end = e; c.migrated = hasFlags ? !!(flags[c.uid] && flags[c.uid].mig) : false;
     // Gebuendelte erste Belastung (v. a. Zuerich: Abo + Starterpaket in EINER Charge, Purchase Type "Subscription/Package, ProductVariant"):
     // der Mehrbetrag der ersten Abo-Zahlung gegenueber der ueblichen Monatszahlung des Kunden zaehlt als Starterpaket, nicht als Abo
@@ -1667,11 +1667,11 @@ function buildLTV(ss) {
       ['   Kunden ohne Abo-Zahlung im Monat (Ø der 3 Monate)', Math.round(noPay / 3), '0', 'Laufendes Abo, aber keine Belastung im Monat: Pause, geplatzte Zahlung oder ausgelaufener Vertrag ohne Kündigungseintrag.'],
       ['   Übrige Einmalkäufe netto je Kunde und Monat', Math.round(other), '#,##0', 'Shop, Events, Personal Training usw. ausserhalb des Startfensters. Zählt im LTV mal Dauer.'],
       ['Starterpaket netto je Neukunde (einmalig)', Math.round(starter), '#,##0', 'Ø über ' + stSet.length + ' Neukunden mit vollem Fenster: Einmalkäufe von einem Monat vor bis einen Monat nach der ersten Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung. Zählt einmal im LTV; im Finanzplan getrennt geführt.'],
-      ['Verlustquote pro Monat (Neukunden)', rf.loss, '0.0%', 'Wirksame Kündigungen und Debt collection der letzten 6 Monate geteilt durch aktive Kundenmonate: ' + rf.lN + ' von ' + rf.aN + '.'],
+      ['Verlustquote pro Monat (Neukunden)', rf.loss, '0.0%', 'Beendete Abos der letzten 6 Monate geteilt durch aktive Kundenmonate: ' + rf.lN + ' von ' + rf.aN + '.'],
       ['   alle Kunden inkl. migriert', ra.loss, '0.0%', 'Zum Vergleich: ' + ra.lN + ' von ' + ra.aN + ' Kundenmonaten.'],
       ['Erwartete Dauer (Monate)', Math.round(life * 10) / 10, '0.0', '1 geteilt durch die Verlustquote.'],
       ['LTV netto (Prognose)', ltv, '#,##0', 'Abo-Umsatz netto je Kunde und Monat mal erwartete Dauer, plus Starterpaket, plus übrige Einmalkäufe mal Dauer (Ruben 08.09.2026).'],
-      ['Realisierter Abo-Umsatz netto je verlorenem Neukunden', Math.round(realized), '#,##0', gone.length + ' Neukunden mit wirksamer Kündigung oder Debt collection: was sie an Abo-Belastungen bis zum Ende tatsächlich bezahlt haben.'],
+      ['Realisierter Abo-Umsatz netto je verlorenem Neukunden', Math.round(realized), '#,##0', gone.length + ' Neukunden mit beendetem Abo: was sie an Abo-Belastungen bis zum Ende tatsächlich bezahlt haben.'],
     ];
     kv.forEach(function (x) { sh.getRange(r, 1, 1, 2).setValues([[x[0], x[1]]]); sh.getRange(r, 2).setNumberFormat(x[2]); if (x[3]) sh.getRange(r, 1).setNote(x[3]); if (/^(LTV netto|Abo-Umsatz netto je Kunde)/.test(x[0])) sh.getRange(r, 1, 1, 2).setFontWeight('bold'); r++; });
     r++;
@@ -1729,11 +1729,10 @@ var MA_ROWS = [
   ['conv_sales_trial', 'Quote Verkäufe / Probetrainings', '0%', 'w'],
   ['conv_sales_lead', 'Quote Verkäufe / neue Kontakte', '0%', 'w'],
   ['conv_cohort_rate', 'Kohorten-Conversion', '0%', 'w'],
-  ['losses', 'Verluste (Kündigungen + Debt collection)', '0', 'wb'],
-  ['cancellations', '   davon wirksame Kündigungen', '0', 'dw'],
-  ['debt_collection', '   davon Debt collection (Nichtzahler)', '0', 'dw'],
+  ['losses', 'Verluste (Abo beendet)', '0', 'wb'],
   ['switches', '   Paketwechsel (kein Verlust)', '0', 'd'],
-  ['net_growth', 'Nettowachstum (Abo-Starts − Verluste)', '0', 'wb'],
+  ['debt_collection', '   Info: neu in Debt collection (kein Verlust)', '0', 'dw'],
+  ['net_growth', 'Nettowachstum (Verkäufe − Verluste)', '0', 'wb'],
   ['cv_active', 'Kunden mit laufendem Abo', '0', 'b'],
   ['cv_nopay', '   davon ohne Abo-Zahlung im Monat', '0', 'd'],
   ['subs_total', '   Abos laut exercise.com-Report (Stand Lauf)', '0', 'd'],
@@ -1752,15 +1751,15 @@ var MA_NOTES = {
   trial_attended: 'Erstbesucher mit erstem Check-in überhaupt, ohne Altkunden und Staff (Regel Team-Sheet). Ab September 2026 Woche und Monat aus derselben Quelle, davor Monatsreport von exercise.com. Geht so in den Finanzplan (Anzahl Trials).',
   trial_noshow: 'Gebucht und nicht erschienen.',
   showup_rate: 'Erschienene Probetrainer geteilt durch erschienene plus No-Shows.',
-  sales_signed: 'Verkauf = erstes Abo-Paket aktiviert (Ruben 08.09.): Abo-Start in exercise.com (geplante Starts am Starttag) oder, bei Kunden ohne Abo (Rechnung), das manuell aktivierte Paket. Paketwechsel, Verlängerungen und Personal Training zählen nicht. Je Woche und Monat; geht so als "Neue Verkäufe" in den Finanzplan.',
-  new_customers: 'Gleiche Zahl wie Verkäufe (Paket aktiviert): Abo-Starts ohne Paketwechsel und Personal Training plus Rechnungskunden ohne Abo. Geht so in den Finanzplan.',
+  sales_signed: 'Verkäufe = Personen im exercise.com-Report "Sold Packages" des Monats (Ruben 09.09.): nur Abo-Pakete (kein Personal Training, keine Einzelsessions, keine Events), Zahlungsart Abo; Gratis-Pakete nur mit Tag "Rechnung"/"Invoice" am Kunden (Rechnungszahler). Eine Person zählt einmal. Kein Verkauf, wenn im selben Zug ein Abo endete (Paketwechsel, Wiedereinstieg: Ende zwischen 60 Tagen vor und 30 Tagen nach dem Verkaufstag). Verkaufstag = Aktivierung des Pakets. Geht so als "Neue Verkäufe" in den Finanzplan.',
+  new_customers: 'Gleiche Zahl wie Verkäufe (Sold Packages). Geht so in den Finanzplan.',
   conv_sales_trial: 'Verkäufe des Monats geteilt durch durchgeführte Probetrainings des Monats.',
   conv_sales_lead: 'Verkäufe des Monats geteilt durch neue Kontakte in exercise.com.',
   conv_cohort_rate: 'Probetrainer des Zeitraums, deren Abo bis heute gestartet ist, reift drei Monate nach. Ab September 2026 Woche und Monat aus dem Team-Sheet, davor Monatsreport.',
-  losses: 'Verlorene Kunden: wirksam gewordene Kündigungen (Enddatum in exercise.com, ohne Paketwechsel) plus Übergänge in die Lifecycle-Stage Debt collection. Dieselbe Regel wie die Verlustquote im LTV. Geht so in den Finanzplan (Kündigungen).',
-  cancellations: 'Wirksam gewordene Kündigungen nach Enddatum in exercise.com, ohne Paketwechsel.',
-  debt_collection: 'Kontakte, die im Monat auf die Lifecycle-Stage Debt collection gewechselt sind (Nichtzahler).',
-  net_growth: 'Abos gestartet minus Verluste.',
+  losses: 'Verluste = Personen im exercise.com-Report "Cancelled Subscriptions" mit Enddatum im Monat (Ruben 09.09., Variante A), mit denselben Ausschlüssen wie die Verkäufe: nur Abo-Pakete (kein Personal Training, keine Einzelsessions), keine Gratis-Abos, kein Paketwechsel (Converted oder neues Abo zwischen 30 Tagen vor und 60 Tagen nach dem Ende). Eine Person zählt einmal. Nichtzahler (Debt collection) zählen nicht. Dieselbe Regel wie die Verlustquote im LTV. Geht so in den Finanzplan (Kündigungen).',
+  cancellations: 'Gleiche Zahl wie Verluste (Abo beendet).',
+  debt_collection: 'Nur zur Information: Kontakte, die im Monat auf die Lifecycle-Stage Debt collection gewechselt sind (Nichtzahler). Zählt nicht als Verlust, solange das Abo nicht beendet ist.',
+  net_growth: 'Verkäufe minus Verluste.',
   cv_active: 'Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben (aus den Zahlungen in exercise.com, deshalb bis 2025 zurück). Personen, nicht Abos.',
   cv_nopay: 'Davon Kunden ohne Abo-Belastung in diesem Monat: Pause, geplatzte Zahlung oder ausgelaufener Vertrag ohne Kündigungseintrag.',
   subs_total: 'Zum Vergleich: alle Abos am Tag des Laufs laut Report Active Subscriptions (laufend, Kündigung auf Periodenende, pausiert, geplanter Start). Zählt Abos, nicht Personen. Erst ab September 2026.',
@@ -1800,7 +1799,7 @@ function runMonatsabschluss(start, end) {
   var p2 = null, p3 = null, i;
   for (i = 0; i < 7; i++) { Utilities.sleep(20000); p2 = maCall(Object.assign({ phase: 'm2' }, base)); if (p2.error) throw new Error('Monat m2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Monat m2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
-  for (i = 0; i < 7; i++) { Utilities.sleep(20000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh }, base)); if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  for (i = 0; i < 7; i++) { Utilities.sleep(20000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh, sold12: p2.sold12 || [] }, base)); if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 400));
   var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID), leadMap = trLeadMap(ss);
   maStoreCohorts(ss, mk, data.cohort || {});
@@ -1831,13 +1830,14 @@ function runMonatsabschluss(start, end) {
     });
   }
   buildMonatsabschluss(ss);
+  if (data.sold_no_uid) lines.push('Sold Packages: ' + data.sold_no_uid + ' Name(n) ohne Kundenkonto (zaehlen mit Standort-Annahme)');
   Logger.log('Monatsabschluss ' + mk + ': ' + lines.join(' | '));
   return lines.join('\n');
 }
 // Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
 // reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
-var MA_CATCHUP = '2026-09-09f Rechnungskunden nur neue Personen Jun-Aug'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP = '2026-09-09g Sold Packages + Cancelled Subscriptions, Debt collection kein Verlust'; // Marke aendern = Nachlauf laeuft erneut
 var MA_CATCHUP_MONTHS = ['2026-06', '2026-07', '2026-08'];
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;
@@ -1892,7 +1892,7 @@ function maStoreMetricsMany(ss, entries) { // viele Monate in einem Lese-/Schrei
 var MA_NOTE_FULL = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, Vertragsunterschriften, gestartete und gekündigte Abos, Charges), aus dem Log (Website-Anfragen) und aus den Probetrainings-Tabs im Team-Sheet (Gespräche, Trials, No-Shows, Verkäufe je Tag). '
   + 'Spalten: Monate ab Januar 2026; ab September 2026 stehen die Kalenderwochen (Montag bis Sonntag) vor ihrem Monat, eine Woche gehört zum Monat, in dem ihr Donnerstag liegt, und zählt nur die Tage dieses Monats, damit die Wochen eines Monats zusammen den Monat ergeben. Wochenspalten zeigen nur, was es je Woche gibt: Website-Leads, Gespräche, gebuchte und durchgeführte Probetrainings, No-Shows, Verkäufe, Abo-Starts und Kündigungen (nach Start- bzw. Enddatum in exercise.com), Werbekosten, Kosten pro Lead. Graue Wochenzellen = gibt es nur je Monat. Jahresspalte = Summe der Monate, Bestandswerte = letzter Monat, Quoten neu aus den Summen. '
   + 'Neue Kontakte = alle im Monat neu angelegten Kontakte in exercise.com (Website, Telefon, Walk-in, App); davon über die Website = Anfragen aus dem Log (ohne Dubletten und Tests), nach Kanal = Klick-ID, UTM oder Referrer. Vor September 2026 sind die Website-Leads von Hand gezählte Monatszahlen. '
-  + 'Probetrainings durchgeführt = Erstbesucher mit Check-in, ohne Altkunden und Staff; Show-up-Rate = erschienen geteilt durch erschienen plus No-Shows. Verkäufe = erstes Abo-Paket aktiviert (Abo-Start in exercise.com oder Rechnungspaket ohne Abo), ohne Paketwechsel und Personal Training; Abos gestartet = Abo-Starts ohne Paketwechsel und ohne Personal Training; Kündigungen = wirksam gewordene Kündigungen ohne Paketwechsel. Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben, drei Monate nachgeführt. '
+  + 'Probetrainings durchgeführt = Erstbesucher mit Check-in, ohne Altkunden und Staff; Show-up-Rate = erschienen geteilt durch erschienen plus No-Shows. Verkäufe = Personen im exercise.com-Report Sold Packages (nur Abo-Pakete, Zahlungsart Abo oder Gratis mit Tag Rechnung; ohne Paketwechsel, Personal Training, Einzelsessions); Verluste = Personen im Report Cancelled Subscriptions mit Enddatum im Monat und denselben Ausschlüssen (keine Gratis-Abos, kein Paketwechsel); Nichtzahler (Debt collection) sind kein Verlust, solange das Abo läuft (Ruben 09.09.2026). Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben, drei Monate nachgeführt. '
   + 'EINE METHODE für Kunden und Umsatz (Ruben 07.09.2026): alles aus den Belastungen im Charges-Report, brutto zuerst. Kunden mit laufendem Abo = Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben, auch wenn sie im Monat nichts bezahlt haben (Personen). Zahlungen brutto = alle Belastungen nach Rückerstattungen, davon Abo und davon Einmalkäufe (Mehrbetrag der ersten Abo-Belastung = Starterpaket zählt bei den Einmalkäufen); MwSt = brutto minus brutto/1.081; netto = brutto/1.081. Abo-Umsatz je Kunde = Abo-Belastungen geteilt durch Kunden mit laufendem Abo. Jahreszahler zählen im Monat der Zahlung. Zum Vergleich zählt der Report Active Subscriptions die Abos am Tag des Laufs (erst ab September 2026). '
   + 'Bank (Tab Bank, von Hand): alle Gutschriften laut Konto, davon Stripe (zieht 2 % Gebühr ab, zahlt sieben Tage nach der Belastung aus), Magicline (Adyen, altes System), Überweisungen von Mitgliedern, übrige (kein Umsatz). Kontrolle = Stripe laut Konto minus erwartete Auszahlung. '
   + 'Werbung: eigener Tab Werbekosten mit gleichem Aufbau (Media je Plattform und Kampagne, Agentur, CPL, CPT, CAC, Anteil bezahlte Verkäufe, LTV : CAC, Payback); LTV = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer plus Starterpaket plus übrige Einmalkäufe × Dauer (Tab LTV); Payback = CAC inkl. Agentur geteilt durch Abo-Umsatz netto je Kunde.';
@@ -2011,7 +2011,7 @@ function buildMonatsabschlussCore(ss) {
           case 'new_customers': return c.w ? daySum(c, 'starts_d:') : vOf(kk, key);
           case 'cancellations': return c.w ? daySum(c, 'cancels_d:') : vOf(kk, key);
           case 'debt_collection': return c.w ? daySum(c, 'debt_d:') : vOf(kk, key);
-          case 'losses': var lc = c.w ? daySum(c, 'cancels_d:') : vOf(kk, 'cancellations'), ld = c.w ? daySum(c, 'debt_d:') : vOf(kk, 'debt_collection'); return lc === '' && ld === '' ? '' : num(lc) + num(ld);
+          case 'losses': return c.w ? daySum(c, 'cancels_d:') : vOf(kk, 'cancellations'); // Variante A (Ruben 09.09.): nur beendete Abos, Debt collection kein Verlust
           case 'net_growth': var s1 = c.w ? daySum(c, 'starts_d:') : vOf(kk, 'new_customers'), s2 = V('losses')(c); return s1 === '' && s2 === '' ? '' : num(s1) - num(s2);
           case 'subs_total': if (kk < MA_SNAP_FROM) return ''; var st = vOf(kk, key); if (st !== '') return st; var a = vOf(kk, 'active_subs'); return a === '' ? '' : num(a) + num(vOf(kk, 'paused_subs')) + num(vOf(kk, 'scheduled_subs'));
           case 'cash_paid': var ag = vOf(kk, 'abo_gross'), og = vOf(kk, 'one_gross'); return ag === '' && og === '' ? '' : num(ag) + num(og);
@@ -2714,13 +2714,13 @@ var FP_TABS = { Zurich: 'IMP ZH', Winterthur: 'IMP WIN' }, FP_FROM = '2026-06', 
 var FP_ROWS = [ // [Zeilenbezeichnung im Plan (Anfang, Spalten A-E), Kennzahl, Beschreibung]
   [/^Anzahl Leads/i, 'leads_all', 'Neue Kontakte in exercise.com (alle Wege)'],
   [/^Anzahl Trials/i, 'trial_attended', 'Probetrainings durchgeführt (Erstbesucher mit Check-in)'],
-  [/^Neue Verk/i, 'new_customers', 'Verkäufe = erstes Abo-Paket aktiviert (Abo-Start oder Rechnungspaket), ohne Paketwechsel und Personal Training'],
-  [/^K.ndigungen/i, 'losses', 'Verluste: wirksame Kündigungen plus Debt collection (ohne Paketwechsel)'],
+  [/^Neue Verk/i, 'new_customers', 'Verkäufe = Personen im Report Sold Packages (nur Abo-Pakete, ohne Paketwechsel, Personal Training, Gratis)'],
+  [/^K.ndigungen/i, 'losses', 'Verluste = Personen im Report Cancelled Subscriptions (gleiche Ausschlüsse, ohne Debt collection)'],
   [/^Sold Gear through Exercise/i, 'rev_gear_gross', 'Gear brutto (Sales by Category)'],
   [/Total Sales from Bank/i, 'cash_total', 'Alle Gutschriften laut Kontoauszug (Tab Bank)']
 ];
 var FP_NOTE = 'Der Tageslauf (04:30) und der Monatslauf (1. des Monats) schreiben die Ist-Zahlen in die Kopie des Finanzplans (Tabs IMP ZH und IMP WIN), ab Juni 2026 bis zum laufenden Monat: '
-  + 'Anzahl Leads = neue Kontakte in exercise.com (alle Wege); Anzahl Trials = durchgeführte Probetrainings (Ruben 07.09.); Neue Verkäufe = Abo-Starts ohne Paketwechsel; Kündigungen = Verluste, also wirksame Kündigungen plus Debt collection, ohne Paketwechsel (Ruben 07.09.); Sold Gear = Gear brutto; Total Sales from Bank = alle Gutschriften laut Tab Bank (Entscheide Ruben 07.09.2026). '
+  + 'Anzahl Leads = neue Kontakte in exercise.com (alle Wege); Anzahl Trials = durchgeführte Probetrainings (Ruben 07.09.); Neue Verkäufe = Personen im Report Sold Packages (nur Abo-Pakete, ohne Paketwechsel, Personal Training, Gratis); Kündigungen = Verluste, also Personen im Report Cancelled Subscriptions mit denselben Ausschlüssen, ohne Debt collection (Ruben 09.09.); Sold Gear = Gear brutto; Total Sales from Bank = alle Gutschriften laut Tab Bank (Entscheide Ruben 07.09.2026). '
   + 'Die Spalte wird über den Monatskopf (z. B. "9.2026") gefunden, die Zeile über ihre Bezeichnung. In diesen Eingabezeilen werden ab Juni 2026 bis zum laufenden Monat auch Planformeln durch die Ist-Zahl ersetzt (Ruben 08.09.), die alte Formel steht im Protokoll; ab dem Folgemonat bleibt alles unberührt. '
   + 'Starterpakete, Personal Training und Kundenwert werden nicht übertragen: der Plan führt sie je Typ (Bronze, Silber, ...) bzw. als Formel. Jede geänderte Zelle steht mit altem und neuem Wert in diesem Tab.';
 function fpValues(ss) { // Kennzahl je Monat und Standort aus der MonatsHistorie und dem Tab Bank
@@ -2729,7 +2729,7 @@ function fpValues(ss) { // Kennzahl je Monat und Standort aus der MonatsHistorie
   var bank = bankRead(ss);
   return function (mk, loc, key) {
     var v = function (k) { var x = val[mk + '|' + loc + '|' + k]; return x === undefined || x === '' ? null : Number(x); };
-    if (key === 'losses') { var kc = v('cancellations'), kd = v('debt_collection'); return kc === null && kd === null ? null : (kc || 0) + (kd || 0); }
+    if (key === 'losses') return v('cancellations'); // Variante A (Ruben 09.09.): nur beendete Abos
     if (key === 'cash_total') { var b = bank[mk + '|' + loc]; if (!b || b.stripe === '') return null; return Math.round(num(b.stripe) + num(b.adyen) + num(b.customers) + num(b.other)); }
     return v(key);
   };
