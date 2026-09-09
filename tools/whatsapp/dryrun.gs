@@ -345,7 +345,7 @@ function logSheet(ss) { // event log: one line per event (retried by hand, invoi
     log.setFrozenRows(2);
     [90, 80, 180, 90, 110, 90, 90, 240, 260].forEach(function (w, i) { log.setColumnWidth(1 + i, w); });
   }
-  if (log.getRange(2, 9).getValue() !== 'Event') { log.getRange('A1').setValue('Retry log: one line per event (retried by hand, invoice paid, left the list); lines before 9 Sep 2026 come from the old daily archive'); log.getRange(2, 1, 1, LOG_HEAD.length).setValues([LOG_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); }
+  if (true) { log.getRange('A1').setValue('Retry log: one line per event. "paid on <date>" = the member left the list and a paid invoice was found; "voided, no payment found" = the member left the list without a payment (invoice voided in exercise.com); "retried by hand on <date>" = one line per tick in Debtors. Lines before 9 Sep 2026 18:53 come from older versions of the log.'); log.getRange(2, 1, 1, LOG_HEAD.length).setValues([LOG_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); }
   return log;
 }
 function writeArrears(ss, rows, info, dry) {
@@ -387,7 +387,7 @@ function writeArrears(ss, rows, info, dry) {
   });
   var gone = Object.keys(prev).filter(function (u) { return !current[u]; });
   var paid = gone.length ? paidSince(addDs(today, -45)) : {};
-  gone.forEach(function (u) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, '', p.note, paid[u] ? 'invoice paid on ' + paid[u] : 'left the list (invoice voided or paid earlier, or account changed)']); });
+  gone.forEach(function (u) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, '', p.note, paid[u] ? 'paid on ' + paid[u] : 'voided, no payment found']); }); // three events only (Ruben 09.09.): paid on, voided, retried by hand
   if (n >= 5) { sh.getRange(5, 1, n - 4, ARR_HEAD.length).clearContent().setBackground(null).setFontColor(null); sh.getRange(5, 22, n - 4, 1).clearDataValidations(); }
   if (out.length) {
     sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
