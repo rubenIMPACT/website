@@ -2389,16 +2389,35 @@ function trFindLead(map, email, name, date) {
   var lim = addDs(date, 1), before = list.filter(function (l) { return l.date <= lim; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
   return before[0] || list.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
 }
+// Wartezeiten gestaffelt statt pauschal (Ruben 09.09.): ein Report, der in 7 s fertig ist, kostete vorher trotzdem 20 s.
+// Die spaeteren Runden sind laenger, damit selten wartende Reports nicht unnoetig viele Abfragen kosten.
+var TR_WAIT = [6000, 10000, 14000, 20000, 20000, 20000, 22000, 24000, 24000]; // t2 und t3
+var TR_WAIT_LIFE = [4000, 6000, 8000, 10000, 12000, 12000, 12000, 12000]; // je Lifecycle-Block
+var TR_BUDGET_MS = 300000; // ab hier NICHT mehr mit dem Schreiben anfangen (Apps-Script-Limit 360 s): ein Abbruch zwischen
+// clearContent() und setValues() wuerde den Tab leer stehen lassen, bis der naechste Stundenlauf durchlaeuft.
+function trNap(list, i) { Utilities.sleep(list[Math.min(i, list.length - 1)]); }
+function trTimer() { // Zeiten je Etappe fuers Log, damit die Laufzeit messbar ist statt geschaetzt
+  var t0 = Date.now(), last = t0, laps = [];
+  return {
+    lap: function (name) { var n = Date.now(); laps.push(name + ' ' + Math.round((n - last) / 1000) + 's'); last = n; },
+    ms: function () { return Date.now() - t0; },
+    total: function () { return Math.round((Date.now() - t0) / 1000); },
+    text: function () { return laps.join(' | ') + ' | gesamt ' + Math.round((Date.now() - t0) / 1000) + 's'; }
+  };
+}
 function runProbetrainings(startOpt) {
+  var T = trTimer();
   var now = new Date(), today = fmtD(now), end = fmtD(addD(now, 14));
   var start = startOpt || fmtD(addD(now, -33)); // Fenster ~47 Tage (2 Besuche-Bloecke); aeltere Zeilen bleiben im Tab stehen
   var base = { start: start, end: end, today: today, sales_start: fmtD(addD(now, -180)), fv_back: TR_FV_BACK, sale_rows_from: TR_SALE_FROM };
   var main = SpreadsheetApp.openById(SHEET_ID), ss = teamSs(), open = [];
   Object.keys(TR_SHEETS).forEach(function (loc) { open = open.concat(trOpenRows(ss, loc, start)); });
   var p1 = trCall(Object.assign({ phase: 't1' }, base)); if (p1.error) throw new Error('Trials t1: ' + JSON.stringify(p1).slice(0, 300));
-  var p2 = null, p3 = null, i;
+  T.lap('t1');
+  var p2 = null, p3 = null, i, r2 = 0, r3 = 0, rl = 0;
   var errs = 0; // voruebergehende Fetch-Fehler (z.B. fetch_t2 am 07.09.) nicht sofort abbrechen, sondern bis 3x wiederholen
-  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p2 = trCall(Object.assign({ phase: 't2' }, base)); if (p2.error) { if (++errs >= 3) throw new Error('Trials t2: ' + JSON.stringify(p2).slice(0, 300)); continue; } if (p2.ready) break; }
+  for (i = 0; i < 9; i++) { trNap(TR_WAIT, i); r2++; p2 = trCall(Object.assign({ phase: 't2' }, base)); if (p2.error) { if (++errs >= 3) throw new Error('Trials t2: ' + JSON.stringify(p2).slice(0, 300)); continue; } if (p2.ready) break; }
+  T.lap('t2 (' + r2 + 'x)');
   if (!p2 || !p2.ready) throw new Error('Trials t2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
   // Lifecycle in Bloecken nacheinander (ein Cache je Report), waehrend fvWT und v2 im Hintergrund generieren
   var life = [], nb = Number(p1.life_blocks) || 0, b, lg;
@@ -2406,14 +2425,22 @@ function runProbetrainings(startOpt) {
     var lr = trCall(Object.assign({ phase: 'lr', i: b }, base)); if (lr.error) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lr).slice(0, 300));
     lg = null;
     errs = 0;
-    for (i = 0; i < 8; i++) { Utilities.sleep(8000); lg = trCall(Object.assign({ phase: 'lg', i: b }, base)); if (lg.error) { if (++errs >= 3) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lg).slice(0, 300)); continue; } if (lg.ready) break; }
+    for (i = 0; i < 8; i++) { trNap(TR_WAIT_LIFE, i); rl++; lg = trCall(Object.assign({ phase: 'lg', i: b }, base)); if (lg.error) { if (++errs >= 3) throw new Error('Trials Lifecycle ' + b + ': ' + JSON.stringify(lg).slice(0, 300)); continue; } if (lg.ready) break; }
     if (!lg || !lg.ready) throw new Error('Trials Lifecycle-Block ' + b + ' nicht fertig: ' + JSON.stringify(lg).slice(0, 200));
     life = life.concat(lg.rows || []);
   }
+  T.lap('life ' + nb + ' Bloecke/' + rl + ' Abfragen');
   errs = 0;
-  for (i = 0; i < 9; i++) { Utilities.sleep(20000); p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open, life: life }, base)); if (p3.error) { if (++errs >= 3) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); continue; } if (p3.ready) break; }
+  for (i = 0; i < 9; i++) { trNap(TR_WAIT, i); r3++; p3 = trCall(Object.assign({ phase: 't3', fv_zh: p2.fv_zh, v1: p2.v1, open_uids: open, life: life }, base)); if (p3.error) { if (++errs >= 3) throw new Error('Trials t3: ' + JSON.stringify(p3).slice(0, 300)); continue; } if (p3.ready) break; }
+  T.lap('t3 (' + r3 + 'x)');
   if (!p3 || !p3.ready) throw new Error('Trials t3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
   var data = p3.data, lines = [], leadMap = trLeadMap(main);
+  // Zeitbudget: mit dem Schreiben gar nicht mehr anfangen, wenn das Limit nah ist. trUpsert loescht den alten Inhalt, bevor es
+  // den neuen schreibt - ein Abbruch dazwischen liesse den Tab leer. Der naechste Stundenlauf holt alles nach (nichts geht verloren).
+  if (T.ms() > TR_BUDGET_MS) {
+    Logger.log('Probetrainings: nach ' + T.total() + ' s NICHT mehr geschrieben (Zeitbudget ' + Math.round(TR_BUDGET_MS / 1000) + ' s), der naechste Lauf holt es nach. Zeiten: ' + T.text());
+    return 'abgebrochen vor dem Schreiben nach ' + T.total() + ' s (Zeitbudget)';
+  }
   var uids = trSheetUids(ss);
   Object.keys(TR_SHEETS).forEach(function (loc) { (data.rows[loc] || []).forEach(function (x) { uids.push(String(x.uid)); }); ((data.payopen || {})[loc] || []).forEach(function (x) { if (x.uid) uids.push(String(x.uid)); }); });
   var cidMap = {}; try { cidMap = trCidLookup(ss, uids); } catch (e5) { Logger.log('ClientIds: ' + e5); cidMap = trCidMap(ss); }
@@ -2422,7 +2449,9 @@ function runProbetrainings(startOpt) {
   try { teamMirrorEvents(main, ss); } catch (e1) { Logger.log('Events-Spiegel: ' + e1); }
   try { lines.push('WA-Spiegel Cancellations: ' + waMirrorCancellations(main)); } catch (e4) { Logger.log('WA-Spiegel: ' + e4); }
   try { maScheduleBuild(); } catch (e2) { Logger.log('Monatsabschluss-Bau: ' + e2); } // Wochenwerte stehen im Monatsabschluss (seit 07.09.); Bau eine Minute spaeter in eigener Ausfuehrung
+  T.lap('schreiben');
   Logger.log('Probetrainings ' + start + '..' + end + ': ' + lines.join(' | '));
+  Logger.log('Probetrainings Zeiten: ' + T.text());
   try { PropertiesService.getScriptProperties().setProperty('trLastOk', String(Date.now())); } catch (e9) {}
   return lines.join('\n');
 }
@@ -2719,11 +2748,18 @@ function runProbetrainingsHourly() {
   try { var pr1 = PropertiesService.getScriptProperties(); if (pr1.getProperty('teamShareVer') !== String(TEAM_SHARED)) { Logger.log(teamShare()); pr1.setProperty('teamShareVer', String(TEAM_SHARED)); } } catch (e3) { Logger.log('Team-Freigabe: ' + e3); }
   try { maQueueCatchUp(); } catch (e1) { Logger.log('Monats-Nachlauf: ' + e1); }
   try { ltvQueueInit(); } catch (e2) { Logger.log('LTV-Nachladen: ' + e2); }
+  var tStart = Date.now();
   try { runProbetrainings(); }
   catch (e) {
-    Logger.log('Probetrainings Fehler (1. Versuch): ' + e);
-    try { Utilities.sleep(30000); runProbetrainings(); Logger.log('Probetrainings: 2. Versuch ok'); }
-    catch (e2) { Logger.log('Probetrainings Fehler (2. Versuch): ' + e2); mailOnce('probetrainings', '[Team] Probetrainings FEHLGESCHLAGEN', String(e2 && e2.stack ? e2.stack : e2) + '\n\nZeit: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm') + '\n\n' + trStaleText()); }
+    var el = Math.round((Date.now() - tStart) / 1000);
+    Logger.log('Probetrainings Fehler (1. Versuch, ' + el + ' s): ' + e);
+    // Neuversuch nur, wenn im 6-Minuten-Limit noch Platz ist. Vorher lief der komplette Lauf ein zweites Mal und riss das Limit
+    // (Ruben 09.09.); der naechste Stundenlauf holt alles nach, und trStaleAlarm meldet, wenn es laenger als 3 h nicht klappt.
+    if (el > 120) Logger.log('Probetrainings: kein zweiter Versuch (schon ' + el + ' s verbraucht), der naechste Stundenlauf holt es nach');
+    else {
+      try { Utilities.sleep(30000); runProbetrainings(); Logger.log('Probetrainings: 2. Versuch ok'); }
+      catch (e2) { Logger.log('Probetrainings Fehler (2. Versuch): ' + e2); mailOnce('probetrainings', '[Team] Probetrainings FEHLGESCHLAGEN', String(e2 && e2.stack ? e2.stack : e2) + '\n\nZeit: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM. HH:mm') + '\n\n' + trStaleText()); }
+    }
   }
   trStaleAlarm();
 }
