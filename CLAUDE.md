@@ -639,3 +639,11 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Non-Client. Reihenfolge in `trFormat` ist die Priorität: Non-Client, orange, rot, satt grün, hellgrün, grau, gelb.
 - Neuer Legendentext löst KEINEN Neuaufbau der Tabs mehr aus: `trUpsert` vergleicht A2 nur noch, um über `trA2()` die Zeile 2
   nachzuziehen; neu aufgebaut (mit Verlust der handkopierten Zeilen) wird nur bei geänderten Überschriften.
+- EINGESPIELT 09.09. 21:38 (Commit f21f716 aus dem GitHub-HEAD ins Apps Script, Token-Zeile behalten, gespeichert = "cloud_done").
+  KEINE neue Webapp-Version nötig: `runProbetrainingsHourly` läuft als "Head", die Webapp-Funktionen (doGet/doPost) sind unverändert
+  auf Version 29. Der Stundenlauf startet bei ~:58 (deshalb die Regel, zwischen :55 und :08 nie von Hand zu starten), Zeile 2 und die
+  neue Orange-Regel greifen also ab dem Lauf um ~21:58.
+- Geprüft ohne Live-Lauf mit jsc-Stubs (/tmp/trcheck_test.js, /tmp/trformat_test.js): Unterschrift 28 Tage alt ohne Paketstart = Hinweis,
+  unter 7 Tagen = nichts, geplanter Start 01.10. = nichts, alter Fall (Paketstart + Stage) = kein Hinweis mehr, Non-Client = nichts.
+  Erzeugte Regeln in der richtigen Reihenfolge: Non-Client, orange `=AND($Q5<>"",$R5="",$O5="Signed but no payment",TODAY()-$Q5>=7)`,
+  rot `=$P5<>""`, satt grün `=$R5<>""`, hellgrün, grau, gelb.
