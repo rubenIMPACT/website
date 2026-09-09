@@ -1800,7 +1800,7 @@ function runMonatsabschluss(start, end) {
   for (i = 0; i < 7; i++) { Utilities.sleep(20000); p2 = maCall(Object.assign({ phase: 'm2' }, base)); if (p2.error) throw new Error('Monat m2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Monat m2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
   var pc = null; // Kundenliste kompakt in eigener Phase (Cloudflare 502, wenn m3 sie selbst holt; 09.09.)
-  for (i = 0; i < 3 && !(pc && pc.ready); i++) { pc = maCall({ phase: 'mc' }); if (pc.error) Utilities.sleep(5000); }
+  for (i = 0; i < 3 && !(pc && pc.ready); i++) { pc = maCall(Object.assign({ phase: 'mc' }, base)); if (pc.error) Utilities.sleep(5000); }
   if (!pc || !pc.ready) throw new Error('Monat mc: ' + JSON.stringify(pc).slice(0, 300));
   for (i = 0; i < 8; i++) { Utilities.sleep(20000); p3 = maCall(Object.assign({ phase: 'm3', fv_zh: p2.fv_zh, sales_zh: p2.sales_zh, sold12: p2.sold12 || [], clients_by_name: pc.byName }, base)); if (p3.error && /50\d|bad_json/.test(JSON.stringify(p3)) && i < 7) continue; if (p3.error) throw new Error('Monat m3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 400));
