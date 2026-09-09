@@ -239,14 +239,23 @@ function setupAnalyse() {
 function getOrCreate(ss, name) { return ss.getSheetByName(name) || ss.insertSheet(name); }
 // sh.clear() laesst Zahlenformate stehen (Lehre 05.09.2026: alte Prozent-/Datumsformate machten aus 27 Trials "2700%" und aus
 // 15 Leads "15.01.1900"), deshalb zusaetzlich das ganze Blatt auf Standardformat zuruecksetzen.
-function clearSheet(sh) {
+function clearSheet(sh) { // gibt das (ggf. neu angelegte) Blatt zurueck: Aufrufer muessen `sh = clearSheet(sh)` schreiben
   var f = sh.getFilter(); if (f) f.remove();
-  var cs = sh.getCharts(); for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]);
+  var cs = null; try { cs = sh.getCharts(); } catch (e0) { cs = null; }
+  if (cs === null) { // Lehre 09.09.2026: defekte Diagramme (Datenbereich geloescht, weil zwei Baue gleichzeitig liefen) lassen getCharts()
+    // abstuerzen, jeder weitere Bau scheitert still. Ausweg: Tab mit gleichem Namen, gleicher Position und Farbe neu anlegen.
+    var ss0 = sh.getParent(), name0 = sh.getName(), idx0 = sh.getIndex(), col0 = sh.getTabColor(), hid0 = sh.isSheetHidden();
+    ss0.deleteSheet(sh); var nw = ss0.insertSheet(name0, Math.max(0, idx0 - 1)); if (col0) nw.setTabColor(col0); if (hid0) nw.hideSheet();
+    Logger.log('clearSheet: Tab ' + name0 + ' neu angelegt (defekte Diagramme)');
+    return nw;
+  }
+  for (var i = 0; i < cs.length; i++) sh.removeChart(cs[i]);
   // Alle Zeilen ab 2 loeschen und neu einfuegen: nimmt Zeilengruppen, Verbindungen, Notizen und Formate sicher mit. Lehre 07.09.:
   // shiftRowGroupDepth(-1) und auch getRowGroup().remove() liessen alte Gruppen stehen, Kernzeilen verschwanden in eingeklappten Altgruppen.
   try { var fr = sh.getFrozenRows(); if (fr) sh.setFrozenRows(0); var mr = sh.getMaxRows(); if (mr > 1) sh.deleteRows(2, mr - 1); sh.insertRowsAfter(1, Math.max(mr - 1, 100)); if (fr) sh.setFrozenRows(fr); } catch (e) { Logger.log('clearSheet Zeilen: ' + e); }
   sh.clear();
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearFormat().setNumberFormat('General');
+  return sh;
 }
 
 // Leads Historie (manuelle Monatszahlen aus HISTORY) wandert in die MonatsHistorie (Kennzahl leads_web), der Tab entfaellt (Ruben 04.09.2026)
@@ -257,7 +266,7 @@ function migrateHistorie(ss) {
 
 // Daten: Hilfsspalten pro Lead-Zeile (Datum, Woche, Monat, Standort, Interesse, Test, Zaehlt, Dublette, Fehler)
 function buildDaten(ss) {
-  var sh = getOrCreate(ss, 'Daten'); clearSheet(sh);
+  var sh = getOrCreate(ss, 'Daten'); sh = clearSheet(sh);
   sh.appendRow(['Datum', 'Woche', 'Monat', 'Standort', 'Interesse', 'Test', 'Zählt', 'Dublette', 'Fehler', 'Kanal']);
   var A = 'Leads!A2:A', B = 'LOWER(Leads!B2:B&"")', C = 'LOWER(Leads!C2:C&"")', E = 'LOWER(Leads!E2:E&"")', G = 'LOWER(Leads!G2:G&"")', H = 'LOWER(Leads!H2:H&"")';
   var blank = 'IF(' + A + '="","",';
@@ -289,7 +298,7 @@ function buildDaten(ss) {
 // PlanDaten: Hilfsspalten pro Trainingsplan-Zeile. Alle Spalten, die die Auswertung zaehlt, liegen HIER,
 // weil COUNTIFS nur gleich grosse Bereiche kombinieren kann und zwei Tabs nie garantiert gleich lang sind.
 function buildPlanDaten(ss) {
-  var sh = getOrCreate(ss, 'PlanDaten'); clearSheet(sh);
+  var sh = getOrCreate(ss, 'PlanDaten'); sh = clearSheet(sh);
   sh.appendRow(['Datum', 'Monat', 'Letzte', 'Zählt', 'Standort', 'Ziel', 'Kampfkunst', 'Level', 'Tage/Woche', 'Zeitfenster', 'Nebensport', 'Nebensport/Woche', 'Lead-ID', 'Schlüssel']);
   var A = 'Trainingsplan!A2:A', blank = 'IF(' + A + '="","",';
   sh.getRange('A2').setFormula('=ARRAYFORMULA(' + blank + 'INT(' + A + ')))');
@@ -356,7 +365,7 @@ function wrCollect(ss, team) {
 }
 // Trainingsplan-Analyse: Zaehlungen je Eingabe
 function buildPlanAnalyse(ss) {
-  var sh = getOrCreate(ss, 'Trainingsplan-Analyse'); clearSheet(sh);
+  var sh = getOrCreate(ss, 'Trainingsplan-Analyse'); sh = clearSheet(sh);
   sh.getRange('A1').setValue('Trainingsplan-Tool – Auswertung der Eingaben').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue('Gezaehlt wird pro Person nur der zuletzt erstellte Plan (Person = CRM-Kontakt, sonst Sitzung); Aufrufe ueber geteilte Links und Testleads zaehlen nicht. "Monat" = Kalendermonat.').setFontColor('#666666');
   var cur = 'DATE(YEAR(TODAY()),MONTH(TODAY()),1)', prev = 'DATE(YEAR(TODAY()),MONTH(TODAY())-1,1)';
@@ -568,7 +577,7 @@ function buildKlassenanalyse(ss, data, fileName) {
       if (ac >= 0 && all[i][0] && all[i][2] && all[i][3] && all[i][ac] && all[i][0] !== 'Standort') actions[[all[i][0], all[i][2], all[i][3], all[i][4]].join('|')] = all[i][ac];
     }
   }
-  clearSheet(sh);
+  sh = clearSheet(sh);
   var rows = data.rows || [], win = data.window || {};
   var fmt = function (d) { var p = String(d || '').split('-'); return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : d; };
   var tot = { cls: 0, ev: 0, att: 0 };
@@ -711,7 +720,7 @@ function buildRisiko(ss, data, fileName) {
       if (inList && all[i][0] && all[i][6]) notes[all[i][5] || all[i][0]] = all[i][6];
     }
   }
-  clearSheet(sh);
+  sh = clearSheet(sh);
   sh.getRange('A1').setValue('Kündigungsrisiko: Mitglieder ohne Besuch').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue('Laufende Abos (ohne pausierte und erst geplante) aus "Active Subscriptions", Check-ins aus "Itemized Visits" (exercise.com). Ohne Besuch = im Monat kein einziger abgeschlossener Check-in, egal an welchem Standort. CHF = Netto-Abobetrag pro Monat (ohne MwSt, nach Coupon; Jahres- und Halbjahresabos auf Monate umgerechnet). Importiert ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm') + ' aus ' + fileName + '.').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:I2').merge();
@@ -1300,7 +1309,7 @@ function buildWerbekostenCore(ss, ctx) {
   // Von Hand gefaerbte Zeilen (Farbe in Spalte A) ueberleben den Neuaufbau: Schluessel = Block + Zeilentext (Ruben 09.09.: "alle Farben weg, ich faerbe selbst")
   var keep = {};
   try { var lr0 = sh.getLastRow(); if (lr0 > 3) { var lab0 = sh.getRange(1, 1, lr0, 1).getValues(), bg0 = sh.getRange(1, 1, lr0, 1).getBackgrounds(), blk0 = ''; lab0.forEach(function (row, i) { var t = String(row[0] || ''), b = String(bg0[i][0] || '').toLowerCase(); if (/^(Zürich|Winterthur|Gesamt)/.test(t) && t.indexOf('(CHF') < 0) blk0 = t.split(' ')[0]; if (t && b && b !== '#ffffff' && b !== '#f3f3f3') keep[blk0 + '|' + t] = b; }); } } catch (e0) { Logger.log('Werbekosten Farben lesen: ' + e0); }
-  clearSheet(sh);
+  sh = clearSheet(sh);
   var cols = ctx.cols, curK = ctx.curK, logM = ctx.logM, num = ctx.num, val = ctx.val, wr = ctx.wr, wkD = ctx.wkD, wkM = ctx.wkM, hkeys = ctx.hkeys, yearMonths = ctx.yearMonths, colOf = ctx.colOf, dt = ctx.dt;
   var camp = wkCampAgg(ss), lcd = wkLeadsByCampaignDaily(ss, camp), agencyCache = {};
   var agencyM = function (kk) { if (!(kk in agencyCache)) agencyCache[kk] = wkAgency(ss, kk, wkM); return agencyCache[kk]; };
@@ -1403,7 +1412,7 @@ function buildWerbekostenCore(ss, ctx) {
     r += 2;
   });
   // Diagramme unten, je Block ein Band mit drei Diagrammen; Daten im versteckten Tab WKDiagramm
-  var dsh = getOrCreate(ss, 'WKDiagramm'); clearSheet(dsh); if (!dsh.isSheetHidden()) dsh.hideSheet();
+  var dsh = getOrCreate(ss, 'WKDiagramm'); dsh = clearSheet(dsh); if (!dsh.isSheetHidden()) dsh.hideSheet();
   var chartRow = r + 1, BAND = 17, d = 1;
   sh.getRange(chartRow, 1).setValue('Diagramme').setFontWeight('bold').setFontSize(13); chartRow += 1;
   var tbl = function (headRow, rows, fmt) {
@@ -1608,7 +1617,7 @@ var LTV_NOTE_FULL = 'Brutto zuerst (Ruben 07.09.2026): alle Werte aus den Brutto
   + 'EINE Methode für den Kundenwert: Abo-Belastungen der letzten 3 vollen Monate geteilt durch alle Neukunden mit laufendem Abo in diesen Monaten, auch die ohne Zahlung im Monat; dieselbe Rechnung steht im Monatsabschluss als "Abo-Umsatz je Kunde" für alle Kunden. Starterpaket (Einmalkäufe ±1 Monat um die erste Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung, in Zürich meist mit dem Abo zusammen abgebucht) und übrige Einmalkäufe stehen getrennt und zählen im LTV dazu: Starterpaket einmal, übrige Einmalkäufe je Monat mal Dauer (Ruben 08.09.2026). '
   + 'LTV netto = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer + Starterpaket + übrige Einmalkäufe × Dauer; Dauer = 1 / monatliche Verlustquote; Verlustquote = beendete Abos der letzten 6 Monate geteilt durch die aktiven Neukunden. Kohorten unter 10 Kunden oder jünger als 3 Monate sind grau, weil Kündigungen dort noch nicht wirksam sein können.';
 function buildLTV(ss) {
-  var sh = getOrCreate(ss, LTV_SHEET); clearSheet(sh);
+  var sh = getOrCreate(ss, LTV_SHEET); sh = clearSheet(sh);
   var rows = ltvRead(ss).filter(function (x) { return x.uid !== '-' && x.gross >= 5; }); // Testzahlungen (CHF 1-3) raus
   sh.getRange('A1').setValue('IMPACT Kundenwert (LTV)').setFontSize(16).setFontWeight('bold');
   if (!rows.length) { sh.getRange('A2').setValue('Noch keine Zahlungsdaten – das Nachladen läuft.').setFontColor('#666666'); return; }
@@ -1978,7 +1987,7 @@ function maHeader(sh, r, ctx, plain) { // plain = ohne Hintergrundfarben (Werbek
   });
 }
 function buildMonatsabschlussCore(ss) {
-  var sh = getOrCreate(ss, MA_SHEET); clearSheet(sh);
+  var sh = getOrCreate(ss, MA_SHEET); sh = clearSheet(sh);
   var oldWr = ss.getSheetByName('Wochenreport'); if (oldWr) { try { ss.deleteSheet(oldWr); } catch (e0) { Logger.log('Wochenreport: ' + e0); } } // seit 07.09.2026 im Monatsabschluss
   var ctx = maContext(ss); var now = ctx.now, curK = ctx.curK, curMon = ctx.curMon, logM = ctx.logM, cohN = ctx.cohN, wr = ctx.wr, wkD = ctx.wkD, wkM = ctx.wkM, val = ctx.val, num = ctx.num, cashOf = ctx.cashOf, bankOf = ctx.bankOf, daySumFor = ctx.daySumFor, weekOf = ctx.weekOf, cols = ctx.cols, yearMonths = ctx.yearMonths, hkeys = ctx.hkeys, wkeys = ctx.wkeys, dt = ctx.dt, dtW = ctx.dtW, colOf = ctx.colOf, both = ctx.both, div = ctx.div, gOf = ctx.gOf;
   var need = cols.length + 3; if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
@@ -2102,7 +2111,7 @@ function buildMonatsabschlussCore(ss) {
     r += 2;
   });
   // Diagramme unten in eigenen Baendern (Ruben 07.09.: genug Platz, keine Ueberlappung), Daten im versteckten Tab MADiagramm
-  var dsh = getOrCreate(ss, 'MADiagramm'); clearSheet(dsh); if (!dsh.isSheetHidden()) dsh.hideSheet();
+  var dsh = getOrCreate(ss, 'MADiagramm'); dsh = clearSheet(dsh); if (!dsh.isSheetHidden()) dsh.hideSheet();
   var chartRow = r + 1, BAND = 17, d = 1;
   sh.getRange(chartRow, 1).setValue('Diagramme').setFontWeight('bold').setFontSize(13); chartRow += 1;
   blocks.forEach(function (b, bi) {
@@ -2154,7 +2163,7 @@ function maArrangeTabs(ss) { // Reihenfolge bestimmt Ruben selbst (07.09.), das 
 // Tab Methodik: alle ausfuehrlichen Definitionen an einem Ort (Ruben 07.09.: keine Textwaende ueber den Tabellen)
 var METHODIK_SHEET = 'Methodik';
 function buildMethodik(ss) {
-  var sh = getOrCreate(ss, METHODIK_SHEET); clearSheet(sh);
+  var sh = getOrCreate(ss, METHODIK_SHEET); sh = clearSheet(sh);
   sh.getRange('A1').setValue('Methodik: Definitionen aller Berichte').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue('Automatisch gepflegt (Stand ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm') + '). Kurzdefinitionen stehen zusätzlich als Notiz an den Zeilenbezeichnungen der Berichte.').setFontColor('#666666');
   var secs = [
@@ -2469,7 +2478,7 @@ function trA2(sh, T) {
 }
 function trInit(ss, sh, loc) {
   var T = trT(loc);
-  clearSheet(sh);
+  sh = clearSheet(sh);
   if (sh.getMaxColumns() < 34) sh.insertColumnsAfter(sh.getMaxColumns(), 34 - sh.getMaxColumns());
   sh.showColumns(1, sh.getMaxColumns());
   sh.getRange('A1').setValue(T.title).setFontSize(16).setFontWeight('bold');
@@ -2676,7 +2685,7 @@ function paySs() {
 }
 function payWrite(payopen, today, cidMap) {
   var ss = paySs(), sh = ss.getSheets()[0]; if (sh.getName() !== PAY_SHEET) sh.setName(PAY_SHEET);
-  clearSheet(sh);
+  sh = clearSheet(sh);
   if (PAY_ACCESS.length) { try { ss.addEditors(PAY_ACCESS); } catch (e) { Logger.log('Open Payments Freigabe: ' + e); } }
   sh.getRange('A1').setValue('IMPACT Open Payments').setFontSize(16).setFontWeight('bold');
   sh.getRange('A2').setValue('People with the lifecycle stage "Signed but no payment" in exercise.com (contract signed, no payment method yet), both locations, oldest first. Updated hourly 09-22 from exercise.com; rows turn red after 30 days. When the payment is in, set the stage to "Client" in exercise.com and the row disappears with the next run. Notes belong in exercise.com (CRM link), not here.').setFontColor('#666666').setWrap(true);
