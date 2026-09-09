@@ -339,7 +339,7 @@ function monatUrls(start, end, cohortStart, today) {
     waiver: { url: API + "/api/v4/reports/waiver?" + query(addDaysStr(start, -90), end) + "&per=3000", start: addDaysStr(start, -90) }, // Unterschriften ab 90 Tage vor dem Monat: Kontoerstellung (Rechnungskunden), Verkaeufer
     pkgs: { url: API + "/api/v4/reports/client_packages?" + qM + "&per=8000", start }, // laufende Pakete (nur noch Info)
     sold: { url: API + "/api/v4/reports/sold_packages?" + qM + "&per=5000", start }, // Verkaeufe des Monats (Rubens Report, Ruben 09.09.)
-    sold12: { url: API + "/api/v4/reports/sold_packages?" + query(addDaysStr(start, -365), end) + "&per=8000", start: addDaysStr(start, -365) }, // Gratis-Personen der letzten 12 Monate
+    sold12: { url: API + "/api/v4/reports/sold_packages?" + query(addDaysStr(start, -365), addDaysStr(start, -1)) + "&per=8000", start: addDaysStr(start, -365) }, // Pakete der 12 Vormonate: Gratis-Personen und "nicht der erste Vertrag"
   };
 }
 function rowsOf(cs) {
@@ -453,12 +453,17 @@ function computeMonat(inp) {
   const isSwitchSale = (o) => !!o.uid && cancelled.some((c) => c.uid === o.uid && !isPT(c.pkg) && c.date && c.date >= addDaysStr(o.date, -60) && c.date <= addDaysStr(o.date, 30));
   // Staff (Trainer laut Check-ins, Firmen-E-Mail) zaehlt weder als Verkauf noch als Verlust (Waseem Samour, Sep 2026)
   const isStaff = (name, email) => staff.has(String(name || "").toLowerCase()) || /@impact-martialarts\.com$/i.test(String(email || ""));
-  const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
+  const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o) && !isReactivation(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
   const noUid = soldM.filter((o) => !o.uid).length;
+  // "Nur der erste Abo-Vertrag ist ein Verkauf" (Ruben 08.09.): Sold Packages listet auch Bestandskunden, deren laufendes Abo nur neu verbucht
+  // wurde (Juli 2026: Roman Smagulov seit Januar, Mladen Arsov, Shpend Gashi, Gentian Sopi, Jan Zihler). Hatte die Person in den 12 Vormonaten schon
+  // Abo-Pakete und hat sie nicht mehr laufende Abos als diese Pakete (kein zusaetzliches Abo, z. B. zweites Kind), ist es kein Verkauf.
+  const prevCnt = {}; (inp.sold12 || []).forEach((r) => { const k = nameKey(r[0]); if (k && isMemberPkg(r[1]) && r[2] === "subscription") prevCnt[k] = (prevCnt[k] || 0) + 1; });
+  const isReactivation = (o) => { const prev = prevCnt[o.key] || 0; if (!prev) return false; if (!o.uid) return true; return (subsByUid[o.uid] || []).length <= prev; };
   const isRestart = (c) => (subsByUid[c.uid] || []).some((s) => s.date && s.date >= addDaysStr(c.date, -30) && s.date <= addDaysStr(c.date, 60)); // neues Abo rund um das Ende = Wechsel/Wiedereinstieg, kein Verlust
   // Gratis-Personen (alle Abo-Pakete der letzten 12 Monate "free", kein Tag Rechnung): ihr Abo-Ende ist keine Kuendigung
   const freeUids = new Set(); { const m = {}; (inp.sold12 || []).forEach((r) => { const k = nameKey(r[0]); if (!k || !isMemberPkg(r[1])) return; const o = m[k] = m[k] || { sub: false, free: false }; if (r[2] === "subscription") o.sub = true; if (r[2] === "free") o.free = true; }); Object.keys(m).forEach((k) => { const c = clients.byName[k]; if (m[k].free && !m[k].sub && c && !invoiceTag(c.uid)) freeUids.add(c.uid); }); }
-  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), sold_persons: soldM.length, sold_no_uid: noUid, free_persons: freeUids.size, tags_found: Object.keys(tagsByUid).filter((u) => tagsByUid[u]).length, tags_asked: Object.keys(tagsByUid).length, clients_total: inp.clientsTotal || 0, locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
+  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), sold_persons: soldM.length, sold_no_uid: noUid, sold_reactivations: persons(inp.sold).filter((o) => isReactivation(o)).length, free_persons: freeUids.size, tags_found: Object.keys(tagsByUid).filter((u) => tagsByUid[u]).length, tags_asked: Object.keys(tagsByUid).length, clients_total: inp.clientsTotal || 0, locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
   for (const loc of LOCS) {
     const L = {};
     const lf = life.filter((x) => x.loc === loc);
