@@ -582,3 +582,8 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   (Familienkonten haben einen neuen Abo-Start und zählen). Kundenliste kommt aus Phase `mc` (Apps Script ruft sie mit dem Monatsfenster
   auf und gibt `clients_by_name` an m3 weiter); m3 wurde sonst mit 502 abgebrochen. Erwartung Sep 2026 (bis 09.09.): ZH 22 Verkäufe / 11 Verluste,
   WT 15 / 0; Juli ZH 37 / 24, WT 14 / 4.
+- ENDSTAND 09.09. 19:00 (e4b659c, Editor identisch + Token): Nachlauf Jun–Sep gelaufen, Finanzplan-Kopie aktualisiert (Log 18:57, 9 Zellen).
+  Verkäufe/Verluste neu: Jun ZH 43/20, WT 21/4 · Jul ZH 37/24, WT 14/4 · Aug ZH 36/24, WT 28/9 · Sep (bis 09.09.) ZH 23/11, WT 16/0.
+  Vorher (Abo-Starts + Rechnungspakete, Verluste inkl. Debt collection): Jun 40/20, 20/4 · Jul 36/27, 13/5 · Aug 38/27, 28/14 · Sep 23/11, 15/2.
+  Staff-Liste `STAFF_EXTRA` (Waseem Samour) in klassen.js, weil der Check-in-Trainername vom Kundenkonto abweicht.
+  Offen für Ruben: Tag "Rechnung"/"Invoice" bei Rechnungszahlern setzen (Melvin Pappu, evtl. Cayque Rodrigues/Stiftung), sonst zählen sie als Gratis.
