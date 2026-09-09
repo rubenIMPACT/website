@@ -465,17 +465,20 @@ function computeMonat(inp) {
   const isSwitchSale = (o) => !!o.uid && cancelled.some((c) => c.uid === o.uid && !isPT(c.pkg) && c.date && c.date >= addDaysStr(o.date, -60) && c.date <= addDaysStr(o.date, 30));
   // Staff (Trainer laut Check-ins, Firmen-E-Mail) zaehlt weder als Verkauf noch als Verlust (Waseem Samour, Sep 2026)
   const isStaff = (name, email) => staff.has(String(name || "").toLowerCase()) || /@impact-martialarts\.com$/i.test(String(email || ""));
-  const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o) && !isReactivation(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
+  const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o) && !isReactivation(o) && !isOlderMember(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
   const noUid = soldM.filter((o) => !o.uid).length;
   // "Nur der erste Abo-Vertrag ist ein Verkauf" (Ruben 08.09.): Sold Packages listet auch Bestandskunden, deren laufendes Abo nur neu verbucht
   // wurde (Juli 2026: Roman Smagulov seit Januar, Mladen Arsov, Shpend Gashi, Gentian Sopi, Jan Zihler). Hatte die Person in den 12 Vormonaten schon
   // Abo-Pakete und hat sie nicht mehr laufende Abos als diese Pakete (kein zusaetzliches Abo, z. B. zweites Kind), ist es kein Verkauf.
   const prevCnt = {}; (inp.sold12 || []).forEach((r) => { const k = nameKey(r[0]); if (k && isMemberPkg(r[1]) && r[2] === "subscription") prevCnt[k] = (prevCnt[k] || 0) + 1; });
   const isReactivation = (o) => { const prev = prevCnt[o.key] || 0; if (!prev) return false; if (!o.uid) return true; return (subsByUid[o.uid] || []).length <= prev; };
+  // Bestandskunde ohne Vorpaket im Report (migrierte/aeltere Abos haben keinen Sold-Packages-Eintrag): aelteres laufendes Abo und KEIN Abo-Start
+  // im Monat oder spaeter = kein Verkauf (Roman Smagulov u. a. im Juli 2026); Familienkonten haben einen neuen Abo-Start und zaehlen.
+  const isOlderMember = (o) => { if (!o.uid) return false; const ss = subsByUid[o.uid] || []; return ss.some((s) => s.date && s.date < start) && !ss.some((s) => s.date && s.date >= start); };
   const isRestart = (c) => (subsByUid[c.uid] || []).some((s) => s.date && s.date >= addDaysStr(c.date, -30) && s.date <= addDaysStr(c.date, 60)); // neues Abo rund um das Ende = Wechsel/Wiedereinstieg, kein Verlust
   // Gratis-Personen (alle Abo-Pakete der letzten 12 Monate "free", kein Tag Rechnung): ihr Abo-Ende ist keine Kuendigung
   const freeUids = new Set(); { const m = {}; (inp.sold12 || []).concat(inp.sold || []).forEach((r) => { const k = nameKey(r[0]); if (!k || !isMemberPkg(r[1])) return; const o = m[k] = m[k] || { sub: false, free: false }; if (r[2] === "subscription") o.sub = true; if (r[2] === "free") o.free = true; }); Object.keys(m).forEach((k) => { const c = clients.byName[k]; if (m[k].free && !m[k].sub && c && !invoiceTag(c.uid)) freeUids.add(c.uid); }); }
-  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), sold_persons: soldM.length, sold_no_uid: noUid, sold_reactivations: persons(inp.sold).filter((o) => isReactivation(o)).length, free_persons: freeUids.size, tags_found: Object.keys(tagsByUid).filter((u) => tagsByUid[u]).length, tags_asked: Object.keys(tagsByUid).length, clients_total: inp.clientsTotal || 0, locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
+  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), sold_persons: soldM.length, sold_no_uid: noUid, sold_reactivations: persons(inp.sold).filter((o) => isReactivation(o) || isOlderMember(o)).length, free_persons: freeUids.size, tags_found: Object.keys(tagsByUid).filter((u) => tagsByUid[u]).length, tags_asked: Object.keys(tagsByUid).length, clients_total: inp.clientsTotal || 0, locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
   for (const loc of LOCS) {
     const L = {};
     const lf = life.filter((x) => x.loc === loc);
