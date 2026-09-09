@@ -14,7 +14,8 @@
 //   next_payment_attempt, charge_failure - Grundlage fuer den Rechnungslink in W3/W4 und das automatische Schliessen.
 //   action "charges" {uid?, status?, per?, page?}: Abbuchungen (GET /api/v4/fp/charges/?user_id=U&curTab=overview).
 //   Beide geben nie Namen, E-Mails oder Kartendaten zurueck (sanitize). Optional start/end (YYYY-MM-DD) = Datumsfilter.
-//   action "clients" {uids: [...]} (max 40): Name + Standort (location_id) je Mitglied aus GET /api/v4/users/{id}.
+//   action "clients" {uids: [...]} (max 40): Name, Standort (location_id), Anfragetext (Profilfeld "Message") und Tags je
+//   Mitglied aus GET /api/v4/users/{id}; Grundlage fuer die Sprachwahl (Ruben 09.09.: Webseiten-Sprache + Sprache des Textes).
 //   action "client_status" {uids: [...]}: Lifecycle/Billing aus der Kundenliste v2 (Schuldner ohne Eintrag in "Failed Payments").
 //   action "locations": Standort-IDs -> Namen (Diagnose).
 const API = "https://app.impact-martialarts.com";
@@ -58,6 +59,7 @@ async function failedPayments(H, days) {
       name: [c.first_name, c.last_name].filter(Boolean).join(" ").trim(),
       email: String(c.email || c.client_email || "").toLowerCase(), phone: String(c.client_phone_number || ""),
       location: String(c.location_name || (c.location && c.location.name) || c.home_location_name || (c.home_location && c.home_location.name) || ""),
+      tags: Array.isArray(c.tag_list) ? c.tag_list.join(",") : String(c.tag_list || c.tags || ""),
       lifecycle: String(c.lifecycle_stage_name || ""), billing: String(c.billing_status || ""),
       failed: c.failed_payment, has_sub: !!c.has_subscription, cancel_pending: !!c.cancel_pending,
       next_payment: c.next_payment && c.next_payment.date ? new Date(Number(c.next_payment.date) * 1000).toISOString().slice(0, 10) : "",
@@ -182,7 +184,10 @@ async function clients(H, uids) {
     if (r.status !== 200 || !u || typeof u !== "object") { out[uid] = null; continue; }
     if (!keys.length) keys.push(...Object.keys(u).slice(0, 100));
     const pick = (...ks) => { for (const k of ks) { const v = k.split(".").reduce((o, q) => (o && o[q] !== undefined ? o[q] : undefined), u); if (v !== undefined && v !== null && v !== "") return v; } return ""; };
-    out[uid] = { uid, name: [pick("first_name"), pick("last_name")].filter(Boolean).join(" ").trim() || String(pick("name", "full_name")), email: String(pick("email")).toLowerCase(), phone: String(pick("phone", "client_phone_number", "phone_number", "mobile_phone")), lifecycle: String(pick("lifecycle_stage_name", "lifecycle_stage.name", "lifecycle_stage", "lifecycle")), billing: String(pick("billing_status", "billing")), cancel_pending: !!pick("cancel_pending"), has_sub: !!pick("has_subscription"), location_id: String(pick("location_id")), location: LOC_NAMES[String(pick("location_id"))] || String(pick("location_name", "location.name", "home_location_name", "home_location.name")), active: pick("active", "is_active", "status", "state") };
+    out[uid] = { uid, name: [pick("first_name"), pick("last_name")].filter(Boolean).join(" ").trim() || String(pick("name", "full_name")), email: String(pick("email")).toLowerCase(), phone: String(pick("phone", "client_phone_number", "phone_number", "mobile_phone")), lifecycle: String(pick("lifecycle_stage_name", "lifecycle_stage.name", "lifecycle_stage", "lifecycle")), billing: String(pick("billing_status", "billing")), cancel_pending: !!pick("cancel_pending"), has_sub: !!pick("has_subscription"), location_id: String(pick("location_id")), location: LOC_NAMES[String(pick("location_id"))] || String(pick("location_name", "location.name", "home_location_name", "home_location.name")), active: pick("active", "is_active", "status", "state"),
+      // language signals: profile field "Message" (request text written by the person, filled by /api/lead) and tags (optional EN / DE)
+      message: String(((Array.isArray(u.profile_fields) ? u.profile_fields : []).find((f) => f && f.label === "Message") || {}).value || "").slice(0, 800),
+      tags: Array.isArray(u.tag_list) ? u.tag_list.join(",") : String(u.tag_list || u.tags || "") };
   }
   return { ok: true, count: Object.keys(out).length, keys, clients: out };
 }

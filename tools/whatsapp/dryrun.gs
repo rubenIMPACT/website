@@ -72,16 +72,26 @@ function waDryRunHourly() {
       if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', m[0], l.loc, l.name, l.lang, m[0] + ': request ' + fmtDT(l.ts) + ', no trial booked', 'A:' + m[0] + ':' + (l.email || l.nname), {});
     });
   });
-  // Flows B, C, D from the trial lists
-  var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D);
+  // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
+  // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
+  var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     trials[loc].forEach(function (t) {
-      var lang = leadLang[t.nname] || 'de';
-      if (t.art === 'BOOKED' && t.date === today) push('B', 'B1', loc, t.name, lang, 'B1: trial booked today, ' + t.cls + ' (3 h before class; class time not in the list yet)', 'B:B1:' + t.uid + ':' + t.date, { 'class': t.cls, time: '{time}' });
-      if (t.art === 'NOSHOW' && t.date === yday) push('C', 'C1', loc, t.name, lang, 'C1: no-show on ' + t.date + ', no new booking', 'C:C1:' + t.uid + ':' + t.date, {});
-      if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) push('D', 'D1', loc, t.name, lang, 'D1: trial on ' + t.date + ', no contract, stage "' + (t.lifecycle || '-') + '"', 'D:D1:' + t.uid + ':' + t.date, { date: deDate(t.date, lang) });
+      if (keys['B:B1:' + t.uid + ':' + t.date] && keys['C:C1:' + t.uid + ':' + t.date] && keys['D:D1:' + t.uid + ':' + t.date]) return;
+      if (t.art === 'BOOKED' && t.date === today) due.push({ flow: 'B', msg: 'B1', loc: loc, t: t, trig: 'B1: trial booked today, ' + t.cls + ' (3 h before class; class time not in the list yet)', key: 'B:B1:' + t.uid + ':' + t.date, vars: { 'class': t.cls, time: '{time}' } });
+      if (t.art === 'NOSHOW' && t.date === yday) due.push({ flow: 'C', msg: 'C1', loc: loc, t: t, trig: 'C1: no-show on ' + t.date + ', no new booking', key: 'C:C1:' + t.uid + ':' + t.date, vars: {} });
+      if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) due.push({ flow: 'D', msg: 'D1', loc: loc, t: t, trig: 'D1: trial on ' + t.date + ', no contract, stage "' + (t.lifecycle || '-') + '"', key: 'D:D1:' + t.uid + ':' + t.date, vars: { date: '' } });
     });
   });
+  var dueUids = {}; due.forEach(function (d) { if (!keys[d.key]) dueUids[d.t.uid] = true; });
+  var dueClients = fetchClients(Object.keys(dueUids)), langSrc = { tag: 0, text: 0, lead: 0, 'default': 0 };
+  due.forEach(function (d) {
+    if (keys[d.key]) return;
+    var pick = langPick(dueClients[d.t.uid], leadLang[d.t.nname]); langSrc[pick.src]++;
+    if (d.vars.date === '') d.vars.date = deDate(d.t.date, pick.lang);
+    push(d.flow, d.msg, d.loc, d.t.name, pick.lang, d.trig + ' [lang ' + pick.lang + ' from ' + pick.src + ']', d.key, d.vars);
+  });
+  if (due.length) Logger.log('trial language sources: ' + JSON.stringify(langSrc));
   // Flow E: failed payments (Waseem). Debtors account = exercise.com's OPEN INVOICES (since 08.09.2026, Ruben's "Punkt 1"):
   // W1 three days after the first open invoice, W2 day 6, W3 day 14 with the pay link of the ORIGINAL open invoice, W4 as soon
   // as a second invoice is open (7-day deadline, one pay link per invoice). Stops by itself when no open invoice is left.
@@ -96,7 +106,7 @@ function waDryRunHourly() {
       var c = info[a.uid];
       if (a.resolved) return; // closed by hand: no messages
       if (!activeClient(c)) return; // not in the client list (cancelled/inactive), debt collection, paused, unknown status: by hand
-      var lang = leadLang[nname(a.name)] || 'de';
+      var lang = langPick(a.client, leadLang[nname(a.name)]).lang;
       var vars = { due_date: deDate(a.first, lang), amount: String(a.amount), pay_link: a.link, card_link: CARD_LINK, invoices: a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + deDate(d.date, lang) + '): ' + d.link; }).join(' | ') };
       function pushE(msg, trig) { var pre = 'E:' + msg + ':' + a.uid; if (sent[pre]) return; sent[pre] = today; pushRow('E', msg, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E); }
       var money = 'CHF ' + a.amount + ' open, ' + a.attempts + ' attempts, ' + (a.nextRetry ? 'next Stripe retry ' + a.nextRetry : 'no automatic retry left') + (a.reason ? ', ' + a.reason : '');
@@ -152,6 +162,15 @@ function langOfText(t) {
   var en = (t.match(/\b(the|and|would|like|want|for|with|my|is|are|to|of|please|hello|thanks|interested|class|session|looking)\b/g) || []).length;
   var de = (t.match(/\b(ich|und|der|die|das|für|mit|nicht|ein|eine|bin|ist|möchte|gerne|hallo|danke|kurs|probetraining|würde|interesse|suche)\b/g) || []).length;
   if (en > de) return 'en'; if (de > en) return 'de'; return '';
+}
+function langPick(cl, leadLangOfPerson) { // {lang, src}: tag EN/DE in exercise.com > language of the request text in exercise.com > lead's page/form language > German
+  var tags = String((cl && cl.tags) || '');
+  if (/(^|[,\s])EN([,\s]|$)/i.test(tags)) return { lang: 'en', src: 'tag' };
+  if (/(^|[,\s])DE([,\s]|$)/i.test(tags)) return { lang: 'de', src: 'tag' };
+  var txt = langOfText(String((cl && cl.message) || '').replace(/ERNEUTE ANFRAGE|Nachricht:|STANDORTWECHSEL|Kind /g, ' '));
+  if (txt) return { lang: txt, src: 'text' };
+  if (leadLangOfPerson) return { lang: leadLangOfPerson, src: 'lead' };
+  return { lang: 'de', src: 'default' };
 }
 function nname(s) { return String(s || '').toLowerCase().replace(/[^a-zäöüéèàß&+ ]/g, ' ').replace(/\s+/g, ' ').trim(); }
 function firstOf(n) { return String(n || '').split(' ')[0].replace(/[&+]/g, ' & ').replace(/\s+/g, ' ').trim(); }
@@ -280,7 +299,7 @@ function buildDebtors(info) { // one entry per member with at least one open deb
   var status = fetchClientStatus(missing); // lifecycle/billing for members without a failed-payment entry (old sent invoices, exhausted retries older than the report window)
   rows.forEach(function (a) { if (!info[a.uid] && status[a.uid]) { info[a.uid] = status[a.uid]; a.name = status[a.uid].name || a.name; } });
   var extra = fetchClients(rows.map(function (a) { return a.uid; })); // studio + name for everyone (invoices only carry the platform location)
-  rows.forEach(function (a) { var x = extra[a.uid]; if (!x) return; if (!info[a.uid]) info[a.uid] = x; a.name = a.name || x.name || ''; a.loc = x.location || a.loc || ''; });
+  rows.forEach(function (a) { var x = extra[a.uid]; if (!x) return; if (!info[a.uid]) info[a.uid] = x; a.name = a.name || x.name || ''; a.loc = x.location || a.loc || ''; a.client = { tags: (x.tags || '') + ',' + ((info[a.uid] && info[a.uid].tags) || ''), message: x.message || '' }; });
   rows.sort(function (x, y) { return y.days - x.days; }); // provisional; the final order (priority) is set in writeArrears once the client status is known
   Logger.log('Debtors: ' + rows.length + ' members from ' + inv.length + ' open invoices, ' + rows.filter(function (a) { return a.exhausted; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice, ' + missing.length + ' without failed-payment entry (' + Object.keys(status).length + ' found in the client list)');
   return rows;
