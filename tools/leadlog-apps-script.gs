@@ -2492,6 +2492,7 @@ function trInit(ss, sh, loc) {
   sh.hideColumns(TR_P0 + CI.created, 4); // Buchung erstellt am, UID, NS, Stand: nur Technik, eingeklappt (Ruben 09.09.)
   trProtect(sh, TR_ACCESS[loc] || [], 'Nur Ruben und ' + (TR_ACCESS[loc] || []).join(', '));
   ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 1 : 2); // Events-Spiegel kommt ans Ende
+  return sh;
 }
 function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) {
   var T = trT(loc), sh = getOrCreate(ss, TR_SHEETS[loc]);
@@ -2499,7 +2500,7 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) 
   var n = Math.max(0, sh.getLastRow() - TR_ROW0 + 1);
   var old = n ? sh.getRange(TR_ROW0, TR_P0, n, TR_NCOL).getValues() : [];
   var oldDays = n ? sh.getRange(TR_ROW0, 1, n, TR_DAY_N).getValues() : [];
-  if (sh.getLastRow() < 4 || sh.getRange(4, TR_P0, 1, TR_NCOL).getValues()[0].join('|') !== T.head.join('|') || sh.getRange(4, 1, 1, TR_DAY_N).getValues()[0].join('|') !== T.dHead.join('|')) { trInit(ss, sh, loc); n = 0; old = []; } // Umbau: alte Zeilen nicht mit verschobenen Spalten einlesen (Anrufe bleiben ueber oldDays erhalten)
+  if (sh.getLastRow() < 4 || sh.getRange(4, TR_P0, 1, TR_NCOL).getValues()[0].join('|') !== T.head.join('|') || sh.getRange(4, 1, 1, TR_DAY_N).getValues()[0].join('|') !== T.dHead.join('|')) { sh = trInit(ss, sh, loc) || sh; n = 0; old = []; } // Umbau: alte Zeilen nicht mit verschobenen Spalten einlesen (Anrufe bleiben ueber oldDays erhalten)
   else if (String(sh.getRange('A2').getValue()) !== T.legend) trA2(sh, T); // neuer Legendentext: nur Zeile 2 nachziehen, die Personenzeilen bleiben stehen
   // alte Dropdown-Regeln (Spalte "Gespraech" des fruehen Layouts) liegen noch auf Zellen unterhalb der Daten und blockierten am
   // 06.09. das Schreiben ("cell J172 violates the data validation rules"): vor jedem Schreiben alle Validierungen im Block loeschen
