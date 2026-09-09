@@ -553,3 +553,21 @@ in die Plan-Kopie. Fix: invoicePackages nur bei Amount leer (keine Kartenbelastu
 vor der Aktivierung; Waiver-Report im Monatslauf 90 Tage vor dem Monat), Nachlauf 'f' Jun-Aug, Tageslauf schreibt den Plan neu.
 Werbekosten-Bau 09.09. 15:06 lief in den 30-Minuten-Timeout (Tab eine Stunde leer, 16:07 wieder gefuellt) - Ursache unbekannt,
 Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
+
+## VERKAUF = SOLD PACKAGES, VERLUST = CANCELLED SUBSCRIPTIONS (09.09.2026, Entscheid Ruben, "Variante A")
+- EIN Report je Seite: Verkäufe = Personen im exercise.com-Report "Sold Packages" des Monats (Rubens Liste), Verluste = Personen im Report
+  "Cancelled Subscriptions" mit "Ended At" im Monat. Was nicht zählt, ist auf beiden Seiten deckungsgleich: nur Mitgliedschaftspakete
+  (`isMemberPkg`: kein Personal Training, keine Single/Trial-Session, keine Events), keine Gratis-Abos (Payment Type "free"; Gratis-Ende ist
+  keine Kündigung), eine Person zählt einmal, Paketwechsel weder Verkauf noch Verlust (Converted = Yes; Abo-Ende −60/+30 Tage um den
+  Verkaufstag ⇄ neues Abo −30/+60 Tage um das Ende). Debt collection ist KEIN Verlust mehr (nur Info-Zeile), auch im LTV nicht.
+- Ausnahme Rechnungszahler (z. B. Melvin Pappu, Paket erscheint als "free"): zählt nur mit Tag "Rechnung" oder "Invoice" am Kunden
+  in exercise.com (klassen.js `tagsOf`, Tags aus der v4-Kundenliste bzw. `/api/v4/clients/<cid>`). Ruben muss den Tag setzen (offen).
+- Verkaufstag (für die Wochenspalten) = Aktivierung des verkauften Pakets im Report client_packages (Monatsfenster), sonst Abo-Start,
+  sonst Monatsanfang. Sold Packages hat keine Datumsspalte, nur Name/Users/Location/Payment Type/Amount.
+- Sold Packages zeigt ein Paket erst, wenn das Abo gestartet ist (Ruben 09.09.) → Verkaufsmonat = Startmonat, kein Unterschrift-Datum mehr.
+- Ein Cache je Report-Typ: m1 refresht sold_packages mit 12-Monats-Fenster (Gratis-Personen), m2 liest es und refresht das Monatsfenster,
+  m3 wartet darauf. Namen aus Sold Packages werden über die v4-Kundenliste (`clientIndex`, Name → User-ID/E-Mail) zugeordnet;
+  nicht zuordenbare Namen zählen trotzdem (Standort-Annahme) und stehen als "sold_no_uid" im Log.
+- Team-Sheet: Gratis-Abo (Payment Plan Price 0 / Coupon 100 %) ist kein Verkauf, ausser Tag Rechnung; Rechnungspakete ohne Abo nur mit Tag.
+- Nachlauf Jun–Aug über MA_CATCHUP 'g'; Kontrolle Juli ZH gegen Abdis Liste (45 Pakete = 42 Personen, davon 3 Bestandskunden,
+  1 Gratis, 1 August-Start) in der Chat-Antwort vom 09.09.
