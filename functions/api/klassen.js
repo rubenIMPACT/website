@@ -466,13 +466,6 @@ function computeMonat(inp) {
   // Verkaufstag = erste Aktivierung des verkauften Pakets im Monat (client_packages), sonst Abo-Start im Monat, sonst Monatsanfang
   const pkgAct = {}; (inp.pkgs || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Activation"]), n = String(r["Name"] || ""); if (!e || !d || !inMonth(d) || !isMemberPkg(n)) return; (pkgAct[e] = pkgAct[e] || []).push({ d, n }); (pkgAct["n:" + nameKey(r["Users"])] = pkgAct["n:" + nameKey(r["Users"])] || []).push({ d, n }); });
   const saleDateOf = (o) => { const rows = (o.email && pkgAct[o.email]) || pkgAct["n:" + o.key] || []; const same = rows.filter((x) => o.pk.indexOf(x.n) >= 0), use = same.length ? same : rows; let d = use.length ? use.map((x) => x.d).sort()[0] : ""; if (!d && o.uid) d = (subsByUid[o.uid] || []).filter((x) => inMonth(x.date)).map((x) => x.date).sort()[0] || ""; return d || start; };
-  // Paketwechsel / bestehendes Mitglied: ein Abo, das zwischen 60 Tagen vor und 30 Tagen nach dem Verkaufstag endete (auch Converted), wie im Team-Sheet;
-  // ein aelteres laufendes Abo auf demselben Konto ist KEIN Ausschluss (Familienkonten, Ruben 08.09.). Spiegelbild auf der Verlustseite: isRestart.
-  const isSwitchSale = (o) => !!o.uid && cancelled.some((c) => c.uid === o.uid && !isPT(c.pkg) && c.date && c.date >= addDaysStr(o.date, -60) && c.date <= addDaysStr(o.date, 30));
-  // Staff (Trainer laut Check-ins, Firmen-E-Mail) zaehlt weder als Verkauf noch als Verlust (Waseem Samour, Sep 2026)
-  const isStaff = (name, email) => staff.has(String(name || "").toLowerCase()) || /@impact-martialarts\.com$/i.test(String(email || ""));
-  const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o) && !isReactivation(o) && !isOlderMember(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
-  const noUid = soldM.filter((o) => !o.uid).length;
   // "Nur der erste Abo-Vertrag ist ein Verkauf" (Ruben 08.09.): Sold Packages listet auch Bestandskunden, deren laufendes Abo nur neu verbucht
   // wurde (Juli 2026: Roman Smagulov seit Januar, Mladen Arsov, Shpend Gashi, Gentian Sopi, Jan Zihler). Hatte die Person in den 12 Vormonaten schon
   // Abo-Pakete und hat sie nicht mehr laufende Abos als diese Pakete (kein zusaetzliches Abo, z. B. zweites Kind), ist es kein Verkauf.
@@ -481,6 +474,13 @@ function computeMonat(inp) {
   // Bestandskunde ohne Vorpaket im Report (migrierte/aeltere Abos haben keinen Sold-Packages-Eintrag): aelteres laufendes Abo und KEIN Abo-Start
   // im Monat oder spaeter = kein Verkauf (Roman Smagulov u. a. im Juli 2026); Familienkonten haben einen neuen Abo-Start und zaehlen.
   const isOlderMember = (o) => { if (!o.uid) return false; const ss = subsByUid[o.uid] || []; return ss.some((s) => s.date && s.date < start) && !ss.some((s) => s.date && s.date >= start); };
+  // Paketwechsel / bestehendes Mitglied: ein Abo, das zwischen 60 Tagen vor und 30 Tagen nach dem Verkaufstag endete (auch Converted), wie im Team-Sheet;
+  // ein aelteres laufendes Abo auf demselben Konto ist KEIN Ausschluss (Familienkonten, Ruben 08.09.). Spiegelbild auf der Verlustseite: isRestart.
+  const isSwitchSale = (o) => !!o.uid && cancelled.some((c) => c.uid === o.uid && !isPT(c.pkg) && c.date && c.date >= addDaysStr(o.date, -60) && c.date <= addDaysStr(o.date, 30));
+  // Staff (Trainer laut Check-ins, Firmen-E-Mail) zaehlt weder als Verkauf noch als Verlust (Waseem Samour, Sep 2026)
+  const isStaff = (name, email) => staff.has(String(name || "").toLowerCase()) || /@impact-martialarts\.com$/i.test(String(email || ""));
+  const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o) && !isReactivation(o) && !isOlderMember(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
+  const noUid = soldM.filter((o) => !o.uid).length;
   const isRestart = (c) => (subsByUid[c.uid] || []).some((s) => s.date && s.date >= addDaysStr(c.date, -30) && s.date <= addDaysStr(c.date, 60)); // neues Abo rund um das Ende = Wechsel/Wiedereinstieg, kein Verlust
   // Gratis-Personen (alle Abo-Pakete der letzten 12 Monate "free", kein Tag Rechnung): ihr Abo-Ende ist keine Kuendigung
   const freeUids = new Set(); { const m = {}; (inp.sold12 || []).concat(inp.sold || []).forEach((r) => { const k = nameKey(r[0]); if (!k || !isMemberPkg(r[1])) return; const o = m[k] = m[k] || { sub: false, free: false }; if (r[2] === "subscription") o.sub = true; if (r[2] === "free") o.free = true; }); Object.keys(m).forEach((k) => { const c = clients.byName[k]; if (m[k].free && !m[k].sub && c && !invoiceTag(c.uid)) freeUids.add(c.uid); }); }
