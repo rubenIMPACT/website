@@ -5,7 +5,10 @@
    Kein Personenbezug: keine Namen, Nummern oder Mails werden mitgeschickt. */
 (function(){
   var dl=window.dataLayer=window.dataLayer||[];
-  function send(ev,p){p=p||{};p.event=ev;p.page_path=location.pathname;p.page_lang=(document.documentElement.lang||'').slice(0,2);try{dl.push(p)}catch(e){}}
+  window.gtag=window.gtag||function(){dl.push(arguments)}; /* gtag.js wird vom GTM-Google-Tag geladen und verarbeitet diese Aufrufe direkt (wie generate_lead im Formular) */
+  function send(ev,p){p=p||{};p.page_path=location.pathname;p.page_lang=(document.documentElement.lang||'').slice(0,2);
+    try{window.gtag('event',ev,p)}catch(e){}
+    try{var q={};for(var k in p)q[k]=p[k];q.event=ev;dl.push(q)}catch(e){}}
   function kind(h){h=h||'';if(/wa\.me|whatsapp/.test(h))return 'whatsapp';if(/probetraining|\/trial/.test(h))return 'trial_page';if(/#anmelden|#form|#leadform/.test(h))return 'trial_form';if(/^tel:/.test(h))return 'phone';return ''}
   document.addEventListener('click',function(e){
     var a=e.target&&e.target.closest?e.target.closest('a,button'):null;if(!a)return;
