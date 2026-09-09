@@ -602,3 +602,6 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Sheet (125Uy-sdroaNF25ZLO11O36iRfOVuxCBDNe6s-Od7ep0, Tab "Cancellations") geschrieben: nur dieser Tab, nur die gespiegelten Spalten,
   rechts davon "Your notes" für Waseem. Das Sheet gehört zum WhatsApp-Chat, sonst nichts anfassen.
 - Monatsabschluss "Probetraining gebucht" kommt seit September aus dem Team-Sheet (Gebuchte Trials je Tag), davor Lifecycle-Report.
+- NACHTRAG 09.09. 20:15 (a821119): Trainer-Spalte bleibt (neben Klasse) und wird jetzt gefüllt (die Zuweisung stand seit 07.09. in einem
+  Kommentar → war immer leer); nur "Gebucht von" ist raus (18 Personenspalten, CI.coach = 4). Farben: Paketstart = satt grün #34a853 mit
+  weisser Schrift, nur Vertragsunterschrift ohne Paketstart = hellgrün #b7e1cd, Kein Check-in/Wiederholer/Event = gelb, Prüfen-Text = rot.
