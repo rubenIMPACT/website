@@ -1280,7 +1280,10 @@ function wkLeadsByCampaignDaily(ss, camp) {
   }
   return out;
 }
-function buildWerbekosten(ss) { buildWerbekostenCore(ss, maContext(ss)); }
+function buildWerbekosten(ss) { // nie zwei Baue gleichzeitig (auch nicht neben dem Monatsabschluss-Bau): sonst leere und ueberlagerte Diagramme (Lehre 09.09.)
+  var lock = LockService.getUserLock(); if (!lock.tryLock(30000)) { Logger.log('Werbekosten: anderer Bau laeuft, uebersprungen'); return; }
+  try { buildWerbekostenCore(ss, maContext(ss)); } finally { lock.releaseLock(); }
+}
 function wkScheduleBuild() { // nach jedem Monatsabschluss-Bau: Werbekosten-Tab in eigener Ausfuehrung (der Monatsabschluss allein braucht bis zu 6 Minuten)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'runWerbekostenBuild') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('runWerbekostenBuild').timeBased().after(60 * 1000).create();
@@ -1293,7 +1296,11 @@ function runWerbekostenBuild() {
 // Zuerich/Winterthur/Gesamt, Kosten -> Plattform -> Kampagne als zweistufige Gruppen, darunter CPL, CPT, CAC, Anteil bezahlt, LTV : CAC,
 // Payback; drei Diagramme je Block. Ersetzt die alten Tabellen (Monatsliste, Kampagnen je Monat, letzte 30 Tage).
 function buildWerbekostenCore(ss, ctx) {
-  var sh = getOrCreate(ss, WK_VIEW); clearSheet(sh);
+  var sh = getOrCreate(ss, WK_VIEW);
+  // Von Hand gefaerbte Zeilen (Farbe in Spalte A) ueberleben den Neuaufbau: Schluessel = Block + Zeilentext (Ruben 09.09.: "alle Farben weg, ich faerbe selbst")
+  var keep = {};
+  try { var lr0 = sh.getLastRow(); if (lr0 > 3) { var lab0 = sh.getRange(1, 1, lr0, 1).getValues(), bg0 = sh.getRange(1, 1, lr0, 1).getBackgrounds(), blk0 = ''; lab0.forEach(function (row, i) { var t = String(row[0] || ''), b = String(bg0[i][0] || '').toLowerCase(); if (/^(Zürich|Winterthur|Gesamt)/.test(t) && t.indexOf('(CHF') < 0) blk0 = t.split(' ')[0]; if (t && b && b !== '#ffffff' && b !== '#f3f3f3') keep[blk0 + '|' + t] = b; }); } } catch (e0) { Logger.log('Werbekosten Farben lesen: ' + e0); }
+  clearSheet(sh);
   var cols = ctx.cols, curK = ctx.curK, logM = ctx.logM, num = ctx.num, val = ctx.val, wr = ctx.wr, wkD = ctx.wkD, wkM = ctx.wkM, hkeys = ctx.hkeys, yearMonths = ctx.yearMonths, colOf = ctx.colOf, dt = ctx.dt;
   var camp = wkCampAgg(ss), lcd = wkLeadsByCampaignDaily(ss, camp), agencyCache = {};
   var agencyM = function (kk) { if (!(kk in agencyCache)) agencyCache[kk] = wkAgency(ss, kk, wkM); return agencyCache[kk]; };
@@ -1305,7 +1312,7 @@ function buildWerbekostenCore(ss, ctx) {
   ['Zurich', 'Winterthur', 'Gesamt'].forEach(function (loc) {
     var locDE = loc === 'Zurich' ? 'Zürich' : loc === 'Winterthur' ? 'Winterthur' : 'Gesamt', wrLocs = loc === 'Gesamt' ? ['Zurich', 'Winterthur'] : [loc], rowMeta = {}, det = [], det2 = [];
     sh.getRange(r, 1).setValue(locDE + (loc === 'Gesamt' ? ' (Zürich + Winterthur)' : '')).setFontWeight('bold').setFontSize(13); r++;
-    maHeader(sh, r, ctx); var hdr = r; r++;
+    maHeader(sh, r, ctx, true); var hdr = r; r++;
     var vOf = function (kk, name) { if (loc === 'Gesamt') return ctx.gOf(kk, name); var v = val[kk + '|' + loc + '|' + name]; return v === undefined || v === '' ? '' : v; };
     var wrSum = function (o, f) { return wrLocs.reduce(function (t, l) { return t + (o[f][l] || 0); }, 0); };
     var wrKan = function (o, f, name) { return wrLocs.reduce(function (t, l) { return t + (o[f][l][name] || 0); }, 0); };
@@ -1350,7 +1357,7 @@ function buildWerbekostenCore(ss, ctx) {
       if (opts.detail) { sh.getRange(r, 1).setFontColor('#666666'); det.push(r); if (opts.detail === 2) det2.push(r); }
       if (opts.bold) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
       var note = opts.note || MA_NOTES[key]; if (note) sh.getRange(r, 1).setNote(note);
-      rowMeta[r] = { weekly: !!opts.weekly }; r++;
+      rowMeta[r] = { weekly: !!opts.weekly, label: label }; r++;
     };
     var campsOf = function (pn) { return Object.keys(camp.list).filter(function (k) { var L = camp.list[k]; if (L.plat !== pn) return false; if (loc !== 'Gesamt' && L.loc !== loc && L.loc !== 'Beide') return false; return hkeys.some(function (kk) { return num(campM(k, kk)) > 0; }); }).sort(function (a, b) { return camp.list[b].tot - camp.list[a].tot; }); };
     var cLabel = function (k) { var L = camp.list[k]; return '      ' + L.camp + (L.loc === 'Beide' ? ' (beide Standorte, anteilig)' : ''); };
@@ -1381,14 +1388,12 @@ function buildWerbekostenCore(ss, ctx) {
     // Rentabilitaet (LTV steht im Monatsabschluss)
     writeRow('ltv_cac_all', 'LTV : CAC (inkl. Agentur)', M(function (kk) { return ratio(ltvM(kk), cacAllM(kk)); }), '0.0', { bold: true, year: function (mks) { return ratio(yLast(ltvM)(mks), yCacAll(mks)); } });
     writeRow('payback', 'Payback in Monaten', M(function (kk) { return ratio(cacAllM(kk), cvNetM(kk)); }), '0.0', { year: function (mks) { return ratio(yCacAll(mks), yLast(cvNetM)(mks)); } });
-    // Hintergruende, Jahresspalten fett, Gruppen (Plattform = Stufe 1, Kampagne = Stufe 2)
-    var bg = [];
-    for (var rr = hdr + 1; rr < r; rr++) { var meta = rowMeta[rr] || {}; bg.push(cols.map(function (c) { return c.m ? '#eef2f8' : c.y ? '#f1f1f1' : (meta.weekly ? null : '#f3f3f3'); })); }
-    if (bg.length) sh.getRange(hdr + 1, 2, bg.length, cols.length).setBackgrounds(bg);
+    // Keine Skriptfarben im Datenbereich (Ruben 09.09.); von Hand gefaerbte Zeilen zurueckschreiben; Jahresspalten fett; EINE Gruppenstufe wie im
+    // Monatsabschluss (Plattformen und ihre Kampagnen klappen zusammen auf, Kampagnen sind eingerueckt)
+    Object.keys(rowMeta).forEach(function (rr) { var b = keep[locDE.split(' ')[0] + '|' + rowMeta[rr].label]; if (b) sh.getRange(Number(rr), 1, 1, cols.length + 1).setBackground(b); });
     cols.forEach(function (c, ci) { if (c.y) sh.getRange(hdr + 1, 2 + ci, r - hdr - 1, 1).setFontWeight('bold'); });
     var groupsOf = function (rows) { var g = []; rows.sort(function (a, b) { return a - b; }).forEach(function (x) { var last = g[g.length - 1]; if (last && x === last[1] + 1) last[1] = x; else g.push([x, x]); }); return g; };
     groupsOf(det).forEach(function (g) { try { sh.getRange(g[0], 1, g[1] - g[0] + 1, 1).shiftRowGroupDepth(1); } catch (e) { Logger.log('Gruppe ' + g + ': ' + e); } });
-    groupsOf(det2).forEach(function (g) { try { sh.getRange(g[0], 1, g[1] - g[0] + 1, 1).shiftRowGroupDepth(1); } catch (e) { Logger.log('Gruppe 2 ' + g + ': ' + e); } });
     // Diagrammdaten je Monat (Werte, keine Formeln)
     var n0 = function (v) { return v === '' ? 0 : Number(v); };
     blocks.push({ loc: loc, locDE: locDE,
@@ -1418,7 +1423,7 @@ function buildWerbekostenCore(ss, ctx) {
     var row0 = chartRow + bi * BAND;
     sh.getRange(row0, 1).setValue(b.locDE).setFontWeight('bold');
     try {
-      C(Charts.ChartType.COLUMN, a1, WK_PLATFORMS.length + 1, hkeys.length, row0 + 1, 1, 'Media-Kosten ' + b.locDE + ' je Monat (CHF)', { isStacked: true, colors: ['#4285f4', '#1877f2', '#111111'] });
+      C(Charts.ChartType.COLUMN, a1, WK_PLATFORMS.length + 1, hkeys.length, row0 + 1, 1, 'Media-Kosten ' + b.locDE + ' je Monat (CHF)', { isStacked: true, colors: ['#4285f4', '#a142f4', '#111111'] }); // Google blau, Meta violett, TikTok schwarz (Ruben 09.09.)
       C(Charts.ChartType.LINE, a2, 5, hkeys.length, row0 + 1, 8, 'Kosten je Lead, Probetraining und Verkauf ' + b.locDE + ' (CHF)', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], pointSize: 6 });
       C(Charts.ChartType.LINE, a3, 3, hkeys.length, row0 + 1, 15, 'LTV : CAC und Payback ' + b.locDE, { colors: ['#34a853', '#f29900'], pointSize: 6, series: { 1: { targetAxisIndex: 1 } }, vAxes: { 0: { title: 'LTV : CAC', minValue: 0 }, 1: { title: 'Payback (Monate)', minValue: 0 } } });
     } catch (e) { Logger.log('Diagramme Werbekosten ' + b.locDE + ': ' + e); }
@@ -1961,15 +1966,15 @@ function maContext(ss) {
   return { now: now, curK: curK, curMon: curMon, logM: logM, cohN: cohN, wr: wr, wkD: wkD, wkM: wkM, bankM: bankM, cashOf: cashOf, bankOf: bankOf, val: val, num: num, daySumFor: daySumFor, weekOf: weekOf, cols: cols, yearMonths: yearMonths, hkeys: hkeys, wkeys: wkeys, dt: dt, dtW: dtW, colOf: colOf, both: both, div: div, gOf: gOf };
 }
 // Kopfzeile eines Blocks: Monate, Kalenderwochen (KW) und Jahre, mit Notizen
-function maHeader(sh, r, ctx) {
+function maHeader(sh, r, ctx, plain) { // plain = ohne Hintergrundfarben (Werbekosten, Ruben 09.09.)
   var cols = ctx.cols, curK = ctx.curK, curMon = ctx.curMon, dt = ctx.dt, dtW = ctx.dtW;
   var head = ['Kennzahl'].concat(cols.map(function (c) { return c.m ? dt(c.k) : c.w ? 'KW ' + isoWeek(dtW(c.k)) + (c.k === curMon ? ' (läuft)' : '') : c.k + (c.partial ? ' (bis heute)' : ''); }));
-  sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3');
+  sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground(plain ? null : '#f3f3f3');
   cols.forEach(function (c, ci) {
     var cell = sh.getRange(r, 2 + ci);
-    if (c.m) { cell.setNumberFormat(c.k === curK ? 'mmm yyyy" (laufend)"' : 'mmm yyyy').setBackground('#d9e2ef'); if (c.k === curK) cell.setNote('Laufender Monat: Zahlungen und Kunden kommen erst nach Monatsende.'); }
+    if (c.m) { cell.setNumberFormat(c.k === curK ? 'mmm yyyy" (laufend)"' : 'mmm yyyy').setBackground(plain ? null : '#d9e2ef'); if (c.k === curK) cell.setNote('Laufender Monat: Zahlungen und Kunden kommen erst nach Monatsende.'); }
     else if (c.w) { var wd0 = c.k.slice(0, 7) === c.mk ? c.k : c.mk + '-01', we = addDs(c.k, 6), wd1 = we.slice(0, 7) === c.mk ? we : addDs(nextMonth(c.mk) + '-01', -1); cell.setFontColor('#666666').setNote('Woche ' + deD(wd0) + '–' + deD(wd1) + c.mk.slice(0, 4) + (c.k === curMon ? ', läuft noch' : '') + '. Zählt nur die Tage dieses Monats, die Wochen eines Monats ergeben zusammen den Monat. Grau = nur je Monat.'); }
-    else cell.setBackground('#e0e0e0').setNumberFormat('@').setNote('Jahr: Summe der Monate, Bestandswerte = letzter Monat, Quoten neu aus den Summen.');
+    else cell.setBackground(plain ? null : '#e0e0e0').setNumberFormat('@').setNote('Jahr: Summe der Monate, Bestandswerte = letzter Monat, Quoten neu aus den Summen.');
   });
 }
 function buildMonatsabschlussCore(ss) {
@@ -2140,7 +2145,7 @@ function buildMonatsabschlussCore(ss) {
   try { maArrangeTabs(ss); } catch (e2) { Logger.log('Tabs: ' + e2); }
 }
 // Sichtbare Tabs in fester Reihenfolge (Ruben 07.09.): Berichte, dann Formular-Eingaenge (gelb), dann Eingabe-Tabs (gruen), Protokoll und Methodik (grau)
-var MA_TAB_HIDE = ['Kündigungsrisiko', 'Cancellations', 'Bank', 'Einstellungen', 'Finanzplan-Übertrag', 'Methodik', 'LTV']; // LTV versteckt (Ruben 09.09.) // Ruben 07.09.: braucht er nicht, versteckt (Bank/Einstellungen zum Eintragen einblenden)
+var MA_TAB_HIDE = ['Kündigungsrisiko', 'Cancellations', 'Bank', 'Einstellungen', 'Finanzplan-Übertrag', 'Methodik', 'LTV', 'Events']; // LTV und Events versteckt (Ruben 09.09.; Events sieht Bogdan im Team-Sheet) // Ruben 07.09.: braucht er nicht, versteckt (Bank/Einstellungen zum Eintragen einblenden)
 var MA_TAB_COLOR = { Events: '#f4b400', Cancellations: '#f4b400', Bank: '#34a853', Einstellungen: '#34a853', 'Finanzplan-Übertrag': '#9e9e9e', Methodik: '#9e9e9e' };
 function maArrangeTabs(ss) { // Reihenfolge bestimmt Ruben selbst (07.09.), das Skript versteckt nur die Hilfstabs und setzt Farben
   MA_TAB_HIDE.forEach(function (n) { var sh = ss.getSheetByName(n); if (sh && !sh.isSheetHidden()) sh.hideSheet(); });
