@@ -605,3 +605,17 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - NACHTRAG 09.09. 20:15 (a821119): Trainer-Spalte bleibt (neben Klasse) und wird jetzt gefüllt (die Zuweisung stand seit 07.09. in einem
   Kommentar → war immer leer); nur "Gebucht von" ist raus (18 Personenspalten, CI.coach = 4). Farben: Paketstart = satt grün #34a853 mit
   weisser Schrift, nur Vertragsunterschrift ohne Paketstart = hellgrün #b7e1cd, Kein Check-in/Wiederholer/Event = gelb, Prüfen-Text = rot.
+
+## ZWEI CHATS FÜR DIE SHEETS (ab 09.09.2026 abends, Rubens Wunsch)
+- Chat A "Team-KPI-Sheet": Team-Sheet (Tabs Probetrainings ZH/WT, ClientIds, Events-Spiegel), Open-Payments-Sheet, WhatsApp-Spiegel
+  "Cancellations", Tages-Mails; Code: klassen.js `computeTrials`/Phasen t1–t3/lr/lg/cid, Apps Script `tr*`, `pay*`, `teamMirror*`,
+  `waMirror*`, `TR_*`/`CI`/`DI`, `runProbetrainings*`.
+- Chat B "Analytics-Sheet": Monatsabschluss, Werbekosten, LTV, Klassenanalyse, Kündigungsrisiko, MonatsHistorie, Finanzplan-Übertrag;
+  Code: klassen.js `computeMonat`/`monat`/`ltv`/Klassen, Apps Script `ma*`, `wk*`, `buildLTV`, `fp*`, `runMonatsabschluss*`, `maCatchUp`.
+- Geteilt (nur nach Absprache ändern): `DI`/`CI`/`TR_T` (Chat B liest das Team-Sheet in `wrCollect`), `klassenCall`, `clearSheet`,
+  `getOrCreate`, `mailOnce`, Trigger-Installation, `runProbetrainingsHourly` (ruft `maQueueCatchUp`/`maScheduleBuild`).
+- Regeln, damit sich die Chats nicht überschreiben: (1) vor jeder Änderung `git pull`; (2) nur eigene Dateien/Hunks committen und sofort
+  pushen; (3) ins Apps Script IMMER aus dem gepushten GitHub-HEAD einspielen (Editor-Rezept holt die Raw-Datei per Commit-SHA), nie aus
+  einem lokalen Zwischenstand; (4) manuelle Läufe (RUN_NOW) nie zwischen :55 und :08 und nicht gleichzeitig mit dem anderen Chat, weil
+  exercise.com-Report-Caches und das 6-Minuten-Limit geteilt sind; (5) nach dem Einspielen kurz im Editor prüfen, dass Marker des anderen
+  Chats noch da sind (z. B. `WA_SHEET_ID` und `MA_CATCHUP`).
