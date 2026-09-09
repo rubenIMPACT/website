@@ -620,3 +620,8 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   einem lokalen Zwischenstand; (4) manuelle Läufe (RUN_NOW) nie zwischen :55 und :08 und nicht gleichzeitig mit dem anderen Chat, weil
   exercise.com-Report-Caches und das 6-Minuten-Limit geteilt sind; (5) nach dem Einspielen kurz im Editor prüfen, dass Marker des anderen
   Chats noch da sind (z. B. `WA_SHEET_ID` und `MA_CATCHUP`).
+- OFFEN FÜR CHAT A (Team-KPI), Entscheid Ruben 09.09. 20:40, Variante A: Orange-Regel im Team-Sheet reparieren = Vertragsunterschrift
+  vor mehr als 7 Tagen, kein Paketstart, Stage "Signed but no payment", geplante Starts (Paketstart in der Zukunft) ausgenommen. Dazu muss
+  klassen.js `saleOf` die Unterschrift (`signed`) auch ohne Verkauf zurückgeben (heute NONE ohne signed) und `trCheck`/`trFormat` auf die
+  Unterschrift statt auf den Paketstart prüfen. Die alte Regel (Paketstart + Signed but no payment) ist unsinnig: mit Paketstart wird die
+  Stage automatisch "Client". Ruben: vor solchen Regeländerungen erst fragen.
