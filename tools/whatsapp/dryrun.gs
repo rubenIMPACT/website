@@ -333,6 +333,7 @@ function actionOf(a, c, p, today) { // what a human has to do with this member t
   }
   return dup + 'Wait for the Stripe retry on ' + a.nextRetry + '; ' + st + ' message due';
 }
+function cleanNote(v) { var s = String(v || ''); return /^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{4} \d{2}:\d{2}/.test(s) ? '' : s; } // drops timestamps that slipped into the note column on 08.09.
 function logSheet(ss) { // event log: one line per event (retried by hand, invoice paid, left the list)
   var log = ss.getSheetByName('Retry log');
   if (!log) {
@@ -360,10 +361,10 @@ function writeArrears(ss, rows, info, dry) {
   }
   // previous state per UID (Last retry / Done / Note survive the hourly rebuild)
   var prev = {}, n = sh.getLastRow(), merged = sh.getRange(4, 19).getValue() === 'Last retry';
-  if (merged && n >= 5) sh.getRange(5, 1, n - 4, ARR_HEAD.length).getValues().forEach(function (r) { var u = String(r[1] || ''); if (u) prev[u] = { name: r[2], loc: r[3], amount: Number(r[10]) || 0, since: dOf(r[4]), lastRetry: dOf(r[18]), done: r[19] === true, note: String(r[20] || '') }; });
+  if (merged && n >= 5) sh.getRange(5, 1, n - 4, ARR_HEAD.length).getValues().forEach(function (r) { var u = String(r[1] || ''); if (u) prev[u] = { name: r[2], loc: r[3], amount: Number(r[10]) || 0, since: dOf(r[4]), lastRetry: dOf(r[18]), done: r[19] === true, note: cleanNote(r[20]) }; });
   if (!merged) { // one-off migration 09.09.: carry Last retry / Done / Note over from the old tab "Retry today", then upgrade the header
     var rt = ss.getSheetByName('Retry today');
-    if (rt && rt.getLastRow() >= 5 && rt.getRange(4, 11).getValue() === 'Last retry') rt.getRange(5, 1, rt.getLastRow() - 4, 14).getValues().forEach(function (r) { var u = String(r[0] || ''); if (u) prev[u] = { name: r[1], loc: r[2], amount: Number(r[5]) || 0, since: dOf(r[9]), lastRetry: dOf(r[10]), done: r[11] === true, note: String(r[12] || '') }; });
+    if (rt && rt.getLastRow() >= 5 && rt.getRange(4, 11).getValue() === 'Last retry') rt.getRange(5, 1, rt.getLastRow() - 4, 14).getValues().forEach(function (r) { var u = String(r[0] || ''); if (u) prev[u] = { name: r[1], loc: r[2], amount: Number(r[5]) || 0, since: dOf(r[9]), lastRetry: dOf(r[10]), done: r[11] === true, note: cleanNote(r[12]) }; });
     if (sh.getMaxColumns() < ARR_HEAD.length) sh.insertColumnsAfter(sh.getMaxColumns(), ARR_HEAD.length - sh.getMaxColumns());
     if (n >= 4) sh.getRange(4, 1, n - 3, ARR_HEAD.length).clearContent().clearDataValidations().setBackground(null);
     sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
