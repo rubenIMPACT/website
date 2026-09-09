@@ -105,7 +105,8 @@ function waDryRunHourly() {
       var c = info[a.uid];
       if (!activeClient(c)) return; // not in the client list (cancelled/inactive), debt collection, paused, unknown status: by hand
       var lang = langPick(a.client, leadLang[nname(a.name)]).lang;
-      var vars = { due_date: deDate(a.first, lang), amount: String(a.amount), pay_link: a.link, card_link: CARD_LINK, invoices: a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + deDate(d.date, lang) + '): ' + d.link; }).join(' | ') };
+      var links = a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + deDate(d.date, lang) + '): ' + d.link; }).join(' | ');
+      var vars = { due_date: deDate(a.first, lang), amount: String(a.amount), pay_link: a.debts.length > 1 ? links : a.link, card_link: CARD_LINK, invoices: links }; // Ruben 09.09.: always every link, never chase twice
       function pushE(msg, trig) { var pre = 'E:' + msg + ':' + a.uid; if (sent[pre]) return; sent[pre] = today; pushRow('E', msg, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E); }
       var money = 'CHF ' + a.amount + ' open, ' + a.attempts + ' attempts, ' + (a.nextRetry ? 'next Stripe retry ' + a.nextRetry : 'no automatic retry left') + (a.reason ? ', ' + a.reason : '');
       if (a.days >= RULE_E.W1_D) pushE('W1', 'W1: ' + a.days + ' days since the first open invoice (' + a.first + '), ' + money);
@@ -304,10 +305,10 @@ function buildDebtors(info) { // one entry per member with at least one open deb
   Logger.log('Debtors: ' + rows.length + ' members from ' + inv.length + ' open invoices, ' + rows.filter(function (a) { return a.exhausted; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice, ' + missing.length + ' without failed-payment entry (' + Object.keys(status).length + ' found in the client list)');
   return rows;
 }
-var ARR_HEAD = ['Priority', 'UID', 'Name', 'Location', 'First failed', 'Days', 'Open invoices', 'Attempts', 'Next Stripe retry', 'Sent invoices', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Action', 'Last retry', 'Done (Waseem)', 'Note', 'Last message', 'Updated', 'Pay link']; // 09.09. (Ruben): one tab only, "Retry today" merged in
-var ARR_W = [60, 80, 180, 90, 90, 50, 60, 60, 90, 70, 90, 90, 240, 200, 110, 80, 60, 360, 90, 90, 220, 120, 120, 320];
+var ARR_HEAD = ['Priority', 'UID', 'Name', 'Location', 'First failed', 'Days', 'Open invoices', 'Attempts', 'Next Stripe retry', 'Sent invoices', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Action', 'Last retry', 'Done (Waseem)', 'Note', 'Last message', 'Updated', 'Pay links']; // 09.09. (Ruben): one tab only, "Retry today" merged in; Pay links = every open invoice
+var ARR_W = [60, 80, 180, 90, 90, 50, 60, 60, 90, 70, 90, 90, 240, 200, 110, 80, 60, 360, 90, 90, 220, 120, 120, 420];
 var RETRY_WAIT_D = 2; // Ruben / Sam 09.09.: Waseem retries by hand every second or third day, not daily
-var ARR_NOTE = 'Rebuilt every hour from the open invoices in exercise.com: one row per member with at least one open debt, i.e. a subscription invoice that failed at least once and is still open, or an unpaid invoice that was sent by hand. A sent invoice that repeats an older open subscription invoice of the same amount counts once ("Sent invoices" shows "dup": void the sent copy). Sorted by Priority (1 = most urgent), then by open amount. "Action" says what a human has to do today: wait (Stripe still retries on the date in "Next Stripe retry"), check the payment via the pay link or retry the named invoice by hand (only when Stripe has no attempt left for it), escalate to Sam (second invoice open and the W4 deadline passed), or by hand for special statuses. Tick "Done (Waseem)" after a manual retry: on the next run the tick becomes the date in "Last retry", the tab "Retry log" gets a line, and the action says to wait ' + RETRY_WAIT_D + ' days. "Note" is free text and survives the rebuild. A member leaves the list as soon as no open invoice is left (paid or voided in exercise.com); the log then records "invoice paid on ..." or "left the list". There is no closing by hand in the sheet. Yellow rows: Stripe has no automatic attempt left for at least one open invoice, only the pay link or a manual retry settles it. Red rows: debt collection. Debt collection, paused and accounts outside the client list get no automatic message.';
+var ARR_NOTE = 'Rebuilt every hour from the open invoices in exercise.com: one row per member with at least one open debt, i.e. a subscription invoice that failed at least once and is still open, or an unpaid invoice that was sent by hand. A sent invoice that repeats an older open subscription invoice of the same amount counts once ("Sent invoices" shows "dup": void the sent copy). Sorted by Priority (1 = most urgent), then by open amount. "Action" says what a human has to do today: wait (Stripe still retries on the date in "Next Stripe retry"), check the payment via the pay link or retry the named invoice by hand (only when Stripe has no attempt left for it), escalate to Sam (second invoice open and the W4 deadline passed), or by hand for special statuses. Tick "Done (Waseem)" after a manual retry: on the next run the tick becomes the date in "Last retry", the tab "Retry log" gets a line, and the action says to wait ' + RETRY_WAIT_D + ' days. "Note" is free text and survives the rebuild. A member leaves the list as soon as no open invoice is left (paid or voided in exercise.com); the log then records "invoice paid on ..." or "left the list". There is no closing by hand in the sheet. "Pay links" lists every open invoice of the member (amount, date, Stripe payment page), one per line, refreshed every hour; the first line is the oldest invoice. Yellow rows: Stripe has no automatic attempt left for at least one open invoice, only the pay link or a manual retry settles it. Red rows: debt collection. Debt collection, paused and accounts outside the client list get no automatic message.';
 var LOG_HEAD = ['Date', 'UID', 'Name', 'Location', 'Amount at the time', 'Listed since', 'Done (Waseem)', 'Note', 'Event'];
 var MERGED_NOTE = 'Merged into the tab "Debtors" on 9 Sep 2026 (Ruben): Action, Last retry, Done (Waseem) and Note now live there. This tab is no longer updated and can be deleted.';
 function stageOf(a) { return a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait'))); }
@@ -328,8 +329,8 @@ function actionOf(a, c, p, today) { // what a human has to do with this member t
   if (st === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (W4 deadline ' + esc + ' passed)' : 'W4 sent or due: wait for the payment via the links, escalate to Sam on ' + esc + ' if still unpaid'); }
   if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return dup + 'Retried by hand on ' + p.lastRetry + ', wait until ' + addDs(p.lastRetry, RETRY_WAIT_D);
   if (a.manual.length) { // the pay link always points to the oldest open invoice, which is also the one to retry by hand
-    var head = HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry the invoice in Pay link by hand' : 'Check for a payment via the pay link, else retry that invoice by hand';
-    if (a.manual.length > 1) head += ' (' + a.manual.length + ' invoices without Stripe retry, Pay link = oldest)';
+    var head = HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry the oldest invoice in Pay links by hand' : 'Check for a payment via the pay link, else retry that invoice by hand';
+    if (a.manual.length > 1) head += ' (' + a.manual.length + ' invoices without Stripe retry, all in Pay links)';
     return dup + head + (a.nextRetry ? '. Stripe still retries the newest invoice on ' + a.nextRetry : '');
   }
   return dup + 'Wait for the Stripe retry on ' + a.nextRetry + '; ' + st + ' message due';
@@ -373,7 +374,7 @@ function writeArrears(ss, rows, info, dry) {
     sh.getRange('A1').setValue('Debtors: members with open invoices'); sh.getRange('A2').setValue(ARR_NOTE); sh.setRowHeight(2, 120);
     n = 4;
   }
-  sh.getRange('A2').setValue(ARR_NOTE);
+  sh.getRange('A2').setValue(ARR_NOTE); sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]);
   var log = logSheet(ss), logRows = [];
   Object.keys(prev).forEach(function (u) { var p = prev[u]; if (p.done) { p.lastRetry = today; p.done = false; logRows.push([today, u, p.name, p.loc, p.amount, p.since, 'yes', p.note, 'retried by hand on ' + today]); } });
   var last = lastMsgE(dry);
@@ -381,7 +382,7 @@ function writeArrears(ss, rows, info, dry) {
   var current = {};
   var out = sorted.map(function (a) {
     current[a.uid] = true; var c = info[a.uid] || null, p = prev[a.uid] || {};
-    return [priorityOf(a, c), a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.nextRetry || 'none', (a.sent ? String(a.sent) : '') + (a.dupes ? ' dup' : ''), a.amount, a.lastDate, a.reason, a.item, c ? (c.lifecycle || 'unknown') : 'not in client list', c ? c.billing : '', stageOf(a), actionOf(a, c, p, today), p.lastRetry || '', false, p.note || '', last[a.uid] || '', now, a.link];
+    return [priorityOf(a, c), a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.nextRetry || 'none', (a.sent ? String(a.sent) : '') + (a.dupes ? ' dup' : ''), a.amount, a.lastDate, a.reason, a.item, c ? (c.lifecycle || 'unknown') : 'not in client list', c ? c.billing : '', stageOf(a), actionOf(a, c, p, today), p.lastRetry || '', false, p.note || '', last[a.uid] || '', now, a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + d.date + '): ' + d.link; }).join('\n')];
   });
   var gone = Object.keys(prev).filter(function (u) { return !current[u]; });
   var paid = gone.length ? paidSince(addDs(today, -45)) : {};
@@ -390,7 +391,7 @@ function writeArrears(ss, rows, info, dry) {
   if (out.length) {
     sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
     sh.getRange(5, 11, out.length, 1).setNumberFormat('0.00'); [5, 9, 12, 19].forEach(function (col) { sh.getRange(5, col, out.length, 1).setNumberFormat('@'); });
-    sh.getRange(5, 20, out.length, 1).insertCheckboxes();
+    sh.getRange(5, 20, out.length, 1).insertCheckboxes(); sh.getRange(5, 24, out.length, 1).setWrap(true);
     var bg = sorted.map(function (a) { var c = info[a.uid]; var col = (c && /debt/i.test(c.lifecycle)) ? '#f4cccc' : (a.exhausted ? '#fff2cc' : null); return ARR_HEAD.map(function () { return col; }); }); // red = debt collection (Ruben 08.09.), yellow = Stripe has no automatic attempt left (Ruben 09.09.)
     sh.getRange(5, 1, out.length, ARR_HEAD.length).setBackgrounds(bg);
   }
@@ -406,7 +407,7 @@ function retireRetryTab(ss) { // 09.09. (Ruben): "Retry today" merged into "Debt
 function refreshPayLinks(rows, today) { // Stripe pay links expire (Waseem 09.09.): re-read every invoice that a message or the lists may use from Stripe via exercise.com, 40 per call.
   // The refreshed invoice also carries the true status: a debt that is paid or void in Stripe drops out right here.
   var need = [], byId = {};
-  rows.forEach(function (a) { if (a.exhausted || a.open >= 2 || a.days >= RULE_E.W3_D) a.debts.forEach(function (d) { if (d.id && !byId[d.id]) { byId[d.id] = d; need.push(d.id); } }); });
+  rows.forEach(function (a) { a.debts.forEach(function (d) { if (d.id && !byId[d.id]) { byId[d.id] = d; need.push(d.id); } }); }); // every open invoice (Ruben 09.09.: all links visible and fresh)
   var fresh = 0, closed = 0;
   for (var i = 0; i < need.length; i += 40) {
     var b = cfPost({ action: 'invoice_refresh', ids: need.slice(i, i + 40) }); if (!b) continue;
