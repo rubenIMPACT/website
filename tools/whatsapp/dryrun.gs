@@ -115,7 +115,7 @@ function waDryRunHourly() {
     });
   }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
-  if (arr) { writeArrears(ss, arr, info, sh); writeRetryList(ss, arr, info); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
+  if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
   sh.getRange('A3').setValue('Last run ' + fmtDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', clients with failed payments: ' + (pay ? pay.length : 'n/a') + ', debtors (open invoices): ' + (arr ? arr.length : 'n/a') + '.' + payNote);
   Logger.log('Dry run ' + fmtDT(now) + ': ' + out.length + ' new rows');
@@ -290,8 +290,9 @@ function buildDebtors(info) { // one entry per member with at least one open deb
     var first = open[0].date, second = open.length > 1 ? open[1].date : '';
     var att = open.reduce(function (m, d) { return Math.max(m, d.attempts); }, 0);
     var retries = open.filter(function (d) { return d.npa && d.npa >= today; }).map(function (d) { return d.npa; }).sort();
+    var manual = open.filter(function (d) { return !(d.npa && d.npa >= today); }); // invoices Stripe will not retry any more: only a payment via the link or a manual retry settles them
     var f = fails[u] || {}, c = info[u];
-    rows.push({ uid: u, name: c ? c.name : '', loc: (c && c.location) || '', first: first, second: second, days: daysBetween(first, today), open: open.length, attempts: att, amount: r2(open.reduce(function (sum, d) { return sum + d.amount; }, 0)), lastDate: f.date || '', reason: f.reason || '', item: open[open.length - 1].item, exhausted: !retries.length, nextRetry: retries[0] || '', sent: debts.filter(function (d) { return d.sent; }).length, dupes: debts.filter(function (d) { return d.dupe; }).length, link: open[0].link, debts: open });
+    rows.push({ uid: u, name: c ? c.name : '', loc: (c && c.location) || '', first: first, second: second, days: daysBetween(first, today), open: open.length, attempts: att, amount: r2(open.reduce(function (sum, d) { return sum + d.amount; }, 0)), lastDate: f.date || '', reason: f.reason || '', item: open[open.length - 1].item, exhausted: manual.length > 0, manual: manual, nextRetry: retries[0] || '', sent: debts.filter(function (d) { return d.sent; }).length, dupes: debts.filter(function (d) { return d.dupe; }).length, link: open[0].link, debts: open });
   });
   var missing = rows.filter(function (a) { return !info[a.uid]; }).map(function (a) { return a.uid; });
   var status = fetchClientStatus(missing); // lifecycle/billing for members without a failed-payment entry (old sent invoices, exhausted retries older than the report window)
@@ -303,9 +304,12 @@ function buildDebtors(info) { // one entry per member with at least one open deb
   Logger.log('Debtors: ' + rows.length + ' members from ' + inv.length + ' open invoices, ' + rows.filter(function (a) { return a.exhausted; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice, ' + missing.length + ' without failed-payment entry (' + Object.keys(status).length + ' found in the client list)');
   return rows;
 }
-var ARR_HEAD = ['Priority', 'UID', 'Name', 'Location', 'First failed', 'Days', 'Open invoices', 'Attempts', 'Next Stripe retry', 'Sent invoices', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Next step', 'Last message', 'Updated', 'Pay link'];
-var ARR_W = [60, 80, 180, 90, 90, 50, 60, 60, 90, 70, 90, 90, 260, 200, 110, 80, 60, 300, 120, 120, 320];
-var ARR_NOTE = 'Rebuilt every hour from the open invoices in exercise.com (since 8 Sep 2026): one row per member with at least one open debt, i.e. a subscription invoice that failed at least once and is still open, or an unpaid invoice that was sent by hand. A sent invoice that repeats an older open subscription invoice of the same amount counts once ("Sent invoices" shows "dup": void the sent copy). Sorted by Priority (1 = most urgent), then by open amount. Next Stripe retry = date of the next automatic attempt, "none" once Stripe has stopped; then only a payment via the pay link or a manual retry of the open invoice settles it. Stage = dunning step: W1 from day 3, W2 from day 6, W3 from day 14 (pay link of the original invoice), W4 as soon as a second invoice is open. Pay link = Stripe payment page of the oldest open invoice. A member leaves the list as soon as no open invoice is left (paid or voided in exercise.com / Stripe); there is no closing by hand in the sheet (Ruben 09.09.): special cases are settled in exercise.com by voiding or marking the invoice paid. Debt collection, paused and accounts outside the client list are listed at the bottom and get no automatic message.';
+var ARR_HEAD = ['Priority', 'UID', 'Name', 'Location', 'First failed', 'Days', 'Open invoices', 'Attempts', 'Next Stripe retry', 'Sent invoices', 'Amount open CHF', 'Last failure', 'Failure message', 'Item', 'Lifecycle', 'Billing', 'Stage', 'Action', 'Last retry', 'Done (Waseem)', 'Note', 'Last message', 'Updated', 'Pay link']; // 09.09. (Ruben): one tab only, "Retry today" merged in
+var ARR_W = [60, 80, 180, 90, 90, 50, 60, 60, 90, 70, 90, 90, 240, 200, 110, 80, 60, 360, 90, 90, 220, 120, 120, 320];
+var RETRY_WAIT_D = 2; // Ruben / Sam 09.09.: Waseem retries by hand every second or third day, not daily
+var ARR_NOTE = 'Rebuilt every hour from the open invoices in exercise.com: one row per member with at least one open debt, i.e. a subscription invoice that failed at least once and is still open, or an unpaid invoice that was sent by hand. A sent invoice that repeats an older open subscription invoice of the same amount counts once ("Sent invoices" shows "dup": void the sent copy). Sorted by Priority (1 = most urgent), then by open amount. "Action" says what a human has to do today: wait (Stripe still retries on the date in "Next Stripe retry"), check the payment via the pay link or retry the named invoice by hand (only when Stripe has no attempt left for it), escalate to Sam (second invoice open and the W4 deadline passed), or by hand for special statuses. Tick "Done (Waseem)" after a manual retry: on the next run the tick becomes the date in "Last retry", the tab "Retry log" gets a line, and the action says to wait ' + RETRY_WAIT_D + ' days. "Note" is free text and survives the rebuild. A member leaves the list as soon as no open invoice is left (paid or voided in exercise.com); the log then records "invoice paid on ..." or "left the list". There is no closing by hand in the sheet. Debt collection (red), paused and accounts outside the client list get no automatic message.';
+var LOG_HEAD = ['Date', 'UID', 'Name', 'Location', 'Amount at the time', 'Listed since', 'Done (Waseem)', 'Note', 'Event'];
+var MERGED_NOTE = 'Merged into the tab "Debtors" on 9 Sep 2026 (Ruben): Action, Last retry, Done (Waseem) and Note now live there. This tab is no longer updated and can be deleted.';
 function stageOf(a) { return a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait'))); }
 function activeClient(c) { return !!c && !c.cancel_pending && !/debt|inactive|non-client|lost/i.test(c.lifecycle) && /^billed$/i.test(c.billing); }
 function priorityOf(a, c) { // 1 = most urgent. Active members first (the automation can still act), ordered by dunning stage, then by amount.
@@ -315,119 +319,86 @@ function priorityOf(a, c) { // 1 = most urgent. Active members first (the automa
   var st = stageOf(a);
   return st === 'W4' ? 1 : (st === 'W3' ? 2 : 3);     // W4 = second invoice open, W3 = retries exhausted, W1/W2/wait = still in the automatic window
 }
-function nextStepOf(a, c) {
+function actionOf(a, c, p, today) { // what a human has to do with this member today (Waseem, or Sam)
   if (!c) return 'By hand: account not in client list (cancelled or inactive)';
   if (/debt/i.test(c.lifecycle)) return 'Debt collection running (Sam)';
   if (!c.billing) return 'By hand: status unknown (not in the failed-payment client list), check the client in exercise.com';
   if (!activeClient(c)) return 'By hand: subscription paused or pending cancellation';
-  var dup = a.dupes ? 'Void the duplicate sent invoice (same amount as the original). ' : '', st = stageOf(a);
-  if (st === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D), today = fmtD(new Date()); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (deadline ' + esc + ' passed)' : 'W4 sent or due; escalate to Sam and set "Debt collection" on ' + esc + ' if still unpaid'); }
-  if (a.exhausted) return dup + (HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry the open invoice by hand' : 'Wait for the payment via the pay link; after a card update retry the open invoice by hand (see Retry today)');
+  var dup = a.dupes ? 'Void the duplicate sent invoice. ' : '', st = stageOf(a);
+  if (st === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (W4 deadline ' + esc + ' passed)' : 'W4 sent or due: wait for the payment via the links, escalate to Sam on ' + esc + ' if still unpaid'); }
+  if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return dup + 'Retried by hand on ' + p.lastRetry + ', wait until ' + addDs(p.lastRetry, RETRY_WAIT_D);
+  if (a.manual.length) {
+    var which = a.manual.map(function (d) { return 'invoice of ' + d.date + (d.sent ? ' (sent by hand)' : ''); }).join(', ');
+    return dup + (HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry by hand: ' : 'Check for a payment via the pay link, else retry by hand: ') + which + (a.nextRetry ? '. Stripe still retries the newest invoice on ' + a.nextRetry : '');
+  }
   return dup + 'Wait for the Stripe retry on ' + a.nextRetry + '; ' + st + ' message due';
 }
-function writeArrears(ss, rows, info, dry) {
-  var sh = ss.getSheetByName('Debtors') || ss.getSheetByName('Arrears'); // renamed 08.09. (Ruben)
-  if (sh && sh.getName() !== 'Debtors') sh.setName('Debtors');
-  if (!sh) {
-    sh = ss.insertSheet('Debtors');
-    sh.getRange('A1').setValue('Debtors: members with open invoices').setFontSize(14).setFontWeight('bold');
-    sh.getRange('A2').setValue(ARR_NOTE).setFontColor('#666666').setWrap(true);
-    sh.getRange('A2:T2').merge(); sh.setRowHeight(2, 110);
-    sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
-    sh.setFrozenRows(4);
-    ARR_W.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-  }
-  if (sh.getRange(4, 7).getValue() !== 'Open invoices' || sh.getRange(4, ARR_HEAD.length).getValue() !== 'Pay link') { // header upgrade 08.09. (invoice basis)
-    if (sh.getMaxColumns() < ARR_HEAD.length) sh.insertColumnsAfter(sh.getMaxColumns(), ARR_HEAD.length - sh.getMaxColumns());
-    sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
-    ARR_W.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-    sh.getRange('A1').setValue('Debtors: members with open invoices'); sh.getRange('A2').setValue(ARR_NOTE); sh.setRowHeight(2, 110);
-  }
-  var last = lastMsgE(dry), now = fmtDT(new Date());
-  var sorted = rows.slice().sort(function (x, y) { var px = priorityOf(x, info[x.uid]), py = priorityOf(y, info[y.uid]); return px !== py ? px - py : (y.amount !== x.amount ? y.amount - x.amount : y.days - x.days); });
-  var out = sorted.map(function (a) {
-    var c = info[a.uid] || null, stage = stageOf(a);
-    return [priorityOf(a, c), a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.nextRetry || 'none', (a.sent ? String(a.sent) : '') + (a.dupes ? ' dup' : ''), a.amount, a.lastDate, a.reason, a.item, c ? (c.lifecycle || 'unknown') : 'not in client list', c ? c.billing : '', stage, nextStepOf(a, c), last[a.uid] || '', now, a.link];
-  });
-  if (sh.getLastRow() >= 5) { sh.getRange(5, 1, sh.getLastRow() - 4, ARR_HEAD.length).clearContent().setBackground(null).setFontColor(null); }
-  if (out.length) {
-    sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out); sh.getRange(5, 11, out.length, 1).setNumberFormat('0.00'); sh.getRange(5, 5, out.length, 1).setNumberFormat('@'); sh.getRange(5, 9, out.length, 1).setNumberFormat('@'); sh.getRange(5, 12, out.length, 1).setNumberFormat('@');
-    var bg = sorted.map(function (a) { var c = info[a.uid]; var col = (c && /debt/i.test(c.lifecycle)) ? '#f4cccc' : null; return ARR_HEAD.map(function () { return col; }); }); // red = debt collection (Ruben 08.09.)
-    sh.getRange(5, 1, out.length, ARR_HEAD.length).setBackgrounds(bg);
-  }
-  sh.getRange('A3').setValue(out.length + ' members with open invoices, CHF ' + r2(out.reduce(function (sum, r) { return sum + r[10]; }, 0)) + ' open, ' + out.filter(function (r) { return r[8] === 'none'; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice. Priority 1 = second invoice open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused / unknown, 5 = not in client list. No closing by hand: a case ends when the invoice is paid or voided in exercise.com. ' + now);
-}
-var RETRY_HEAD = ['UID', 'Name', 'Location', 'Days', 'Open invoices', 'Amount open CHF', 'Pay link', 'Failure message', 'Suggested action', 'Listed since', 'Last retry', 'Done (Waseem)', 'Note', 'Updated']; // 09.09. (Ruben): "Done" turns into the date "Last retry" on the next run; no closing by hand
-var RETRY_LOG_HEAD = ['Date', 'UID', 'Name', 'Location', 'Amount at the time', 'Listed since', 'Done (Waseem)', 'Note', 'Event']; // event log since 09.09.: one line per event, no daily archive
-var RETRY_WAIT_D = 2; // Ruben / Sam 09.09.: Waseem retries by hand every second or third day, not daily
-var RETRY_NOTE = 'Rebuilt every hour. Active, billed members with an open invoice that Stripe will not retry any more (no next automatic attempt). The member already has the pay link of the original invoice (W3/W4): first check whether the invoice was paid (paid rows vanish by themselves within an hour), otherwise retry the OPEN invoice by hand in exercise.com (Payment Details, Invoices, action on that invoice) and never create a new invoice. Tick "Done (Waseem)" after a manual retry: on the next run the tick becomes the date in "Last retry" and the tab "Retry log" gets a line "retried by hand". Retry at most every ' + RETRY_WAIT_D + ' days; "Suggested action" says when to wait, when to retry, and when to escalate to Sam (second invoice open and the W4 deadline passed). "Note" is free text and survives the hourly rebuild. A member leaves the list when the invoice is paid or voided in exercise.com, or the account is no longer active; the log then records the event ("invoice paid on ...", "left the list").';
-function retryAction(a, p, today) { // what Waseem should do with this member today
-  if (stageOf(a) === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D); return today >= esc ? 'Escalate to Sam and set "Debt collection" (W4 deadline ' + esc + ' passed)' : 'W4 sent or due, deadline ' + esc + ': wait for the payment via the links'; }
-  if (a.dupes) return 'Void the duplicate sent invoice, then retry the open invoice';
-  if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return 'Retried on ' + p.lastRetry + ', wait until ' + addDs(p.lastRetry, RETRY_WAIT_D);
-  if (HARD_DECLINE.test(a.reason)) return 'Ask for a new card, then retry the open invoice';
-  return 'Check for a payment via the link, else retry the open invoice by hand';
-}
-function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members without an automatic Stripe retry -> Waseem checks the payment / retries the open invoice by hand.
-  // 09.09. (Ruben): tick "Done" -> date "Last retry" + log line; the log keeps only events (retried by hand, invoice paid, left the list).
-  var sh = ss.getSheetByName('Retry today'), today = fmtD(new Date()), now = fmtDT(new Date());
-  var widths = [80, 180, 90, 50, 60, 90, 300, 240, 300, 90, 90, 90, 220, 120];
-  if (!sh) {
-    sh = ss.insertSheet('Retry today');
-    sh.getRange('A1').setValue('Retry today: no automatic retry left, check payment or retry the open invoice by hand').setFontSize(14).setFontWeight('bold');
-    sh.getRange('A2').setValue(RETRY_NOTE).setFontColor('#666666').setWrap(true);
-    sh.getRange('A2:N2').merge(); sh.setRowHeight(2, 100);
-    sh.getRange(4, 1, 1, RETRY_HEAD.length).setValues([RETRY_HEAD]).setFontWeight('bold').setBackground('#d9ead3');
-    sh.setFrozenRows(4);
-    widths.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-  }
-  // previous state (keyed by UID), read with the layout that is currently in the sheet
-  var h11 = String(sh.getRange(4, 11).getValue()), h12 = String(sh.getRange(4, 12).getValue()), prev = {}, n = sh.getLastRow();
-  var layout = h11 === 'Last retry' ? 'D' : (h12 === 'Resolved by hand' ? 'B' : 'C'); // D = current, C = 08.09. evening (Done, Note), B = 08.09. (Done, Resolved by hand, Note)
-  if (n >= 5) sh.getRange(5, 1, n - 4, 14).getValues().forEach(function (r) {
-    var u = String(r[0] || ''); if (!u) return;
-    prev[u] = { name: r[1], loc: r[2], amount: r[5], since: dOf(r[9]) || today, lastRetry: layout === 'D' ? dOf(r[10]) : '', done: (layout === 'D' ? r[11] : r[10]) === true, note: String((layout === 'D' ? r[12] : (layout === 'B' ? r[12] : r[11])) || '') };
-  });
-  if (layout !== 'D') { // header upgrade 09.09.
-    if (sh.getMaxColumns() < 14) sh.insertColumnsAfter(sh.getMaxColumns(), 14 - sh.getMaxColumns());
-    if (n >= 4) { sh.getRange(4, 1, n - 3, 14).clearContent().clearDataValidations(); }
-    sh.getRange(4, 1, 1, RETRY_HEAD.length).setValues([RETRY_HEAD]).setFontWeight('bold').setBackground('#d9ead3');
-    widths.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-    try { sh.getRange('A2:N2').merge(); } catch (e) {}
-    sh.getRange('A1').setValue('Retry today: no automatic retry left, check payment or retry the open invoice by hand'); sh.getRange('A2').setValue(RETRY_NOTE); sh.setRowHeight(2, 100);
-    n = 4;
-  }
+function logSheet(ss) { // event log: one line per event (retried by hand, invoice paid, left the list)
   var log = ss.getSheetByName('Retry log');
   if (!log) {
     log = ss.insertSheet('Retry log');
     log.getRange('A1').setValue('Retry log: one line per event (retried by hand, invoice paid, left the list)').setFontSize(12).setFontWeight('bold');
-    log.getRange(2, 1, 1, RETRY_LOG_HEAD.length).setValues([RETRY_LOG_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
+    log.getRange(2, 1, 1, LOG_HEAD.length).setValues([LOG_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
     log.setFrozenRows(2);
     [90, 80, 180, 90, 110, 90, 90, 240, 260].forEach(function (w, i) { log.setColumnWidth(1 + i, w); });
   }
-  if (log.getRange(2, 9).getValue() !== 'Event') { log.getRange('A1').setValue('Retry log: one line per event (retried by hand, invoice paid, left the list); lines before 9 Sep 2026 come from the old daily archive'); log.getRange(2, 1, 1, RETRY_LOG_HEAD.length).setValues([RETRY_LOG_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); }
-  var logRows = [];
-  // ticks -> "Last retry" date + event
+  if (log.getRange(2, 9).getValue() !== 'Event') { log.getRange('A1').setValue('Retry log: one line per event (retried by hand, invoice paid, left the list); lines before 9 Sep 2026 come from the old daily archive'); log.getRange(2, 1, 1, LOG_HEAD.length).setValues([LOG_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); }
+  return log;
+}
+function writeArrears(ss, rows, info, dry) {
+  var sh = ss.getSheetByName('Debtors') || ss.getSheetByName('Arrears'); // renamed 08.09. (Ruben)
+  if (sh && sh.getName() !== 'Debtors') sh.setName('Debtors');
+  var today = fmtD(new Date()), now = fmtDT(new Date());
+  if (!sh) {
+    sh = ss.insertSheet('Debtors');
+    sh.getRange('A1').setValue('Debtors: members with open invoices').setFontSize(14).setFontWeight('bold');
+    sh.getRange('A2').setValue(ARR_NOTE).setFontColor('#666666').setWrap(true);
+    sh.getRange('A2:T2').merge(); sh.setRowHeight(2, 120);
+    sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
+    sh.setFrozenRows(4);
+    ARR_W.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+  }
+  // previous state per UID (Last retry / Done / Note survive the hourly rebuild)
+  var prev = {}, n = sh.getLastRow(), merged = sh.getRange(4, 19).getValue() === 'Last retry';
+  if (merged && n >= 5) sh.getRange(5, 1, n - 4, ARR_HEAD.length).getValues().forEach(function (r) { var u = String(r[1] || ''); if (u) prev[u] = { name: r[2], loc: r[3], amount: Number(r[10]) || 0, since: dOf(r[4]), lastRetry: dOf(r[18]), done: r[19] === true, note: String(r[20] || '') }; });
+  if (!merged) { // one-off migration 09.09.: carry Last retry / Done / Note over from the old tab "Retry today", then upgrade the header
+    var rt = ss.getSheetByName('Retry today');
+    if (rt && rt.getLastRow() >= 5 && rt.getRange(4, 11).getValue() === 'Last retry') rt.getRange(5, 1, rt.getLastRow() - 4, 14).getValues().forEach(function (r) { var u = String(r[0] || ''); if (u) prev[u] = { name: r[1], loc: r[2], amount: Number(r[5]) || 0, since: dOf(r[9]), lastRetry: dOf(r[10]), done: r[11] === true, note: String(r[12] || '') }; });
+    if (sh.getMaxColumns() < ARR_HEAD.length) sh.insertColumnsAfter(sh.getMaxColumns(), ARR_HEAD.length - sh.getMaxColumns());
+    if (n >= 4) sh.getRange(4, 1, n - 3, ARR_HEAD.length).clearContent().clearDataValidations().setBackground(null);
+    sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]).setFontWeight('bold').setBackground('#fde8d5');
+    ARR_W.forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    sh.getRange('A1').setValue('Debtors: members with open invoices'); sh.getRange('A2').setValue(ARR_NOTE); sh.setRowHeight(2, 120);
+    n = 4;
+  }
+  var log = logSheet(ss), logRows = [];
   Object.keys(prev).forEach(function (u) { var p = prev[u]; if (p.done) { p.lastRetry = today; p.done = false; logRows.push([today, u, p.name, p.loc, p.amount, p.since, 'yes', p.note, 'retried by hand on ' + today]); } });
-  var inArrears = {}; rows.forEach(function (a) { inArrears[a.uid] = true; });
-  var out = rows.filter(function (a) { return a.exhausted && activeClient(info[a.uid]); }).sort(function (x, y) { return y.amount - x.amount; });
+  var last = lastMsgE(dry);
+  var sorted = rows.slice().sort(function (x, y) { var px = priorityOf(x, info[x.uid]), py = priorityOf(y, info[y.uid]); return px !== py ? px - py : (y.amount !== x.amount ? y.amount - x.amount : y.days - x.days); });
   var current = {};
-  var vals = out.map(function (a) {
-    current[a.uid] = true; var p = prev[a.uid] || {};
-    return [a.uid, a.name, a.loc, a.days, a.open, a.amount, a.link, a.reason, retryAction(a, p, today), p.since || today, p.lastRetry || '', false, p.note || '', now];
+  var out = sorted.map(function (a) {
+    current[a.uid] = true; var c = info[a.uid] || null, p = prev[a.uid] || {};
+    return [priorityOf(a, c), a.uid, a.name, a.loc, a.first, a.days, a.open, a.attempts, a.nextRetry || 'none', (a.sent ? String(a.sent) : '') + (a.dupes ? ' dup' : ''), a.amount, a.lastDate, a.reason, a.item, c ? (c.lifecycle || 'unknown') : 'not in client list', c ? c.billing : '', stageOf(a), actionOf(a, c, p, today), p.lastRetry || '', false, p.note || '', last[a.uid] || '', now, a.link];
   });
-  // members who left the list -> event with the outcome
   var gone = Object.keys(prev).filter(function (u) { return !current[u]; });
   var paid = gone.length ? paidSince(addDs(today, -45)) : {};
-  gone.forEach(function (u) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, '', p.note, paid[u] ? 'invoice paid on ' + paid[u] : (inArrears[u] ? 'no longer listed (status changed or Stripe retry scheduled)' : 'left the list (invoice voided or paid earlier)')]); });
-  if (n >= 5) { sh.getRange(5, 1, n - 4, RETRY_HEAD.length).clearContent(); sh.getRange(5, 12, n - 4, 1).clearDataValidations(); }
-  if (vals.length) {
-    sh.getRange(5, 1, vals.length, RETRY_HEAD.length).setValues(vals);
-    sh.getRange(5, 6, vals.length, 1).setNumberFormat('0.00'); sh.getRange(5, 10, vals.length, 2).setNumberFormat('@');
-    sh.getRange(5, 12, vals.length, 1).insertCheckboxes();
+  gone.forEach(function (u) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, '', p.note, paid[u] ? 'invoice paid on ' + paid[u] : 'left the list (invoice voided or paid earlier, or account changed)']); });
+  if (n >= 5) { sh.getRange(5, 1, n - 4, ARR_HEAD.length).clearContent().setBackground(null).setFontColor(null); sh.getRange(5, 20, n - 4, 1).clearDataValidations(); }
+  if (out.length) {
+    sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
+    sh.getRange(5, 11, out.length, 1).setNumberFormat('0.00'); [5, 9, 12, 19].forEach(function (col) { sh.getRange(5, col, out.length, 1).setNumberFormat('@'); });
+    sh.getRange(5, 20, out.length, 1).insertCheckboxes();
+    var bg = sorted.map(function (a) { var c = info[a.uid]; var col = (c && /debt/i.test(c.lifecycle)) ? '#f4cccc' : null; return ARR_HEAD.map(function () { return col; }); }); // red = debt collection (Ruben 08.09.)
+    sh.getRange(5, 1, out.length, ARR_HEAD.length).setBackgrounds(bg);
   }
-  if (logRows.length) log.getRange(log.getLastRow() + 1, 1, logRows.length, RETRY_LOG_HEAD.length).setValues(logRows);
-  sh.getRange('A3').setValue(vals.length + ' members without automatic retry, CHF ' + r2(vals.reduce(function (sum, r) { return sum + r[5]; }, 0)) + ' open, ' + vals.filter(function (r) { return /^Escalate/.test(r[8]); }).length + ' to escalate to Sam, ' + vals.filter(function (r) { return /^Retried on/.test(r[8]); }).length + ' waiting after a manual retry. A row leaves the list when the invoice is paid or voided in exercise.com. ' + now);
+  if (logRows.length) log.getRange(log.getLastRow() + 1, 1, logRows.length, LOG_HEAD.length).setValues(logRows);
+  var acts = out.map(function (r) { return String(r[17]); });
+  sh.getRange('A3').setValue(out.length + ' members with open invoices, CHF ' + r2(out.reduce(function (sum, r) { return sum + r[10]; }, 0)) + ' open. Today: ' + acts.filter(function (s) { return /^NOW/.test(s); }).length + ' to escalate to Sam, ' + acts.filter(function (s) { return /retry by hand:/.test(s); }).length + ' to check or retry by hand, ' + acts.filter(function (s) { return /^Retried by hand/.test(s); }).length + ' waiting after a manual retry, ' + acts.filter(function (s) { return /^Wait for the Stripe retry|^W4 sent/.test(s); }).length + ' waiting for Stripe or the links. Priority 1 = second invoice open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused / unknown, 5 = not in client list. ' + now);
+}
+function retireRetryTab(ss) { // 09.09. (Ruben): "Retry today" merged into "Debtors"; the old tab is emptied and marked, not deleted
+  var rt = ss.getSheetByName('Retry today'); if (!rt || rt.getRange('A3').getValue() === MERGED_NOTE) return;
+  var n = rt.getLastRow(); if (n >= 5) rt.getRange(5, 1, n - 4, rt.getMaxColumns()).clearContent().clearDataValidations();
+  rt.getRange('A3').setValue(MERGED_NOTE);
 }
 function refreshPayLinks(rows, today) { // Stripe pay links expire (Waseem 09.09.): re-read every invoice that a message or the lists may use from Stripe via exercise.com, 40 per call.
   // The refreshed invoice also carries the true status: a debt that is paid or void in Stripe drops out right here.
@@ -443,7 +414,7 @@ function refreshPayLinks(rows, today) { // Stripe pay links expire (Waseem 09.09
     if (!a.debts.some(function (d) { return d.closed; })) { out.push(a); return; }
     var open = a.debts.filter(function (d) { return !d.closed; }); if (!open.length) return; // everything paid or voided in Stripe: no debt any more
     a.debts = open; a.open = open.length; a.first = open[0].date; a.second = open.length > 1 ? open[1].date : ''; a.days = daysBetween(a.first, today); a.amount = r2(open.reduce(function (s, d) { return s + d.amount; }, 0)); a.link = open[0].link; a.item = open[open.length - 1].item;
-    var retries = open.filter(function (d) { return d.npa && d.npa >= today; }).map(function (d) { return d.npa; }).sort(); a.exhausted = !retries.length; a.nextRetry = retries[0] || '';
+    var retries = open.filter(function (d) { return d.npa && d.npa >= today; }).map(function (d) { return d.npa; }).sort(); a.manual = open.filter(function (d) { return !(d.npa && d.npa >= today); }); a.exhausted = a.manual.length > 0; a.nextRetry = retries[0] || '';
     out.push(a);
   });
   Logger.log('pay links refreshed: ' + fresh + ' of ' + need.length + ' invoices, ' + closed + ' no longer open in Stripe, ' + (rows.length - out.length) + ' members dropped');
@@ -514,8 +485,8 @@ function waProbeReports() { // one-off: which payment reports exist in exercise.
   });
 }
 function waProbeClient() { // one-off (Ruben 08.09.): structure of one debtor's payment endpoints, read-only, log only
-  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Retry today');
-  var uid = String(sh.getRange(5, 1).getValue() || '').replace(/\D/g, '');
+  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Debtors');
+  var uid = String(sh.getRange(5, 2).getValue() || '').replace(/\D/g, '');
   if (!uid) { Logger.log('no uid on Retry today'); return; }
   var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'probe_client', uid: uid }), muteHttpExceptions: true });
   var t = r.getContentText() || '';
@@ -523,8 +494,8 @@ function waProbeClient() { // one-off (Ruben 08.09.): structure of one debtor's 
   for (var i = 0; i < t.length; i += 1500) Logger.log('P' + (i / 1500) + ' ' + t.slice(i, i + 1500));
 }
 function waProbeInvoices() { // one-off (Ruben 08.09.): does fp/invoices give a pay link (hosted_invoice_url) + paid status per failed charge? read-only, log only (compact projection, no names/e-mails)
-  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Retry today');
-  var uid = String(sh.getRange(5, 1).getValue() || '').replace(/\D/g, '');
+  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Debtors');
+  var uid = String(sh.getRange(5, 2).getValue() || '').replace(/\D/g, '');
   var F_INV = ['id', 'user_id', 'status', 'collection_method', 'manual', 'amount_due', 'amount_paid', 'attempt_count', 'next_payment_attempt', 'charge_failure', 'last_charge_attempt', 'charge_status', 'charge_id', 'subscription_id', 'item_name', 'due_date', 'paid_at', 'created_at', 'hosted_invoice_url'];
   var F_CH = ['id', 'user_id', 'status', 'amount', 'paid_at', 'failure_code', 'failure_message', 'subscription_id', 'purchase_id', 'processor_type', 'created_at'];
   var tests = [
@@ -594,8 +565,8 @@ function waProbeLang() { // one-off (09.09.): does the language pick work on rea
   Logger.log('lang sources: ' + JSON.stringify(src));
 }
 function waProbeRefresh() { // one-off (09.09.): is the stored Stripe pay link stale, and does exercise.com's refresh give a fresh one? log only (URLs, no names)
-  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Retry today');
-  var uid = String(sh.getRange(5, 1).getValue() || '').replace(/\D/g, '');
+  var ss = SpreadsheetApp.openById(WA_ID), sh = ss.getSheetByName('Debtors');
+  var uid = String(sh.getRange(5, 2).getValue() || '').replace(/\D/g, '');
   var b = cfPost({ action: 'invoices', uid: uid, per: 20, past_due: false, status: 'open' }); if (!b) { Logger.log('no invoices'); return; }
   var open = (b.rows || []).filter(function (i) { return i.collection_method === 'send_invoice' || (Number(i.attempt_count) || 0) > 0; }).sort(function (x, y) { return (x.created_at || 0) - (y.created_at || 0); });
   if (!open.length) { Logger.log('no open debt for ' + uid); return; }
