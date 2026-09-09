@@ -647,3 +647,9 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   unter 7 Tagen = nichts, geplanter Start 01.10. = nichts, alter Fall (Paketstart + Stage) = kein Hinweis mehr, Non-Client = nichts.
   Erzeugte Regeln in der richtigen Reihenfolge: Non-Client, orange `=AND($Q5<>"",$R5="",$O5="Signed but no payment",TODAY()-$Q5>=7)`,
   rot `=$P5<>""`, satt grün `=$R5<>""`, hellgrün, grau, gelb.
+- NACHTRAG 09.09. 21:45 (64cc2bf): Werbekosten-Bau hat jetzt denselben User-Lock wie der Monatsabschluss-Bau (parallele Baue aus
+  Nachlauf-Kette + Stundenlauf + RUN_NOW hatten leere "Add a series"-Diagramme und überlagerte Diagramme erzeugt). Werbekosten ohne
+  Skriptfarben im Datenbereich; von Hand gefärbte ZEILEN (Farbe in Spalte A) werden beim Neuaufbau über Block+Zeilentext zurückgeschrieben,
+  einzelne Zellfarben nicht (Spalten verschieben sich mit jeder neuen KW). Eine Gruppenstufe (Plattform + Kampagnen zusammen), Meta violett.
+  Events-Tab im Analytics-Sheet versteckt (Bogdan sieht den Spiegel im Team-Sheet). Nachlauf Jan–Mai 2026 angestossen (M6/M7 Jahreswerte
+  "Neue Kontakte" fehlten, weil Jan–Mai nie berechnet waren); ⚠️ Migrationsmonate (WT Nov 2025, ZH Dez–März) können Lifecycle-Effekte zeigen.
