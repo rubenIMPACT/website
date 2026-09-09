@@ -688,3 +688,7 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   einzelne Zellfarben nicht (Spalten verschieben sich mit jeder neuen KW). Eine Gruppenstufe (Plattform + Kampagnen zusammen), Meta violett.
   Events-Tab im Analytics-Sheet versteckt (Bogdan sieht den Spiegel im Team-Sheet). Nachlauf Jan–Mai 2026 angestossen (M6/M7 Jahreswerte
   "Neue Kontakte" fehlten, weil Jan–Mai nie berechnet waren); ⚠️ Migrationsmonate (WT Nov 2025, ZH Dez–März) können Lifecycle-Effekte zeigen.
+- NACHLAUF JAN–MAI 2026 gelaufen (09.09. 22:09–22:34): MonatsHistorie hat jetzt Jan–Mai (Neue Kontakte ZH 223/213/252/196/242, WT 174/139/143/114/95;
+  Verkäufe ZH 106/76/73/55/39, WT 34/28/38/24/27; Verluste ZH 16/15/16/14/18, WT 2/3/2/1/7). Jahresspalte "Neue Kontakte" 2026: ZH 2011, WT 1083.
+  ⚠️ Verkäufe Jan–Mär ZH sind durch die Migration (Abos in exercise.com neu angelegt, Sold Packages listet sie) überhöht; Entscheid Ruben offen,
+  ob Verkäufe/Nettowachstum vor April 2026 ausgeblendet werden. Mai-Lauf brauchte 763 s (Workspace-Limit 30 min, kein Abbruch).
