@@ -329,8 +329,8 @@ function actionOf(a, c, p, today) { // what a human has to do with this member t
   if (st === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (W4 deadline ' + esc + ' passed)' : 'W4 sent or due: wait for the payment via the links, escalate to Sam on ' + esc + ' if still unpaid'); }
   if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return dup + 'Retried by hand on ' + p.lastRetry + ', wait until ' + addDs(p.lastRetry, RETRY_WAIT_D);
   if (a.manual.length) { // the pay link always points to the oldest open invoice, which is also the one to retry by hand
-    var head = HARD_DECLINE.test(a.reason) ? 'Ask for a new card, then retry the oldest invoice in Pay links by hand' : 'Check for a payment via the pay link, else retry that invoice by hand';
-    if (a.manual.length > 1) head += ' (' + a.manual.length + ' invoices without Stripe retry, all in Pay links)';
+    var head = HARD_DECLINE.test(a.reason) ? 'Ask the member for a new card, then retry the oldest open invoice by hand' : 'Retry the oldest open invoice by hand in exercise.com (first line in Pay links). If it fails again, send the member the pay links';
+    if (a.manual.length > 1) head += ' (' + a.manual.length + ' invoices without Stripe retry)';
     return dup + head + (a.nextRetry ? '. Stripe still retries the newest invoice on ' + a.nextRetry : '');
   }
   return dup + 'Wait for the Stripe retry on ' + a.nextRetry + '; ' + st + ' message due';
@@ -400,7 +400,7 @@ function writeArrears(ss, rows, info, dry) {
   }
   if (logRows.length) log.getRange(log.getLastRow() + 1, 1, logRows.length, LOG_HEAD.length).setValues(logRows);
   var acts = out.map(function (r) { return String(r[19]); });
-  sh.getRange('A3').setValue(out.length + ' members with open invoices, CHF ' + r2(out.reduce(function (sum, r) { return sum + r[12]; }, 0)) + ' open. Today: ' + acts.filter(function (s) { return /^NOW/.test(s); }).length + ' to escalate to Sam, ' + acts.filter(function (s) { return /retry by hand:/.test(s); }).length + ' to check or retry by hand, ' + acts.filter(function (s) { return /^Retried by hand/.test(s); }).length + ' waiting after a manual retry, ' + acts.filter(function (s) { return /^Wait for the Stripe retry|^W4 sent/.test(s); }).length + ' waiting for Stripe or the links. Priority 1 = second invoice open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused / unknown, 5 = not in client list. ' + now);
+  sh.getRange('A3').setValue(out.length + ' members with open invoices, CHF ' + r2(out.reduce(function (sum, r) { return sum + r[12]; }, 0)) + ' open. Today: ' + acts.filter(function (s) { return /^NOW/.test(s); }).length + ' to escalate to Sam, ' + acts.filter(function (s) { return /^(Void the duplicate sent invoice\. )?(Retry the oldest|Ask the member)/.test(s); }).length + ' to retry by hand, ' + acts.filter(function (s) { return /^Retried by hand/.test(s); }).length + ' waiting after a manual retry, ' + acts.filter(function (s) { return /^Wait for the Stripe retry|^W4 sent/.test(s); }).length + ' waiting for Stripe or the links. Priority 1 = second invoice open, 2 = retries exhausted, 3 = still in the automatic retry window, 4 = debt collection / paused / unknown, 5 = not in client list. ' + now);
 }
 function retireRetryTab(ss) { // 09.09. (Ruben): "Retry today" merged into "Debtors"; the old tab is emptied and marked, not deleted
   var rt = ss.getSheetByName('Retry today'); if (!rt || rt.getRange('A3').getValue() === MERGED_NOTE) return;
