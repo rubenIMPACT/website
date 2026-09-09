@@ -545,3 +545,10 @@ wkCampAgg (Tag/Monat, "Beide" anteilig), Leads je Kampagne wkLeadsByCampaignDail
 Werbezeilen weg (nur LTV bleibt). Bau: buildMonatsabschlussCore plant wkScheduleBuild -> runWerbekostenBuild eine Minute spaeter
 (eigene Ausfuehrung, 6-Minuten-Limit); runWerbekosten (06:30) ruft nur noch buildMonatsabschluss. Alte Tabellen (Monatsliste,
 Kampagnen je Monat, letzte 30 Tage) und wkLeadsByMonth/wkLeadsByCampaign sind entfernt. Marketing-Quote bewusst NICHT (Ruben).
+FEHLER 09.09.2026 (Review): Rechnungskunden-Regel zaehlte Altkunden. client_packages ist FENSTERABHAENGIG: mit Monatsfenster liefert
+der Report die Abrechnungsperioden aller Mitglieder dieses Monats (Activation = Periodenstart, 759 Pakete im Juni), nicht nur laufende
+Pakete. Der Nachlauf 'e' zaehlte in ZH Juni 44 / Juli 27 "Rechnungskunden" (Verkaeufe Juni 84 statt ~40) und fpTransfer schrieb das
+in die Plan-Kopie. Fix: invoicePackages nur bei Amount leer (keine Kartenbelastung), Person neu (Waiver "Created Account" <= 120 Tage
+vor der Aktivierung; Waiver-Report im Monatslauf 90 Tage vor dem Monat), Nachlauf 'f' Jun-Aug, Tageslauf schreibt den Plan neu.
+Werbekosten-Bau 09.09. 15:06 lief in den 30-Minuten-Timeout (Tab eine Stunde leer, 16:07 wieder gefuellt) - Ursache unbekannt,
+Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.

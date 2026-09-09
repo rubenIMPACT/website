@@ -336,7 +336,7 @@ function monatUrls(start, end, cohortStart, today) {
     fvWT: { url: API + "/api/v4/reports/clients_first_visit?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
     salesZH: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2508", start, arr: false, loc: "Zurich" },
     salesWT: { url: API + "/api/v4/reports/sales_by_category?" + qM + "&per=2000&location_id=2222", start, arr: false, loc: "Winterthur" },
-    waiver: { url: API + "/api/v4/reports/waiver?" + qM + "&per=3000", start }, // Vertragsunterschriften des Monats (nur noch Verkaeufer)
+    waiver: { url: API + "/api/v4/reports/waiver?" + query(addDaysStr(start, -90), end) + "&per=3000", start: addDaysStr(start, -90) }, // Unterschriften ab 90 Tage vor dem Monat: Kontoerstellung (Rechnungskunden), Verkaeufer
     pkgs: { url: API + "/api/v4/reports/client_packages?" + qM + "&per=8000", start }, // laufende Pakete (Rechnungskunden ohne Abo, Ruben 08.09.)
   };
 }
@@ -427,7 +427,8 @@ function computeMonat(inp) {
   // plus Rechnungskunden ohne Abo (client_packages, Activation im Monat). Die Unterschrift zaehlt nicht mehr.
   const subsByUid = {}; subs.forEach((s) => { if (!isPT(s.pkg)) (subsByUid[s.uid] = subsByUid[s.uid] || []).push(s); });
   const uidByEmail = {}; inp.subs.forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) uidByEmail[e] = String(r["User ID"]); }); (inp.waiver || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(); if (e) uidByEmail[e] = String(r["User ID"]); });
-  const invAll = invoicePackages(inp.pkgs, (uid) => (subsByUid[uid] || []).length > 0 || cancelledUids.has(uid), uidByEmail);
+  const createdBy = {}; (inp.waiver || []).forEach((r) => { const e = String(r["Email"] || "").toLowerCase().trim(), c = chDate(r["Created Account"]); if (e && c && (!createdBy[e] || createdBy[e] > c)) createdBy[e] = c; });
+  const invAll = invoicePackages(inp.pkgs, (uid) => (subsByUid[uid] || []).length > 0 || cancelledUids.has(uid), uidByEmail, (e, uid, d) => !!createdBy[e] && createdBy[e] >= addDaysStr(d, -120));
   const invoiceM = Object.keys(invAll).map((k) => invAll[k]).filter((v) => inMonth(v.date));
   const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
   for (const loc of LOCS) {
@@ -771,12 +772,17 @@ function chDate(v) {
 // Starttag) oder, fuer Kunden ohne Abo (Rechnung, Melvin Pappu), das manuell aktivierte Paket aus dem Report client_packages.
 // client_packages listet nur laufende Pakete, "Activation" = Start der laufenden Abrechnungsperiode - deshalb dort nur Personen OHNE Abo.
 const isMemberPkg = (name) => !/personal training|single|trial|event|seminar|workshop|drop.?in/i.test(String(name || ""));
-function invoicePackages(pkgRows, hasSub, uidByEmail) { // je E-Mail das frueheste laufende Mitgliedschaftspaket ohne Abo -> {uid|email: {date, pkg, email, name, loc}}
+// Rechnungskunde (Ruben 08.09., Melvin Pappu): Mitgliedschaftspaket ohne Abo, ohne Kartenbelastung in der Periode (Amount leer) und NEUE
+// Person (Konto hoechstens 120 Tage vor der Aktivierung angelegt, aus dem Waiver-Report). Lehre 09.09.: der Report client_packages liefert je
+// Fenster die Abrechnungsperioden ALLER Mitglieder ("Activation" = Periodenstart), ohne diese Filter wurden im Juni 44 Altkunden gezaehlt.
+function invoicePackages(pkgRows, hasSub, uidByEmail, isNew) { // -> {uid|email: {date, pkg, email, name, loc}}
   const seen = new Set(), out = {};
   (pkgRows || []).forEach((r) => {
     const id = String(r["ID"] || ""), name = String(r["Name"] || ""), e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Activation"]);
     if (!id || seen.has(id) || !e || !d || !isMemberPkg(name)) return; seen.add(id);
+    if (String(r["Amount"] || "").trim() !== "") return; // per Karte belastet = Abo-Periode, kein Rechnungskunde
     const uid = uidByEmail[e] || ""; if (uid && hasSub(uid)) return;
+    if (isNew && !isNew(e, uid, d)) return;
     const k = uid || e, cur = out[k];
     if (!cur || cur.date > d) out[k] = { uid, email: e, date: d, pkg: name, name: String(r["Users"] || "").trim(), loc: /winterthur/i.test(String(r["Client Location"] || "")) ? "Winterthur" : "Zurich" };
   });
@@ -812,7 +818,8 @@ function computeTrials(inp) {
   // Verkauf = erstes Abo-Paket aktiviert (Ruben 08.09.): Abo-Start (auch geplanter Start am Starttag) oder Rechnungspaket ohne Abo.
   // Die Unterschrift (Waiver) liefert nur noch den Verkaeufer. Kein Verkauf: aelteres Abo (bestehendes Mitglied), Paketwechsel, PT.
   const uidByEmail0 = {}; subs.forEach((s) => { if (s.email) uidByEmail0[s.email] = s.uid; }); (inp.vis || []).forEach((v) => { if (v.email) uidByEmail0[v.email] = v.uid; }); waiv.forEach((w) => { if (w.email) uidByEmail0[w.email] = w.uid; });
-  const invBy = invoicePackages(inp.pkgs, (uid) => (subsBy[uid] || []).some((s) => !isPT(s.pkg)) || (cancBy[uid] || []).length > 0, uidByEmail0);
+  const createdBy0 = {}; waiv.forEach((w) => { if (w.email && w.created && (!createdBy0[w.email] || createdBy0[w.email] > w.created)) createdBy0[w.email] = w.created; });
+  const invBy = invoicePackages(inp.pkgs, (uid) => (subsBy[uid] || []).some((s) => !isPT(s.pkg)) || (cancBy[uid] || []).length > 0, uidByEmail0, (e, uid, d) => !!createdBy0[e] && createdBy0[e] >= addDaysStr(d, -120));
   const saleOf = (uid, trialDate, email) => {
     const from = addDaysStr(trialDate, -SALE_BACK);
     // Kein Ausschluss mehr wegen aelterem Abo auf demselben Konto (Familienkonto: zweites Kind = neuer Verkauf; Lehre 08.09. Andreas March)
