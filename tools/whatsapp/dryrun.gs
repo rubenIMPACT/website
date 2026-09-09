@@ -300,6 +300,7 @@ function buildDebtors(info) { // one entry per member with at least one open deb
   rows.forEach(function (a) { if (!info[a.uid] && status[a.uid]) { info[a.uid] = status[a.uid]; a.name = status[a.uid].name || a.name; } });
   var extra = fetchClients(rows.map(function (a) { return a.uid; })); // studio + name for everyone (invoices only carry the platform location)
   rows.forEach(function (a) { var x = extra[a.uid]; if (!x) return; if (!info[a.uid]) info[a.uid] = x; a.name = a.name || x.name || ''; a.loc = x.location || a.loc || ''; a.client = { tags: (x.tags || '') + ',' + ((info[a.uid] && info[a.uid].tags) || ''), message: x.message || '' }; });
+  rows = refreshPayLinks(rows, today);
   rows.sort(function (x, y) { return y.days - x.days; }); // provisional; the final order (priority) is set in writeArrears once the client status is known
   Logger.log('Debtors: ' + rows.length + ' members from ' + inv.length + ' open invoices, ' + rows.filter(function (a) { return a.exhausted; }).length + ' without automatic retry, ' + rows.filter(function (a) { return a.dupes; }).length + ' with a duplicate sent invoice, ' + missing.length + ' without failed-payment entry (' + Object.keys(status).length + ' found in the client list)');
   return rows;
@@ -431,6 +432,26 @@ function writeRetryList(ss, rows, info) { // Weg 1 (Ruben 07.09.): members witho
   if (logRows.length) log.getRange(log.getLastRow() + 1, 1, logRows.length, RETRY_LOG_HEAD.length).setValues(logRows);
   sh.getRange('Z1').setValue(today); sh.hideColumns(26);
   sh.getRange('A3').setValue(vals.length + ' members without automatic retry, CHF ' + r2(vals.reduce(function (sum, r) { return sum + r[5]; }, 0)) + ' open, ' + vals.filter(function (r) { return r[10] === true; }).length + ' ticked as done today. Tick "Resolved by hand" plus a note to close a case outside exercise.com (payment plan, transfer, cash). ' + now);
+}
+function refreshPayLinks(rows, today) { // Stripe pay links expire (Waseem 09.09.): re-read every invoice that a message or the lists may use from Stripe via exercise.com, 40 per call.
+  // The refreshed invoice also carries the true status: a debt that is paid or void in Stripe drops out right here.
+  var need = [], byId = {};
+  rows.forEach(function (a) { if (a.exhausted || a.open >= 2 || a.days >= RULE_E.W3_D) a.debts.forEach(function (d) { if (d.id && !byId[d.id]) { byId[d.id] = d; need.push(d.id); } }); });
+  var fresh = 0, closed = 0;
+  for (var i = 0; i < need.length; i += 40) {
+    var b = cfPost({ action: 'invoice_refresh', ids: need.slice(i, i + 40) }); if (!b) continue;
+    Object.keys(b.invoices || {}).forEach(function (id) { var n = b.invoices[id], d = byId[id]; if (!n || n.error || !d) return; if (n.hosted_invoice_url) { d.link = String(n.hosted_invoice_url); fresh++; } if (n.status && n.status !== 'open') { d.closed = String(n.status); closed++; } });
+  }
+  var out = [];
+  rows.forEach(function (a) {
+    if (!a.debts.some(function (d) { return d.closed; })) { out.push(a); return; }
+    var open = a.debts.filter(function (d) { return !d.closed; }); if (!open.length) return; // everything paid or voided in Stripe: no debt any more
+    a.debts = open; a.open = open.length; a.first = open[0].date; a.second = open.length > 1 ? open[1].date : ''; a.days = daysBetween(a.first, today); a.amount = r2(open.reduce(function (s, d) { return s + d.amount; }, 0)); a.link = open[0].link; a.item = open[open.length - 1].item;
+    var retries = open.filter(function (d) { return d.npa && d.npa >= today; }).map(function (d) { return d.npa; }).sort(); a.exhausted = !retries.length; a.nextRetry = retries[0] || '';
+    out.push(a);
+  });
+  Logger.log('pay links refreshed: ' + fresh + ' of ' + need.length + ' invoices, ' + closed + ' no longer open in Stripe, ' + (rows.length - out.length) + ' members dropped');
+  return out;
 }
 function paidSince(start) { // uid -> latest paid date among invoices created since start; {} on error
   var m = {}, inv = fetchInvoices('paid', 3, start); if (!inv) return m;
