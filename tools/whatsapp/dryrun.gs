@@ -568,6 +568,14 @@ function waProbeReconcile() { // one-off (08.09.): compare the Debtors tab (repo
   var newOnly = Object.keys(per).filter(function (u) { return !per[u].man && !per[u].autoTried; });
   Logger.log('=== users with only untried open auto invoices (upcoming) ' + newOnly.length);
 }
+function waProbeLang() { // one-off (09.09.): does the language pick work on real trial people? log only, no names
+  var t = readTrials('Zurich').concat(readTrials('Winterthur')).slice(-30), uids = [], seen = {};
+  t.forEach(function (x) { if (x.uid && !seen[x.uid]) { seen[x.uid] = true; uids.push(x.uid); } });
+  var leads = readLeads(), leadLang = {}; leads.forEach(function (l) { if (l.nname && !leadLang[l.nname]) leadLang[l.nname] = l.lang; });
+  var cl = fetchClients(uids), src = {};
+  t.forEach(function (x) { if (!cl[x.uid]) return; var c = cl[x.uid], p = langPick(c, leadLang[x.nname]); src[p.src] = (src[p.src] || 0) + 1; Logger.log('L ' + x.uid + ' msg=' + (c.message ? c.message.length : 0) + ' tags=' + String(c.tags || '').replace(/\n/g, ' ').slice(0, 40) + ' lead=' + (leadLang[x.nname] || '-') + ' -> ' + p.lang + '/' + p.src); });
+  Logger.log('lang sources: ' + JSON.stringify(src));
+}
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();
