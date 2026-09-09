@@ -89,11 +89,6 @@
 <xhtml:link rel="alternate" hreflang="en" href="https://www.impact-martialarts.com/en/winterthur/classes/personal-training/"/>
 <xhtml:link rel="alternate" hreflang="x-default" href="https://www.impact-martialarts.com/winterthur/kurse/personal-training/"/>
 </url>
-<url><loc>https://www.impact-martialarts.com/en/winterthur/classes/street-defense/</loc>
-<xhtml:link rel="alternate" hreflang="de" href="https://www.impact-martialarts.com/winterthur/kurse/street-defense/"/>
-<xhtml:link rel="alternate" hreflang="en" href="https://www.impact-martialarts.com/en/winterthur/classes/street-defense/"/>
-<xhtml:link rel="alternate" hreflang="x-default" href="https://www.impact-martialarts.com/winterthur/kurse/street-defense/"/>
-</url>
 <url><loc>https://www.impact-martialarts.com/en/winterthur/classes/wrestling/</loc>
 <xhtml:link rel="alternate" hreflang="de" href="https://www.impact-martialarts.com/winterthur/kurse/ringen/"/>
 <xhtml:link rel="alternate" hreflang="en" href="https://www.impact-martialarts.com/en/winterthur/classes/wrestling/"/>
@@ -265,11 +260,6 @@
 <xhtml:link rel="alternate" hreflang="de" href="https://www.impact-martialarts.com/winterthur/kurse/ringen/"/>
 <xhtml:link rel="alternate" hreflang="en" href="https://www.impact-martialarts.com/en/winterthur/classes/wrestling/"/>
 <xhtml:link rel="alternate" hreflang="x-default" href="https://www.impact-martialarts.com/winterthur/kurse/ringen/"/>
-</url>
-<url><loc>https://www.impact-martialarts.com/winterthur/kurse/street-defense/</loc>
-<xhtml:link rel="alternate" hreflang="de" href="https://www.impact-martialarts.com/winterthur/kurse/street-defense/"/>
-<xhtml:link rel="alternate" hreflang="en" href="https://www.impact-martialarts.com/en/winterthur/classes/street-defense/"/>
-<xhtml:link rel="alternate" hreflang="x-default" href="https://www.impact-martialarts.com/winterthur/kurse/street-defense/"/>
 </url>
 <url><loc>https://www.impact-martialarts.com/winterthur/stundenplan/</loc>
 <xhtml:link rel="alternate" hreflang="de" href="https://www.impact-martialarts.com/winterthur/stundenplan/"/>
