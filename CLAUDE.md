@@ -577,3 +577,8 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   mehr laufende Abos als Vorpakete (kein zusätzliches Abo, z. B. zweites Kind), ist es kein Verkauf (`isReactivation`).
 - exercise.com-Report-Cache ist je Login-Session: Browser-Reads/Refreshes (Rubens Session) stören die Cloudflare-Läufe nicht; Kollisionen nur
   zwischen Apps-Script-Läufen. Die v4-Kundenliste liefert `tags` als Komma-String.
+- NACHTRAG 09.09. 18:00: Sold Packages hat für migrierte/ältere Abos KEIN Vorpaket (Roman Smagulov seit Jan 2026 taucht in 12 Vormonaten nicht auf) →
+  zusätzliche Regel `isOlderMember`: älteres laufendes Abo (Start vor dem Monat) und KEIN Abo-Start im Monat oder später = kein Verkauf
+  (Familienkonten haben einen neuen Abo-Start und zählen). Kundenliste kommt aus Phase `mc` (Apps Script ruft sie mit dem Monatsfenster
+  auf und gibt `clients_by_name` an m3 weiter); m3 wurde sonst mit 502 abgebrochen. Erwartung Sep 2026 (bis 09.09.): ZH 22 Verkäufe / 11 Verluste,
+  WT 15 / 0; Juli ZH 37 / 24, WT 14 / 4.
