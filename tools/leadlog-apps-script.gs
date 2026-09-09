@@ -2140,7 +2140,7 @@ function buildMonatsabschlussCore(ss) {
   try { maArrangeTabs(ss); } catch (e2) { Logger.log('Tabs: ' + e2); }
 }
 // Sichtbare Tabs in fester Reihenfolge (Ruben 07.09.): Berichte, dann Formular-Eingaenge (gelb), dann Eingabe-Tabs (gruen), Protokoll und Methodik (grau)
-var MA_TAB_HIDE = ['Kündigungsrisiko', 'Cancellations', 'Bank', 'Einstellungen', 'Finanzplan-Übertrag', 'Methodik']; // Ruben 07.09.: braucht er nicht, versteckt (Bank/Einstellungen zum Eintragen einblenden)
+var MA_TAB_HIDE = ['Kündigungsrisiko', 'Cancellations', 'Bank', 'Einstellungen', 'Finanzplan-Übertrag', 'Methodik', 'LTV']; // LTV versteckt (Ruben 09.09.) // Ruben 07.09.: braucht er nicht, versteckt (Bank/Einstellungen zum Eintragen einblenden)
 var MA_TAB_COLOR = { Events: '#f4b400', Cancellations: '#f4b400', Bank: '#34a853', Einstellungen: '#34a853', 'Finanzplan-Übertrag': '#9e9e9e', Methodik: '#9e9e9e' };
 function maArrangeTabs(ss) { // Reihenfolge bestimmt Ruben selbst (07.09.), das Skript versteckt nur die Hilfstabs und setzt Farben
   MA_TAB_HIDE.forEach(function (n) { var sh = ss.getSheetByName(n); if (sh && !sh.isSheetHidden()) sh.hideSheet(); });
