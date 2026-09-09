@@ -2243,7 +2243,7 @@ var TR_ACCESS = { Zurich: [MAIL.zh], Winterthur: [MAIL.wt] };
 var TR_MAIL_TEAM = false; // Mail an Abdi/Bogdan erst nach der Einfuehrung (Ruben 04.09.); bis dahin nur an Ruben
 var TR_SHEETS = { Zurich: 'Probetrainings ZH', Winterthur: 'Probetrainings WT' };
 var TR_LANG = { Zurich: 'de', Winterthur: 'en' };
-var TR_ROW0 = 5, TR_DAY_N = 8, TR_P0 = 9, TR_NCOL = 17, TR_CHECK_DAYS = 1, TR_PAY_DAYS = 7; // Umbau 09.09.: Tageskopf 8 Spalten (A-H), Personen ab I
+var TR_ROW0 = 5, TR_DAY_N = 8, TR_P0 = 9, TR_NCOL = 18, TR_CHECK_DAYS = 1, TR_PAY_DAYS = 7; // Umbau 09.09.: Tageskopf 8 Spalten (A-H), Personen ab I
 // Ruben 08.09. (mittags, ersetzt die Unterschrift-Regel vom Vormittag): Verkauf = ERSTES ABO-PAKET AKTIVIERT = Abo-Start in exercise.com
 // (geplante Starts am Starttag) oder Rechnungspaket ohne Abo (client_packages, Melvin Pappu). Die Unterschrift liefert nur den Verkaeufer.
 // Unterschreiber ohne Zeile werden ab TR_SALE_FROM nachgetragen (Zeile am ersten Check-in bis TR_FV_BACK Tage zurueck, sonst am
@@ -2253,8 +2253,8 @@ var TR_SALE_FROM = '2026-09-01', TR_FV_BACK = 60;
 var TR_CID_SHEET = 'ClientIds'; // versteckter Tab im Team-Sheet: Report-User-ID -> Profilnummer (CRM-Link), waechst je Lauf
 var DI = { day: 0, att: 1, conv: 2, placed: 3, trials: 4, noshow: 5, signed: 6, sold: 7 }; // signed = Vertragsunterschrift, sold = Paketstart (Ruben 09.09.)
 // Ruben 06.09.: Spalte Personen raus (zwei Kinder = Zeile kopieren und Namen aendern, die Kopie bleibt erhalten), Vertragsstart neu
-// Ruben 09.09.: Trainer und Gebucht von raus; contract = Vertragsunterschrift (Waiver), start = Paketstart (= Verkauf); created..stamp versteckt
-var CI = { date: 0, name: 1, art: 2, cls: 3, kanal: 4, lifecycle: 5, check: 6, contract: 7, start: 8, seller: 9, pkg: 10, note: 11, crm: 12, created: 13, uid: 14, ns: 15, stamp: 16 };
+// Ruben 09.09.: Gebucht von raus, Trainer bleibt (neben Klasse); contract = Vertragsunterschrift (Waiver), start = Paketstart (= Verkauf); created..stamp versteckt
+var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, kanal: 5, lifecycle: 6, check: 7, contract: 8, start: 9, seller: 10, pkg: 11, note: 12, crm: 13, created: 14, uid: 15, ns: 16, stamp: 17 };
 var LC_POST = ['Client', 'Dependant client', 'Signed but no payment', 'Pending Decision', 'Missed the talk', 'Not Interested (Lost)'];
 var LC_CLIENT = ['Client', 'Dependant client', 'Signed but no payment'];
 var LC_NOSHOW_OK = ['re-engage no-shows', 're-engage cancelled trial'].concat(LC_POST);
@@ -2307,8 +2307,8 @@ var TR_T = {
   };
   ['de', 'en'].forEach(function (l) {
     var T = TR_T[l], a = add[l]; if (T.head.length !== 19) return;
-    T.head.splice(4, 2); T.notes.splice(4, 2); // Trainer, Gebucht von
-    T.head[7] = a.sig; T.notes[7] = a.sigN; T.head[8] = a.st; T.notes[8] = a.stN;
+    T.head.splice(5, 1); T.notes.splice(5, 1); // Gebucht von raus, Trainer bleibt (Ruben 09.09. abends)
+    T.head[8] = a.sig; T.notes[8] = a.sigN; T.head[9] = a.st; T.notes[9] = a.stN;
     T.dHead.splice(6, 0, a.sig); T.dNotes.splice(6, 0, a.dSig); T.dHead[7] = a.st; T.dNotes[7] = a.dSt;
     T.art['KeinCheckin'] = a.kc;
   });
@@ -2462,7 +2462,7 @@ function trInit(ss, sh, loc) {
   sh.getRange(4, TR_P0, 1, TR_NCOL).setValues([T.head]).setNotes([T.notes]).setFontWeight('bold').setBackground('#f3f3f3');
   sh.setFrozenRows(4); // keine fixierten Spalten: A2:Z2 ist verbunden, Google erlaubt das Einfrieren dann nicht
   [95, 110, 110, 95, 60, 60, 120, 80].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-  [95, 200, 150, 200, 170, 170, 330, 120, 95, 150, 220, 150, 50, 110, 90, 160, 100].forEach(function (w, i) { sh.setColumnWidth(TR_P0 + i, w); });
+  [95, 200, 150, 200, 150, 170, 170, 330, 120, 95, 150, 220, 150, 50, 110, 90, 160, 100].forEach(function (w, i) { sh.setColumnWidth(TR_P0 + i, w); });
   sh.hideColumns(TR_P0 + CI.created, 4); // Buchung erstellt am, UID, NS, Stand: nur Technik, eingeklappt (Ruben 09.09.)
   trProtect(sh, TR_ACCESS[loc] || [], 'Nur Ruben und ' + (TR_ACCESS[loc] || []).join(', '));
   ss.setActiveSheet(sh); ss.moveActiveSheet(loc === 'Zurich' ? 1 : 2); // Events-Spiegel kommt ans Ende
@@ -2488,7 +2488,8 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) 
   var seen = {};
   rows.forEach(function (x) {
     var o = byUid[x.uid], s = x.sale || {}, lead = leadMap ? trFindLead(leadMap, x.email, x.name, x.date) : null, r = [];
-    r[CI.date] = toDate(x.date); r[CI.name] = x.name; r[CI.art] = trL(loc, 'art', x.art); r[CI.cls] = x.noVisit ? T.noVisit : (x.time ? String(x.time).slice(0, 5) + ' ' : '') + (x.cls || ''); // Uhrzeit vor der Klasse (Ruben 07.09.) r[CI.coach] = x.trainer || ''; r[CI.booked] = x.bookedBy || '';
+    r[CI.date] = toDate(x.date); r[CI.name] = x.name; r[CI.art] = trL(loc, 'art', x.art); r[CI.cls] = x.noVisit ? T.noVisit : (x.time ? String(x.time).slice(0, 5) + ' ' : '') + (x.cls || ''); // Uhrzeit vor der Klasse (Ruben 07.09.)
+    r[CI.coach] = x.trainer || ''; // Trainer der Klasse (Ruben 09.09.: bleibt neben der Klasse; die Zuweisung stand seit 07.09. versehentlich in einem Kommentar)
     r[CI.kanal] = trL(loc, 'kanal', lead ? lead.kanal : 'kein Web-Lead'); r.srcNote = !lead && x.source ? 'Quelle in exercise.com: ' + String(x.source).replace(/^\s*-\s*/, '') : ''; // Quelle als Notiz statt im Text (Ruben 07.09.)
     r[CI.lifecycle] = x.lifecycle || (o ? o[CI.lifecycle] : ''); r[CI.check] = '';
     r[CI.contract] = toDate(s.signed || ''); r[CI.start] = toDate(s.date); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || ''; // Unterschrift (Waiver) und Paketstart (= Verkauf)
@@ -2559,13 +2560,14 @@ function trFormat(sh, n, loc) {
   var rules = [], T = trT(loc), q = function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
   if (n) {
     var rng = sh.getRange(TR_ROW0, TR_P0, n, TR_NCOL), r0 = TR_ROW0;
-    var cA = colL(TR_P0 + CI.art), cK = colL(TR_P0 + CI.check), cL = colL(TR_P0 + CI.lifecycle), cV = colL(TR_P0 + CI.start); // gruen = Paketstart (Verkauf)
+    var cA = colL(TR_P0 + CI.art), cK = colL(TR_P0 + CI.check), cL = colL(TR_P0 + CI.lifecycle), cV = colL(TR_P0 + CI.start), cS = colL(TR_P0 + CI.contract); // satt gruen = Paketstart (Verkauf), hellgruen = nur Unterschrift
     var ns = trL(loc, 'art', 'No-Show'), st = trL(loc, 'art', 'Storniert'), gb = trL(loc, 'art', 'Gebucht'), kc = trL(loc, 'art', 'KeinCheckin');
     var wd = trL(loc, 'art', 'Wiederholer (prüfen)'), ev = trL(loc, 'art', 'Event (kein Trial)'), rk = trL(loc, 'art', 'Rückkehrer (Ex-Mitglied)');
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$' + cL + r0 + '="Non-Client"').setFontColor('#9e9e9e').setStrikethrough(true).setRanges([rng]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$' + cK + r0 + '<>""').setBackground('#fce4e4').setRanges([rng]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=AND($' + cV + r0 + '<>"",$' + cL + r0 + '="' + LC_PAY_OPEN + '")').setBackground('#fdead1').setRanges([rng]).build());
-    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$' + cV + r0 + '<>""').setBackground('#e6f4ea').setRanges([rng]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$' + cV + r0 + '<>""').setBackground('#34a853').setFontColor('#ffffff').setRanges([rng]).build()); // Paketstart = verkauft, satt gruen (Ruben 09.09.)
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=AND($' + cS + r0 + '<>"",$' + cV + r0 + '="")').setBackground('#b7e1cd').setRanges([rng]).build()); // unterschrieben, Paket noch nicht gestartet: hellgruen
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=OR($' + cA + r0 + '=' + q(ns) + ',$' + cA + r0 + '=' + q(st) + ',$' + cA + r0 + '=' + q(gb) + ')').setFontColor('#9e9e9e').setRanges([rng]).build());
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=OR($' + cA + r0 + '=' + q(wd) + ',$' + cA + r0 + '=' + q(ev) + ',$' + cA + r0 + '=' + q(rk) + ',$' + cA + r0 + '=' + q(kc) + ')').setBackground('#fce8b2').setRanges([rng]).build());
   }
