@@ -659,6 +659,29 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   function"). Dadurch sind zwei ungewollte Läufe meiner Hilfsfunktion gestartet (21:42 Failed, 21:47 Completed). Speichern zuverlässig
   nur per synthetischem Cmd+S aus der Seite heraus (KeyboardEvent mit metaKey auf document.activeElement); der echte Tastendruck des
   Browser-Tools hat NICHT gespeichert.
+
+## LAUFZEIT TEAM-SHEET: WARTEZEITEN, MESSUNG, SCHREIBSCHUTZ (09.09.2026, 94c1920, eingespielt 22:20, Ruben: "mach wie du denkst")
+- Der Lauf besteht aus t1 (8 Reports anstossen), t2, 5 Lifecycle-Bloecken (180 Tage in 45-Tage-Stuecken, ein Cache => strikt
+  nacheinander), t3 (8 Reports holen und rechnen) und dem Schreiben. Feste Schlafzeit war 20 + 5x8 + 20 = 80 s pro Lauf, dazu
+  ~30 Abfragen NACHEINANDER (Reports bis 8000 Zeilen). Beobachtet: 137 s / 353 s / 365 s bei 360 s Limit.
+- GEBAUT: `TR_WAIT` [6,10,14,20,20,20,22,24,24] s und `TR_WAIT_LIFE` [4,6,8,10,12,12,12,12] s statt pauschal 20 bzw. 8 s
+  (`trNap` klammert ueber das Listenende). Bei einer Runde je Etappe 32 s statt 80 s, bei zwei Runden 82 s statt 160 s
+  (mit jsc gerechnet: gespart 48 / 78 / 90 s bei 1 / 2 / 3 Runden).
+- GEBAUT: `trTimer` loggt "Probetrainings Zeiten: t1 .. | t2 (Nx) .. | life 5 Bloecke/N Abfragen .. | t3 (Nx) .. | schreiben .. |
+  gesamt ..s". Damit sind die naechsten Optimierungen gemessen statt geschaetzt.
+- GEBAUT: `TR_BUDGET_MS` = 300 s. Ueber dem Budget wird GAR NICHT geschrieben (trUpsert loescht vor dem Schreiben; ein Abbruch
+  dazwischen liesse den Tab leer stehen); der Lauf endet mit einer Log-Zeile, ohne `trLastOk` zu setzen, der naechste Lauf holt alles nach.
+- GEBAUT: `runProbetrainingsHourly` startet den kompletten Neuversuch nur, wenn erst < 120 s verbraucht sind. Vorher lief bei einem
+  Fehler nach 150+ s der ganze Lauf ein zweites Mal und riss das Limit sicher.
+- NOCH OFFEN (erst mit Messwerten entscheiden): (2) t1/t3 die Reports parallel statt nacheinander holen (geschaetzt 20-35 s);
+  (3) die vier alten Lifecycle-Bloecke nicht mehr neu erzeugen lassen (geschaetzt 30-60 s). ⚠️ Fuer (3) muss vorher `payopen` in
+  klassen.js repariert werden: es laeuft heute ueber die Roh-Zeilen und nimmt die erste Zeile mit "Signed but no payment", nicht die
+  neueste je E-Mail (`lifeBy` macht es richtig). Mit aelteren Bloecken koennte sonst jemand in Waseems Open-Payments-Liste stehen
+  bleiben, der schon bezahlt hat.
+- ⚠️ PARALLELARBEIT 09.09. 22:20: Der Analytics-Chat hatte 80bd192 (`clearSheet` legt Tabs mit defekten Diagrammen neu an und gibt
+  das Blatt zurueck, `trInit` gibt `sh` zurueck) schon eingespielt. Vor dem Einfuegen deshalb IMMER: Funktionsnamen des Editors gegen
+  den eigenen Stand vergleichen (`onlyInEditor` muss leer sein) UND den Editor gegen den letzten gemeinsamen Commit diffen. Hier war
+  der Editor exakt 80bd192 und mein Commit dessen Nachfolger - sonst haette ich seinen Fix geloescht.
 - NACHTRAG 09.09. 21:45 (64cc2bf): Werbekosten-Bau hat jetzt denselben User-Lock wie der Monatsabschluss-Bau (parallele Baue aus
   Nachlauf-Kette + Stundenlauf + RUN_NOW hatten leere "Add a series"-Diagramme und überlagerte Diagramme erzeugt). Werbekosten ohne
   Skriptfarben im Datenbereich; von Hand gefärbte ZEILEN (Farbe in Spalte A) werden beim Neuaufbau über Block+Zeilentext zurückgeschrieben,
