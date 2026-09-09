@@ -588,3 +588,17 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Vorher (Abo-Starts + Rechnungspakete, Verluste inkl. Debt collection): Jun 40/20, 20/4 · Jul 36/27, 13/5 · Aug 38/27, 28/14 · Sep 23/11, 15/2.
   Staff-Liste `STAFF_EXTRA` (Waseem Samour) in klassen.js, weil der Check-in-Trainername vom Kundenkonto abweicht.
   Offen für Ruben: Tag "Rechnung"/"Invoice" bei Rechnungszahlern setzen (Melvin Pappu, evtl. Cayque Rodrigues/Stiftung), sonst zählen sie als Gratis.
+
+## TEAM-SHEET UMBAU 09.09.2026 abends (1bc2386, 05be08d, Entscheide Ruben)
+- Tageskopf A–H: Tag | Anrufe versucht | Anrufe geführt | Gebuchte Trials | Trials | No-Shows | Vertragsunterschrift | Paketstart.
+  Personenzeile ab I (17 Spalten): Trial-Datum, Name, Art, Klasse, Kanal, Lifecycle-Stage, Prüfen, Vertragsunterschrift (Waiver-Datum),
+  Paketstart (= Verkauf, gleich wie Analytics), Verkäufer, Paket, Letzte Notiz, CRM, dann eingeklappt: Buchung erstellt am, UID, NS, Stand.
+  Trainer und Gebucht von entfernt (waren ohnehin leer). WT-Tab Englisch: Contract signed / Package start / No check-in (check).
+- Neuer Zustand "Kein Check-in (prüfen)" (gelb): Buchung vorbei (früherer Tag oder heute > 2 h nach Klassenbeginn), kein Check-in, kein
+  No-Show, nicht storniert. Vorher blieb die alte Zeile "Gebucht (kommend)" stehen (Victor Vigodski, Lucijana Dinkel).
+- Beim Spaltenumbau baut trUpsert die Tabs neu (trInit); Anrufe (B/C) bleiben über oldDays erhalten, alte Personenzeilen werden verworfen
+  (Handkopien für zweite Kinder müssen neu kopiert werden). trHeadOk() schützt trOpenRows/trSheetUids vor dem alten Layout.
+- Cancellations-Feedback (Analytics-Tab "Cancellations", seit 07.09. versteckt) wird stündlich als Lese-Spiegel in das WhatsApp-Automation-
+  Sheet (125Uy-sdroaNF25ZLO11O36iRfOVuxCBDNe6s-Od7ep0, Tab "Cancellations") geschrieben: nur dieser Tab, nur die gespiegelten Spalten,
+  rechts davon "Your notes" für Waseem. Das Sheet gehört zum WhatsApp-Chat, sonst nichts anfassen.
+- Monatsabschluss "Probetraining gebucht" kommt seit September aus dem Team-Sheet (Gebuchte Trials je Tag), davor Lifecycle-Report.
