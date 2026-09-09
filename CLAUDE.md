@@ -647,6 +647,18 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   unter 7 Tagen = nichts, geplanter Start 01.10. = nichts, alter Fall (Paketstart + Stage) = kein Hinweis mehr, Non-Client = nichts.
   Erzeugte Regeln in der richtigen Reihenfolge: Non-Client, orange `=AND($Q5<>"",$R5="",$O5="Signed but no payment",TODAY()-$Q5>=7)`,
   rot `=$P5<>""`, satt grün `=$R5<>""`, hellgrün, grau, gelb.
+- LIVE BESTÄTIGT 09.09. 22:04 (Stundenlauf 21:58:35, 364.7 s, Completed): Probetrainings WT Zeile 79 Deniz Kaya ist orange,
+  "Contract signed" 31.08.2026, "Package start" leer, Stage "Signed but no payment", Prüfen-Text "Signed 9 days ago, no package
+  start: payment still missing"; Myriam Hofer analog mit 13 Tagen. Zeile 2 zeigt die englische Farb-Legende. Vorher (Lauf 20:58 mit
+  altem Code) war die Spalte leer - genau die Lücke, die Variante A geschlossen hat.
+- ⚠️ LAUFZEIT AM LIMIT: runProbetrainingsHourly braucht 137-365 s (19:58: 352.9 s, 21:58: 364.7 s) gegen das 6-Minuten-Limit von
+  Apps Script. Nicht von dieser Änderung verursacht (die alten Läufe waren schon so lang), aber der nächste Umbau in Chat A sollte
+  Phasen/Sleeps kürzen, sonst kippen die Läufe irgendwann in "Exceeded maximum execution time".
+- ⚠️ EDITOR-LEHRE 09.09. 21:47: Im Apps-Script-Editor NICHT über Element-Referenzen des Browser-Tools klicken - die Referenz-Nummern
+  werden zwischen zwei Abfragen neu vergeben (ref_161 war zuerst "Save project to Drive", beim nächsten Blick "Run the selected
+  function"). Dadurch sind zwei ungewollte Läufe meiner Hilfsfunktion gestartet (21:42 Failed, 21:47 Completed). Speichern zuverlässig
+  nur per synthetischem Cmd+S aus der Seite heraus (KeyboardEvent mit metaKey auf document.activeElement); der echte Tastendruck des
+  Browser-Tools hat NICHT gespeichert.
 - NACHTRAG 09.09. 21:45 (64cc2bf): Werbekosten-Bau hat jetzt denselben User-Lock wie der Monatsabschluss-Bau (parallele Baue aus
   Nachlauf-Kette + Stundenlauf + RUN_NOW hatten leere "Add a series"-Diagramme und überlagerte Diagramme erzeugt). Werbekosten ohne
   Skriptfarben im Datenbereich; von Hand gefärbte ZEILEN (Farbe in Spalte A) werden beim Neuaufbau über Block+Zeilentext zurückgeschrieben,
