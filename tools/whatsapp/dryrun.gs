@@ -15,7 +15,7 @@ var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, pers
 var LEAD = { ts: 0, status: 1, first: 2, last: 3, email: 4, phone: 5, loc: 6, interest: 7, message: 11, page: 13, exclude: 19 };
 var SENDER = { Zurich: 'Abdi', Winterthur: 'Bogdan' };
 var STUDIO = { de: { Zurich: 'Zürich', Winterthur: 'Winterthur' }, en: { Zurich: 'Zurich', Winterthur: 'Winterthur' } };
-var RULE = { A1_H: 48, A2_D: 5, A3_D: 8, C_D: 1, D_D: 3, OPEN: 10, CLOSE: 19, B_OPEN: 7 }; // Ruben 10.09.2026 (go): 48 h, chain 5/8 days, reminder 3 h before class
+var RULE = { A1_H: 48, NEXT_H: 48, A_MAX: 3, C_D: 1, D_D: 3, OPEN: 10, CLOSE: 19, B_OPEN: 7 }; // Ruben 10.09.2026 (rolling chain): message 1 48 h after the request, every further one 48 h after the LAST message (manual or automatic), 3 messages at most; reminder 3 h before class
 var LC_SKIP = /not interested|do not contact|lost|non-client|client|signed/i; // lifecycle stages that stop Flow D
 var TEST_MAIL = /^(testlead|test-endpunkt|test2@|paulinelowe12|waseasdasd)/i;
 var TEXT = {
@@ -79,15 +79,17 @@ function waDryRunHourly() {
     out.push([today, fmtT(now), fmtDT(sendAt(now, flow)), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key]);
   }
   function push(flow, msg, loc, name, lang, trigger, key, vars) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT); }
-  // Flow A: website lead, no trial booking, chain 48 h / 5 d / 8 d (Ruben 10.09.). "Due" = the mark fell into the last 24 h (true daily rate, no backlog).
-  var h = 3600000, marks = [['A1', RULE.A1_H * h], ['A2', RULE.A2_D * 24 * h], ['A3', RULE.A3_D * 24 * h]];
+  // Flow A: website lead, no trial booking. Rolling chain (Ruben 10.09.): message 1 = 48 h after the request, message 2 = 48 h after
+  // message 1, message 3 = 48 h after message 2, then the chain ends. Each slot is filled by the coach after a call (M1-M3, visible
+  // only after the WhatsApp connection) or, when the 48 h run out, by the automation (A1-A3). "Due" = the mark fell into the last 24 h (no backlog).
+  var h = 3600000, lastA = lastFlowA(sh);
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return; // booked, attended, no-show or cancelled: Flow A is over
-    marks.forEach(function (m) {
-      var due = l.ts.getTime() + m[1];
-      if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', m[0], l.loc, l.name, l.lang, m[0] + ': request ' + fmtDT(l.ts) + ', no trial booked', 'A:' + m[0] + ':' + (l.email || l.nname), {});
-    });
+    var id = l.email || l.nname, sentA = lastA[id] || {}, slot = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }).length; // Phase 0: only the automatic messages are visible, so the slot count = A-messages so far
+    if (slot >= RULE.A_MAX) return;
+    var msg = 'A' + (slot + 1), lastAt = slot ? sentA['A' + slot] : null, due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
+    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after A' + slot + ' (' + fmtDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtDT(l.ts) + ')') + ', no trial booked', 'A:' + msg + ':' + id, {});
   });
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
@@ -523,6 +525,11 @@ function ensureSheets(ss) {
     su.getRange('H2').setFormula('=IFERROR(QUERY(\'Dry run\'!A5:K, "select E, F, count(K) where E is not null group by E, F order by E", 0), "")');
   }
   return sh;
+}
+function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } from the Dry run rows (later: the real outbox)
+  var m = {}, n = sh.getLastRow(); if (n < TR_ROW0) return m;
+  sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var id = k.slice(2).join(':'), when = r[2] instanceof Date ? r[2] : new Date(String(r[2]).replace(' ', 'T') + ':00'); if (isNaN(when.getTime())) when = r[0] instanceof Date ? r[0] : new Date(); (m[id] = m[id] || {})[k[1]] = when; });
+  return m;
 }
 function existingKeys(sh) {
   var keys = {}, n = sh.getLastRow();
