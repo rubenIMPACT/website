@@ -717,3 +717,13 @@ function waRestructureDoc() { // one-off (Ruben 10.09.): Google Doc "WhatsApp Me
   body.replaceText('and set the Status column to "Approved" when a message may go live\\. Version 8 Sep 2026, evening\\.', '. Ruben gives the go per message in the chat, there is no Status column any more. Version 10 Sep 2026.');
   Logger.log('doc restructured: Flow A table rebuilt with ' + (nt.getNumRows() - 1) + ' rows, manual table removed, Status column dropped in ' + dropped + ' tables');
 }
+function waProbeVisits() { // one-off (10.09.): why does detailed_visits come back empty via /api/wa (refreshing=false, rows=0, filters='')? log only
+  var today = fmtD(new Date());
+  [[60, 10000, false], [60, 5000, false], [30, 5000, false], [30, 5000, true], [7, 1000, true]].forEach(function (t) {
+    var b = cfPost({ action: 'report', key: 'detailed_visits', start: addDs(today, -t[0]), end: today, per: t[1], refresh: t[2], sample: 1 });
+    if (!b) { Logger.log('V ' + JSON.stringify(t) + ' -> null (see log above)'); return; }
+    Logger.log('V ' + JSON.stringify(t) + ' -> ready=' + b.ready + ' refreshing=' + b.refreshing + ' count=' + b.count + ' filters=' + String(b.filters || '').slice(0, 160) + ' headers=' + JSON.stringify(b.headers || []).slice(0, 300) + ' top=' + JSON.stringify(b.top || []) + ' sample=' + JSON.stringify(b.sample || []).slice(0, 400));
+  });
+  var f = cfPost({ action: 'report', key: 'clients_first_visit', start: addDs(today, -60), end: today, per: 3000, refresh: false, sample: 1, location_id: 2508 });
+  Logger.log('FV -> ' + (f ? 'ready=' + f.ready + ' refreshing=' + f.refreshing + ' count=' + f.count + ' filters=' + String(f.filters || '').slice(0, 160) + ' headers=' + JSON.stringify(f.headers || []).slice(0, 300) : 'null'));
+}
