@@ -583,6 +583,23 @@ function waProbeRefresh() { // one-off (09.09.): is the stored Stripe pay link s
   var n = (r.invoices || {})[inv.id] || {};
   Logger.log('AFTER  id=' + inv.id + ' status=' + n.status + ' updated=' + (n.updated_at ? fmtD(new Date(n.updated_at * 1000)) : '') + ' url=' + n.hosted_invoice_url + ' same=' + (n.hosted_invoice_url === inv.hosted_invoice_url));
 }
+function waRewriteLog() { // one-off (Ruben 10.09.): rewrite the old Retry-log lines into the three events (paid on / voided, no payment found / retried by hand); lines without an event are removed
+  var log = SpreadsheetApp.openById(WA_ID).getSheetByName('Retry log'), n = log.getLastRow();
+  if (!log || n < 3) { Logger.log('nothing to rewrite'); return; }
+  var v = log.getRange(3, 1, n - 2, 9).getValues(), conv = {}, del = [];
+  v.forEach(function (r, i) {
+    var date = dOf(r[0]), done = String(r[6]).toLowerCase() === 'yes', ev = String(r[8] || ''), note = cleanNote(r[7]), nu = '';
+    if (/^(retried by hand on|paid on|voided, no payment found)/.test(ev)) nu = ev;
+    else if (/^invoice paid on/.test(ev)) nu = ev.replace(/^invoice paid on/, 'paid on');
+    else if (/^left the list/.test(ev)) nu = 'voided, no payment found';
+    else if (done) nu = 'retried by hand on ' + date; // old daily archive ("still open", "no open invoice left", "no longer listed") with a tick
+    if (!nu) { del.push(3 + i); return; }
+    conv[ev.slice(0, 20) + ' -> ' + nu.slice(0, 20)] = (conv[ev.slice(0, 20) + ' -> ' + nu.slice(0, 20)] || 0) + 1;
+    if (nu !== ev || note !== String(r[7] || '')) log.getRange(3 + i, 8, 1, 2).setValues([[note, nu]]);
+  });
+  del.reverse().forEach(function (row) { log.deleteRow(row); });
+  Logger.log('rewrite: ' + JSON.stringify(conv) + ' | removed ' + del.length + ' lines without an event');
+}
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();
