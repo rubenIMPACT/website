@@ -1192,6 +1192,30 @@ function stGet(ss) {
   if (missing.length) { var at = sh.getLastRow() + 1; sh.getRange(at, 2, missing.length, 1).setNumberFormat('@'); sh.getRange(at, 1, missing.length, 3).setValues(missing); missing.forEach(function (d) { o[d[0]] = d[1]; }); }
   return o;
 }
+// Manuelle Monatswerte (Ruben 10.09.2026): Tab "Manuelle Werte" (Monat | Standort | Kennzahl | Wert | Grund) ueberschreibt beim Lesen der
+// MonatsHistorie einzelne Werte, z. B. Verkaeufe in den Migrationsmonaten Jan-Maerz 2026. Die berechneten Werte in der MonatsHistorie bleiben
+// unveraendert; Monatsabschluss, Werbekosten und Finanzplan-Uebertrag lesen ueber mvApply, die Zelle bekommt eine Notiz mit dem Grund.
+var MV_SHEET = 'Manuelle Werte';
+var MV_KEYS = { 'verkäufe': ['sales_signed', 'new_customers'], 'verkaeufe': ['sales_signed', 'new_customers'], 'verluste': ['cancellations', 'losses'], 'kündigungen': ['cancellations', 'losses'], 'neue kontakte': ['leads_all'], 'probetrainings': ['trial_attended'], 'website-leads': ['leads_web'] };
+var MV_NOTE = 'Von Hand gesetzte Monatswerte. Monat als 2026-01, Standort Zurich oder Winterthur, Kennzahl: Verkäufe, Verluste, Neue Kontakte, Probetrainings oder Website-Leads, Wert als Zahl, Grund als Text (z. B. Migration). Der Wert ersetzt den berechneten Wert im Monatsabschluss, im Werbekosten-Tab und im Finanzplan-Übertrag; die Zelle bekommt eine Notiz mit dem Grund. Gesamt = Zürich + Winterthur, die Jahresspalte rechnet neu. Zeile löschen = berechneter Wert gilt wieder. Wirkt beim nächsten Stundenlauf.';
+function mvRead(ss) {
+  var sh = ss.getSheetByName(MV_SHEET), out = {};
+  if (!sh) {
+    sh = ss.insertSheet(MV_SHEET); sh.getRange(1, 1, 1, 5).setValues([['Monat', 'Standort', 'Kennzahl', 'Wert', 'Grund']]).setFontWeight('bold').setBackground('#f3f3f3');
+    sh.setFrozenRows(1); sh.getRange(2, 1, 300, 1).setNumberFormat('@'); sh.setColumnWidth(3, 160); sh.setColumnWidth(5, 320); sh.getRange('A1').setNote(MV_NOTE); try { sh.setTabColor('#34a853'); } catch (e0) {}
+    return out;
+  }
+  if (sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues().forEach(function (r) {
+    var mk = mkOf(r[0]).trim(), st = String(r[1] || ''), kn = String(r[2] || '').trim().toLowerCase();
+    var loc = /^w/i.test(st) ? 'Winterthur' : /^z/i.test(st) ? 'Zurich' : '';
+    var keys = MV_KEYS[kn] || (kn ? [kn] : []);
+    if (!/^\d{4}-\d{2}$/.test(mk) || !loc || !keys.length || r[3] === '' || r[3] === null || isNaN(Number(r[3]))) return;
+    keys.forEach(function (k) { out[mk + '|' + loc + '|' + k] = { v: Number(r[3]), why: String(r[4] || '').trim() }; });
+  });
+  return out;
+}
+function mvApply(ss, val) { var mv = {}; try { mv = mvRead(ss); } catch (e) { Logger.log('Manuelle Werte: ' + e); } Object.keys(mv).forEach(function (k) { val[k] = mv[k].v; }); return mv; }
 function stSet(ss, key, value) { // eine Einstellung setzen (Wert als Text, damit Sheets nichts umdeutet)
   var sh = ss.getSheetByName(ST_SHEET) || (stGet(ss), ss.getSheetByName(ST_SHEET)), v = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
   for (var i = 1; i < v.length; i++) if (String(v[i][0]) === key) { sh.getRange(i + 1, 2).setNumberFormat('@').setValue(String(value)); return true; }
@@ -1966,6 +1990,7 @@ function maContext(ss) {
   if (ov.length) maStoreMetricsMany(ss, ov);
   var hs = ss.getSheetByName(MA_HIST), hv = hs && hs.getLastRow() > 1 ? hs.getRange(2, 1, hs.getLastRow() - 1, 4).getValues() : [];
   var val = {}; hv.forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
+  var mv = mvApply(ss, val); // manuelle Monatswerte (Tab "Manuelle Werte") ueberschreiben
   var num = function (v) { return v === '' || v === null || v === undefined ? 0 : Number(v); };
   var cashG = {}; Object.keys(cashZ).concat(Object.keys(cashW)).forEach(function (kk) { if (cashG[kk]) return; var a = cashZ[kk] || {}, b = cashW[kk] || {}, o = {}; ['paid', 'refund', 'fee', 'tax', 'netvat', 'net', 'expect'].forEach(function (f) { if (a[f] !== undefined || b[f] !== undefined) o[f] = num(a[f]) + num(b[f]); }); cashG[kk] = o; });
   var cashOf = { Zurich: cashZ, Winterthur: cashW, Gesamt: cashG };
@@ -1998,7 +2023,7 @@ function maContext(ss) {
     }
     return '';
   };
-  return { now: now, curK: curK, curMon: curMon, logM: logM, cohN: cohN, wr: wr, wkD: wkD, wkM: wkM, bankM: bankM, cashOf: cashOf, bankOf: bankOf, val: val, num: num, daySumFor: daySumFor, weekOf: weekOf, cols: cols, yearMonths: yearMonths, hkeys: hkeys, wkeys: wkeys, dt: dt, dtW: dtW, colOf: colOf, both: both, div: div, gOf: gOf };
+  return { mv: mv, now: now, curK: curK, curMon: curMon, logM: logM, cohN: cohN, wr: wr, wkD: wkD, wkM: wkM, bankM: bankM, cashOf: cashOf, bankOf: bankOf, val: val, num: num, daySumFor: daySumFor, weekOf: weekOf, cols: cols, yearMonths: yearMonths, hkeys: hkeys, wkeys: wkeys, dt: dt, dtW: dtW, colOf: colOf, both: both, div: div, gOf: gOf };
 }
 // Kopfzeile eines Blocks: Monate, Kalenderwochen (KW) und Jahre, mit Notizen
 function maHeader(sh, r, ctx, plain) { // plain = ohne Hintergrundfarben (Werbekosten, Ruben 09.09.)
@@ -2129,6 +2154,8 @@ function buildMonatsabschlussCore(ss) {
     // Hintergruende in einem Aufruf: Titelzeilen grau, Monatsspalten blau, Jahresspalten grau, Wochenzellen ohne Wochenwert grau (Ruben 07.09.)
     var bg = [];
     for (var rr = hdr + 1; rr < r; rr++) { var meta = rowMeta[rr] || {}; bg.push(cols.map(function (c) { return meta.title ? '#f3f3f3' : c.m ? '#eef2f8' : c.y ? '#f1f1f1' : (meta.weekly ? null : '#f3f3f3'); })); }
+    // Notiz an manuell gesetzten Zellen (Tab "Manuelle Werte")
+    Object.keys(ctx.mv || {}).forEach(function (k) { var p = k.split('|'); if (p[1] !== loc || !rowIdx[p[2]]) return; cols.forEach(function (c, ci) { if (c.m && c.k === p[0]) sh.getRange(rowIdx[p[2]], 2 + ci).setNote('Manuell gesetzt (Tab Manuelle Werte)' + (ctx.mv[k].why ? ': ' + ctx.mv[k].why : '')); }); });
     if (bg.length) { sh.getRange(hdr + 1, 2, bg.length, cols.length).setBackgrounds(bg); Object.keys(rowMeta).forEach(function (rr) { if (rowMeta[rr].title) sh.getRange(Number(rr), 1).setBackground('#f3f3f3'); }); }
     cols.forEach(function (c, ci) { if (c.y) sh.getRange(hdr + 1, 2 + ci, r - hdr - 1, 1).setFontWeight('bold'); });
     var groups = []; det.sort(function (a, b) { return a - b; }).forEach(function (x) { var g = groups[groups.length - 1]; if (g && x === g[1] + 1) g[1] = x; else groups.push([x, x]); });
@@ -2181,7 +2208,7 @@ function buildMonatsabschlussCore(ss) {
 }
 // Sichtbare Tabs in fester Reihenfolge (Ruben 07.09.): Berichte, dann Formular-Eingaenge (gelb), dann Eingabe-Tabs (gruen), Protokoll und Methodik (grau)
 var MA_TAB_HIDE = ['Kündigungsrisiko', 'Cancellations', 'Bank', 'Einstellungen', 'Finanzplan-Übertrag', 'Methodik', 'LTV', 'Events']; // LTV und Events versteckt (Ruben 09.09.; Events sieht Bogdan im Team-Sheet) // Ruben 07.09.: braucht er nicht, versteckt (Bank/Einstellungen zum Eintragen einblenden)
-var MA_TAB_COLOR = { Events: '#f4b400', Cancellations: '#f4b400', Bank: '#34a853', Einstellungen: '#34a853', 'Finanzplan-Übertrag': '#9e9e9e', Methodik: '#9e9e9e' };
+var MA_TAB_COLOR = { Events: '#f4b400', Cancellations: '#f4b400', Bank: '#34a853', Einstellungen: '#34a853', 'Manuelle Werte': '#34a853', 'Finanzplan-Übertrag': '#9e9e9e', Methodik: '#9e9e9e' };
 function maArrangeTabs(ss) { // Reihenfolge bestimmt Ruben selbst (07.09.), das Skript versteckt nur die Hilfstabs und setzt Farben
   MA_TAB_HIDE.forEach(function (n) { var sh = ss.getSheetByName(n); if (sh && !sh.isSheetHidden()) sh.hideSheet(); });
   Object.keys(MA_TAB_COLOR).forEach(function (n) { var sh = ss.getSheetByName(n); if (sh && (sh.getTabColor() || null) !== MA_TAB_COLOR[n]) sh.setTabColor(MA_TAB_COLOR[n]); });
@@ -2198,6 +2225,7 @@ function buildMethodik(ss) {
     ['LTV und Kundenwert', LTV_NOTE_FULL],
     ['Bank', 'Gutschriften je Monat und Standort aus dem Kontoauszug (nur Eingänge), von Hand eingetragen: Stripe = alle Gutschriften "Stripe Payments UK Ltd" (exercise.com), Magicline (Adyen) = Auszahlungen des alten Studio-Systems, Customer transfers = Überweisungen von Mitgliedern und Stiftungen (Umsatz, fehlt in exercise.com), Other = kein Umsatz (Steuerrückzahlungen, Versicherungen, unbenannte Eingänge). Stripe zahlt 7 Kalendertage nach der Belastung aus; der Abgleich steht im Monatsabschluss (Erwarteter Bankeingang, Differenz).'],
     ['Finanzplan-Übertrag', FP_NOTE],
+    ['Manuelle Werte', 'Von Hand gesetzte Monatswerte (Monat 2026-01, Standort, Kennzahl Verkäufe/Verluste/Neue Kontakte/Probetrainings, Wert, Grund), z. B. Verkäufe in den Migrationsmonaten. Ersetzen den berechneten Wert in Monatsabschluss, Werbekosten und Finanzplan-Übertrag; die Zelle trägt eine Notiz.'],
     ['Einstellungen', 'Agentur-Pauschalen je Standort und für TikTok in EUR pro Monat mit Von/Bis, Wechselkurs EUR in CHF, Anteil Zürich für Kampagnen ohne Standort im Namen.'],
     ['Team KPIs (Probetrainings Zürich und Winterthur)', TR_T.de.rule],
     ['Open Payments', 'Eigenes Sheet fürs Geldeintreiben: Personen mit der Lifecycle-Stage "Signed but no payment" (Vertrag unterschrieben, keine Zahlungsmethode), beide Standorte, älteste zuerst, ab 30 Tagen rot. Stündlich aus exercise.com. Wer in exercise.com auf "Client" gesetzt wird, verschwindet beim nächsten Lauf.']
@@ -2882,6 +2910,7 @@ var FP_NOTE = 'Der Tageslauf (04:30) und der Monatslauf (1. des Monats) schreibe
 function fpValues(ss) { // Kennzahl je Monat und Standort aus der MonatsHistorie und dem Tab Bank
   var hs = ss.getSheetByName(MA_HIST), val = {}, num = function (v) { return v === '' || v === null || v === undefined ? 0 : Number(v); };
   if (hs && hs.getLastRow() > 1) hs.getRange(2, 1, hs.getLastRow() - 1, 4).getValues().forEach(function (r) { val[mkOf(r[0]) + '|' + r[1] + '|' + r[2]] = r[3]; });
+  mvApply(ss, val); // manuelle Monatswerte auch im Finanzplan
   var bank = bankRead(ss);
   return function (mk, loc, key) {
     var v = function (k) { var x = val[mk + '|' + loc + '|' + k]; return x === undefined || x === '' ? null : Number(x); };
