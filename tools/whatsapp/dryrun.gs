@@ -94,6 +94,7 @@ function waDryRunHourly() {
     var msg = 'A' + (slot + 1), lastAt = slot ? sentA['A' + slot] : null, due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after A' + slot + ' (' + fmtDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtDT(l.ts) + ')') + ', no trial booked', 'A:' + msg + ':' + id, {});
   });
+  writeCallLists(leads, trials, trialNames, lastA, now); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
   var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [];
@@ -189,7 +190,7 @@ function readLeads() {
     var locRaw = String(r[LEAD.loc] || ''), loc = /z[uü]rich/i.test(locRaw) ? 'Zurich' : (/winterthur/i.test(locRaw) ? 'Winterthur' : '');
     var test = /^test/i.test(first) || /^test/i.test(last) || TEST_MAIL.test(email) || !!String(r[LEAD.exclude] || '').trim();
     var page = String(r[LEAD.page] || ''), lang = /\/en\//.test(page) ? 'en' : (langOfText(r[LEAD.message]) || 'de');
-    out.push({ ts: ts, status: String(r[LEAD.status] || '').trim(), first: first, name: (first + ' ' + last).trim(), nname: nname(first + ' ' + last), email: email, loc: loc, lang: lang, test: test });
+    out.push({ ts: ts, status: String(r[LEAD.status] || '').trim(), first: first, name: (first + ' ' + last).trim(), nname: nname(first + ' ' + last), email: email, loc: loc, lang: lang, test: test, phone: String(r[LEAD.phone] || '').trim(), interest: String(r[LEAD.interest] || '').trim() });
   });
   return out;
 }
@@ -534,6 +535,35 @@ function ensureSheets(ss) {
     su.getRange('H2').setFormula('=IFERROR(QUERY(\'Dry run\'!A5:K, "select E, F, count(K) where E is not null group by E, F order by E", 0), "")');
   }
   return sh;
+}
+var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Request', 'Days', 'Messages so far', 'Your task', 'Automation next', 'Updated'];
+var CALL_NOTE = 'Rebuilt every hour from the Leads Log and the trial lists: every website lead of this studio without a trial booking. Priority 1 (red) = nobody has contacted the lead yet: call today, if nobody answers send M1. Priority 2 (orange) = message 1 is out, no reply: call, if nobody answers send M2. Priority 3 (yellow) = message 2 is out, no reply: last call, if nobody answers send M3. Priority 6 (grey) = three messages, no reply: the lead is closed, no further action. "Automation next" is the moment the automation sends the next message by itself (48 h after the last message) if nobody called and sent the manual text before. Leads leave the list as soon as a trial is booked. Until the WhatsApp connection is live the list only sees the automatic messages, not the coach\'s own messages, calls or replies.';
+function writeCallLists(leads, trials, trialNames, lastA, now) { // tabs "Call list ZH" / "Call list WT" in Team KPIs (Ruben 10.09.), rebuilt every run
+  var ss = SpreadsheetApp.openById(TEAM_ID), h = 3600000, cut = now.getTime() - 30 * 24 * h, rows = { Zurich: [], Winterthur: [] };
+  var task = ['Call today. If nobody answers: send M1', 'Call. If nobody answers: send M2', 'Last call. If nobody answers: send M3', 'Closed: three messages, no reply. No further action'];
+  var prio = [1, 2, 3, 6], colors = ['#f4cccc', '#fce5cd', '#fff2cc', '#efefef'];
+  leads.forEach(function (l) {
+    if (!l.loc || l.test || l.status !== 'ok') return;
+    if (trialNames[l.nname] || hasTrialLoose(trials, l)) return;
+    var id = l.email || l.nname, sentA = lastA[id] || {}, done = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }), slot = done.length;
+    var lastAt = slot ? sentA['A' + slot] : null;
+    if (l.ts.getTime() < cut && !slot) return; // older than 30 days without any message: backlog from before the automation, not a call-list case
+    if (slot >= RULE.A_MAX && lastAt && lastAt.getTime() < now.getTime() - 7 * 24 * h) return; // closed for more than a week: drop
+    var due = slot >= RULE.A_MAX ? null : new Date(lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h);
+    var next = due ? fmtDT(sendAt(due, 'A')) + ': A' + (slot + 1) + ' goes out automatically' : 'nothing (lead closed)';
+    rows[l.loc].push({ p: prio[slot], c: colors[slot], r: [prio[slot], l.name, l.phone, l.lang.toUpperCase(), l.interest, fmtDT(l.ts), Math.floor((now.getTime() - l.ts.getTime()) / (24 * h)), done.map(function (m) { return m + ' ' + fmtD(sentA[m]); }).join(', '), task[slot], next, fmtDT(now)] });
+  });
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    var name = loc === 'Zurich' ? 'Call list ZH' : 'Call list WT', sh = ss.getSheetByName(name);
+    if (!sh) { sh = ss.insertSheet(name); sh.getRange('A1').setValue(name + ': who to call today').setFontSize(14).setFontWeight('bold'); sh.setFrozenRows(4); [60, 200, 130, 70, 150, 120, 50, 200, 300, 260, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
+    sh.getRange('A2').setValue(CALL_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('A2:K2').merge(); sh.setRowHeight(2, 110);
+    var list = rows[loc].sort(function (a, b) { return a.p !== b.p ? a.p - b.p : (a.r[5] < b.r[5] ? -1 : 1); });
+    sh.getRange('A3').setValue(list.length + ' leads: ' + [1, 2, 3, 6].map(function (p) { return list.filter(function (x) { return x.p === p; }).length + ' x priority ' + p; }).join(', ') + '. ' + fmtDT(now));
+    sh.getRange(4, 1, 1, CALL_HEAD.length).setValues([CALL_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
+    var n = sh.getLastRow(); if (n >= 5) sh.getRange(5, 1, n - 4, CALL_HEAD.length).clearContent().setBackground(null);
+    if (list.length) { sh.getRange(5, 1, list.length, CALL_HEAD.length).setValues(list.map(function (x) { return x.r; })); sh.getRange(5, 1, list.length, CALL_HEAD.length).setBackgrounds(list.map(function (x) { return CALL_HEAD.map(function () { return x.c; }); })); sh.getRange(5, 3, list.length, 1).setNumberFormat('@'); sh.getRange(5, 9, list.length, 2).setWrap(true); }
+  });
+  Logger.log('call lists: ZH ' + rows.Zurich.length + ', WT ' + rows.Winterthur.length);
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } from the Dry run rows (later: the real outbox)
   var m = {}, n = sh.getLastRow(); if (n < TR_ROW0) return m;
