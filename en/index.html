@@ -578,5 +578,15 @@ c.addEventListener('click',open);
 c.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});
 });
 })();/*trbio*/</script>
-<script defer src="/assets/track.js"></script></body>
+<script defer src="/assets/track.js"></script><script>
+/* Instagram-Kacheln: die acht statischen Bilder im HTML sind der Notfall-Stand.
+   Kommen ueber /api/instagram frische Beitraege, werden Link und Bild an Ort und Stelle ausgetauscht -
+   Klassen und Einblend-Animation bleiben dadurch erhalten. Antwortet die API nicht, bleibt alles stehen. */
+(function(){var g=document.querySelector('.iggrid');if(!g)return;
+fetch('/api/instagram',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(d){
+if(!d||!d.ok||!d.posts||!d.posts.length)return;var a=g.querySelectorAll('a');
+d.posts.slice(0,a.length).forEach(function(p,i){var el=a[i],im=el.querySelector('img');if(!im||!p.img||!p.permalink)return;
+var n=new Image();n.onload=function(){el.href=p.permalink;im.src=p.img};n.src=p.img});
+}).catch(function(){});})();
+</script></body>
 </html>
