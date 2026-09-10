@@ -720,10 +720,14 @@ function stageLog(ss) { // tab "Stage log": one line per lifecycle change the au
   return { sh: sh, done: done };
 }
 var STAGE_NAME = { lead: 'Lead', first: 'First Contact', second: 'Second Contact', third: 'Third Contact', trialBooked: 'Trial Booked', pending: 'Pending Decision', lost: 'Not Interested (Lost)', noshow: 're-engage no-shows', debt: 'Debt collection' };
-function waProbeStage() { // one-off (10.09.): test the stage change on Ruben's test account (ruben test, crawford@lxblend.com): read, set First Contact, set back; log only
-  var f = cfPost({ action: 'find_client', email: 'crawford@lxblend.com' }); Logger.log('find: ' + JSON.stringify(f).slice(0, 500)); if (!f || !f.ok) return;
+function waProbeStage() { // one-off (10.09.): test the stage change on a TEST lead from the Leads Log (rows marked as test): read, set First Contact, set back; log only
+  var tests = readLeads().filter(function (l) { return l.test && l.email; }).map(function (l) { return l.email; });
+  Logger.log('test leads in the Leads Log: ' + tests.length);
+  var f = null;
+  for (var i = tests.length - 1; i >= 0 && !(f && f.ok); i--) { f = cfPost({ action: 'find_client', email: tests[i] }); Logger.log('find ' + tests[i].replace(/^(..)[^@]*@/, '$1***@') + ': ' + (f ? (f.ok ? f.name + ' / stage "' + f.lifecycle + '" cid ' + f.cid + ' uid ' + f.uid : f.error) : 'null')); }
+  if (!f || !f.ok) return;
   var a = cfPost({ action: 'set_lifecycle', uid: f.uid, email: f.email, stage_id: STAGE.first, only_from: LEAD_STAGES }); Logger.log('set First Contact: ' + JSON.stringify(a).slice(0, 300));
-  var back = f.lifecycle_stage_id || STAGE.lead, b = cfPost({ action: 'set_lifecycle', uid: f.uid, email: f.email, stage_id: back, only_from: [] }); Logger.log('set back to ' + (f.lifecycle || 'Lead') + ': ' + JSON.stringify(b).slice(0, 300));
+  var back = f.lifecycle_stage_id || STAGE.lead, b = cfPost({ action: 'set_lifecycle', uid: f.uid, email: f.email, stage_id: back, only_from: [] }); Logger.log('set back to "' + (f.lifecycle || 'Lead') + '": ' + JSON.stringify(b).slice(0, 300));
 }
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
