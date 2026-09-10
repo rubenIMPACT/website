@@ -332,7 +332,7 @@ function actionOf(a, c, p, today) { // what a human has to do with this member t
   if (/debt/i.test(c.lifecycle)) return 'Debt collection running (Sam)';
   if (!c.billing) return 'By hand: status unknown (not in the failed-payment client list), check the client in exercise.com';
   if (!activeClient(c)) return 'By hand: subscription paused or pending cancellation';
-  var dup = a.dupes ? 'Void the duplicate sent invoice. ' : '', st = stageOf(a);
+  var dup = a.dupes ? 'Void the duplicate sent invoice. ' : (a.sent && a.open > a.sent ? 'Sent invoice next to an open subscription invoice: check whether both cover the same month and void one. ' : ''), st = stageOf(a); // mixed cases (10.09.)
   if (st === 'W4') { var esc = addDs(a.second, RULE_E.W4_GRACE_D); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (W4 deadline ' + esc + ' passed)' : 'W4 sent or due: wait for the payment via the links, escalate to Sam on ' + esc + ' if still unpaid'); }
   if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return dup + 'Retried by hand on ' + p.lastRetry + ', wait until ' + addDs(p.lastRetry, RETRY_WAIT_D);
   if (a.manual.length) { // the pay link always points to the oldest open invoice, which is also the one to retry by hand
