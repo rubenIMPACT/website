@@ -1739,11 +1739,13 @@ var MA_ROWS = [
   ['trial_noshow', '   No-Shows', '0', 'dw'],
   ['showup_rate', 'Show-up-Rate', '0%', 'w'],
   ['sales_signed', 'Verkäufe (Paket aktiviert)', '0', 'wb'],
+  ['sales_pt', '   davon erstes PT-Paket (ohne Abo davor)', '0', 'd'],
   ['sales_open', '   davon Zahlung noch offen', '0', 'd'],
   ['conv_sales_trial', 'Quote Verkäufe / Probetrainings', '0%', 'w'],
   ['conv_sales_lead', 'Quote Verkäufe / neue Kontakte', '0%', 'w'],
   ['conv_cohort_rate', 'Kohorten-Conversion', '0%', 'w'],
   ['losses', 'Verluste (Abo beendet)', '0', 'wb'],
+  ['losses_pt', '   davon PT-Pakete beendet', '0', 'd'],
   ['switches', '   Paketwechsel (kein Verlust)', '0', 'd'],
   ['debt_collection', '   Info: neu in Debt collection (kein Verlust)', '0', 'dw'],
   ['net_growth', 'Nettowachstum (Verkäufe − Verluste)', '0', 'wb'],
@@ -1767,6 +1769,8 @@ var MA_NOTES = {
   showup_rate: 'Erschienene Probetrainer geteilt durch erschienene plus No-Shows.',
   sales_signed: 'Verkäufe = Personen im exercise.com-Report "Sold Packages" des Monats (Ruben 09.09.): nur Abo-Pakete (kein Personal Training, keine Einzelsessions, keine Events), Zahlungsart Abo; Gratis-Pakete nur mit Tag "Rechnung"/"Invoice" am Kunden (Rechnungszahler). Eine Person zählt einmal. Kein Verkauf, wenn im selben Zug ein Abo endete (Paketwechsel, Wiedereinstieg: Ende zwischen 60 Tagen vor und 30 Tagen nach dem Verkaufstag). Verkaufstag = Aktivierung des Pakets. Geht so als "Neue Verkäufe" in den Finanzplan.',
   new_customers: 'Gleiche Zahl wie Verkäufe (Sold Packages). Geht so in den Finanzplan.',
+  sales_pt: 'Seit 10.09.2026 (Ruben): das erste Personal-Training-Paket (8x/16x/32x, keine Einzelsession) einer Person, die vorher nie ein Abo hatte, zählt als Verkauf. Ein späteres Abo derselben Person ist dann ein Paketwechsel, kein zweiter Verkauf.',
+  losses_pt: 'Beendete PT-Pakete von Personen ohne Abo davor (Spiegel der PT-Verkäufe, Ruben 10.09.2026). PT-Pakete von Mitgliedern zählen nicht.',
   conv_sales_trial: 'Verkäufe des Monats geteilt durch durchgeführte Probetrainings des Monats.',
   conv_sales_lead: 'Verkäufe des Monats geteilt durch neue Kontakte in exercise.com.',
   conv_cohort_rate: 'Probetrainer des Zeitraums, deren Abo bis heute gestartet ist, reift drei Monate nach. Ab September 2026 Woche und Monat aus dem Team-Sheet, davor Monatsreport.',
@@ -1855,7 +1859,7 @@ function runMonatsabschluss(start, end) {
 // Einmalige Nachberechnung ganzer Monate, wenn sich die Kennzahlen geaendert haben (der Funktionswaehler im Editor
 // reagiert nicht auf Automations-Klicks, deshalb stoesst der Stundenlauf den Nachlauf selbst an). Ein Monat je Ausfuehrung,
 // weil ein Monatslauf mit den Wartezeiten fast das 6-Minuten-Limit braucht; die Warteschlange steht in den Script Properties.
-var MA_CATCHUP = '2026-09-09h Sold Packages + Cancelled Subscriptions, Kundenliste in Phase mc'; // Marke aendern = Nachlauf laeuft erneut
+var MA_CATCHUP = '2026-09-10 PT-Erstpaket = Verkauf, PT-Ende = Verlust'; // Marke aendern = Nachlauf laeuft erneut
 var MA_CATCHUP_MONTHS = ['2026-06', '2026-07', '2026-08'];
 function maQueueCatchUp() {
   var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('maCatchUp') === MA_CATCHUP) return;
@@ -1929,7 +1933,7 @@ function maStoreMetricsMany(ss, entries) { // viele Monate in einem Lese-/Schrei
 var MA_NOTE_FULL = 'Automatisch aus exercise.com (Lifecycle, Erstbesuche, Check-ins, Vertragsunterschriften, gestartete und gekündigte Abos, Charges), aus dem Log (Website-Anfragen) und aus den Probetrainings-Tabs im Team-Sheet (Gespräche, Trials, No-Shows, Verkäufe je Tag). '
   + 'Spalten: Monate ab Januar 2026; ab September 2026 stehen die Kalenderwochen (Montag bis Sonntag) vor ihrem Monat, eine Woche gehört zum Monat, in dem ihr Donnerstag liegt, und zählt nur die Tage dieses Monats, damit die Wochen eines Monats zusammen den Monat ergeben. Wochenspalten zeigen nur, was es je Woche gibt: Website-Leads, Gespräche, gebuchte und durchgeführte Probetrainings, No-Shows, Verkäufe, Abo-Starts und Kündigungen (nach Start- bzw. Enddatum in exercise.com), Werbekosten, Kosten pro Lead. Graue Wochenzellen = gibt es nur je Monat. Jahresspalte = Summe der Monate, Bestandswerte = letzter Monat, Quoten neu aus den Summen. '
   + 'Neue Kontakte = alle im Monat neu angelegten Kontakte in exercise.com (Website, Telefon, Walk-in, App); davon über die Website = Anfragen aus dem Log (ohne Dubletten und Tests), nach Kanal = Klick-ID, UTM oder Referrer. Vor September 2026 sind die Website-Leads von Hand gezählte Monatszahlen. '
-  + 'Probetrainings durchgeführt = Erstbesucher mit Check-in, ohne Altkunden und Staff; Show-up-Rate = erschienen geteilt durch erschienen plus No-Shows. Verkäufe = Personen im exercise.com-Report Sold Packages (nur Abo-Pakete, Zahlungsart Abo oder Gratis mit Tag Rechnung; ohne Paketwechsel, Personal Training, Einzelsessions); Verluste = Personen im Report Cancelled Subscriptions mit Enddatum im Monat und denselben Ausschlüssen (keine Gratis-Abos, kein Paketwechsel); Nichtzahler (Debt collection) sind kein Verlust, solange das Abo läuft (Ruben 09.09.2026). Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben, drei Monate nachgeführt. '
+  + 'Probetrainings durchgeführt = Erstbesucher mit Check-in, ohne Altkunden und Staff; Show-up-Rate = erschienen geteilt durch erschienen plus No-Shows. Verkäufe = Personen im exercise.com-Report Sold Packages (Abo-Pakete mit Zahlungsart Abo oder Gratis mit Tag Rechnung, dazu seit 10.09.2026 das erste PT-Paket einer Person ohne Abo davor; ohne Paketwechsel und Einzelsessions); Verluste = Personen im Report Cancelled Subscriptions mit Enddatum im Monat und denselben Ausschlüssen (keine Gratis-Abos, kein Paketwechsel; beendete PT-Pakete nur bei Personen ohne Abo davor); Nichtzahler (Debt collection) sind kein Verlust, solange das Abo läuft (Ruben 09.09.2026). Kohorten-Conversion = Probetrainer des Monats, die bis heute ein Abo gestartet haben, drei Monate nachgeführt. '
   + 'EINE METHODE für Kunden und Umsatz (Ruben 07.09.2026): alles aus den Belastungen im Charges-Report, brutto zuerst. Kunden mit laufendem Abo = Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben, auch wenn sie im Monat nichts bezahlt haben (Personen). Zahlungen brutto = alle Belastungen nach Rückerstattungen, davon Abo und davon Einmalkäufe (Mehrbetrag der ersten Abo-Belastung = Starterpaket zählt bei den Einmalkäufen); MwSt = brutto minus brutto/1.081; netto = brutto/1.081. Abo-Umsatz je Kunde = Abo-Belastungen geteilt durch Kunden mit laufendem Abo. Jahreszahler zählen im Monat der Zahlung. Zum Vergleich zählt der Report Active Subscriptions die Abos am Tag des Laufs (erst ab September 2026). '
   + 'Bank (Tab Bank, von Hand): alle Gutschriften laut Konto, davon Stripe (zieht 2 % Gebühr ab, zahlt sieben Tage nach der Belastung aus), Magicline (Adyen, altes System), Überweisungen von Mitgliedern, übrige (kein Umsatz). Kontrolle = Stripe laut Konto minus erwartete Auszahlung. '
   + 'Werbung: eigener Tab Werbekosten mit gleichem Aufbau (Media je Plattform und Kampagne, Agentur, CPL, CPT, CAC, Anteil bezahlte Verkäufe, LTV : CAC, Payback); LTV = Abo-Umsatz netto je Kunde und Monat × erwartete Dauer plus Starterpaket plus übrige Einmalkäufe × Dauer (Tab LTV); Payback = CAC inkl. Agentur geteilt durch Abo-Umsatz netto je Kunde.';
@@ -1939,7 +1943,7 @@ var MA_NOTE = 'Kennzahlen je Standort aus exercise.com, Log und Team-Sheet, Zahl
 function colA1(n) { var t = ''; while (n > 0) { var m = (n - 1) % 26; t = String.fromCharCode(65 + m) + t; n = Math.floor((n - 1) / 26); } return t; }
 var MA_SNAP_FROM = '2026-09', MA_TEAM_FROM = '2026-09', VAT = 1.081; // Report-Stichtagszeilen erst ab Sep 2026 echt gemessen; Team-Sheet-Monatswerte (Gespraeche) erst ab Sep 2026 vollstaendig
 var MA_SNAP = ['subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs'];
-var MA_ADD = ['leads_all', 'leads_web', 'calls', 'losses', 'debt_collection', 'trial_booked_transitions', 'first_visits', 'first_visits_excluded', 'trial_noshow', 'trial_attended', 'signed_at_trial', 'sales_signed', 'sales_open', 'new_customers', 'switches', 'cancellations', 'net_growth', 'lost_after_trial', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'rev_membership_gross', 'rev_membership_net', 'starter_count', 'rev_starter_gross', 'pt_count', 'rev_pt_gross', 'rev_gear_gross', 'rev_total_gross', 'rev_total_net', 'conv_cohort_n', 'cv_active', 'cv_nopay', 'abo_gross', 'one_gross'];
+var MA_ADD = ['leads_all', 'leads_web', 'calls', 'losses', 'losses_pt', 'sales_pt', 'debt_collection', 'trial_booked_transitions', 'first_visits', 'first_visits_excluded', 'trial_noshow', 'trial_attended', 'signed_at_trial', 'sales_signed', 'sales_open', 'new_customers', 'switches', 'cancellations', 'net_growth', 'lost_after_trial', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'rev_membership_gross', 'rev_membership_net', 'starter_count', 'rev_starter_gross', 'pt_count', 'rev_pt_gross', 'rev_gear_gross', 'rev_total_gross', 'rev_total_net', 'conv_cohort_n', 'cv_active', 'cv_nopay', 'abo_gross', 'one_gross'];
 var MA_STOCK = ['cv_active', 'cv_nopay', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'ltv'];
 function buildMonatsabschluss(ss) { // nie zwei Baue gleichzeitig (Stundenlauf, Tageslauf, Nachlauf): sonst doppelte Diagramme und leeres Blatt (Lehre 07.09.)
   var lock = LockService.getUserLock(); if (!lock.tryLock(0)) { Logger.log('Monatsabschluss: Bau laeuft bereits, uebersprungen'); return; }
@@ -2343,8 +2347,8 @@ var TR_T = {
 // (= Verkauf, gleich wie im Analytics-Sheet); Tageskopf mit Vertragsunterschrift und Paketstart; Zustand "Kein Check-in (pruefen)"
 (function () {
   var add = {
-    de: { sig: 'Vertragsunterschrift', sigN: 'Datum der Vertragsunterschrift in exercise.com (Waiver). Automatisch.', st: 'Paketstart', stN: 'Tag, an dem das erste Abo-Paket aktiviert wurde (Abo-Start oder Rechnungspaket). Das ist der Verkauf, gleich wie im Analytics-Sheet. Automatisch.', dSig: 'Verträge, die an diesem Tag unterschrieben wurden. Automatisch.', dSt: 'Erste Abo-Pakete, die an diesem Tag aktiviert wurden, auch vor dem Probetraining oder ohne Check-in. Automatisch.', kc: 'Kein Check-in (prüfen)' },
-    en: { sig: 'Contract signed', sigN: 'Date the contract (waiver) was signed in exercise.com. Automatic.', st: 'Package start', stN: 'Day the first membership package was activated (subscription start or invoice package). This is the sale, same as in the Analytics sheet. Automatic.', dSig: 'Contracts signed on that day. Automatic.', dSt: 'First membership packages activated on that day, also before the trial or without check-in. Automatic.', kc: 'No check-in (check)' }
+    de: { sig: 'Vertragsunterschrift', sigN: 'Datum der Vertragsunterschrift in exercise.com (Waiver). Automatisch.', st: 'Paketstart', stN: 'Tag, an dem das erste Paket aktiviert wurde: Abo-Start, Rechnungspaket oder (seit 10.09.) das erste PT-Paket einer Person ohne Abo davor. Das ist der Verkauf, gleich wie im Analytics-Sheet. Automatisch.', dSig: 'Verträge, die an diesem Tag unterschrieben wurden. Automatisch.', dSt: 'Erste Abo-Pakete, die an diesem Tag aktiviert wurden, auch vor dem Probetraining oder ohne Check-in. Automatisch.', kc: 'Kein Check-in (prüfen)' },
+    en: { sig: 'Contract signed', sigN: 'Date the contract (waiver) was signed in exercise.com. Automatic.', st: 'Package start', stN: 'Day the first package was activated: subscription start, invoice package or (since 10 Sep) the first PT package of a person without a membership before. This is the sale, same as in the Analytics sheet. Automatic.', dSig: 'Contracts signed on that day. Automatic.', dSt: 'First membership packages activated on that day, also before the trial or without check-in. Automatic.', kc: 'No check-in (check)' }
   };
   ['de', 'en'].forEach(function (l) {
     var T = TR_T[l], a = add[l]; if (T.head.length !== 19) return;
@@ -2864,7 +2868,7 @@ var FP_TABS = { Zurich: 'IMP ZH', Winterthur: 'IMP WIN' }, FP_FROM = '2026-06', 
 var FP_ROWS = [ // [Zeilenbezeichnung im Plan (Anfang, Spalten A-E), Kennzahl, Beschreibung]
   [/^Anzahl Leads/i, 'leads_all', 'Neue Kontakte in exercise.com (alle Wege)'],
   [/^Anzahl Trials/i, 'trial_attended', 'Probetrainings durchgeführt (Erstbesucher mit Check-in)'],
-  [/^Neue Verk/i, 'new_customers', 'Verkäufe = Personen im Report Sold Packages (nur Abo-Pakete, ohne Paketwechsel, Personal Training, Gratis)'],
+  [/^Neue Verk/i, 'new_customers', 'Verkäufe = Personen im Report Sold Packages (Abo-Pakete und erste PT-Pakete ohne Abo davor, ohne Paketwechsel, Gratis)'],
   [/^K.ndigungen/i, 'losses', 'Verluste = Personen im Report Cancelled Subscriptions (gleiche Ausschlüsse, ohne Debt collection)'],
   [/^Sold Gear through Exercise/i, 'rev_gear_gross', 'Gear brutto (Sales by Category)'],
   [/Total Sales from Bank/i, 'cash_total', 'Alle Gutschriften laut Kontoauszug (Tab Bank)']
