@@ -499,6 +499,7 @@ function computeMonat(inp) {
       let reason;
       if (!o.member && !o.pt) reason = "Not a membership package";
       else if (!o.member) { o.pk = o.ptPk; if (!o.uid) reason = "PT package (no client match)"; else if (hadMembershipBefore(o.uid, o.key, start)) reason = "PT, but had a membership before"; else if (!ptFirstOk(o)) reason = "Not the first PT package"; else if (isStaff(o.name, o.email)) reason = "Staff"; else { o.date = saleDateOf(o); reason = isSwitchSale(o) ? "Package change" : "Other"; } }
+      else if (!o.sub && o.uid && hadMembershipBefore(o.uid, o.key, start)) reason = "Existing member"; // Gratis-/Einmalpaket eines Mitglieds (Leart Mehmeti, Roman Smagulov; Ruben 10.09.: nicht als "Free" zeigen)
       else if (!o.sub && !o.free) reason = "One-time purchase (no subscription)";
       else if (!o.sub) reason = "Free (no invoice tag)";
       else if (isStaff(o.name, o.email)) reason = "Staff";
