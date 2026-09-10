@@ -1851,7 +1851,8 @@ function runMonatsabschluss(start, end) {
       maStoreMetrics(ss, mkB, loc, { conv_cohort_n: n, conv_cohort_rate: n / coh.length });
     });
   }
-  buildMonatsabschluss(ss);
+  var noBuild = false; try { noBuild = PropertiesService.getScriptProperties().getProperty('maNoBuild') === '1'; } catch (eNB) {}
+  if (noBuild) Logger.log('Monatsabschluss-Tab: Bau uebersprungen, Nachlauf laeuft weiter'); else buildMonatsabschluss(ss);
   if (data.sold_no_uid) lines.push('Sold Packages: ' + data.sold_no_uid + ' Name(n) ohne Kundenkonto (zaehlen mit Standort-Annahme)');
   Logger.log('Monatsabschluss ' + mk + ': ' + lines.join(' | '));
   return lines.join('\n');
@@ -1872,6 +1873,7 @@ function maCatchUp() {
   maDropCatchUpTriggers();
   if (!q.length) return;
   var mk = q.shift(); pr.setProperty('maQueue', JSON.stringify(q));
+  pr.setProperty('maNoBuild', q.length ? '1' : ''); // Tab erst nach dem letzten Monat neu bauen (Ruben 10.09.: Tab war minutenlang leer)
   var d = new Date(mk + '-01T12:00:00'), last = new Date(d.getFullYear(), d.getMonth() + 1, 0), now = new Date();
   try { runMonatsabschluss(mk + '-01', fmtD(last < now ? last : now)); } catch (e) {
     mailOnce('monatsabschluss', '[Monatsabschluss] Nachlauf ' + mk + ' FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e));
