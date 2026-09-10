@@ -607,6 +607,22 @@ function waRewriteLog() { // one-off (Ruben 10.09.): rewrite the old Retry-log l
   del.reverse().forEach(function (row) { log.deleteRow(row); });
   Logger.log('rewrite: ' + JSON.stringify(conv) + ' | removed ' + del.length + ' lines without an event');
 }
+function waProbeGaps() { // one-off (Ruben 10.09.): which debts could the current method miss? log only, no names
+  var today = fmtD(new Date()), out = {};
+  ['uncollectible', 'draft', 'scheduled', 'past_due'].forEach(function (st) { var b = cfPost({ action: 'invoices', status: st, past_due: false, per: 100 }); out[st] = b ? { count: b.count, total: b.meta && b.meta.total, sample: (b.rows || []).slice(0, 5).map(function (i) { return [i.collection_method, 'att=' + i.attempt_count, 'due=' + i.amount_due, 'cr=' + (i.created_at ? fmtD(new Date(i.created_at * 1000)) : ''), 'sub=' + (i.subscription_id ? 'S' : '-')].join(' '); }) } : 'error'; });
+  var open = fetchInvoices('open', 5) || [];
+  var att0 = open.filter(function (i) { return i.collection_method !== 'send_invoice' && !(Number(i.attempt_count) || 0); });
+  out.open_att0 = { count: att0.length, olderThan2d: att0.filter(function (i) { return i.created_at && daysBetween(fmtD(new Date(i.created_at * 1000)), today) > 2; }).map(function (i) { return 'u=' + i.user_id + ' cr=' + fmtD(new Date(i.created_at * 1000)) + ' due=' + i.amount_due + ' sub=' + (i.subscription_id ? 'S' : '-') + ' pm=' + (i.payment_method_id ? 'yes' : 'none') + ' cd=' + (i.charge_date ? fmtD(new Date(i.charge_date * 1000)) : '-'); }) };
+  out.partial = open.filter(function (i) { return (Number(i.amount_paid) || 0) > 0; }).map(function (i) { return 'u=' + i.user_id + ' due=' + i.amount_due + ' paid=' + i.amount_paid + ' rem=' + i.amount_remaining; });
+  var byU = {}; open.forEach(function (i) { var u = String(i.user_id); (byU[u] = byU[u] || []).push(i); });
+  out.mixed = Object.keys(byU).filter(function (u) { var l = byU[u]; return l.some(function (i) { return i.collection_method === 'send_invoice'; }) && l.some(function (i) { return i.collection_method !== 'send_invoice' && (Number(i.attempt_count) || 0) > 0; }); }).map(function (u) { return 'u=' + u + ' ' + byU[u].map(function (i) { return (i.collection_method === 'send_invoice' ? 'SENT' : 'auto') + ':' + i.amount_due; }).join(','); });
+  var fails = [], seen = {};
+  for (var page = 1; page <= 2; page++) { var b = cfPost({ action: 'charges', status: 'failed', per: 200, page: page }); if (!b) break; (b.rows || []).forEach(function (c) { fails.push(c); }); if ((b.rows || []).length < 200) break; }
+  var noSub = fails.filter(function (c) { return !c.subscription_id; });
+  out.failed_no_subscription = { count: noSub.length, sample: noSub.slice(0, 12).map(function (c) { return 'u=' + c.user_id + ' ' + fmtD(new Date(c.created_at * 1000)) + ' ' + c.amount + ' ' + String(c.description || c.item_name || '').slice(0, 30) + ' purchase=' + (c.purchase_id ? 'yes' : '-'); }) };
+  var keys = open.length ? Object.keys(open[0]) : []; out.invoice_keys_amount = keys.filter(function (k) { return /amount|remaining|balance|paid/.test(k); });
+  var txt = JSON.stringify(out); for (var i = 0; i < txt.length; i += 1500) Logger.log('G' + (i / 1500) + ' ' + txt.slice(i, i + 1500));
+}
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();
