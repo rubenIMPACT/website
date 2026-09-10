@@ -700,3 +700,29 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Verkäufe ZH 106/76/73/55/39, WT 34/28/38/24/27; Verluste ZH 16/15/16/14/18, WT 2/3/2/1/7). Jahresspalte "Neue Kontakte" 2026: ZH 2011, WT 1083.
   ⚠️ Verkäufe Jan–Mär ZH sind durch die Migration (Abos in exercise.com neu angelegt, Sold Packages listet sie) überhöht; Entscheid Ruben offen,
   ob Verkäufe/Nettowachstum vor April 2026 ausgeblendet werden. Mai-Lauf brauchte 763 s (Workspace-Limit 30 min, kein Abbruch).
+
+
+## GESCHWISTERKINDER UND HERKUNFT (10.09.2026, Entscheide Ruben)
+- GESCHWISTER (c837a9f, eingespielt 10.09.): Konten mit zwei Kindern im Namen (`TR_SIB` = "&", "+", " und ", " and ") bekommen die
+  zweite Zeile automatisch, nicht mehr als Handkopie (die ging beim Spaltenumbau am 09.09. verloren). Eine umbenannte Kopie
+  (`extras`) hat Vorrang, dann erzeugt das Skript keine zweite. Erkennung an 38 echten Namen geprueft: 4 von 4 Geschwister erkannt,
+  0 Fehltreffer. Betroffen sind heute Andreas March (fuer Ricardo und Leonardo), Giancarlo + Amea Stasi, Giorgio & Gabrielle
+  Radaelli, Linus Moel & Nicola (Joana) Welti.
+- REGEL RUBEN 10.09.: zwei Pakete auf einem Konto = ZWEI Verkaeufe, ein Paket = einer. Deshalb meldet `saleOf` ein zweites Abo als
+  `second`, und nur damit bekommt die zweite Zeile Vertragsunterschrift/Paketstart/Verkaeufer/Paket. Auf der zweiten Zeile steht
+  KEIN Pruefen-Hinweis (die Stage gehoert dem Konto) und kein zweites "Buchung erstellt am" (eine Buchung fuer beide Kinder).
+- Monatsabschluss zaehlt jetzt die Abo-Starts des Monats je Konto statt der Personen (`salesExp`, `L.sales_siblings` zur Kontrolle).
+  Ein Paketwechsel erzeugt keinen zweiten Start im Monat, wird also nicht doppelt gezaehlt. WIRKUNG GEPRUEFT (Juni-Sep, nur laufende
+  Abos): nur DREI Konten haben ueberhaupt zwei Abo-Starts im selben Monat (2x Mai NINJA BASIC + NINJA BASIC, 1x Juli NINJA BASIC +
+  IMPACT BASIC). Juni, August und September aendern sich dadurch NICHT, Juli bekommt +1.
+- HERKUNFT (9d1f8d2): Die Seiten lasen `document.referrer` nur von der Seite mit dem Formular. Wer ueber Google auf der Startseite
+  landete und dann intern zur Kursseite klickte, kam als "Direkt" an - deshalb standen bei 43 Zeilen mit Kanal 27x "Direkt" und nur
+  1x "Google organisch". Jetzt wird die erste FREMDE Herkunft 30 Tage in `localStorage.imp_ref` gemerkt (gleiches Muster wie die
+  Klick-IDs) und verwendet, sobald der aktuelle Referrer intern oder leer ist. 36 Seiten + 2 Templates, mit jsc an 5 Besucherwegen
+  geprueft. Klick-IDs (gclid/fbclid/ttclid) waren schon vorher korrekt, die sind 30 Tage gespeichert.
+- BEWIESEN 10.09. (Rubens Einwand war richtig, meine Schlussfolgerung falsch): Seit dem 02.09. wurden 161 neue exercise.com-Konten
+  angelegt, im selben Zeitraum kamen 157 neue Website-Anfragen - der Weg ins System fuehrt praktisch nur ueber die Website. Von den
+  25 Personen, die am 09.09. ohne Kanal gebucht haben, haben 24 ihr Konto VOR dem 02.09. (meist Mitte August); nur eine ist neu.
+  Der fehlende Kanal ist also ein Zeitfenster-Effekt, kein Kundenverhalten und kein Zuordnungsfehler. Zwischen Anfrage und
+  Probetraining liegen bei IMPACT oft zwei bis vier Wochen.
+- Anrufliste im Sheet: NICHT bauen (Ruben 10.09.), das bilden die Jungs in exercise.com ueber Trial Booked und die Lead-Liste ab.
