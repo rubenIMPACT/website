@@ -30,7 +30,9 @@ var TEXT = {
   C1: { de: 'Hi {name}, schade, dass es gestern mit dem Probetraining nicht geklappt hat. Soll ich dir einen neuen Termin vorschlagen?',
         en: "Hi {name}, sorry you couldn't make it to your trial yesterday. Shall I suggest a new date?" },
   D1: { de: 'Hi {name}, wie hat dir das Probetraining am {date} gefallen? Gibt es etwas, das für dich noch offen ist?',
-        en: 'Hi {name}, how did you like your trial on {date}? Is there anything still open for you?' }
+        en: 'Hi {name}, how did you like your trial on {date}? Is there anything still open for you?' },
+  X1: { de: 'Hi {name}, schade, dass es mit dem Probetraining am {date} nicht geklappt hat. Soll ich dir einen neuen Termin vorschlagen?', // DRAFT (10.09.2026, not in the Google Doc yet): cancelled trial, Ruben decides the text
+        en: "Hi {name}, a pity the trial on {date} didn't work out. Shall I suggest a new date?" }
 };
 var CF_URL = 'https://www.impact-martialarts.com/api/wa', CF_TOKEN = 'PASTE_LEADLOG_TOKEN_HERE'; // Token = Zeile "var TOKEN" im Leads-Log-Script; nur im Editor eintragen, nie ins Repo
 var CARD_LINK = 'https://app.impact-martialarts.com/ex4/me/account/?card=true'; // member billing page (save the card for the next charges); same for everyone. The pay link per member ({pay_link}) is the Stripe payment page of the ORIGINAL open invoice (hosted_invoice_url from exercise.com, since 08.09.2026, Ruben's decision).
@@ -63,7 +65,7 @@ var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
   R1: { de: 'Hi {name}, schön, dass du so regelmässig da bist. Wenn dir das Training bei uns gefällt, würdest du uns kurz eine Google-Bewertung schreiben? Das hilft uns enorm: {review_link}',
         en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link}" }
 };
-var STAGE = { lead: 9398, first: 9692, second: 9861, third: 11307, trialBooked: 9693, pending: 10005, lost: 9970, noshow: 11305, debt: 11034 }; // exercise.com lifecycle stage ids (read 10.09.2026)
+var STAGE = { lead: 9398, first: 9692, second: 9861, third: 11307, trialBooked: 9693, pending: 10005, lost: 9970, noshow: 11305, cancelled: 11313, debt: 11034 }; // exercise.com lifecycle stage ids (read 10.09.2026)
 var STAGE_SYNC = { pending: true, contacts: false, lost: false, noshow: false, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Before the WhatsApp go-live only "Pending Decision" is live (the others hang on messages that are not sent yet)
 var LEAD_STAGES = ['Lead', 'First Contact', 'Second Contact', 'Third Contact', 'Missed the talk', 'Trial Booked', 'Pending Decision', 're-engage no-shows', 're-engage cancelled trial', '']; // the automation only moves clients that are in one of these; Client, Do Not Contact, Debt collection etc. are never touched
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
@@ -79,31 +81,32 @@ function waDryRunHourly() {
   function pushRow(flow, msg, loc, name, lang, trigger, key, vars, table) {
     if (keys[key]) return; keys[key] = true;
     var isE = flow === 'E', text = fill((table || TEXT)[msg][lang], Object.assign({ name: firstOf(name), sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}));
-    out.push([today, fmtT(now), fmtDT(sendAt(now, flow)), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key]);
+    out.push([dayStart(now), fmtT(now), sendAt(now, flow), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key]);
   }
   function push(flow, msg, loc, name, lang, trigger, key, vars) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT); }
   // Flow A: website lead, no trial booking. Rolling chain (Ruben 10.09.): message 1 = 48 h after the request, message 2 = 48 h after
   // message 1, message 3 = 48 h after message 2, then the chain ends. Each slot is filled by the coach after a call (M1-M3, visible
   // only after the WhatsApp connection) or, when the 48 h run out, by the automation (A1-A3). "Due" = the mark fell into the last 24 h (no backlog).
-  var h = 3600000, lastA = lastFlowA(sh);
+  var h = 3600000, lastA = lastFlowA(sh), calls = harvestCalls(now); // calls = the coaches' ticks in the call lists ("Called, no answer" / "Reached"), the call signal we do not get from WhatsApp
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return; // booked, attended, no-show or cancelled: Flow A is over
-    var id = l.email || l.nname, sentA = lastA[id] || {}, slot = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }).length; // Phase 0: only the automatic messages are visible, so the slot count = A-messages so far
-    if (slot >= RULE.A_MAX) return;
-    var msg = 'A' + (slot + 1), lastAt = slot ? sentA['A' + slot] : null, due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
-    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after A' + slot + ' (' + fmtDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtDT(l.ts) + ')') + ', no trial booked', 'A:' + msg + ':' + id, {});
+    var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
+    if (st.reached || slot >= RULE.A_MAX) return; // reached by phone: the coach owns the lead, the automation is off
+    var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
+    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked', 'A:' + msg + ':' + id, {});
   });
-  writeCallLists(leads, trials, trialNames, lastA, now); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
+  writeCallLists(leads, trials, trialNames, lastA, calls, now); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
   var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     trials[loc].forEach(function (t) {
-      if (keys['B:B1:' + t.uid + ':' + t.date] && keys['C:C1:' + t.uid + ':' + t.date] && keys['D:D1:' + t.uid + ':' + t.date]) return;
+      if (keys['B:B1:' + t.uid + ':' + t.date] && keys['C:C1:' + t.uid + ':' + t.date] && keys['D:D1:' + t.uid + ':' + t.date] && keys['X:X1:' + t.uid + ':' + t.date]) return;
       if (t.art === 'BOOKED' && t.date === today) due.push({ flow: 'B', msg: 'B1', loc: loc, t: t, trig: 'B1: trial booked today, ' + t.cls + ' (3 h before class; class time not in the list yet)', key: 'B:B1:' + t.uid + ':' + t.date, vars: { 'class': t.cls, time: '{time}' } });
-      if (t.art === 'NOSHOW' && t.date === yday) due.push({ flow: 'C', msg: 'C1', loc: loc, t: t, trig: 'C1: no-show on ' + t.date + ', no new booking', key: 'C:C1:' + t.uid + ':' + t.date, vars: {} });
-      if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) due.push({ flow: 'D', msg: 'D1', loc: loc, t: t, trig: 'D1: trial on ' + t.date + ', no contract, stage "' + (t.lifecycle || '-') + '"', key: 'D:D1:' + t.uid + ':' + t.date, vars: { date: '' } });
+      if (t.art === 'NOSHOW' && t.date === yday) due.push({ flow: 'C', msg: 'C1', loc: loc, t: t, trig: 'C1: no-show on ' + euD(t.date) + ', no new booking', key: 'C:C1:' + t.uid + ':' + t.date, vars: {} });
+      if (t.art === 'CANCELLED' && t.date >= addDs(today, -7) && t.date <= addDs(today, 30)) due.push({ flow: 'X', msg: 'X1', loc: loc, t: t, trig: 'X1: trial on ' + euD(t.date) + ' cancelled, no new booking (re-engage cancelled trial)', key: 'X:X1:' + t.uid + ':' + t.date, vars: { date: '' } }); // Flow X (Ruben 10.09.): cancelled trial, once per trial date, next send window
+      if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) due.push({ flow: 'D', msg: 'D1', loc: loc, t: t, trig: 'D1: trial on ' + euD(t.date) + ', no contract, stage "' + (t.lifecycle || '-') + '"', key: 'D:D1:' + t.uid + ':' + t.date, vars: { date: '' } });
     });
   });
   var dueUids = {}; due.forEach(function (d) { if (!keys[d.key]) dueUids[d.t.uid] = true; });
@@ -140,12 +143,12 @@ function waDryRunHourly() {
       var top = 0; STAGES.forEach(function (m) { if (sent['E:' + m + ':' + a.uid] && RANK[m] > top) top = RANK[m]; });
       if (RANK[st] <= top) return; // this stage or a higher one already went out (within the last 60 days)
       var skipped = STAGES.filter(function (m) { return RANK[m] < RANK[st] && !sent['E:' + m + ':' + a.uid]; });
-      var money = 'CHF ' + a.amount + ' open, ' + a.attempts + ' attempts, ' + (a.nextRetry ? 'next Stripe retry ' + a.nextRetry : 'no automatic retry left') + (a.reason ? ', ' + a.reason : '');
-      var trig = { W1: 'W1: ' + a.days + ' days since the first open invoice (' + a.first + '), ' + money,
+      var money = 'CHF ' + a.amount + ' open, ' + a.attempts + ' attempts, ' + (a.nextRetry ? 'next Stripe retry ' + euD(a.nextRetry) : 'no automatic retry left') + (a.reason ? ', ' + a.reason : '');
+      var trig = { W1: 'W1: ' + a.days + ' days since the first open invoice (' + euD(a.first) + '), ' + money,
                    W2: 'W2: still open after ' + a.days + ' days, ' + money,
                    W3: 'W3: still open after ' + a.days + ' days, pay link' + (a.debts.length > 1 ? 's of all ' + a.debts.length + ' open invoices' : ' of the original invoice') + ', ' + money,
                    W4: 'W4: ' + a.open + ' open invoices (the next invoice failed too), ' + money }[st];
-      if (st === 'W5') trig = 'W5: W4 sent ' + w4 + ', second invoice ' + (paidE[a.uid] && paidE[a.uid] >= w4 ? 'paid on ' + paidE[a.uid] : 'gone (no paid date found)') + ', first invoice (' + a.first + ') still open ' + daysBetween(since, today) + ' days later, ' + money;
+      if (st === 'W5') trig = 'W5: W4 sent ' + euD(w4) + ', second invoice ' + (paidE[a.uid] && paidE[a.uid] >= w4 ? 'paid on ' + euD(paidE[a.uid]) : 'gone (no paid date found)') + ', first invoice (' + euD(a.first) + ') still open ' + daysBetween(since, today) + ' days later, ' + money;
       if (skipped.length) trig += ' [' + skipped.join('+') + ' skipped: highest due stage only]';
       if (RANK[st] >= RANK.W3 && !a.debts.every(function (d) { return d.fresh; })) { held.push(st + ' ' + a.uid); return; } // Ruben 10.09.: a message with pay links only goes out when every link was confirmed fresh from Stripe in this run; otherwise it waits for the next hour
       var pre = 'E:' + st + ':' + a.uid; sent[pre] = today; pushRow('E', st, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E);
@@ -162,20 +165,20 @@ function waDryRunHourly() {
     dueR.forEach(function (c) {
       var link = REVIEW_LINK[c.loc]; if (!link) { Logger.log('R1 held: no review link for ' + c.loc); return; }
       var cl = revClients[c.uid] || {}, pick = langPick(cl, leadLang[nname(c.name || cl.name)]);
-      pushRow('R', 'R1', c.loc, c.name || cl.name || '', pick.lang, 'R1: ' + RULE_R.N + 'th check-in on ' + c.nth + ' (first visit ' + c.first + ', ' + c.count + ' completed check-ins) [lang ' + pick.lang + ' from ' + pick.src + ']', 'R:R1:' + c.uid, { review_link: link }, TEXT_R);
+      pushRow('R', 'R1', c.loc, c.name || cl.name || '', pick.lang, 'R1: ' + RULE_R.N + 'th check-in on ' + euD(c.nth) + ' (first visit ' + euD(c.first) + ', ' + c.count + ' completed check-ins) [lang ' + pick.lang + ' from ' + pick.src + ']', 'R:R1:' + c.uid, { review_link: link }, TEXT_R);
     });
   }
   payNote += revNote;
   // Stage sync (Ruben 10.09.): "Pending Decision" on the evening of an attended trial without contract (first run after 20:00), only if the stage was not changed by hand
-  if (STAGE_SYNC.pending && Number(Utilities.formatDate(now, TZ, 'H')) >= 20) {
+  if (STAGE_SYNC.pending && Number(Utilities.formatDate(now, TZ, 'H')) >= 22) { // Ruben 10.09.: after 22:00, sales can still close until 21:30
     var setN = 0;
-    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(ss, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + t.date + ', no contract by 20:00') === 'set') setN++; } }); });
+    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(ss, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + euD(t.date) + ', no contract by 22:00') === 'set') setN++; } }); });
     if (setN) payNote += ' Stages: ' + setN + ' x Pending Decision.';
   }
-  if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
+  if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, HEAD.length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
   if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
-  var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
-  sh.getRange('A3').setValue('Last run ' + fmtDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', clients with failed payments: ' + (pay ? pay.length : 'n/a') + ', debtors (open invoices): ' + (arr ? arr.length : 'n/a') + '.' + payNote);
+  var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('dd.MM.yyyy');
+  sh.getRange('A3').setValue('Last run ' + fmtEuDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', clients with failed payments: ' + (pay ? pay.length : 'n/a') + ', debtors (open invoices): ' + (arr ? arr.length : 'n/a') + '.' + payNote);
   Logger.log('Dry run ' + fmtDT(now) + ': ' + out.length + ' new rows');
   return out.length;
 }
@@ -245,6 +248,11 @@ function sendAt(now, flow) { // next moment inside the send window (Mon-Sat, 10-
 function atHour(d, h) { return new Date(Utilities.formatDate(d, TZ, 'yyyy-MM-dd') + 'T' + (h < 10 ? '0' : '') + h + ':00:00' + Utilities.formatDate(d, TZ, 'XXX')); }
 function dOf(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : (String(v || '').match(/^(\d{2})\.(\d{2})\.(\d{4})/) ? String(v).replace(/^(\d{2})\.(\d{2})\.(\d{4}).*/, '$3-$2-$1') : String(v || '').slice(0, 10)); }
 function fmtD(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
+function euD(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? m[3] + '.' + m[2] + '.' + m[1] : String(iso || ''); } // 2026-09-08 -> 08.09.2026 (Ruben 10.09.: European dates in every visible field; ISO stays internal)
+function euDT(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/.exec(String(iso || '')); return m ? m[3] + '.' + m[2] + '.' + m[1] + ' ' + m[4] : euD(iso); }
+function fmtEuD(d) { return Utilities.formatDate(d, TZ, 'dd.MM.yyyy'); }
+function fmtEuDT(d) { return Utilities.formatDate(d, TZ, 'dd.MM.yyyy HH:mm'); }
+function dayStart(d) { return atHour(d, 0); } // Date object at 00:00 Swiss time (date cells in the sheets, formatted dd.MM.yyyy)
 function fmtT(d) { return Utilities.formatDate(d, TZ, 'HH:mm'); }
 function fmtDT(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd HH:mm'); }
 function addD(d, n) { var t = new Date(d.getTime()); t.setDate(t.getDate() + n); return t; }
@@ -387,14 +395,14 @@ function actionOf(a, c, p, today, w4) { // w4 = date W4 went out (dry run / late
   if (!c.billing) return 'By hand: status unknown (not in the failed-payment client list), check the client in exercise.com';
   if (!activeClient(c)) return 'By hand: subscription paused or pending cancellation';
   var dup = a.dupes ? 'Void the duplicate sent invoice. ' : (a.sent && a.open > a.sent ? 'Sent invoice next to an open subscription invoice: check whether both cover the same month and void one. ' : ''), st = stageOf(a); if (st === 'W4' && !w4) { st = stageByDays(a); dup += 'Second invoice open, W4 follows 7 days after W3. '; } // mixed cases (10.09.)
-  if (st === 'W4') { var esc = addDs(w4, RULE_E.W4_GRACE_D); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (W4 deadline ' + esc + ' passed)' : 'W4 sent or due: wait for the payment via the links, escalate to Sam on ' + esc + ' if still unpaid'); }
-  if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return dup + 'Retried by hand on ' + p.lastRetry + ', wait until ' + addDs(p.lastRetry, RETRY_WAIT_D);
+  if (st === 'W4') { var esc = addDs(w4, RULE_E.W4_GRACE_D); return dup + (today >= esc ? 'NOW: escalate to Sam and set "Debt collection" (W4 deadline ' + euD(esc) + ' passed)' : 'W4 sent or due: wait for the payment via the links, escalate to Sam on ' + euD(esc) + ' if still unpaid'); }
+  if (p.lastRetry && daysBetween(p.lastRetry, today) < RETRY_WAIT_D) return dup + 'Retried by hand on ' + euD(p.lastRetry) + ', wait until ' + euD(addDs(p.lastRetry, RETRY_WAIT_D));
   if (a.manual.length) { // the pay link always points to the oldest open invoice, which is also the one to retry by hand
     var head = HARD_DECLINE.test(a.reason) ? 'Ask the member for a new card, then retry the oldest open invoice by hand' : 'Retry the oldest open invoice by hand in exercise.com (first line in Pay links). If it fails again, send the member the pay links';
     if (a.manual.length > 1) head += ' (' + a.manual.length + ' invoices without Stripe retry)';
-    return dup + head + (a.nextRetry ? '. Stripe still retries the newest invoice on ' + a.nextRetry : '');
+    return dup + head + (a.nextRetry ? '. Stripe still retries the newest invoice on ' + euD(a.nextRetry) : '');
   }
-  return dup + 'Wait for the Stripe retry on ' + a.nextRetry + '; ' + st + ' message due';
+  return dup + 'Wait for the Stripe retry on ' + euD(a.nextRetry) + '; ' + st + ' message due';
 }
 function cleanNote(v) { var s = String(v || ''); return /^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{4} \d{2}:\d{2}/.test(s) ? '' : s; } // drops timestamps that slipped into the note column on 08.09.
 function logSheet(ss) { // event log: one line per event (retried by hand, invoice paid, left the list)
@@ -412,7 +420,7 @@ function logSheet(ss) { // event log: one line per event (retried by hand, invoi
 function writeArrears(ss, rows, info, dry) {
   var sh = ss.getSheetByName('Debtors') || ss.getSheetByName('Arrears'); // renamed 08.09. (Ruben)
   if (sh && sh.getName() !== 'Debtors') sh.setName('Debtors');
-  var today = fmtD(new Date()), now = fmtDT(new Date());
+  var today = fmtD(new Date()), now = fmtEuDT(new Date());
   if (!sh) {
     sh = ss.insertSheet('Debtors');
     sh.getRange('A1').setValue('Debtors: members with open invoices').setFontSize(14).setFontWeight('bold');
@@ -438,23 +446,23 @@ function writeArrears(ss, rows, info, dry) {
   }
   sh.getRange('A2').setValue(ARR_NOTE); sh.getRange(4, 1, 1, ARR_HEAD.length).setValues([ARR_HEAD]);
   var log = logSheet(ss), logRows = [];
-  Object.keys(prev).forEach(function (u) { var p = prev[u]; if (p.done) { p.lastRetry = today; p.done = false; logRows.push([today, u, p.name, p.loc, p.amount, p.since, 'yes', p.note, 'retried by hand on ' + today]); } });
+  Object.keys(prev).forEach(function (u) { var p = prev[u]; if (p.done) { p.lastRetry = today; p.done = false; logRows.push([euD(today), u, p.name, p.loc, p.amount, euD(p.since), 'yes', p.note, 'retried by hand on ' + euD(today)]); } });
   var last = lastMsgE(dry), sentE = sentPrefixes(dry, leftDates(ss));
   var sorted = rows.slice().sort(function (x, y) { var px = priorityOf(x, info[x.uid]), py = priorityOf(y, info[y.uid]); return px !== py ? px - py : (y.amount !== x.amount ? y.amount - x.amount : y.days - x.days); });
   var current = {};
   var out = sorted.map(function (a) {
     current[a.uid] = true; var c = info[a.uid] || null, p = prev[a.uid] || {};
-    return [priorityOf(a, c), a.uid, a.name, a.phone || '', a.email || '', a.loc, a.first, a.days, a.open, a.attempts, a.nextRetry || 'none', (a.sent ? String(a.sent) : '') + (a.dupes ? ' dup' : ''), a.amount, a.lastDate, a.reason, a.item, c ? (c.lifecycle || 'unknown') : 'not in client list', c ? c.billing : '', stageOf(a), actionOf(a, c, p, today, sentE['E:W4:' + a.uid] || ''), p.lastRetry || '', false, p.note || '', last[a.uid] || '', now, '', a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + d.date + '): ' + d.link; }).join('\n')];
+    return [priorityOf(a, c), a.uid, a.name, a.phone || '', a.email || '', a.loc, euD(a.first), a.days, a.open, a.attempts, a.nextRetry ? euD(a.nextRetry) : 'none', (a.sent ? String(a.sent) : '') + (a.dupes ? ' dup' : ''), a.amount, euD(a.lastDate), a.reason, a.item, c ? (c.lifecycle || 'unknown') : 'not in client list', c ? c.billing : '', stageOf(a), actionOf(a, c, p, today, sentE['E:W4:' + a.uid] || ''), p.lastRetry ? euD(p.lastRetry) : '', false, p.note || '', last[a.uid] || '', now, '', a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + euD(d.date) + '): ' + d.link; }).join('\n')];
   });
   var gone = Object.keys(prev).filter(function (u) { return !current[u]; });
   var paid = gone.length ? paidSince(addDs(today, -45)) : {};
-  gone.forEach(function (u) { var p = prev[u]; logRows.push([today, u, p.name, p.loc, p.amount, p.since, '', p.note, paid[u] ? 'paid on ' + paid[u] : 'voided, no payment found']); }); // three events only (Ruben 09.09.): paid on, voided, retried by hand
+  gone.forEach(function (u) { var p = prev[u]; logRows.push([euD(today), u, p.name, p.loc, p.amount, euD(p.since), '', p.note, paid[u] ? 'paid on ' + euD(paid[u]) : 'voided, no payment found']); }); // three events only (Ruben 09.09.): paid on, voided, retried by hand
   if (n >= 5) { sh.getRange(5, 1, n - 4, ARR_HEAD.length).clearContent().setBackground(null).setFontColor(null); sh.getRange(5, 22, n - 4, 1).clearDataValidations(); }
   if (out.length) {
     sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
     sh.getRange(5, 13, out.length, 1).setNumberFormat('0.00'); [4, 7, 11, 14, 21].forEach(function (col) { sh.getRange(5, col, out.length, 1).setNumberFormat('@'); });
     sh.getRange(5, 22, out.length, 1).insertCheckboxes(); sh.getRange(5, 20, out.length, 1).setWrap(true); // Action wraps instead of spilling into Last retry (Ruben 10.09.)
-    var rich = sorted.map(function (a) { var labels = a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + d.date + ')'; }); var rt = SpreadsheetApp.newRichTextValue().setText(labels.join('\n')); var pos = 0; a.debts.forEach(function (d, i) { if (d.link) rt.setLinkUrl(pos, pos + labels[i].length, d.link); pos += labels[i].length + 1; }); return [rt.build()]; }); // short clickable labels instead of long addresses (Ruben 09.09.)
+    var rich = sorted.map(function (a) { var labels = a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + euD(d.date) + ')'; }); var rt = SpreadsheetApp.newRichTextValue().setText(labels.join('\n')); var pos = 0; a.debts.forEach(function (d, i) { if (d.link) rt.setLinkUrl(pos, pos + labels[i].length, d.link); pos += labels[i].length + 1; }); return [rt.build()]; }); // short clickable labels instead of long addresses (Ruben 09.09.)
     sh.getRange(5, 26, out.length, 1).setRichTextValues(rich).setWrap(true); sh.getRange(5, 27, out.length, 1).setWrap(false); sh.hideColumns(27);
     var bg = sorted.map(function (a) { var c = info[a.uid]; var col = (c && /debt/i.test(c.lifecycle)) ? '#f4cccc' : (a.exhausted ? '#fff2cc' : null); return ARR_HEAD.map(function () { return col; }); }); // red = debt collection (Ruben 08.09.), yellow = Stripe has no automatic attempt left (Ruben 09.09.)
     sh.getRange(5, 1, out.length, ARR_HEAD.length).setBackgrounds(bg);
@@ -495,7 +503,7 @@ function paidSince(start) { // uid -> latest paid date among invoices created si
 }
 function lastMsgE(dry) { // uid -> latest dry-run message for Flow E
   var m = {}, n = dry.getLastRow(); if (n < TR_ROW0) return m;
-  dry.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { if (r[3] === 'E') { var uid = String(r[10] || '').split(':')[2]; if (uid) m[uid] = r[4] + ' ' + dOf(r[0]); } });
+  dry.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { if (r[3] === 'E') { var uid = String(r[10] || '').split(':')[2]; if (uid) m[uid] = r[4] + ' ' + euD(dOf(r[0])); } });
   return m;
 }
 function sentPrefixes(sh, left) { // 'E:W1:uid' -> date of that row. Ruben 10.09.: no 60-day window any more; a stage counts until the member left the Debtors list (Retry log "paid on" / "voided"), then a new episode starts at W1
@@ -536,34 +544,78 @@ function ensureSheets(ss) {
   }
   return sh;
 }
-var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Request', 'Days', 'Messages so far', 'Your task', 'Automation next', 'Updated'];
-var CALL_NOTE = 'Rebuilt every hour from the Leads Log and the trial lists: every website lead of this studio without a trial booking. Priority 1 (red) = nobody has contacted the lead yet: call today, if nobody answers send M1. Priority 2 (orange) = message 1 is out, no reply: call, if nobody answers send M2. Priority 3 (yellow) = message 2 is out, no reply: last call, if nobody answers send M3. Priority 6 (grey) = three messages, no reply: the lead is closed, no further action. "Automation next" is the moment the automation sends the next message by itself (48 h after the last message) if nobody called and sent the manual text before. Leads leave the list as soon as a trial is booked. Until the WhatsApp connection is live the list only sees the automatic messages, not the coach\'s own messages, calls or replies.';
-function writeCallLists(leads, trials, trialNames, lastA, now) { // tabs "Call list ZH" / "Call list WT" in Team KPIs (Ruben 10.09.), rebuilt every run
-  var ss = SpreadsheetApp.openById(TEAM_ID), h = 3600000, cut = now.getTime() - 30 * 24 * h, rows = { Zurich: [], Winterthur: [] };
+var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Plan', 'Request', 'Days', 'Calls', 'Messages so far', 'Your task', 'Automation next', 'Called, no answer', 'Reached', 'Updated', 'Key'];
+var CALL_NOTE = 'Rebuilt every hour from the Leads Log and the trial lists: every website lead of this studio without a trial booking. Priority 1 (red) = nobody has contacted the lead yet: call today, if nobody answers send M1. Priority 2 (orange) = message 1 is out (or one call was made), no reply: call, if nobody answers send M2. Priority 3 (yellow) = message 2 is out, no reply: last call, if nobody answers send M3. Priority 4 (green) = reached by phone: propose the trial date and book it. Priority 6 (grey) = three messages, no reply: closed, no further action. Tick "Called, no answer" after every unsuccessful call (the tick is collected within the hour, counted in "Calls", then cleared; the 48 h clock restarts from your call). Tick "Reached" once you spoke to the lead: the row turns green and the automation stops for this lead. "Automation next" is the moment the automation sends the next message by itself (48 h after the last message or call). Leads leave the list as soon as a trial is booked. The ticks also fill "Anrufe versucht" and "Anrufe geführt" in the day rows of the Probetrainings tab. "Plan" is the training plan the lead built on the website, if any.';
+function harvestCalls(now) { // collect the ticks from both call lists into the tab "Call log" (Team KPIs), clear "Called", keep "Reached"; returns the state per lead key
+  var ss = SpreadsheetApp.openById(TEAM_ID), log = ss.getSheetByName('Call log');
+  if (!log) { log = ss.insertSheet('Call log'); log.getRange('A1').setValue('Call log: one line per tick in the call lists ("called" = called, nobody answered; "reached" = spoke to the lead). Feeds "Calls" in the call lists and the day rows "Anrufe versucht" / "Anrufe geführt" in the Probetrainings tabs. Read-only.').setFontColor('#666666'); log.getRange(2, 1, 1, 6).setValues([['Date', 'Time', 'Studio', 'Name', 'Key', 'Event']]).setFontWeight('bold').setBackground('#f3f3f3'); log.setFrozenRows(2); [100, 60, 90, 180, 220, 80].forEach(function (w, i) { log.setColumnWidth(1 + i, w); }); }
+  var state = {}, n = log.getLastRow();
+  if (n >= 3) log.getRange(3, 1, n - 2, 6).getValues().forEach(function (r) { var k = String(r[4] || '').toLowerCase().trim(), ev = String(r[5] || ''), d = r[0] instanceof Date ? r[0] : new Date(String(r[0]).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$3-$2-$1') + 'T' + (String(r[1] || '12:00')) + ':00'); if (!k) return; var st = state[k] = state[k] || { called: [], reached: null, loc: String(r[2] || '') }; if (ev === 'reached') st.reached = st.reached && st.reached < d ? st.reached : d; else st.called.push(d); });
+  var add = [];
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    var sh = ss.getSheetByName(loc === 'Zurich' ? 'Call list ZH' : 'Call list WT'); if (!sh || sh.getLastRow() < 5) return;
+    var v = sh.getRange(5, 1, sh.getLastRow() - 4, CALL_HEAD.length).getValues();
+    v.forEach(function (r) { var k = String(r[15] || '').toLowerCase().trim(); if (!k) return; var st = state[k] = state[k] || { called: [], reached: null, loc: loc };
+      if (r[12] === true) { st.called.push(now); add.push([dayStart(now), fmtT(now), loc, r[1], k, 'called']); }
+      if (r[13] === true && !st.reached) { st.reached = now; add.push([dayStart(now), fmtT(now), loc, r[1], k, 'reached']); } });
+  });
+  if (add.length) { var r0 = log.getLastRow() + 1; log.getRange(r0, 1, add.length, 6).setValues(add); log.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); Logger.log('call log: ' + add.length + ' new ticks'); }
+  return state;
+}
+function leadState(l, lastA, calls, now) { // slot = messages so far (automatic ones + the coach's calls, 3 at most), lastAt = last message or call, reached = spoke to the lead
+  var id = l.email || l.nname, sentA = lastA[id] || {}, cs = calls[(l.email || '').toLowerCase()] || { called: [], reached: null };
+  var done = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }), times = done.map(function (m) { return sentA[m]; }).concat(cs.called);
+  var lastAt = times.length ? new Date(Math.max.apply(null, times.map(function (d) { return d.getTime(); }))) : null;
+  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length + (cs.reached ? 1 : 0), reached: cs.reached };
+}
+function readPlans() { // lead e-mail -> latest training plan link (Leads Log, tab "Trainingsplan": Link col 15, E-Mail col 19)
+  var m = {}, sh = SpreadsheetApp.openById(MAIN_ID).getSheetByName('Trainingsplan'); if (!sh || sh.getLastRow() < 2) return m;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 19).getValues().forEach(function (r) { var e = String(r[18] || '').toLowerCase().trim(), link = String(r[14] || '').trim(); if (e && /^https?:\/\//.test(link)) m[e] = link; });
+  return m;
+}
+function writeCallLists(leads, trials, trialNames, lastA, calls, now) { // tabs "Call list ZH" / "Call list WT" in Team KPIs (Ruben 10.09.), rebuilt every run
+  var ss = SpreadsheetApp.openById(TEAM_ID), h = 3600000, cut = now.getTime() - 30 * 24 * h, rows = { Zurich: [], Winterthur: [] }, plans = readPlans();
   var task = ['Call today. If nobody answers: send M1', 'Call. If nobody answers: send M2', 'Last call. If nobody answers: send M3', 'Closed: three messages, no reply. No further action'];
   var prio = [1, 2, 3, 6], colors = ['#f4cccc', '#fce5cd', '#fff2cc', '#efefef'];
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return;
-    var id = l.email || l.nname, sentA = lastA[id] || {}, done = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }), slot = done.length;
-    var lastAt = slot ? sentA['A' + slot] : null;
-    if (l.ts.getTime() < cut && !slot) return; // older than 30 days without any message: backlog from before the automation, not a call-list case
-    if (slot >= RULE.A_MAX && lastAt && lastAt.getTime() < now.getTime() - 7 * 24 * h) return; // closed for more than a week: drop
-    var due = slot >= RULE.A_MAX ? null : new Date(lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h);
-    var next = due ? fmtDT(sendAt(due, 'A')) + ': A' + (slot + 1) + ' goes out automatically' : 'nothing (lead closed)';
-    rows[l.loc].push({ p: prio[slot], c: colors[slot], r: [prio[slot], l.name, l.phone, l.lang.toUpperCase(), l.interest, fmtDT(l.ts), Math.floor((now.getTime() - l.ts.getTime()) / (24 * h)), done.map(function (m) { return m + ' ' + fmtD(sentA[m]); }).join(', '), task[slot], next, fmtDT(now)] });
+    var st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt, key = (l.email || l.nname).toLowerCase();
+    if (l.ts.getTime() < cut && !slot && !st.reached) return; // older than 30 days without any contact: backlog from before the automation
+    var p, c, t, next;
+    if (st.reached) { if (st.reached.getTime() < now.getTime() - 21 * 24 * h) return; p = 4; c = '#d9ead3'; t = 'Reached on ' + fmtEuD(st.reached) + ': propose the trial date and book it in exercise.com'; next = 'nothing (reached, the automation is off)'; }
+    else { if (slot >= RULE.A_MAX && lastAt && lastAt.getTime() < now.getTime() - 7 * 24 * h) return; p = prio[slot]; c = colors[slot]; t = task[slot]; var due = slot >= RULE.A_MAX ? null : new Date(lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h); next = due ? fmtEuDT(sendAt(due, 'A')) + ': A' + (slot + 1) + ' goes out automatically' : 'nothing (lead closed)'; }
+    rows[l.loc].push({ p: p, c: c, ts: l.ts.getTime(), plan: plans[key] || '', r: [p, l.name, l.phone, l.lang.toUpperCase(), l.interest, plans[key] ? 'Plan' : '', fmtEuDT(l.ts), Math.floor((now.getTime() - l.ts.getTime()) / (24 * h)), st.calls, st.done.map(function (m) { return m + ' ' + fmtEuD(st.sentA[m]); }).join(', '), t, next, false, !!st.reached, fmtEuDT(now), key] });
   });
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var name = loc === 'Zurich' ? 'Call list ZH' : 'Call list WT', sh = ss.getSheetByName(name);
-    if (!sh) { sh = ss.insertSheet(name); sh.getRange('A1').setValue(name + ': who to call today').setFontSize(14).setFontWeight('bold'); sh.setFrozenRows(4); [60, 200, 130, 70, 150, 120, 50, 200, 300, 260, 120].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
-    sh.getRange('A2').setValue(CALL_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('A2:K2').merge(); sh.setRowHeight(2, 110);
-    var list = rows[loc].sort(function (a, b) { return a.p !== b.p ? a.p - b.p : (a.r[5] < b.r[5] ? -1 : 1); });
-    sh.getRange('A3').setValue(list.length + ' leads: ' + [1, 2, 3, 6].map(function (p) { return list.filter(function (x) { return x.p === p; }).length + ' x priority ' + p; }).join(', ') + '. ' + fmtDT(now));
+    if (!sh) { sh = ss.insertSheet(name); sh.getRange('A1').setValue(name + ': who to call today').setFontSize(14).setFontWeight('bold'); sh.setFrozenRows(4); }
+    [60, 200, 130, 70, 150, 60, 130, 50, 50, 200, 300, 260, 90, 80, 120, 10].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    sh.getRange('A2:P2').breakApart(); sh.getRange('A2').setValue(CALL_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('A2:O2').merge(); sh.setRowHeight(2, 130);
+    var list = rows[loc].sort(function (a, b) { return a.p !== b.p ? a.p - b.p : a.ts - b.ts; });
+    sh.getRange('A3').setValue(list.length + ' leads: ' + [1, 2, 3, 4, 6].map(function (p) { return list.filter(function (x) { return x.p === p; }).length + ' x priority ' + p; }).join(', ') + '. ' + fmtEuDT(now));
     sh.getRange(4, 1, 1, CALL_HEAD.length).setValues([CALL_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
-    var n = sh.getLastRow(); if (n >= 5) sh.getRange(5, 1, n - 4, CALL_HEAD.length).clearContent().setBackground(null);
-    if (list.length) { sh.getRange(5, 1, list.length, CALL_HEAD.length).setValues(list.map(function (x) { return x.r; })); sh.getRange(5, 1, list.length, CALL_HEAD.length).setBackgrounds(list.map(function (x) { return CALL_HEAD.map(function () { return x.c; }); })); sh.getRange(5, 3, list.length, 1).setNumberFormat('@'); sh.getRange(5, 9, list.length, 2).setWrap(true); }
+    var n = sh.getLastRow(); if (n >= 5) sh.getRange(5, 1, n - 4, CALL_HEAD.length).clearContent().clearDataValidations().setBackground(null);
+    if (list.length) {
+      sh.getRange(5, 1, list.length, CALL_HEAD.length).setValues(list.map(function (x) { return x.r; }));
+      sh.getRange(5, 1, list.length, CALL_HEAD.length).setBackgrounds(list.map(function (x) { return CALL_HEAD.map(function () { return x.c; }); }));
+      sh.getRange(5, 3, list.length, 1).setNumberFormat('@'); sh.getRange(5, 11, list.length, 2).setWrap(true); sh.getRange(5, 13, list.length, 2).insertCheckboxes();
+      sh.getRange(5, 6, list.length, 1).setRichTextValues(list.map(function (x) { var rt = SpreadsheetApp.newRichTextValue().setText(x.plan ? 'Plan' : ''); if (x.plan) rt.setLinkUrl(0, 4, x.plan); return [rt.build()]; }));
+    }
+    sh.hideColumns(CALL_HEAD.length);
+    fillCallCounts(ss, loc, calls, now);
   });
   Logger.log('call lists: ZH ' + rows.Zurich.length + ', WT ' + rows.Winterthur.length);
+}
+function fillCallCounts(ss, loc, calls, now) { // day rows of the Probetrainings tab: B "Anrufe versucht" (every call), C "Anrufe geführt" (reached), from the Call log, only for days with ticks
+  var per = {};
+  Object.keys(calls).forEach(function (k) { var st = calls[k]; if (st.loc !== loc) return; st.called.forEach(function (d) { var day = fmtD(d); (per[day] = per[day] || { a: 0, c: 0 }).a++; }); if (st.reached) { var day = fmtD(st.reached); var e = per[day] = per[day] || { a: 0, c: 0 }; e.a++; e.c++; } });
+  var days = Object.keys(per); if (!days.length) return;
+  var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return;
+  var labels = sh.getRange(TR_ROW0, 1, sh.getLastRow() - TR_ROW0 + 1, 1).getValues().map(function (r) { return String(r[0] || '').trim(); });
+  var wd = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' }, written = 0;
+  days.forEach(function (day) { var d = new Date(day + 'T12:00:00'), label = wd[Number(Utilities.formatDate(d, TZ, 'u'))] + ' ' + Utilities.formatDate(d, TZ, 'dd.MM.'); var i = labels.indexOf(label); if (i < 0) return; sh.getRange(TR_ROW0 + i, 2, 1, 2).setValues([[per[day].a, per[day].c]]); written++; });
+  if (written) Logger.log('call counts ' + loc + ': ' + written + ' day rows filled');
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } from the Dry run rows (later: the real outbox)
   var m = {}, n = sh.getLastRow(); if (n < TR_ROW0) return m;
@@ -739,17 +791,17 @@ function setStage(ss, uid, name, stageId, stageName, reason, onlyFrom) { // one 
   var log = stageLog(ss), key = uid + ':' + stageId; if (!uid || log.done[key]) return 'already';
   var b = cfPost({ action: 'set_lifecycle', uid: uid, stage_id: stageId, only_from: onlyFrom || LEAD_STAGES });
   var res = !b ? 'error' : (b.skipped ? 'skipped (' + b.lifecycle + ')' : (b.unchanged ? 'unchanged' : (b.ok ? 'set' : 'failed ' + (b.status || b.error))));
-  log.sh.appendRow([fmtDT(new Date()), uid, name || '', b ? (b.before || b.lifecycle || '') : '', stageName, res, reason || '']);
+  log.sh.appendRow([fmtEuDT(new Date()), uid, name || '', b ? (b.before || b.lifecycle || '') : '', stageName, res, reason || '']);
   if (/^(set|unchanged|skipped)/.test(res)) log.done[key] = true;
   return res;
 }
-function stageLog(ss) { // tab "Stage log": one line per lifecycle change the automation made (or refused); done = uid:stageId already handled
-  var sh = ss.getSheetByName('Stage log'), done = {};
+function stageLog(ssIgnored) { // tab "Stage log" in Team KPIs (Ruben 10.09.: where Abdi and Bogdan work): one line per lifecycle change the automation made (or refused); done = uid:stageId already handled
+  var ss = SpreadsheetApp.openById(TEAM_ID), sh = ss.getSheetByName('Stage log'), done = {};
   if (!sh) { sh = ss.insertSheet('Stage log'); sh.getRange('A1').setValue('Stage log: every lifecycle stage the automation set in exercise.com (or refused: "skipped" = the client was in a protected stage such as Client / Do Not Contact / Debt collection). Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'UID', 'Name', 'From', 'To', 'Result', 'Reason']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [120, 80, 180, 130, 130, 120, 300].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
   var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { var u = String(r[1] || '').replace(/\D/g, ''), to = String(r[4] || ''), res = String(r[5] || ''); var id = Object.keys(STAGE).filter(function (k) { return STAGE_NAME[k] === to; }).map(function (k) { return STAGE[k]; })[0]; if (u && id && /^(set|unchanged|skipped)/.test(res)) done[u + ':' + id] = true; });
   return { sh: sh, done: done };
 }
-var STAGE_NAME = { lead: 'Lead', first: 'First Contact', second: 'Second Contact', third: 'Third Contact', trialBooked: 'Trial Booked', pending: 'Pending Decision', lost: 'Not Interested (Lost)', noshow: 're-engage no-shows', debt: 'Debt collection' };
+var STAGE_NAME = { lead: 'Lead', first: 'First Contact', second: 'Second Contact', third: 'Third Contact', trialBooked: 'Trial Booked', pending: 'Pending Decision', lost: 'Not Interested (Lost)', noshow: 're-engage no-shows', cancelled: 're-engage cancelled trial', debt: 'Debt collection' };
 function waProbeStage() { // one-off (10.09.): test the stage change on a TEST lead from the Leads Log (rows marked as test): read, set First Contact, set back; log only
   var tests = readLeads().filter(function (l) { return l.test && l.email; }).map(function (l) { return l.email; });
   Logger.log('test leads in the Leads Log: ' + tests.length);
@@ -758,6 +810,18 @@ function waProbeStage() { // one-off (10.09.): test the stage change on a TEST l
   if (!f || !f.ok) return;
   var a = cfPost({ action: 'set_lifecycle', uid: f.uid, email: f.email, stage_id: STAGE.first, only_from: LEAD_STAGES }); Logger.log('set First Contact: ' + JSON.stringify(a).slice(0, 300));
   var back = f.lifecycle_stage_id || STAGE.lead, b = cfPost({ action: 'set_lifecycle', uid: f.uid, email: f.email, stage_id: back, only_from: [] }); Logger.log('set back to "' + (f.lifecycle || 'Lead') + '": ' + JSON.stringify(b).slice(0, 300));
+}
+function waEuDates() { // one-off (Ruben 10.09.): existing rows to European dates: Dry run A (date) + C (would send) become real dates formatted dd.MM.yyyy; Retry log A + F, Summary
+  var ss = SpreadsheetApp.openById(WA_ID), dry = ss.getSheetByName('Dry run'), n = dry.getLastRow(), conv = 0;
+  if (n >= TR_ROW0) {
+    var v = dry.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, 3).getValues();
+    var out = v.map(function (r) { var a = r[0], c = r[2]; if (!(a instanceof Date)) { var iso = dOf(a); if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) { a = new Date(iso + 'T00:00:00' + Utilities.formatDate(new Date(iso + 'T12:00:00'), TZ, 'XXX')); conv++; } } if (!(c instanceof Date)) { var m = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/.exec(String(c || '')); if (m) { c = new Date(m[1] + 'T' + m[2] + ':00' + Utilities.formatDate(new Date(m[1] + 'T12:00:00'), TZ, 'XXX')); conv++; } } return [a, r[1], c]; });
+    dry.getRange(TR_ROW0, 1, out.length, 3).setValues(out); dry.getRange(TR_ROW0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); dry.getRange(TR_ROW0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm');
+  }
+  var log = ss.getSheetByName('Retry log'), ln = log ? log.getLastRow() : 0;
+  if (log && ln >= 3) { var lv = log.getRange(3, 1, ln - 2, 9).getValues(); lv.forEach(function (r) { r[0] = r[0] instanceof Date ? fmtEuD(r[0]) : euD(dOf(r[0])); r[5] = r[5] instanceof Date ? fmtEuD(r[5]) : euD(dOf(r[5])); r[8] = String(r[8] || '').replace(/(\d{4})-(\d{2})-(\d{2})/g, '$3.$2.$1'); }); log.getRange(3, 1, lv.length, 9).setValues(lv); log.getRange(3, 1, lv.length, 1).setNumberFormat('@'); log.getRange(3, 6, lv.length, 1).setNumberFormat('@'); }
+  var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('dd.MM.yyyy');
+  Logger.log('EU dates: ' + conv + ' dry-run cells converted, retry log ' + (ln >= 3 ? ln - 2 : 0) + ' rows rewritten');
 }
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
