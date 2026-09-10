@@ -747,3 +747,9 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - NACHTRAG 10.09. 12:20 (19e1d0f): Beim Nachlauf (maCatchUp) wird der Monatsabschluss-Tab nur nach dem LETZTEN Monat neu gebaut (Script Property
   `maNoBuild` = '1' solange die Warteschlange nicht leer ist; runMonatsabschluss überspringt dann buildMonatsabschluss). Grund: der Tab war bei
   jedem Monatslauf minutenlang leer (Ruben 10.09. 12:15). Der Stundenlauf baut ohnehin stündlich.
+
+## TAB "MANUELLE WERTE" (10.09.2026, e7ac81e; Ruben: Migrationsmonate von Hand ersetzen)
+- Sichtbarer Eingabetab im Analytics-Sheet: Monat (2026-01) | Standort (Zurich/Winterthur) | Kennzahl (Verkäufe, Verluste, Neue Kontakte,
+  Probetrainings, Website-Leads oder interner Schlüssel) | Wert | Grund. `mvRead`/`mvApply` überlagern die MonatsHistorie beim Lesen in
+  `maContext` (Monatsabschluss + Werbekosten) und `fpValues` (Finanzplan); die berechneten Werte in der MonatsHistorie bleiben. Zelle im
+  Monatsabschluss bekommt Notiz "Manuell gesetzt …: <Grund>". Direkte Änderungen im Monatsabschluss-Tab werden stündlich überschrieben.
