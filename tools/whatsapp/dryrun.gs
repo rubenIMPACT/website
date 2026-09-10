@@ -878,3 +878,15 @@ function waProbeLifecycle() { // one-off (10.09.): which lifecycle stages exist 
   Logger.log('lifecycle_stages source=' + b.source + ' tried=' + JSON.stringify(b.tried));
   (b.stages || []).forEach(function (s) { Logger.log('STAGE ' + s.id + ' | ' + s.name + ' | pos ' + s.position); });
 }
+function waDocAddFlowX() { // one-off (Ruben 10.09.): add "Flow X: Cancelled trial" (heading, trigger paragraph, table with X1) to the Google Doc "WhatsApp Messages IMPACT", right after the Flow D table
+  var body = DocumentApp.openById('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY').getBody();
+  if (body.findText('Flow X: Cancelled trial')) { Logger.log('Flow X already in the doc'); return; }
+  var tD = null; body.getTables().forEach(function (t) { for (var i = 0; i < t.getNumRows(); i++) if (t.getRow(i).getCell(0).getText().trim() === 'D1') tD = t; });
+  if (!tD) throw new Error('Flow D table not found');
+  var at = body.getChildIndex(tD) + 1;
+  var tbl = body.insertTable(at, [['ID', 'When', 'DE', 'EN'], ['X1', 'Next send window after a booked trial was cancelled, no new booking', TEXT.X1.de, TEXT.X1.en]]);
+  for (var j = 0; j < 4; j++) tbl.getRow(0).getCell(j).editAsText().setBold(true);
+  body.insertParagraph(at, 'Trigger: a booked trial is cancelled in exercise.com and no new trial is booked. One message in the next send window, once per cancelled trial. Stage in exercise.com: re-engage cancelled trial (set by the automation after the go-live). The team proposes the new date.');
+  body.insertParagraph(at, 'Flow X: Cancelled trial').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  Logger.log('Flow X added to the doc (draft text by Claude, Ruben decides)');
+}
