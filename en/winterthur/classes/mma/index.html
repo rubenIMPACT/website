@@ -1039,7 +1039,7 @@ var p=new URLSearchParams(location.search);
 var m={utm_source:'t_us',utm_medium:'t_um',utm_campaign:'t_uc',utm_content:'t_uct',utm_term:'t_ut',fbclid:'t_fb',gclid:'t_gc',ttclid:'t_tt'};
 Object.keys(m).forEach(function(k){var v=p.get(k);if(v){var el=document.getElementById(m[k]);if(el)el.value=v;try{localStorage.setItem('imp_'+k,JSON.stringify({v:v,t:Date.now()}))}catch(e){}}else{try{var s=JSON.parse(localStorage.getItem('imp_'+k)||'null');if(s&&s.v&&Date.now()-s.t<2592e6){var el2=document.getElementById(m[k]);if(el2)el2.value=s.v}}catch(e){}}});
 var lp=document.getElementById('t_lp');if(lp)lp.value=location.href.split('?')[0];
-var rf=document.getElementById('t_rf');if(rf)rf.value=document.referrer||'';
+var rf=document.getElementById('t_rf');if(rf){var r0=document.referrer||'';var ex=r0&&!/impact-martialarts\.com/i.test(r0);try{if(ex){localStorage.setItem('imp_ref',JSON.stringify({v:r0,t:Date.now()}))}else{var sr=JSON.parse(localStorage.getItem('imp_ref')||'null');if(sr&&sr.v&&Date.now()-sr.t<2592e6)r0=sr.v}}catch(e){}rf.value=r0}
 }catch(e){}})();
 var rws=document.querySelectorAll('.hero .rw');
 rws.forEach(function(el,i){setTimeout(function(){el.classList.add('go')},300+i*260)});
