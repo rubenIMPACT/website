@@ -58,7 +58,7 @@ var TEXT_M = { // manual texts (Abdi / Bogdan after an unanswered call, quick re
 };
 var RULE_R = { N: 7, WIN_D: 45, LOCS: ['Zurich'] }; // Ruben 10.09.2026: Google review request after the 7th check-in, Zurich (Abdi) first. New members only: first visit inside the last WIN_D days (45: a 60-day visits report does not finish in time, 45 days Zurich = ~4200 rows in 11 s)
 var LOC_ID = { Zurich: 2508, Winterthur: 2222 }; // exercise.com location ids (same as klassen.js)
-var REVIEW_LINK = { Zurich: 'https://maps.app.goo.gl/1ow5T1yypnd7zvXM6', Winterthur: 'https://maps.app.goo.gl/4WLKoHRziA7jtjWp9' }; // INTERIM (10.09.): the Google Maps listing links from the website badges ("400+ Bewertungen" / "120+ reviews"); to be replaced by the "write a review" links from the Google Business Profile (Ruben)
+var REVIEW_LINK = { Zurich: 'https://g.page/r/CUfMYkGu7EHJEBM/review', Winterthur: 'https://g.page/r/CSof6-V2zvUTEBM/review' }; // "write a review" links from the Google Business Profile (Ruben 10.09.2026)
 var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
   R1: { de: 'Hi {name}, schön, dass du so regelmässig da bist. Wenn dir das Training bei uns gefällt, würdest du uns kurz eine Google-Bewertung schreiben? Das hilft uns enorm: {review_link}',
         en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link}" }
