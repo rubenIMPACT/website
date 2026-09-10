@@ -370,7 +370,7 @@ async function monat(H, p, start, end) {
 
   if (phase === "mc") { // Kundenliste kompakt, eigener Aufruf (m3 war mit Kundenliste + 12 Monaten Sold Packages zu schwer: 502 am 09.09.)
     const c = await clientIndex(H), byName = {};
-    Object.keys(c.byName).forEach((k) => { const u = c.byName[k].uid, e = c.byName[k].email, t = c.byUid[u] ? c.byUid[u].tags : null; byName[k] = [u, e, /rechnung|invoice/i.test(String(t || "")) ? 1 : 0]; });
+    Object.keys(c.byName).forEach((k) => { const u = c.byName[k].uid, e = c.byName[k].email; byName[k] = [u, e, c.byName[k].inv ? 1 : 0]; });
     return { ready: true, byName, total: c.total };
   }
   if (phase === "m2") {
@@ -908,7 +908,7 @@ async function clientIndex(H) { // alle Kunden (Name -> User-ID, E-Mail); die Ku
   const rest = await Promise.all(Array.from({ length: Math.max(0, pages - 1) }, (_, i) => getJson(H, API + "/api/v4/clients?per=500&page=" + (i + 2)).then((r) => listOf(r.json))));
   const byName = {}, byUid = {};
   const tagStr = (c) => { const raw = c.tags != null ? c.tags : c.tag_list; return raw == null ? null : (Array.isArray(raw) ? raw.map((x) => (typeof x === "string" ? x : (x && (x.name || x.title)) || "")).join(",") : String(raw)); };
-  [l1].concat(rest).forEach((l) => l.forEach((c) => { const uid = String(c.user_id || ""), name = ((c.first_name || "") + " " + (c.last_name || "")).trim(), email = String(c.email || "").toLowerCase().trim(); if (!uid) return; byUid[uid] = { name, email, cid: String(c.id || ""), tags: tagStr(c) }; const k = nameKey(name); if (k && !byName[k]) byName[k] = { uid, email }; }));
+  [l1].concat(rest).forEach((l) => l.forEach((c) => { const uid = String(c.user_id || ""), name = ((c.first_name || "") + " " + (c.last_name || "")).trim(), email = String(c.email || "").toLowerCase().trim(); if (!uid) return; const tg = tagStr(c), inv = /rechnung|invoice/i.test(String(tg || "")); byUid[uid] = { name, email, cid: String(c.id || ""), tags: tg }; const k = nameKey(name); if (!k) return; if (!byName[k]) byName[k] = { uid, email, inv }; else if (inv && !byName[k].inv) byName[k] = { uid, email, inv }; })); // Doppelkonten: das Konto mit Tag Rechnung/Invoice gewinnt (Melvin Pappu, 10.09.)
   return { byName, byUid, total, tagStr };
 }
 async function tagsOf(H, uids, clients) { // Tags je User (fuer die Ausnahme "Rechnung"): aus der Kundenliste, sonst Kundendetail (max 40)
