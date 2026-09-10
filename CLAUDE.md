@@ -673,11 +673,19 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   dazwischen liesse den Tab leer stehen); der Lauf endet mit einer Log-Zeile, ohne `trLastOk` zu setzen, der naechste Lauf holt alles nach.
 - GEBAUT: `runProbetrainingsHourly` startet den kompletten Neuversuch nur, wenn erst < 120 s verbraucht sind. Vorher lief bei einem
   Fehler nach 150+ s der ganze Lauf ein zweites Mal und riss das Limit sicher.
-- NOCH OFFEN (erst mit Messwerten entscheiden): (2) t1/t3 die Reports parallel statt nacheinander holen (geschaetzt 20-35 s);
-  (3) die vier alten Lifecycle-Bloecke nicht mehr neu erzeugen lassen (geschaetzt 30-60 s). ⚠️ Fuer (3) muss vorher `payopen` in
-  klassen.js repariert werden: es laeuft heute ueber die Roh-Zeilen und nimmt die erste Zeile mit "Signed but no payment", nicht die
-  neueste je E-Mail (`lifeBy` macht es richtig). Mit aelteren Bloecken koennte sonst jemand in Waseems Open-Payments-Liste stehen
-  bleiben, der schon bezahlt hat.
+- GEMESSEN 09.09. 22:58 (erster Lauf mit den neuen Wartezeiten): 115.1 s gesamt, Completed. Log:
+  `t1 9s | t2 (2x) 19s | life 5 Bloecke/5 Abfragen 26s | t3 (1x) 14s | schreiben 44s | gesamt 111s`
+  (Laeufe davor mit altem Code: 137 s, 352.9 s, 364.7 s). Ergebnis der Etappen: die Reports von exercise.com sind schnell fertig
+  (jeder Lifecycle-Block war schon bei der ERSTEN Abfrage nach 4 s bereit, t3 in einer Runde), die Zeit lag frueher fast nur im
+  pauschalen Schlafen.
+- ENTSCHIED nach der Messung: (2) Reports parallel holen und (3) alte Lifecycle-Bloecke nicht neu erzeugen werden NICHT gebaut.
+  (2) braechte nur ein paar Sekunden (t1 9 s, t3 14 s inkl. 6 s Schlafen), (3) hoechstens ~20 s und dafuer das payopen-Risiko.
+  Der Lauf hat mit 111 s jetzt rund 250 s Luft zum Limit.
+- Groesster Posten ist neu das SCHREIBEN mit 44 s (beide Team-Tabs, Open Payments, Events-Spiegel, WA-Spiegel, ClientIds-Lookup).
+  Falls je wieder Luft fehlt, dort ansetzen (z. B. Spiegel nur schreiben, wenn sich etwas geaendert hat) - nicht bei den Reports.
+- ⚠️ OFFEN GEBLIEBEN (nur relevant, falls (3) doch je gebaut wird): `payopen` in klassen.js laeuft ueber die Roh-Zeilen und nimmt die
+  erste Zeile mit "Signed but no payment" statt die neueste je E-Mail (`lifeBy` macht es richtig). Mit aelteren Bloecken koennte
+  jemand in Waseems Liste stehen bleiben, der schon bezahlt hat. Heute unkritisch, weil jeder Block frisch erzeugt wird.
 - ⚠️ PARALLELARBEIT 09.09. 22:20: Der Analytics-Chat hatte 80bd192 (`clearSheet` legt Tabs mit defekten Diagrammen neu an und gibt
   das Blatt zurueck, `trInit` gibt `sh` zurueck) schon eingespielt. Vor dem Einfuegen deshalb IMMER: Funktionsnamen des Editors gegen
   den eigenen Stand vergleichen (`onlyInEditor` muss leer sein) UND den Editor gegen den letzten gemeinsamen Commit diffen. Hier war
