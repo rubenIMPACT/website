@@ -2264,6 +2264,9 @@ var TR_ROW0 = 5, TR_DAY_N = 8, TR_P0 = 9, TR_NCOL = 18, TR_CHECK_DAYS = 1, TR_PA
 // Unterschriftstag mit "ohne Check-in" als Klasse; zaehlt sofort als Trial und Verkauf, kein roter Hinweis). PT-Pakete, Paketwechsel
 // und Verlaengerungen sind keine Verkaeufe (klassen.js saleOf / computeMonat). Zahlungshinweis entfaellt bei geplantem Abo-Start.
 var TR_SALE_FROM = '2026-09-01', TR_FV_BACK = 60;
+// Geschwisterkinder (Ruben 04.09.: zwei Kinder auf einem Konto = 2 Personen; 10.09.: die zweite Zeile baut das Skript selbst).
+// Erkennung am Kontonamen: "Giorgio & Gabrielle Radaelli", "Giancarlo + Amea Stasi", "Andreas March (fuer Ricardo und Leonardo)".
+var TR_SIB = /[&+]|\bund\b|\band\b/i;
 var TR_CID_SHEET = 'ClientIds'; // versteckter Tab im Team-Sheet: Report-User-ID -> Profilnummer (CRM-Link), waechst je Lauf
 var DI = { day: 0, att: 1, conv: 2, placed: 3, trials: 4, noshow: 5, signed: 6, sold: 7 }; // signed = Vertragsunterschrift, sold = Paketstart (Ruben 09.09.)
 // Ruben 06.09.: Spalte Personen raus (zwei Kinder = Zeile kopieren und Namen aendern, die Kopie bleibt erhalten), Vertragsstart neu
@@ -2286,6 +2289,7 @@ var TR_T = {
     notes: ['Datum des ersten Check-ins. Bei No-Show, Storniert oder Gebucht: Datum des gebuchten Termins. Automatisch aus exercise.com.', 'Name in exercise.com. Automatisch.', 'Trial stattgefunden = die Person war da (erster Check-in überhaupt). Gebucht (kommend) = Termin liegt noch vor uns. No-Show = nicht erschienen. Storniert. Wiederholer (prüfen). Rückkehrer. Event (kein Trial). Automatisch.', 'Uhrzeit und Klasse des ersten Check-ins (bei Gebucht: des Termins). Die Personen eines Tages stehen nach Uhrzeit sortiert. Automatisch.', 'Trainer dieser Klasse. Automatisch.', 'Wer die Buchung in exercise.com angelegt hat. Automatisch.', 'Herkunft der Website-Anfrage: Klick-ID (Google Ads, Meta Ads, TikTok Ads), sonst UTM, sonst verweisende Seite. "kein Web-Lead" = kein Formular auf der Website gefunden. Automatisch.', 'Anzahl Personen, automatisch 2 bei Geschwistern auf einem Account ("&" oder "+" im Namen).', 'Aktuelle Lifecycle-Stage in exercise.com. Wird dort gepflegt, hier nur gelesen. "Non-Client" (Assistant Coach, Friends & Family) nimmt die Zeile aus der Zählung. Automatisch.', 'Abweichung zwischen Fakt (Buchung, Check-in, Vertrag) und Lifecycle-Stage, ab einem Tag nach dem Termin. Rot = bitte in exercise.com die Stage setzen; beim nächsten Lauf verschwindet der Hinweis. Automatisch.', 'Tag, an dem das erste Abo-Paket aktiviert wurde: Abo-Start in exercise.com oder bei Rechnungskunden das manuell aktivierte Paket. Das ist der Verkauf. Die Unterschrift allein zählt nicht. Automatisch.', 'Wer den Vertrag (Waiver) unterschreiben liess. Automatisch.', 'Abgeschlossenes Paket. Automatisch.', 'Datum und Typ der letzten Notiz in exercise.com. Automatisch.', 'Link auf die Notizen der Person in exercise.com.', 'Wann die Trial-Buchung in exercise.com erstellt wurde. Zählt als Placed Trial für diesen Tag. Automatisch.', 'exercise.com User-ID, der Schlüssel der Zeile. Nicht ändern.', 'No-Show-Daten dieser Person, Grundlage der Tageszählung. Nicht ändern.', 'Letzte Aktualisierung (stündlich 09–22 Uhr).'],
     noVisit: 'ohne Check-in', art: { 'Trial': 'Trial stattgefunden', 'Gebucht': 'Gebucht (kommend)' }, kanal: {},
     payHead: ['Zahlung offen', 'seit', 'Tage', 'CRM'],
+    sib: ' (2. Kind)',
     nsNote: 'No-Show am {ns}, neu gebucht für {d}.',
     chk: { nolc: 'Trial am {d} vorbei, keine Lifecycle-Stage bekannt', stuck: 'Trial am {d} vorbei, Stage noch "{lc}"', noshow: 'No-Show am {d}, Stage noch "{lc}"', canc: 'Storniert am {d}, Stage noch "{lc}"', booked: 'Termin {d} gebucht, Stage "{lc}" statt Trial Booked', wdh: 'Wiederholer: Stage in exercise.com setzen oder auf "Non-Client" stellen', clientNoContract: 'Stage Client, aber kein aktiviertes Abo-Paket gefunden', contractNoClient: 'Paket am {d} aktiviert, Stage aber "{lc}"', pay: 'Seit {n} Tagen unterschrieben, kein Paketstart: Zahlung fehlt', noteYes: ' (letzte Notiz {n})', noteNo: ' (keine Notiz seit dem Termin)' },
     mail: { subject: '[Team] Probetrainings Zürich {d}', today: 'Heute', yest: 'Gestern', checks: 'Bitte in exercise.com nachziehen', pay: 'Zahlung offen (ab 7 Tagen)', none: 'keine', month: 'Monat bisher: {t} Trials, {s} verkauft, {c} zu prüfen' },
@@ -2302,6 +2306,7 @@ var TR_T = {
     noVisit: 'no check-in', art: { 'Trial': 'Trial done', 'No-Show': 'No-show', 'Storniert': 'Cancelled', 'Gebucht': 'Booked (upcoming)', 'Wiederholer (prüfen)': 'Repeat visitor (check)', 'Rückkehrer (Ex-Mitglied)': 'Returning ex-member', 'Event (kein Trial)': 'Event (no trial)' },
     kanal: { 'Google organisch': 'Google organic', 'Instagram/Facebook organisch': 'Instagram/Facebook organic', 'TikTok organisch': 'TikTok organic', 'Direkt': 'Direct', 'Andere': 'Other', 'kein Web-Lead': 'no web lead' },
     payHead: ['Payment open', 'since', 'days', 'CRM'],
+    sib: ' (2nd child)',
     nsNote: 'No-show on {ns}, re-booked for {d}.',
     chk: { nolc: 'Trial on {d} is over, no lifecycle stage known', stuck: 'Trial on {d} is over, stage still "{lc}"', noshow: 'No-show on {d}, stage still "{lc}"', canc: 'Cancelled on {d}, stage still "{lc}"', booked: 'Session {d} booked, stage "{lc}" instead of Trial Booked', wdh: 'Repeat visitor: set the stage in exercise.com or set it to "Non-Client"', clientNoContract: 'Stage Client, but no activated membership package found', contractNoClient: 'Package activated on {d}, but stage "{lc}"', pay: 'Signed {n} days ago, no package start: payment still missing', noteYes: ' (last note {n})', noteNo: ' (no note since the session)' },
     mail: { subject: '[Team] Trials Winterthur {d}', today: 'Today', yest: 'Yesterday', checks: 'Please update in exercise.com', pay: 'Payment open (7 days and more)', none: 'none', month: 'Month so far: {t} trials, {s} sold, {c} to check' },
@@ -2542,23 +2547,43 @@ function trUpsert(ss, loc, rows, sales, payopen, start, today, leadMap, cidMap) 
   var toDate = function (s) { return s ? new Date(s + 'T12:00:00') : ''; };
   var noteTxt = function (nt) { return nt && nt.date ? nt.date.slice(8, 10) + '.' + nt.date.slice(5, 7) + '.' + nt.date.slice(0, 4) + (nt.type ? ' ' + nt.type : '') : ''; };
   var crm = function (uid, name) { return trCrmLink(cidMap, uid, name); }; // Profilnummer statt Report-User-ID (Ruben 08.09.: Links liefen ins Leere)
-  var seen = {};
+  var seen = {}, second = {};
   rows.forEach(function (x) {
     var o = byUid[x.uid], s = x.sale || {}, lead = leadMap ? trFindLead(leadMap, x.email, x.name, x.date) : null, r = [];
     r[CI.date] = toDate(x.date); r[CI.name] = x.name; r[CI.art] = trL(loc, 'art', x.art); r[CI.cls] = x.noVisit ? T.noVisit : (x.time ? String(x.time).slice(0, 5) + ' ' : '') + (x.cls || ''); // Uhrzeit vor der Klasse (Ruben 07.09.)
     r[CI.coach] = x.trainer || ''; // Trainer der Klasse (Ruben 09.09.: bleibt neben der Klasse; die Zuweisung stand seit 07.09. versehentlich in einem Kommentar)
     r[CI.kanal] = trL(loc, 'kanal', lead ? lead.kanal : 'kein Web-Lead'); r.srcNote = !lead && x.source ? 'Quelle in exercise.com: ' + String(x.source).replace(/^\s*-\s*/, '') : ''; // Quelle als Notiz statt im Text (Ruben 07.09.)
     r[CI.lifecycle] = x.lifecycle || (o ? o[CI.lifecycle] : ''); r[CI.check] = '';
-    r[CI.contract] = toDate(s.signed || ''); r[CI.start] = toDate(s.date); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || ''; // Unterschrift (Waiver) und Paketstart (= Verkauf)
+    r[CI.contract] = toDate(s.signed || ''); r[CI.start] = toDate(s.date); r[CI.seller] = s.by || ''; r[CI.pkg] = s.pkg || ''; // Unterschrift (Waiver) und Paketstart
+    if (s.second && s.second.date) second[String(x.uid)] = s.second; // zweites Abo desselben Kontos: gehoert auf die Geschwisterzeile (= Verkauf)
     r[CI.note] = x.lastNote ? noteTxt(x.lastNote) : (o ? o[CI.note] : ''); r[CI.crm] = crm(x.uid, x.name);
     r[CI.created] = toDate((x.bk && x.bk.length ? x.bk[x.bk.length - 1] : x.bookedAt) || ''); r[CI.uid] = String(x.uid);
     r[CI.ns] = (x.ns || []).join(','); r[CI.stamp] = stamp;
     byUid[x.uid] = r; seen[x.uid] = true;
   });
-  Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.signed || ''); o[CI.start] = toDate(s.date); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; });
+  Object.keys(sales).forEach(function (uid) { var o = byUid[uid]; if (!o || seen[uid]) return; var s = sales[uid] || {}; o[CI.contract] = toDate(s.signed || ''); o[CI.start] = toDate(s.date); o[CI.seller] = s.by || ''; o[CI.pkg] = s.pkg || ''; o[CI.stamp] = stamp; if (s.second && s.second.date) second[String(uid)] = s.second; });
   var all = Object.keys(byUid).map(function (k) { return byUid[k]; });
-  Object.keys(extras).forEach(function (u) { var base = byUid[u]; if (!base) return; extras[u].forEach(function (nm) { var c = base.slice(); c[CI.name] = nm; all.push(c); }); });
-  all.forEach(function (r) { r[CI.check] = trCheck(r, today, T); r[CI.crm] = crm(r[CI.uid], r[CI.name]); if (/^(ohne Website-Lead|no website lead)/.test(String(r[CI.kanal] || ''))) r[CI.kanal] = trL(loc, 'kanal', 'kein Web-Lead'); }); // alte Beschriftung angleichen
+  // Zweite Zeile eines Kontos (Geschwisterkind): Verkaufsfelder kommen NUR vom zweiten Abo. Ein Paket auf dem Konto bleibt ein
+  // Verkauf, zwei Pakete sind zwei Verkaeufe (Ruben 10.09.). Die Buchung zaehlt einmal, deshalb bleibt "Buchung erstellt am" leer.
+  var trSecond = function (c, s2) {
+    if (s2 && s2.date) { c[CI.contract] = toDate(s2.signed || ''); c[CI.start] = toDate(s2.date); c[CI.seller] = s2.by || ''; c[CI.pkg] = s2.pkg || ''; }
+    else { c[CI.contract] = ''; c[CI.start] = ''; c[CI.seller] = ''; c[CI.pkg] = ''; }
+    c[CI.created] = '';
+    c.sib = true; // Kennzeichen fuer die Pruefen-Spalte (siehe unten), landet nicht im Sheet
+    return c;
+  };
+  Object.keys(extras).forEach(function (u) { var base = byUid[u]; if (!base) return; extras[u].forEach(function (nm) { var c = base.slice(); c[CI.name] = nm; all.push(trSecond(c, second[u])); }); });
+  // Konten mit zwei Kindern im Namen bekommen die zweite Zeile automatisch, wenn es noch keine (umbenannte) Kopie gibt.
+  // Vor dem 09.09. war das eine Handkopie - die ging beim Spaltenumbau verloren, deshalb macht es jetzt das Skript.
+  Object.keys(byUid).forEach(function (u) {
+    if (extras[u]) return;
+    var base = byUid[u]; if (!base || !TR_SIB.test(String(base[CI.name] || ''))) return;
+    var c = base.slice(); c[CI.name] = String(base[CI.name]) + T.sib;
+    all.push(trSecond(c, second[u]));
+  });
+  // Auf der zweiten Zeile eines Kontos KEIN Pruefen-Hinweis: die Stage gehoert dem Konto, nicht dem zweiten Kind - sonst stuende
+  // dort dauerhaft "Stage Client, aber kein aktiviertes Abo-Paket gefunden", obwohl nichts zu tun ist (Ruben 10.09.).
+  all.forEach(function (r) { r[CI.check] = r.sib ? '' : trCheck(r, today, T); r[CI.crm] = crm(r[CI.uid], r[CI.name]); if (/^(ohne Website-Lead|no website lead)/.test(String(r[CI.kanal] || ''))) r[CI.kanal] = trL(loc, 'kanal', 'kein Web-Lead'); }); // alte Beschriftung angleichen
   // Tageswerte: Trials, No-Shows (aus den NS-Daten, nicht aus der Art), Vertragsunterschriften (Unterschriftstag), Paketstarts (= Verkauf), Placed Trials (Buchungstag)
   var day = {}, D = function (d) { return day[d] = day[d] || { placed: 0, trials: 0, ns: 0, signed: 0, sold: 0 }; };
   var byDate = {};

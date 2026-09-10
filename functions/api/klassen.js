@@ -524,8 +524,15 @@ function computeMonat(inp) {
     const debtL = lf.filter((x) => /debt/i.test(x.to)); L.debt_collection = debtL.length; L.debt_by_day = dayCount(debtL, (x) => x.date); // nur Info, kein Verlust (Ruben 09.09., Variante A)
     // Verkaeufe = Personen mit verkauftem Abo-Paket im Monat (Sold Packages), ohne bestehende Mitglieder
     const salesL = soldM.filter((o) => o.loc === loc);
-    L.new_customers = salesL.length; L.sales_signed = salesL.length; L.sales_invoice = salesL.filter((o) => !o.sub).length;
-    L.starts_by_day = dayCount(salesL, (o) => o.date); L.signed_by_day = L.starts_by_day; // Verkaufstag fuer die Wochenspalten
+    // Zwei Pakete auf einem Konto = zwei Verkaeufe (Ruben 10.09.2026, Geschwisterkinder auf einem Elternkonto). Gezaehlt werden die
+    // Abo-Starts des Monats je Konto (ohne PT, ohne Gratis ohne Rechnungs-Tag); jeder Start ueber den ersten hinaus ist ein weiterer
+    // Verkauf und zaehlt an SEINEM Starttag. Ein Paketwechsel erzeugt keinen zweiten Start im Monat (das alte Abo begann frueher).
+    const monthStarts = (o) => !o.uid ? [] : (subsByUid[o.uid] || []).filter((x) => x.date && inMonth(x.date) && !(x.free && !invoiceTag(o.uid))).map((x) => x.date).sort();
+    const salesExp = [];
+    salesL.forEach((o) => { salesExp.push(o); monthStarts(o).slice(1).forEach((d) => salesExp.push(Object.assign({}, o, { date: d, sibling: true }))); });
+    L.new_customers = salesExp.length; L.sales_signed = salesExp.length; L.sales_invoice = salesL.filter((o) => !o.sub).length;
+    L.sales_siblings = salesExp.length - salesL.length; // zweite Pakete auf einem Konto, nur zur Kontrolle
+    L.starts_by_day = dayCount(salesExp, (o) => o.date); L.signed_by_day = L.starts_by_day; // Verkaufstag fuer die Wochenspalten
     L.sales_open = salesL.filter((o) => o.email && lifeCur[o.email] === "Signed but no payment").length;
     out.signed[loc] = salesL.map((o) => ({ email: o.email, date: o.date }));
     // Verluste = Abo beendet (Cancelled Subscriptions, "Ended At" im Monat), gleiche Ausschluesse wie die Verkaeufe: nur Abo-Pakete, kein PT,
@@ -925,7 +932,10 @@ function computeTrials(inp) {
     const date = ss.length ? ss[0].date : (inv ? inv.date : (ws.length ? ws[0].date : cs[0].ended));
     const days = date ? Math.round((Date.parse(date) - Date.parse(trialDate)) / 86400000) : "";
     const status = ss.length ? (days === 0 ? "Verkauft am Trial-Tag" : "Verkauft") : (inv ? "Verkauft (Rechnung)" : "Verkauft, wieder gekündigt");
-    return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (inv ? inv.pkg : cs[0].pkg), days, start: ss.length ? ss[0].date : "", signed: ws.length ? ws[0].date : "" }; // signed = Vertragsunterschrift (Waiver), date = Paketstart (Team-Sheet, Ruben 09.09.)
+    // Zweites Abo auf demselben Konto (Geschwisterkind, Ruben 10.09.): das Team-Sheet setzt es auf die zweite Zeile.
+    // Zwei Pakete sind zwei Verkaeufe, ein Paket bleibt einer - deshalb bekommt die zweite Zeile nur mit `second` einen Paketstart.
+    const second = ss.length > 1 ? { date: ss[1].date, pkg: ss[1].pkg, by: ws.length ? ws[0].by : "", signed: ws.length > 1 ? ws[1].date : (ws.length ? ws[0].date : "") } : null;
+    return { status, date, by: ws.length ? ws[0].by : "", pkg: ss.length ? ss[0].pkg : (inv ? inv.pkg : cs[0].pkg), days, start: ss.length ? ss[0].date : "", signed: ws.length ? ws[0].date : "", second }; // signed = Vertragsunterschrift (Waiver), date = Paketstart (Team-Sheet, Ruben 09.09.)
   };
   // Zahlung offen: Personen, deren aktuelle Stage "Signed but no payment" ist, mit dem Datum des Uebergangs in diese Stage
   const payInto = {}; (inp.life || []).forEach((r) => { if (String(r["Transitioned To"] || "") !== "Signed but no payment") return; const e = String(r["Email"] || "").toLowerCase().trim(), d = chDate(r["Date"]); if (e && d && (!payInto[e] || payInto[e] < d)) payInto[e] = d; });
