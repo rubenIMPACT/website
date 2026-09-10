@@ -300,13 +300,14 @@ function fetchLocations() { // location id -> name (invoices carry destination_i
 }
 function fetchReport(key, start, end, per, cols, locId) { // exercise.com report via /api/wa (refresh, then poll); null = error
   if (!CF_TOKEN || /^PASTE/.test(CF_TOKEN)) return null;
-  var refresh = true;
-  for (var i = 0; i < 4; i++) {
+  var refresh = false; // attempt 0 uses exercise.com's cached report (fast when the same window was generated earlier today), attempt 1 triggers a fresh one, then poll
+  for (var i = 0; i < 8; i++) {
     try {
       var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'report', key: key, start: start, end: end, per: per, refresh: refresh, rows: true, cols: cols, location_id: locId || undefined }), muteHttpExceptions: true });
       var b = JSON.parse(r.getContentText() || '{}');
       if (r.getResponseCode() !== 200 || !b.ok) { Logger.log('report ' + key + ': ' + r.getResponseCode() + ' ' + String(r.getContentText()).slice(0, 200)); return null; }
-      if (b.ready) return b.rows || [];
+      if (b.ready) { if (i) Logger.log('report ' + key + ' ready after ' + i + ' attempts'); return b.rows || []; }
+      if (i === 0) { refresh = true; continue; }
       refresh = false; Utilities.sleep(15000);
     } catch (e) { Logger.log('report ' + key + ': ' + e); return null; }
   }
