@@ -544,8 +544,8 @@ function ensureSheets(ss) {
   }
   return sh;
 }
-var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Plan', 'Request', 'Days', 'Calls', 'Messages so far', 'Your task', 'Automation next', 'Called, no answer', 'Reached', 'Updated', 'Key'];
-var CALL_NOTE = 'Rebuilt every hour from the Leads Log and the trial lists: every website lead of this studio without a trial booking. Priority 1 (red) = nobody has contacted the lead yet: call today, if nobody answers send M1. Priority 2 (orange) = message 1 is out (or one call was made), no reply: call, if nobody answers send M2. Priority 3 (yellow) = message 2 is out, no reply: last call, if nobody answers send M3. Priority 4 (green) = reached by phone: propose the trial date and book it. Priority 6 (grey) = three messages, no reply: closed, no further action. Tick "Called, no answer" after every unsuccessful call (the tick is collected within the hour, counted in "Calls", then cleared; the 48 h clock restarts from your call). Tick "Reached" once you spoke to the lead: the row turns green and the automation stops for this lead. "Automation next" is the moment the automation sends the next message by itself (48 h after the last message or call). Leads leave the list as soon as a trial is booked. The ticks also fill "Anrufe versucht" and "Anrufe geführt" in the day rows of the Probetrainings tab. "Plan" is the training plan the lead built on the website, if any.';
+var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Plan', 'Request', 'Days', 'Call attempts', 'Last call attempt', 'Messages so far', 'Your task', 'Automation next', 'Called, no answer', 'Reached', 'Updated', 'Key']; // Ruben 10.09.: attempts + time of the last attempt
+var CALL_NOTE = 'Rebuilt every hour from the Leads Log and the trial lists: every website lead of this studio without a trial booking. Priority 1 (red) = nobody has contacted the lead yet: call today, if nobody answers send M1. Priority 2 (orange) = message 1 is out (or one call was made), no reply: call, if nobody answers send M2. Priority 3 (yellow) = message 2 is out, no reply: last call, if nobody answers send M3. Priority 4 (green) = reached by phone: propose the trial date and book it. Priority 6 (grey) = three messages, no reply: closed, no further action. Tick "Called, no answer" after every unsuccessful call (the tick is collected within the hour, counted in "Call attempts" with the time in "Last call attempt", then cleared; the 48 h clock restarts from your call). Tick "Reached" once you spoke to the lead: the row turns green and the automation stops for this lead. "Automation next" is the moment the automation sends the next message by itself (48 h after the last message or call). Leads leave the list as soon as a trial is booked. The ticks also fill "Anrufe versucht" and "Anrufe geführt" in the day rows of the Probetrainings tab. "Plan" is the training plan the lead built on the website, if any.';
 function harvestCalls(now) { // collect the ticks from both call lists into the tab "Call log" (Team KPIs), clear "Called", keep "Reached"; returns the state per lead key
   var ss = SpreadsheetApp.openById(TEAM_ID), log = ss.getSheetByName('Call log');
   if (!log) { log = ss.insertSheet('Call log'); log.getRange('A1').setValue('Call log: one line per tick in the call lists ("called" = called, nobody answered; "reached" = spoke to the lead). Feeds "Calls" in the call lists and the day rows "Anrufe versucht" / "Anrufe geführt" in the Probetrainings tabs. Read-only.').setFontColor('#666666'); log.getRange(2, 1, 1, 6).setValues([['Date', 'Time', 'Studio', 'Name', 'Key', 'Event']]).setFontWeight('bold').setBackground('#f3f3f3'); log.setFrozenRows(2); [100, 60, 90, 180, 220, 80].forEach(function (w, i) { log.setColumnWidth(1 + i, w); }); }
@@ -555,9 +555,9 @@ function harvestCalls(now) { // collect the ticks from both call lists into the 
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var sh = ss.getSheetByName(loc === 'Zurich' ? 'Call list ZH' : 'Call list WT'); if (!sh || sh.getLastRow() < 5) return;
     var v = sh.getRange(5, 1, sh.getLastRow() - 4, CALL_HEAD.length).getValues();
-    v.forEach(function (r) { var k = String(r[15] || '').toLowerCase().trim(); if (!k) return; var st = state[k] = state[k] || { called: [], reached: null, loc: loc };
-      if (r[12] === true) { st.called.push(now); add.push([dayStart(now), fmtT(now), loc, r[1], k, 'called']); }
-      if (r[13] === true && !st.reached) { st.reached = now; add.push([dayStart(now), fmtT(now), loc, r[1], k, 'reached']); } });
+    v.forEach(function (r) { var k = String(r[16] || '').toLowerCase().trim(); if (!k) return; var st = state[k] = state[k] || { called: [], reached: null, loc: loc };
+      if (r[13] === true) { st.called.push(now); add.push([dayStart(now), fmtT(now), loc, r[1], k, 'called']); }
+      if (r[14] === true && !st.reached) { st.reached = now; add.push([dayStart(now), fmtT(now), loc, r[1], k, 'reached']); } });
   });
   if (add.length) { var r0 = log.getLastRow() + 1; log.getRange(r0, 1, add.length, 6).setValues(add); log.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); Logger.log('call log: ' + add.length + ' new ticks'); }
   return state;
@@ -566,7 +566,8 @@ function leadState(l, lastA, calls, now) { // slot = messages so far (automatic 
   var id = l.email || l.nname, sentA = lastA[id] || {}, cs = calls[(l.email || '').toLowerCase()] || { called: [], reached: null };
   var done = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }), times = done.map(function (m) { return sentA[m]; }).concat(cs.called);
   var lastAt = times.length ? new Date(Math.max.apply(null, times.map(function (d) { return d.getTime(); }))) : null;
-  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length + (cs.reached ? 1 : 0), reached: cs.reached };
+  var allCalls = cs.called.concat(cs.reached ? [cs.reached] : []), lastCall = allCalls.length ? new Date(Math.max.apply(null, allCalls.map(function (d) { return d.getTime(); }))) : null;
+  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length), lastAt: lastAt, done: done, sentA: sentA, calls: allCalls.length, lastCall: lastCall, reached: cs.reached };
 }
 function readPlans() { // lead e-mail -> latest training plan link (Leads Log, tab "Trainingsplan": Link col 15, E-Mail col 19)
   var m = {}, sh = SpreadsheetApp.openById(MAIN_ID).getSheetByName('Trainingsplan'); if (!sh || sh.getLastRow() < 2) return m;
@@ -585,13 +586,13 @@ function writeCallLists(leads, trials, trialNames, lastA, calls, now) { // tabs 
     var p, c, t, next;
     if (st.reached) { if (st.reached.getTime() < now.getTime() - 21 * 24 * h) return; p = 4; c = '#d9ead3'; t = 'Reached on ' + fmtEuD(st.reached) + ': propose the trial date and book it in exercise.com'; next = 'nothing (reached, the automation is off)'; }
     else { if (slot >= RULE.A_MAX && lastAt && lastAt.getTime() < now.getTime() - 7 * 24 * h) return; p = prio[slot]; c = colors[slot]; t = task[slot]; var due = slot >= RULE.A_MAX ? null : new Date(lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h); next = !due ? 'nothing (lead closed)' : (due.getTime() < now.getTime() - 24 * h ? 'no automatic message (the moment passed before the automation started): call by hand' : fmtEuDT(sendAt(due, 'A')) + ': A' + (slot + 1) + ' goes out automatically'); }
-    rows[l.loc].push({ p: p, c: c, ts: l.ts.getTime(), plan: plans[key] || '', r: [p, l.name, l.phone, l.lang.toUpperCase(), l.interest, plans[key] ? 'Plan' : '', fmtEuDT(l.ts), Math.floor((now.getTime() - l.ts.getTime()) / (24 * h)), st.calls, st.done.map(function (m) { return m + ' ' + fmtEuD(st.sentA[m]); }).join(', '), t, next, false, !!st.reached, fmtEuDT(now), key] });
+    rows[l.loc].push({ p: p, c: c, ts: l.ts.getTime(), plan: plans[key] || '', r: [p, l.name, l.phone, l.lang.toUpperCase(), l.interest, plans[key] ? 'Plan' : '', fmtEuDT(l.ts), Math.floor((now.getTime() - l.ts.getTime()) / (24 * h)), st.calls, st.lastCall ? fmtEuDT(st.lastCall) : '', st.done.map(function (m) { return m + ' ' + fmtEuD(st.sentA[m]); }).join(', '), t, next, false, !!st.reached, fmtEuDT(now), key] });
   });
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var name = loc === 'Zurich' ? 'Call list ZH' : 'Call list WT', sh = ss.getSheetByName(name);
     if (!sh) { sh = ss.insertSheet(name); sh.getRange('A1').setValue(name + ': who to call today').setFontSize(14).setFontWeight('bold'); sh.setFrozenRows(4); }
-    [60, 200, 130, 70, 150, 60, 130, 50, 50, 200, 300, 260, 90, 80, 120, 10].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-    sh.getRange('A2:P2').breakApart(); sh.getRange('A2').setValue(CALL_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('A2:O2').merge(); sh.setRowHeight(2, 130);
+    [60, 200, 130, 70, 150, 60, 130, 50, 60, 130, 200, 300, 260, 90, 80, 120, 10].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    sh.getRange('A2:Q2').breakApart(); sh.getRange('A2').setValue(CALL_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('A2:P2').merge(); sh.setRowHeight(2, 130);
     var list = rows[loc].sort(function (a, b) { return a.p !== b.p ? a.p - b.p : a.ts - b.ts; });
     sh.getRange('A3').setValue(list.length + ' leads: ' + [1, 2, 3, 4, 6].map(function (p) { return list.filter(function (x) { return x.p === p; }).length + ' x priority ' + p; }).join(', ') + '. ' + fmtEuDT(now));
     sh.getRange(4, 1, 1, CALL_HEAD.length).setValues([CALL_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
@@ -599,7 +600,7 @@ function writeCallLists(leads, trials, trialNames, lastA, calls, now) { // tabs 
     if (list.length) {
       sh.getRange(5, 1, list.length, CALL_HEAD.length).setValues(list.map(function (x) { return x.r; }));
       sh.getRange(5, 1, list.length, CALL_HEAD.length).setBackgrounds(list.map(function (x) { return CALL_HEAD.map(function () { return x.c; }); }));
-      sh.getRange(5, 3, list.length, 1).setNumberFormat('@'); sh.getRange(5, 11, list.length, 2).setWrap(true); sh.getRange(5, 13, list.length, 2).insertCheckboxes();
+      sh.getRange(5, 3, list.length, 1).setNumberFormat('@'); sh.getRange(5, 12, list.length, 2).setWrap(true); sh.getRange(5, 14, list.length, 2).insertCheckboxes();
       sh.getRange(5, 6, list.length, 1).setRichTextValues(list.map(function (x) { var rt = SpreadsheetApp.newRichTextValue().setText(x.plan ? 'Plan' : ''); if (x.plan) rt.setLinkUrl(0, 4, x.plan); return [rt.build()]; }));
     }
     sh.hideColumns(CALL_HEAD.length);
