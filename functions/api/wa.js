@@ -40,6 +40,8 @@ export async function onRequestPost(context) {
     if (p.action === "invoice_refresh") return j(await invoiceRefresh(H, p.ids));
     if (p.action === "client_status") return j(await clientStatus(H, p.uids));
     if (p.action === "locations") return j(await locations(H));
+    if (p.action === "lifecycle_stages") return j(await lifecycleStages(H));
+    if (p.action === "set_lifecycle") return j(await setLifecycle(H, p));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
     return j({ error: "exception", detail: String(e && e.message ? e.message : e).slice(0, 200) }, 502);
@@ -227,6 +229,26 @@ async function clientStatus(H, uids) {
   return { ok: true, pages, found: Object.keys(out).length, unresolved: [...want], clients: out };
 }
 // Location ids -> names (invoices carry destination_id of type Fbm::Location). Two candidate endpoints, both read-only.
+// Lifecycle stages (id + name), read-only probe over the candidate endpoints (10.09.2026: the automation shall set "Not interested" / "Lost" itself).
+async function lifecycleStages(H) {
+  const out = { ok: true, tried: {} };
+  for (const path of ["/api/v2/lifecycle_stages", "/api/v2/lifecycle_stages?per=100", "/api/v4/lifecycle_stages", "/api/v4/clients/lifecycle_stages", "/api/v2/clients/lifecycle_stages"]) {
+    const r = await getJson(H, API + path), b = r.json;
+    const list = Array.isArray(b) ? b : (b && (b.lifecycle_stages || b.lifecycle_stage || b.stages || b.data)) || null;
+    out.tried[path] = { status: r.status, keys: b && typeof b === "object" && !Array.isArray(b) ? Object.keys(b).slice(0, 8) : null, count: Array.isArray(list) ? list.length : null };
+    if (Array.isArray(list) && list.length) { out.stages = list.map((s) => ({ id: String(s.id), name: String(s.name || s.title || ""), position: s.position })); out.source = path; break; }
+  }
+  return out;
+}
+// Set the lifecycle stage of one client: PUT /api/v2/clients/{cid} (the same write path /api/lead uses for tags). Returns the stage read back.
+async function setLifecycle(H, p) {
+  const cid = String(p.cid || "").replace(/\D/g, ""), sid = String(p.stage_id || "").replace(/\D/g, "");
+  if (!cid || !sid) return { error: "cid_and_stage_id_required" };
+  const r = await fetch(API + "/api/v2/clients/" + cid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ client: { lifecycle_stage_id: sid } }) });
+  const txt = await r.text(); let b = null; try { b = JSON.parse(txt); } catch { /* not json */ }
+  const c = b && (b.client || b);
+  return { ok: r.ok, status: r.status, lifecycle: c ? String(c.lifecycle_stage_name || "") : "", lifecycle_stage_id: c ? String(c.lifecycle_stage_id || "") : "", body: r.ok ? undefined : txt.slice(0, 200) };
+}
 async function locations(H) {
   const out = { ok: true, nodes: {}, locations: {}, info: {} };
   for (const [key, path] of [["nodes", "/api/v4/fbm/platform_nodes?fetch_all=true"], ["locations", "/api/v4/fbm/locations?fetch_all=true&per=100"]]) {
