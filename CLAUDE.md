@@ -735,3 +735,12 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Apps Script `maWriteSalesCheck(ss, mk, list)` (in runMonatsabschluss nach maStoreCohorts): versteckter Tab "MonthlySalesCheck", Kopf
   Month | Location | Name | Package | Sale date | Reason (alles Text), Zeilen des Monats werden je Lauf ersetzt, ältere Monate bleiben.
   Anzeige "Paketstarts − Ausschlüsse = reale Verkäufe" im Team-Sheet macht der Team-KPI-Chat.
+
+## PT-ERSTPAKET = VERKAUF (10.09.2026, Entscheid Ruben, gebaut 3706d13)
+- Das erste Personal-Training-Paket (8x/16x/32x, `isPTPack`; keine Einzelsession "1x") einer Person, die vorher nie ein Abo hatte
+  (kein Mitgliedschafts-Abo aktiv/beendet vor dem Kauf, kein Abo-Paket in den 12 Vormonaten, kein früheres PT-Paket), zählt als Verkauf,
+  in Monatsabschluss (Sold Packages) und Team-Sheet (saleOf: "Verkauft (PT)", Käufer-ohne-Zeile). Person zählt einmal: ein späteres Abo
+  ist Paketwechsel (isSwitchSale berücksichtigt PT-Paket-Enden). Ende eines solchen PT-Pakets = Verlust (ptLoss), PT-Pakete von Mitgliedern
+  weder Verkauf noch Verlust. Detailzeilen "davon erstes PT-Paket" / "davon PT-Pakete beendet" (sales_pt, losses_pt).
+- MonthlySalesCheck neue Gründe: "PT, but had a membership before", "Not the first PT package", "PT package (no client match)"; PT-Personen
+  zählen in sold_raw. MA_CATCHUP '2026-09-10 PT…' → Nachlauf Jun–Sep.
