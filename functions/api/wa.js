@@ -263,10 +263,25 @@ async function setLifecycle(H, p) {
   const only = Array.isArray(p.only_from) ? p.only_from.map((x) => String(x).toLowerCase()) : null;
   if (only && only.length && only.indexOf(f.lifecycle.toLowerCase()) < 0) return { ok: false, skipped: "stage_protected", cid: f.cid, lifecycle: f.lifecycle };
   if (f.lifecycle_stage_id === sid) return { ok: true, unchanged: true, cid: f.cid, lifecycle: f.lifecycle, before: f.lifecycle };
-  const r = await fetch(API + "/api/v2/clients/" + f.cid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ client: { lifecycle_stage_id: sid } }) });
-  const txt = await r.text(); let b = null; try { b = JSON.parse(txt); } catch { /* not json */ }
-  const c = b && (b.client || b);
-  return { ok: r.ok, status: r.status, cid: f.cid, before: f.lifecycle, lifecycle: c ? String(c.lifecycle_stage_name || "") : "", lifecycle_stage_id: c ? String(c.lifecycle_stage_id || "") : "", body: r.ok ? undefined : txt.slice(0, 200) };
+  // PUT /api/v2/clients/{cid} { client: { lifecycle_stage_id } } answers 200 but does not change the stage (probe 10.09.); so try the
+  // candidate write paths in turn and verify each one by reading the client back; the first that sticks wins (reported as "via").
+  const JH = { ...H, "Content-Type": "application/json" }, tried = [];
+  const ways = [
+    ["v2 clients num", API + "/api/v2/clients/" + f.cid, "PUT", { client: { lifecycle_stage_id: Number(sid) } }],
+    ["v4 users", API + "/api/v4/users/" + f.uid, "PUT", { user: { lifecycle_stage_id: sid } }],
+    ["v3 clients", API + "/api/v3/clients/" + f.cid, "PUT", { client: { lifecycle_stage_id: sid } }],
+    ["v4 clients", API + "/api/v4/clients/" + f.cid, "PUT", { client: { lifecycle_stage_id: sid } }],
+    ["v2 clients stage obj", API + "/api/v2/clients/" + f.cid, "PUT", { client: { lifecycle_stage: { id: sid } } }],
+    ["v4 users patch", API + "/api/v4/users/" + f.uid, "PATCH", { user: { lifecycle_stage_id: sid } }],
+    ["v2 clients top-level", API + "/api/v2/clients/" + f.cid, "PUT", { lifecycle_stage_id: sid }],
+  ];
+  for (const [name, url, method, payload] of ways) {
+    let st = 0; try { const r = await fetch(url, { method, headers: JH, body: JSON.stringify(payload) }); st = r.status; await r.text(); } catch (e) { st = -1; }
+    const chk = await findClient(H, { email: f.email }); const now = chk.ok ? chk.lifecycle_stage_id : "";
+    tried.push(name + ":" + st + (now === sid ? " OK" : ""));
+    if (now === sid) return { ok: true, status: st, via: name, cid: f.cid, before: f.lifecycle, lifecycle: chk.lifecycle, lifecycle_stage_id: now, tried };
+  }
+  return { ok: false, error: "no_write_path_changed_the_stage", cid: f.cid, before: f.lifecycle, tried };
 }
 async function locations(H) {
   const out = { ok: true, nodes: {}, locations: {}, info: {} };
