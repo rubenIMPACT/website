@@ -106,13 +106,19 @@ function waDryRunHourly() {
       if (!activeClient(c)) return; // not in the client list (cancelled/inactive), debt collection, paused, unknown status: by hand
       var lang = langPick(a.client, leadLang[nname(a.name)]).lang;
       var links = a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + deDate(d.date, lang) + '): ' + d.link; }).join(' | ');
-      var vars = { due_date: deDate(a.first, lang), amount: String(a.amount), pay_link: a.debts.length > 1 ? links : a.link, card_link: CARD_LINK, invoices: links }; // Ruben 09.09.: always every link, never chase twice
-      function pushE(msg, trig) { var pre = 'E:' + msg + ':' + a.uid; if (sent[pre]) return; sent[pre] = today; pushRow('E', msg, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E); }
+      var vars = { due_date: deDate(a.first, lang), amount: String(a.amount), pay_link: a.debts.length > 1 ? links : a.debts[0].link, card_link: CARD_LINK, invoices: links }; // Ruben 09.09.: always every link, never chase twice. Links come from a.debts (refreshed this run in refreshPayLinks), never from a copy taken before the refresh (Ruben 10.09.).
+      // Ruben 10.09.: only the HIGHEST due stage goes out. An old case that is already 20 days open gets W3 (with the pay links) straight away, never W1+W2+W3 on the same day; the skipped stages count as done. A stage never goes out after a higher one (W4 sent, second invoice paid -> no W3).
+      var st = stageOf(a); if (st === 'wait') return;
+      var top = 0; STAGES.forEach(function (m) { if (sent['E:' + m + ':' + a.uid] && RANK[m] > top) top = RANK[m]; });
+      if (RANK[st] <= top) return; // this stage or a higher one already went out (within the last 60 days)
+      var skipped = STAGES.filter(function (m) { return RANK[m] < RANK[st] && !sent['E:' + m + ':' + a.uid]; });
       var money = 'CHF ' + a.amount + ' open, ' + a.attempts + ' attempts, ' + (a.nextRetry ? 'next Stripe retry ' + a.nextRetry : 'no automatic retry left') + (a.reason ? ', ' + a.reason : '');
-      if (a.days >= RULE_E.W1_D) pushE('W1', 'W1: ' + a.days + ' days since the first open invoice (' + a.first + '), ' + money);
-      if (a.days >= RULE_E.W2_D) pushE('W2', 'W2: still open after ' + a.days + ' days, ' + money);
-      if (a.days >= RULE_E.W3_D) pushE('W3', 'W3: still open after ' + a.days + ' days, pay link of the original invoice, ' + money);
-      if (a.open >= 2) pushE('W4', 'W4: ' + a.open + ' open invoices (the next invoice failed too), ' + money);
+      var trig = { W1: 'W1: ' + a.days + ' days since the first open invoice (' + a.first + '), ' + money,
+                   W2: 'W2: still open after ' + a.days + ' days, ' + money,
+                   W3: 'W3: still open after ' + a.days + ' days, pay link' + (a.debts.length > 1 ? 's of all ' + a.debts.length + ' open invoices' : ' of the original invoice') + ', ' + money,
+                   W4: 'W4: ' + a.open + ' open invoices (the next invoice failed too), ' + money }[st];
+      if (skipped.length) trig += ' [' + skipped.join('+') + ' skipped: highest due stage only]';
+      var pre = 'E:' + st + ':' + a.uid; sent[pre] = today; pushRow('E', st, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E);
     });
   }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
@@ -311,6 +317,7 @@ var RETRY_WAIT_D = 2; // Ruben / Sam 09.09.: Waseem retries by hand every second
 var ARR_NOTE = 'Rebuilt every hour from the open invoices in exercise.com: one row per member with at least one open debt, i.e. a subscription invoice that failed at least once and is still open, or an unpaid invoice that was sent by hand. A sent invoice that repeats an older open subscription invoice of the same amount counts once ("Sent invoices" shows "dup": void the sent copy). Sorted by Priority (1 = most urgent), then by open amount. "Action" says what a human has to do today: wait (Stripe still retries on the date in "Next Stripe retry"), check the payment via the pay link or retry the named invoice by hand (only when Stripe has no attempt left for it), escalate to Sam (second invoice open and the W4 deadline passed), or by hand for special statuses. Tick "Done (Waseem)" after a manual retry: on the next run the tick becomes the date in "Last retry", the tab "Retry log" gets a line, and the action says to wait ' + RETRY_WAIT_D + ' days. "Note" is free text and survives the rebuild. A member leaves the list as soon as no open invoice is left (paid or voided in exercise.com); the log then records "invoice paid on ..." or "left the list". There is no closing by hand in the sheet. "Pay links" lists every open invoice of the member as a clickable link (amount and date), one per line, oldest first, refreshed every hour; the hidden column "Pay links (raw)" holds the full addresses for copying. Yellow rows: Stripe has no automatic attempt left for at least one open invoice, only the pay link or a manual retry settles it. Red rows: debt collection. Debt collection, paused and accounts outside the client list get no automatic message.';
 var LOG_HEAD = ['Date', 'UID', 'Name', 'Location', 'Amount at the time', 'Listed since', 'Done (Waseem)', 'Note', 'Event'];
 var MERGED_NOTE = 'Merged into the tab "Debtors" on 9 Sep 2026 (Ruben): Action, Last retry, Done (Waseem) and Note now live there. This tab is no longer updated and can be deleted.';
+var STAGES = ['W1', 'W2', 'W3', 'W4'], RANK = { wait: 0, W1: 1, W2: 2, W3: 3, W4: 4 };
 function stageOf(a) { return a.open >= 2 ? 'W4' : (a.days >= RULE_E.W3_D ? 'W3' : (a.days >= RULE_E.W2_D ? 'W2' : (a.days >= RULE_E.W1_D ? 'W1' : 'wait'))); }
 function activeClient(c) { return !!c && !c.cancel_pending && !/debt|inactive|non-client|lost/i.test(c.lifecycle) && /^billed$/i.test(c.billing); }
 function priorityOf(a, c) { // 1 = most urgent. Active members first (the automation can still act), ordered by dunning stage, then by amount.
@@ -418,7 +425,7 @@ function refreshPayLinks(rows, today) { // Stripe pay links expire (Waseem 09.09
   }
   var out = [];
   rows.forEach(function (a) {
-    if (!a.debts.some(function (d) { return d.closed; })) { out.push(a); return; }
+    if (!a.debts.some(function (d) { return d.closed; })) { a.link = a.debts[0].link; out.push(a); return; } // fresh link also for the unchanged rows (Ruben 10.09.)
     var open = a.debts.filter(function (d) { return !d.closed; }); if (!open.length) return; // everything paid or voided in Stripe: no debt any more
     a.debts = open; a.open = open.length; a.first = open[0].date; a.second = open.length > 1 ? open[1].date : ''; a.days = daysBetween(a.first, today); a.amount = r2(open.reduce(function (s, d) { return s + d.amount; }, 0)); a.link = open[0].link; a.item = open[open.length - 1].item;
     var retries = open.filter(function (d) { return d.npa && d.npa >= today; }).map(function (d) { return d.npa; }).sort(); a.manual = open.filter(function (d) { return !(d.npa && d.npa >= today); }); a.exhausted = a.manual.length > 0; a.nextRetry = retries[0] || '';
