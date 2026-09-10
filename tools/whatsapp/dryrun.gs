@@ -392,7 +392,7 @@ function writeArrears(ss, rows, info, dry) {
   if (out.length) {
     sh.getRange(5, 1, out.length, ARR_HEAD.length).setValues(out);
     sh.getRange(5, 13, out.length, 1).setNumberFormat('0.00'); [4, 7, 11, 14, 21].forEach(function (col) { sh.getRange(5, col, out.length, 1).setNumberFormat('@'); });
-    sh.getRange(5, 22, out.length, 1).insertCheckboxes();
+    sh.getRange(5, 22, out.length, 1).insertCheckboxes(); sh.getRange(5, 20, out.length, 1).setWrap(true); // Action wraps instead of spilling into Last retry (Ruben 10.09.)
     var rich = sorted.map(function (a) { var labels = a.debts.map(function (d) { return 'CHF ' + d.amount.toFixed(2) + ' (' + d.date + ')'; }); var rt = SpreadsheetApp.newRichTextValue().setText(labels.join('\n')); var pos = 0; a.debts.forEach(function (d, i) { if (d.link) rt.setLinkUrl(pos, pos + labels[i].length, d.link); pos += labels[i].length + 1; }); return [rt.build()]; }); // short clickable labels instead of long addresses (Ruben 09.09.)
     sh.getRange(5, 26, out.length, 1).setRichTextValues(rich).setWrap(true); sh.getRange(5, 27, out.length, 1).setWrap(false); sh.hideColumns(27);
     var bg = sorted.map(function (a) { var c = info[a.uid]; var col = (c && /debt/i.test(c.lifecycle)) ? '#f4cccc' : (a.exhausted ? '#fff2cc' : null); return ARR_HEAD.map(function () { return col; }); }); // red = debt collection (Ruben 08.09.), yellow = Stripe has no automatic attempt left (Ruben 09.09.)
