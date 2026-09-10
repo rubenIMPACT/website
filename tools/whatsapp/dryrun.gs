@@ -21,12 +21,12 @@ var TEST_MAIL = /^(testlead|test-endpunkt|test2@|paulinelowe12|waseasdasd)/i;
 var TEXT = {
   A1: { de: 'Hi {name}, hier ist {sender} von IMPACT {studio}. Super, dass du unser Training kennenlernen willst. Wir haben gerade sehr viele Anfragen, ich melde mich so schnell wie möglich telefonisch bei dir. Wann erreiche ich dich am besten?', // Flow A texts = Google Doc, Ruben's go 10.09.2026
         en: "Hi {name}, this is {sender} from IMPACT {studio}. Great that you want to get to know our training. We're getting a lot of requests right now, so I'll call you as soon as I can. When is the best time to reach you?" },
-  A2: { de: 'Hi {name}, Falls du noch Interesse an einem Probetraining hast: Wann erreiche ich dich am besten kurz telefonisch?',
+  A2: { de: 'Hi {name}, wenn du noch Interesse an einem Probetraining hast: Wann erreiche ich dich am besten kurz telefonisch?',
         en: "Hi {name}, Sorry, it took so long. If you're still keen on a trial session: when is the best time to reach you for a quick call?" },
   A3: { de: 'Hi {name}, letzte Nachricht von mir zu deiner Anfrage. Wenn du später mal starten willst, sag mir kurz, wann ein Anruf passt. Alles Gute!',
         en: "Hi {name}, last message from me about your request. If you'd like to start later on, just tell me when a call suits you. All the best!" },
-  B1: { de: 'Hi {name}, kurze Erinnerung: Heute um {time} ist dein Probetraining {class} bei uns in {studio}. Komm bitte 10 Minuten früher. Bis später!',
-        en: 'Hi {name}, quick reminder: your trial session {class} is today at {time} at IMPACT {studio}. Please arrive 10 minutes early. See you later!' },
+  B1: { de: 'Hi {name}, kurze Erinnerung: Heute um {time} ist dein {class} Probetraining bei uns. Bis später! 🙂', // B, C, D texts = Google Doc, Ruben's go 10.09.2026
+        en: 'Hi {name}, quick reminder: your {class} trial session is today at {time}. See you later! 🙂' },
   C1: { de: 'Hi {name}, schade, dass es gestern mit dem Probetraining nicht geklappt hat. Soll ich dir einen neuen Termin vorschlagen?',
         en: "Hi {name}, sorry you couldn't make it to your trial yesterday. Shall I suggest a new date?" },
   D1: { de: 'Hi {name}, wie hat dir das Probetraining am {date} gefallen? Gibt es etwas, das für dich noch offen ist?',
@@ -47,6 +47,21 @@ var TEXT_E = {
         en: "Hi {name}, thanks for your payment 🙏 One older invoice of CHF {amount} from {due_date} is still open, though. You can pay it directly here: {pay_link} Just get in touch if anything is unclear or you need a solution." },
   W4: { de: 'Hey {name}, leider sind inzwischen mehrere Zahlungen offen, insgesamt CHF {amount}. Wenn wir innerhalb von 7 Tagen keinen Zahlungseingang bzw. keine Rückmeldung erhalten, müssen wir den offenen Betrag an unser Inkasso-/Mahnverfahren weitergeben. Du kannst die Rechnungen direkt hier bezahlen: {invoices} Bitte hinterlege danach auch deine aktuelle Karte: {card_link} Melde dich kurz, wenn du eine Lösung brauchst, damit wir das vermeiden können.',
         en: "Hi {name}, unfortunately several payments are still overdue, CHF {amount} in total. If we don't receive a payment or a reply from you within 7 days, we'll need to move forward with our debt collection process. You can pay the invoices directly here: {invoices} Afterwards, please also save your current card: {card_link} Get in touch if you need a solution, so we can avoid further steps." }
+};
+var TEXT_M = { // manual texts (Abdi / Bogdan after an unanswered call, quick replies); not sent by the automation, kept here for the call list and the chat-state detection (Google Doc, Ruben 10.09.2026)
+  M1: { de: 'Hi {name}, hier ist {sender} von IMPACT {studio}. Ich habe gerade versucht, dich anzurufen, wegen deiner Anfrage für ein Probetraining. Wann passt dir ein kurzer Anruf?',
+        en: 'Hi {name}, this is {sender} from IMPACT {studio}. I just tried to call you about your request for a trial session. When would a quick call suit you?' },
+  M2: { de: 'Hi {name}, ich habs telefonisch probiert. Wann erreiche ich dich am besten? Das Probetraining planen wir zusammen im kurzen Gespräch.',
+        en: "Hi {name}, I tried calling. When is the best time to reach you? We'll plan your trial session together in a quick call." },
+  M3: { de: 'Hi {name}, letzter Versuch, ich will dich nicht nerven. Wenn du noch Lust auf ein Probetraining hast, sag mir kurz, wann ein Anruf passt. Sonst alles Gute!',
+        en: "Hi {name}, last try, I don't want to bother you. If you still fancy a trial session, just tell me when a call suits you. Otherwise all the best!" }
+};
+var RULE_R = { N: 7, WIN_D: 60, LOCS: ['Zurich'] }; // Ruben 10.09.2026: Google review request after the 7th check-in, Zurich (Abdi) first. New members only: first visit inside the last WIN_D days
+var LOC_ID = { Zurich: 2508, Winterthur: 2222 }; // exercise.com location ids (same as klassen.js)
+var REVIEW_LINK = { Zurich: 'https://maps.app.goo.gl/1ow5T1yypnd7zvXM6', Winterthur: 'https://maps.app.goo.gl/4WLKoHRziA7jtjWp9' }; // INTERIM (10.09.): the Google Maps listing links from the website badges ("400+ Bewertungen" / "120+ reviews"); to be replaced by the "write a review" links from the Google Business Profile (Ruben)
+var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
+  R1: { de: 'Hi {name}, schön, dass du so regelmässig da bist. Wenn dir das Training bei uns gefällt, würdest du uns kurz eine Google-Bewertung schreiben? Das hilft uns enorm: {review_link}',
+        en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link}" }
 };
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
@@ -131,6 +146,20 @@ function waDryRunHourly() {
     });
     if (held.length) { payNote += ' Held (pay link not refreshed this run): ' + held.length + '.'; Logger.log('held, pay link not refreshed: ' + held.join(', ')); }
   }
+  // Flow R: Google review request after the N-th check-in (Ruben 10.09.: Zurich / Abdi first). Only new members (first visit inside
+  // the window), completed check-ins since the first visit; due when the N-th check-in happened today or yesterday (no backlog blast).
+  var rev = reviewCandidates(today), revNote = '';
+  if (rev === null) revNote = ' Flow R skipped (report error).';
+  else {
+    var ydayR = addDs(today, -1), dueR = rev.filter(function (c) { return (c.nth === today || c.nth === ydayR) && !keys['R:R1:' + c.uid]; });
+    var revClients = fetchClients(dueR.map(function (c) { return c.uid; }));
+    dueR.forEach(function (c) {
+      var link = REVIEW_LINK[c.loc]; if (!link) { Logger.log('R1 held: no review link for ' + c.loc); return; }
+      var cl = revClients[c.uid] || {}, pick = langPick(cl, leadLang[nname(c.name || cl.name)]);
+      pushRow('R', 'R1', c.loc, c.name || cl.name || '', pick.lang, 'R1: ' + RULE_R.N + 'th check-in on ' + c.nth + ' (first visit ' + c.first + ', ' + c.count + ' completed check-ins) [lang ' + pick.lang + ' from ' + pick.src + ']', 'R:R1:' + c.uid, { review_link: link }, TEXT_R);
+    });
+  }
+  payNote += revNote;
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
   if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
@@ -269,12 +298,12 @@ function fetchLocations() { // location id -> name (invoices carry destination_i
   Logger.log('locations: ' + Object.keys(m).length + ' ' + JSON.stringify(b.info || {}).slice(0, 400));
   return m;
 }
-function fetchReport(key, start, end, per, cols) { // exercise.com report via /api/wa (refresh, then poll); null = error
+function fetchReport(key, start, end, per, cols, locId) { // exercise.com report via /api/wa (refresh, then poll); null = error
   if (!CF_TOKEN || /^PASTE/.test(CF_TOKEN)) return null;
   var refresh = true;
   for (var i = 0; i < 4; i++) {
     try {
-      var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'report', key: key, start: start, end: end, per: per, refresh: refresh, rows: true, cols: cols }), muteHttpExceptions: true });
+      var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'report', key: key, start: start, end: end, per: per, refresh: refresh, rows: true, cols: cols, location_id: locId || undefined }), muteHttpExceptions: true });
       var b = JSON.parse(r.getContentText() || '{}');
       if (r.getResponseCode() !== 200 || !b.ok) { Logger.log('report ' + key + ': ' + r.getResponseCode() + ' ' + String(r.getContentText()).slice(0, 200)); return null; }
       if (b.ready) return b.rows || [];
@@ -637,6 +666,25 @@ function waProbeGaps() { // one-off (Ruben 10.09.): which debts could the curren
   out.failed_no_subscription = { count: noSub.length, sample: noSub.slice(0, 12).map(function (c) { return 'u=' + c.user_id + ' ' + fmtD(new Date(c.created_at * 1000)) + ' ' + c.amount + ' ' + String(c.description || c.item_name || '').slice(0, 30) + ' purchase=' + (c.purchase_id ? 'yes' : '-'); }) };
   var keys = open.length ? Object.keys(open[0]) : []; out.invoice_keys_amount = keys.filter(function (k) { return /amount|remaining|balance|paid/.test(k); });
   var txt = JSON.stringify(out); for (var i = 0; i < txt.length; i += 1500) Logger.log('G' + (i / 1500) + ' ' + txt.slice(i, i + 1500));
+}
+function reviewCandidates(today) { // members whose first visit lies inside the window and who have >= RULE_R.N completed check-ins since; null = report error
+  var start = addDs(today, -RULE_R.WIN_D), fv = {}, out = [];
+  for (var i = 0; i < RULE_R.LOCS.length; i++) {
+    var loc = RULE_R.LOCS[i], rows = fetchReport('clients_first_visit', start, today, 3000, ['User ID', 'First Name', 'Last Name', 'Start Time'], LOC_ID[loc]); if (rows === null) return null;
+    rows.forEach(function (r) { var u = String(r['User ID'] || '').replace(/\D/g, ''), d = chDateUTC(r['Start Time']); if (u && d && d >= start) fv[u] = { name: ((r['First Name'] || '') + ' ' + (r['Last Name'] || '')).trim(), first: d, loc: loc }; });
+  }
+  if (!Object.keys(fv).length) { Logger.log('review candidates: no first visits since ' + start); return out; }
+  var vis = fetchReport('detailed_visits', start, today, 10000, ['User ID', 'Start Time', 'Status', 'Primary Staff', 'Secondary Staff']); if (vis === null) return null;
+  var by = {}, staff = {};
+  vis.forEach(function (r) { [r['Primary Staff'], r['Secondary Staff']].forEach(function (x) { if (x) String(x).split(',').forEach(function (n) { staff[nname(n)] = true; }); }); if (String(r.Status || '') !== 'Completed') return; var u = String(r['User ID'] || '').replace(/\D/g, ''); if (!fv[u]) return; var d = chDateUTC(r['Start Time']); if (d && d >= fv[u].first) (by[u] = by[u] || []).push(d); });
+  Object.keys(by).forEach(function (u) { var ds = by[u].sort(); if (ds.length >= RULE_R.N && !staff[nname(fv[u].name)]) out.push({ uid: u, name: fv[u].name, loc: fv[u].loc, first: fv[u].first, count: ds.length, nth: ds[RULE_R.N - 1] }); });
+  Logger.log('review candidates: ' + Object.keys(fv).length + ' first visits since ' + start + ', ' + vis.length + ' visit rows, ' + out.length + ' members with >= ' + RULE_R.N + ' check-ins, due today/yesterday: ' + out.filter(function (c) { return c.nth >= addDs(today, -1); }).length);
+  return out;
+}
+function chDateUTC(v) { // report stamps "2026-08-07 12:07:00 +0000" (UTC) -> Swiss date; other formats via dOfAny
+  var s = String(v || '').trim(), m = /^(\d{4})[\/-](\d{2})[\/-](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?\s*(?:\+0000|UTC|Z)$/.exec(s);
+  if (m) return fmtD(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0))));
+  return dOfAny(v);
 }
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
