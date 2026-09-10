@@ -642,3 +642,27 @@ function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waDryRunHourly').timeBased().everyHours(1).create();
 }
+function waRestructureDoc() { // one-off (Ruben 10.09.): Google Doc "WhatsApp Messages IMPACT": A1/M1, A2/M2, A3/M3 in ONE table (rows: When | DE | EN, the id as bold first line of the message), no ID and no Status column (Ruben gives the go in the chat)
+  var body = DocumentApp.openById('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY').getBody(), SEP = '\x1f';
+  function hdr(t) { var r = t.getRow(0), o = []; for (var i = 0; i < r.getNumCells(); i++) o.push(r.getCell(i).getText().trim()); return o; }
+  function rowsOf(t) { var out = []; for (var i = 1; i < t.getNumRows(); i++) { var r = t.getRow(i), c = []; for (var j = 0; j < r.getNumCells(); j++) c.push(r.getCell(j).getText()); out.push(c); } return out; }
+  var tA = null, tM = null;
+  body.getTables().forEach(function (t) { var h = hdr(t); if (h[0] !== 'ID') return; var ids = rowsOf(t).map(function (r) { return r[0].trim(); }); if (ids.indexOf('A1') >= 0) tA = t; if (ids.indexOf('M1') >= 0) tM = t; });
+  if (!tA || !tM) throw new Error('tables not found: A=' + !!tA + ' M=' + !!tM);
+  var A = {}, M = {}; rowsOf(tA).forEach(function (r) { A[r[0].trim()] = r; }); rowsOf(tM).forEach(function (r) { M[r[0].trim()] = r; });
+  var spec = [['When', 'DE', 'EN']];
+  ['1', '2', '3'].forEach(function (n) { [A['A' + n], M['M' + n]].forEach(function (r) { spec.push([r[1].trim(), r[0].trim() + SEP + r[2].trim(), r[0].trim() + SEP + r[3].trim()]); }); });
+  var nt = body.insertTable(body.getChildIndex(tA), spec.map(function (r) { return r.map(function (c) { return c.split(SEP)[0]; }); }));
+  for (var i = 0; i < nt.getNumRows(); i++) for (var j = 0; j < 3; j++) {
+    var cell = nt.getRow(i).getCell(j), parts = spec[i][j].split(SEP);
+    if (i === 0) { cell.editAsText().setBold(true); continue; }
+    if (parts.length === 2) { cell.getChild(0).asParagraph().editAsText().setBold(true); cell.appendParagraph(parts[1]).editAsText().setBold(false); }
+  }
+  body.removeChild(tA);
+  body.insertParagraph(body.getChildIndex(tM), 'The texts M1 to M3 are listed in the Flow A table above, each directly below its automatic counterpart (A1 / M1, A2 / M2, A3 / M3).');
+  body.removeChild(tM);
+  var dropped = 0;
+  body.getTables().forEach(function (t) { var k = hdr(t).indexOf('Status'); if (k < 0) return; for (var i = 0; i < t.getNumRows(); i++) { var r = t.getRow(i); if (r.getNumCells() > k) r.removeCell(k); } dropped++; });
+  body.replaceText('and set the Status column to "Approved" when a message may go live\\. Version 8 Sep 2026, evening\\.', '. Ruben gives the go per message in the chat, there is no Status column any more. Version 10 Sep 2026.');
+  Logger.log('doc restructured: Flow A table rebuilt with ' + (nt.getNumRows() - 1) + ' rows, manual table removed, Status column dropped in ' + dropped + ' tables');
+}
