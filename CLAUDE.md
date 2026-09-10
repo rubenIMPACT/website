@@ -726,3 +726,12 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Der fehlende Kanal ist also ein Zeitfenster-Effekt, kein Kundenverhalten und kein Zuordnungsfehler. Zwischen Anfrage und
   Probetraining liegen bei IMPACT oft zwei bis vier Wochen.
 - Anrufliste im Sheet: NICHT bauen (Ruben 10.09.), das bilden die Jungs in exercise.com ueber Trial Booked und die Lead-Liste ab.
+## AUSSCHLUSS-TAB "MonthlySalesCheck" (10.09.2026, Auftrag Ruben via Team-KPI-Chat, gebaut 3d4e804)
+- klassen.js computeMonat liefert `sold_excluded_list` (je Person aus Sold Packages, die nicht als Verkauf zählt: loc, name, pkg, date,
+  reason, member, uid). Gründe in Filterreihenfolge: "Not a membership package" (PT/Single/Event, nicht in sold_raw), "One-time purchase
+  (no subscription)", "Free (no invoice tag)", "Staff", "Package change" (isSwitchSale), "Reactivation" (isReactivation), "Existing member"
+  (isOlderMember). Je Standort in der MonatsHistorie: `sold_raw` (Abo-Paket-Personen vor den Filtern + zweite Paketstarts je Konto),
+  `sold_excluded` (Zeilen ausser "Not a membership package"), `sold_nonmember`, `sold_real` = `sales_signed`; sold_raw − sold_excluded = sales_signed.
+- Apps Script `maWriteSalesCheck(ss, mk, list)` (in runMonatsabschluss nach maStoreCohorts): versteckter Tab "MonthlySalesCheck", Kopf
+  Month | Location | Name | Package | Sale date | Reason (alles Text), Zeilen des Monats werden je Lauf ersetzt, ältere Monate bleiben.
+  Anzeige "Paketstarts − Ausschlüsse = reale Verkäufe" im Team-Sheet macht der Team-KPI-Chat.
