@@ -719,8 +719,8 @@ function waRestructureDoc() { // one-off (Ruben 10.09.): Google Doc "WhatsApp Me
 }
 function waProbeVisits() { // one-off (10.09.): why does detailed_visits come back empty via /api/wa (refreshing=false, rows=0, filters='')? log only
   var today = fmtD(new Date());
-  [[60, 10000, false], [60, 5000, false], [30, 5000, false], [30, 5000, true], [7, 1000, true]].forEach(function (t) {
-    var b = cfPost({ action: 'report', key: 'detailed_visits', start: addDs(today, -t[0]), end: today, per: t[1], refresh: t[2], sample: 1 });
+  [[45, 5000, true, 2508], [60, 5000, true, 2508], [60, 10000, true, 0]].forEach(function (t) { // window days, per, refresh, location_id (probe 2: does a 45/60-day window fit, is per 10000 accepted?)
+    var t0 = Date.now(), b = cfPost({ action: 'report', key: 'detailed_visits', start: addDs(today, -t[0]), end: today, per: t[1], refresh: t[2], sample: 1, location_id: t[3] || undefined }); Logger.log('V ' + JSON.stringify(t) + ' took ' + Math.round((Date.now() - t0) / 1000) + ' s');
     if (!b) { Logger.log('V ' + JSON.stringify(t) + ' -> null (see log above)'); return; }
     Logger.log('V ' + JSON.stringify(t) + ' -> ready=' + b.ready + ' refreshing=' + b.refreshing + ' count=' + b.count + ' filters=' + String(b.filters || '').slice(0, 160) + ' headers=' + JSON.stringify(b.headers || []).slice(0, 300) + ' top=' + JSON.stringify(b.top || []) + ' sample=' + JSON.stringify(b.sample || []).slice(0, 400));
   });
