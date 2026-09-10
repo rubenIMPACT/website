@@ -482,10 +482,29 @@ function computeMonat(inp) {
   const isStaff = (name, email) => { const n = nameKey(name); return staff.has(String(name || "").toLowerCase()) || staff.has(n) || STAFF_EXTRA.indexOf(n) >= 0 || /@impact-martialarts\.com$/i.test(String(email || "")); };
   const soldM = persons(inp.sold).filter((o) => !isStaff(o.name, o.email)).map((o) => Object.assign(o, { date: saleDateOf(o) })).filter((o) => !isSwitchSale(o) && !isReactivation(o) && !isOlderMember(o)).map((o) => Object.assign(o, { loc: locOfPerson(o) }));
   const noUid = soldM.filter((o) => !o.uid).length;
+  // Ausschluss-Liste (Ruben 10.09.): jede Person aus Sold Packages, die NICHT als Verkauf zaehlt, mit Grund - in der Reihenfolge der Filter oben.
+  // "Not a membership package" (PT, Einzelsessions, Events) steht nicht in sold_raw; alle anderen Gruende sind Abzuege von sold_raw.
+  const exclusions = [];
+  { const allP = {};
+    (inp.sold || []).forEach((r) => { const k = nameKey(r[0]); if (!k) return; const o = allP[k] = allP[k] || { name: r[0], key: k, pk: [], allPk: [], member: false, sub: false, free: false, rloc: "" }; o.allPk.push(r[1]); if (isMemberPkg(r[1])) { o.member = true; o.pk.push(r[1]); if (r[2] === "subscription") o.sub = true; if (r[2] === "free") o.free = true; } if (/winterthur/i.test(r[3])) o.rloc = "Winterthur"; else if (/z[uü]rich/i.test(r[3])) o.rloc = "Zurich"; });
+    const soldKeys = new Set(soldM.map((o) => o.key));
+    Object.keys(allP).forEach((k) => {
+      const o = allP[k]; if (soldKeys.has(k)) return;
+      const c = clients.byName[k]; o.uid = c ? c.uid : ""; o.email = c ? c.email : ""; o.date = "";
+      let reason;
+      if (!o.member) reason = "Not a membership package";
+      else if (!o.sub && !o.free) reason = "One-time purchase (no subscription)";
+      else if (!o.sub) reason = "Free (no invoice tag)";
+      else if (isStaff(o.name, o.email)) reason = "Staff";
+      else { o.date = saleDateOf(o); if (isSwitchSale(o)) reason = "Package change"; else if (isReactivation(o)) reason = "Reactivation"; else if (isOlderMember(o)) reason = "Existing member"; else reason = "Other"; }
+      if (!o.date && o.member) o.date = saleDateOf(o);
+      exclusions.push({ loc: locOfPerson(o), name: o.name, pkg: o.member ? o.pk[0] : o.allPk[0], date: o.date, reason, member: o.member, uid: o.uid });
+    });
+  }
   const isRestart = (c) => (subsByUid[c.uid] || []).some((s) => s.date && s.date >= addDaysStr(c.date, -30) && s.date <= addDaysStr(c.date, 60)); // neues Abo rund um das Ende = Wechsel/Wiedereinstieg, kein Verlust
   // Gratis-Personen (alle Abo-Pakete der letzten 12 Monate "free", kein Tag Rechnung): ihr Abo-Ende ist keine Kuendigung
   const freeUids = new Set(); { const m = {}; (inp.sold12 || []).concat(inp.sold || []).forEach((r) => { const k = nameKey(r[0]); if (!k || !isMemberPkg(r[1])) return; const o = m[k] = m[k] || { sub: false, free: false }; if (r[2] === "subscription") o.sub = true; if (r[2] === "free") o.free = true; }); Object.keys(m).forEach((k) => { const c = clients.byName[k]; if (m[k].free && !m[k].sub && c && !invoiceTag(c.uid)) freeUids.add(c.uid); }); }
-  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), sold_persons: soldM.length, sold_no_uid: noUid, sold_reactivations: persons(inp.sold).filter((o) => isReactivation(o) || isOlderMember(o)).length, free_persons: freeUids.size, tags_found: Object.keys(tagsByUid).filter((u) => tagsByUid[u]).length, tags_asked: Object.keys(tagsByUid).length, clients_total: inp.clientsTotal || 0, locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
+  const out = { window: { start, end }, cohort_start: inp.cohortStart, today: inp.today, generated: new Date().toISOString(), sold_persons: soldM.length, sold_excluded_list: exclusions, sold_no_uid: noUid, sold_reactivations: persons(inp.sold).filter((o) => isReactivation(o) || isOlderMember(o)).length, free_persons: freeUids.size, tags_found: Object.keys(tagsByUid).filter((u) => tagsByUid[u]).length, tags_asked: Object.keys(tagsByUid).length, clients_total: inp.clientsTotal || 0, locations: {}, cohort: {}, signed: {}, started_since: started.filter((s) => !isPT(s.pkg)).map((s) => ({ uid: s.uid, email: s.email, loc: s.loc, date: s.date, pkg: s.pkg })) };
   for (const loc of LOCS) {
     const L = {};
     const lf = life.filter((x) => x.loc === loc);
@@ -532,6 +551,11 @@ function computeMonat(inp) {
     salesL.forEach((o) => { salesExp.push(o); monthStarts(o).slice(1).forEach((d) => salesExp.push(Object.assign({}, o, { date: d, sibling: true }))); });
     L.new_customers = salesExp.length; L.sales_signed = salesExp.length; L.sales_invoice = salesL.filter((o) => !o.sub).length;
     L.sales_siblings = salesExp.length - salesL.length; // zweite Pakete auf einem Konto, nur zur Kontrolle
+    // Kontrollrechnung fuer das Team-Sheet (Ruben 10.09.): sold_raw - sold_excluded = sales_signed. sold_raw = Personen mit Abo-Paket im Report
+    // (vor den Filtern) plus zweite Paketstarts auf demselben Konto; sold_nonmember = nur PT/Einzelsessions/Events (nicht in sold_raw).
+    L.sold_excluded = exclusions.filter((x) => x.loc === loc && x.member).length;
+    L.sold_nonmember = exclusions.filter((x) => x.loc === loc && !x.member).length;
+    L.sold_raw = salesL.length + L.sold_excluded + L.sales_siblings; L.sold_real = L.sales_signed;
     L.starts_by_day = dayCount(salesExp, (o) => o.date); L.signed_by_day = L.starts_by_day; // Verkaufstag fuer die Wochenspalten
     L.sales_open = salesL.filter((o) => o.email && lifeCur[o.email] === "Signed but no payment").length;
     out.signed[loc] = salesL.map((o) => ({ email: o.email, date: o.date }));

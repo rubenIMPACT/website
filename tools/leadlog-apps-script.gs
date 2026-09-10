@@ -1820,6 +1820,7 @@ function runMonatsabschluss(start, end) {
   if (!p3 || !p3.ready) throw new Error('Monat m3 nicht fertig: ' + JSON.stringify(p3).slice(0, 400));
   var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID), leadMap = trLeadMap(ss);
   maStoreCohorts(ss, mk, data.cohort || {});
+  try { maWriteSalesCheck(ss, mk, data.sold_excluded_list || []); } catch (eSC) { Logger.log('MonthlySalesCheck: ' + eSC); }
   var lines = [];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var L = data.locations[loc] || {}, m = {};
@@ -1872,6 +1873,25 @@ function maCatchUp() {
     mailOnce('monatsabschluss', '[Monatsabschluss] Nachlauf ' + mk + ' FEHLGESCHLAGEN', String(e && e.stack ? e.stack : e));
   }
   if (q.length) ScriptApp.newTrigger('maCatchUp').timeBased().after(60 * 1000).create();
+}
+// Ausschluss-Tab (Ruben 10.09.2026): jede Person aus Sold Packages, die im Monatsabschluss NICHT als Verkauf zaehlt, mit Grund. Zeilen des
+// laufenden Monats werden je Lauf ersetzt, aeltere Monate bleiben. Die Zahlen dazu stehen in der MonatsHistorie je Monat und Standort:
+// sold_raw (Abo-Paket-Personen vor den Filtern plus zweite Paketstarts je Konto), sold_excluded (Abzuege = Zeilen ausser "Not a membership
+// package"), sales_signed = sold_real; es gilt sold_raw - sold_excluded = sales_signed. sold_nonmember = PT/Einzelsessions (nicht in sold_raw).
+var MA_SALES_CHECK = 'MonthlySalesCheck';
+function maWriteSalesCheck(ss, mk, list) {
+  var head = ['Month', 'Location', 'Name', 'Package', 'Sale date', 'Reason'], sh = ss.getSheetByName(MA_SALES_CHECK);
+  if (!sh) {
+    sh = ss.insertSheet(MA_SALES_CHECK); sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
+    sh.getRange('A1').setNote('People in the exercise.com report "Sold Packages" who are NOT counted as a sale in the Monatsabschluss, with the reason. Rewritten for the current month on every monthly run; older months stay. Totals per month and location are in MonatsHistorie: sold_raw - sold_excluded = sales_signed (sold_real); "Not a membership package" rows are not part of sold_raw (sold_nonmember).');
+    sh.setColumnWidth(3, 220); sh.setColumnWidth(4, 260); sh.setColumnWidth(6, 260);
+  }
+  var n = sh.getLastRow() - 1, keep = n > 0 ? sh.getRange(2, 1, n, head.length).getValues().filter(function (r) { return String(r[0]) !== mk; }) : [];
+  var rows = list.map(function (x) { return [mk, x.loc || '', x.name || '', x.pkg || '', x.date || '', x.reason || '']; });
+  var all = keep.concat(rows).sort(function (a, b) { return a[0] !== b[0] ? (a[0] < b[0] ? 1 : -1) : a[1] !== b[1] ? (a[1] < b[1] ? -1 : 1) : String(a[2]).localeCompare(String(b[2])); });
+  if (n > 0) sh.getRange(2, 1, n, head.length).clearContent();
+  if (all.length) { sh.getRange(2, 1, all.length, head.length).setNumberFormat('@').setValues(all); }
+  return rows.length;
 }
 function maStoreCohorts(ss, mk, cohort) {
   var sh = getOrCreate(ss, MA_COHORT), head = ['Monat', 'Standort', 'UID', 'E-Mail', 'Name', 'Erstbesuch'];
