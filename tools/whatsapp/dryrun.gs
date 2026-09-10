@@ -56,7 +56,7 @@ var TEXT_M = { // manual texts (Abdi / Bogdan after an unanswered call, quick re
   M3: { de: 'Hi {name}, letzter Versuch, ich will dich nicht nerven. Wenn du noch Lust auf ein Probetraining hast, sag mir kurz, wann ein Anruf passt. Sonst alles Gute!',
         en: "Hi {name}, last try, I don't want to bother you. If you still fancy a trial session, just tell me when a call suits you. Otherwise all the best!" }
 };
-var RULE_R = { N: 7, WIN_D: 60, LOCS: ['Zurich'] }; // Ruben 10.09.2026: Google review request after the 7th check-in, Zurich (Abdi) first. New members only: first visit inside the last WIN_D days
+var RULE_R = { N: 7, WIN_D: 45, LOCS: ['Zurich'] }; // Ruben 10.09.2026: Google review request after the 7th check-in, Zurich (Abdi) first. New members only: first visit inside the last WIN_D days (45: a 60-day visits report does not finish in time, 45 days Zurich = ~4200 rows in 11 s)
 var LOC_ID = { Zurich: 2508, Winterthur: 2222 }; // exercise.com location ids (same as klassen.js)
 var REVIEW_LINK = { Zurich: 'https://maps.app.goo.gl/1ow5T1yypnd7zvXM6', Winterthur: 'https://maps.app.goo.gl/4WLKoHRziA7jtjWp9' }; // INTERIM (10.09.): the Google Maps listing links from the website badges ("400+ Bewertungen" / "120+ reviews"); to be replaced by the "write a review" links from the Google Business Profile (Ruben)
 var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
@@ -149,7 +149,7 @@ function waDryRunHourly() {
   // Flow R: Google review request after the N-th check-in (Ruben 10.09.: Zurich / Abdi first). Only new members (first visit inside
   // the window), completed check-ins since the first visit; due when the N-th check-in happened today or yesterday (no backlog blast).
   var rev = reviewCandidates(today), revNote = '';
-  if (rev === null) revNote = ' Flow R: reports not ready yet (read on the next run).';
+  if (rev === null) revNote = ' Flow R skipped (report not ready / error).';
   else {
     var ydayR = addDs(today, -1), dueR = rev.filter(function (c) { return (c.nth === today || c.nth === ydayR) && !keys['R:R1:' + c.uid]; });
     var revClients = fetchClients(dueR.map(function (c) { return c.uid; }));
@@ -672,11 +672,12 @@ function waProbeGaps() { // one-off (Ruben 10.09.): which debts could the curren
 function reviewCandidates(today) { // members whose first visit lies inside the window and who have >= RULE_R.N completed check-ins since; null = report error
   var start = addDs(today, -RULE_R.WIN_D), fv = {}, out = [];
   for (var i = 0; i < RULE_R.LOCS.length; i++) {
-    var loc = RULE_R.LOCS[i], rows = fetchReport('clients_first_visit', start, today, 3000, ['User ID', 'First Name', 'Last Name', 'Start Time'], LOC_ID[loc], true); if (rows === null) return null;
+    var loc = RULE_R.LOCS[i], rows = fetchReport('clients_first_visit', start, today, 3000, ['User ID', 'First Name', 'Last Name', 'Start Time'], LOC_ID[loc]); if (rows === null) return null;
     rows.forEach(function (r) { var u = String(r['User ID'] || '').replace(/\D/g, ''), d = chDateUTC(r['Start Time']); if (u && d && d >= start) fv[u] = { name: ((r['First Name'] || '') + ' ' + (r['Last Name'] || '')).trim(), first: d, loc: loc }; });
   }
   if (!Object.keys(fv).length) { Logger.log('review candidates: no first visits since ' + start); return out; }
-  var vis = fetchReport('detailed_visits', start, today, 10000, ['User ID', 'Start Time', 'Status', 'Primary Staff', 'Secondary Staff'], 0, true); if (vis === null) return null; // no waiting: the hourly run that triggers the report does not read it, the next one does
+  var vis = [];
+  for (var k = 0; k < RULE_R.LOCS.length; k++) { var part = fetchReport('detailed_visits', start, today, 5000, ['User ID', 'Start Time', 'Status', 'Primary Staff', 'Secondary Staff'], LOC_ID[RULE_R.LOCS[k]]); if (part === null) return null; vis = vis.concat(part); } // per location (package location filter): 45 days Zurich = ~4200 rows, ready in ~11 s
   var by = {}, staff = {};
   vis.forEach(function (r) { [r['Primary Staff'], r['Secondary Staff']].forEach(function (x) { if (x) String(x).split(',').forEach(function (n) { staff[nname(n)] = true; }); }); if (String(r.Status || '') !== 'Completed') return; var u = String(r['User ID'] || '').replace(/\D/g, ''); if (!fv[u]) return; var d = chDateUTC(r['Start Time']); if (d && d >= fv[u].first) (by[u] = by[u] || []).push(d); });
   Object.keys(by).forEach(function (u) { var ds = by[u].sort(); if (ds.length >= RULE_R.N && !staff[nname(fv[u].name)]) out.push({ uid: u, name: fv[u].name, loc: fv[u].loc, first: fv[u].first, count: ds.length, nth: ds[RULE_R.N - 1] }); });
