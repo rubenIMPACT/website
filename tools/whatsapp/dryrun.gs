@@ -149,7 +149,7 @@ function waDryRunHourly() {
   // Flow R: Google review request after the N-th check-in (Ruben 10.09.: Zurich / Abdi first). Only new members (first visit inside
   // the window), completed check-ins since the first visit; due when the N-th check-in happened today or yesterday (no backlog blast).
   var rev = reviewCandidates(today), revNote = '';
-  if (rev === null) revNote = ' Flow R skipped (report error).';
+  if (rev === null) revNote = ' Flow R: reports not ready yet (read on the next run).';
   else {
     var ydayR = addDs(today, -1), dueR = rev.filter(function (c) { return (c.nth === today || c.nth === ydayR) && !keys['R:R1:' + c.uid]; });
     var revClients = fetchClients(dueR.map(function (c) { return c.uid; }));
@@ -298,7 +298,7 @@ function fetchLocations() { // location id -> name (invoices carry destination_i
   Logger.log('locations: ' + Object.keys(m).length + ' ' + JSON.stringify(b.info || {}).slice(0, 400));
   return m;
 }
-function fetchReport(key, start, end, per, cols, locId) { // exercise.com report via /api/wa (refresh, then poll); null = error
+function fetchReport(key, start, end, per, cols, locId, noWait) { // exercise.com report via /api/wa (cache, then refresh + poll); null = error or, with noWait, 'not ready yet' (refresh triggered, read on the next run)
   if (!CF_TOKEN || /^PASTE/.test(CF_TOKEN)) return null;
   var refresh = false; // attempt 0 uses exercise.com's cached report (fast when the same window was generated earlier today), attempt 1 triggers a fresh one, then poll
   for (var i = 0; i < 8; i++) {
@@ -308,6 +308,7 @@ function fetchReport(key, start, end, per, cols, locId) { // exercise.com report
       if (r.getResponseCode() !== 200 || !b.ok) { Logger.log('report ' + key + ': ' + r.getResponseCode() + ' ' + String(r.getContentText()).slice(0, 200)); return null; }
       if (b.ready) { if (i) Logger.log('report ' + key + ' ready after ' + i + ' attempts'); return b.rows || []; }
       if (i === 0) { refresh = true; continue; }
+      if (noWait) { Logger.log('report ' + key + ': refresh triggered, read on the next run (refreshing=' + b.refreshing + ', rows=' + b.count + ', filters=' + String(b.filters || '').slice(0, 120) + ')'); return null; }
       refresh = false; Utilities.sleep(15000);
     } catch (e) { Logger.log('report ' + key + ': ' + e); return null; }
   }
@@ -671,11 +672,11 @@ function waProbeGaps() { // one-off (Ruben 10.09.): which debts could the curren
 function reviewCandidates(today) { // members whose first visit lies inside the window and who have >= RULE_R.N completed check-ins since; null = report error
   var start = addDs(today, -RULE_R.WIN_D), fv = {}, out = [];
   for (var i = 0; i < RULE_R.LOCS.length; i++) {
-    var loc = RULE_R.LOCS[i], rows = fetchReport('clients_first_visit', start, today, 3000, ['User ID', 'First Name', 'Last Name', 'Start Time'], LOC_ID[loc]); if (rows === null) return null;
+    var loc = RULE_R.LOCS[i], rows = fetchReport('clients_first_visit', start, today, 3000, ['User ID', 'First Name', 'Last Name', 'Start Time'], LOC_ID[loc], true); if (rows === null) return null;
     rows.forEach(function (r) { var u = String(r['User ID'] || '').replace(/\D/g, ''), d = chDateUTC(r['Start Time']); if (u && d && d >= start) fv[u] = { name: ((r['First Name'] || '') + ' ' + (r['Last Name'] || '')).trim(), first: d, loc: loc }; });
   }
   if (!Object.keys(fv).length) { Logger.log('review candidates: no first visits since ' + start); return out; }
-  var vis = fetchReport('detailed_visits', start, today, 10000, ['User ID', 'Start Time', 'Status', 'Primary Staff', 'Secondary Staff']); if (vis === null) return null;
+  var vis = fetchReport('detailed_visits', start, today, 10000, ['User ID', 'Start Time', 'Status', 'Primary Staff', 'Secondary Staff'], 0, true); if (vis === null) return null; // no waiting: the hourly run that triggers the report does not read it, the next one does
   var by = {}, staff = {};
   vis.forEach(function (r) { [r['Primary Staff'], r['Secondary Staff']].forEach(function (x) { if (x) String(x).split(',').forEach(function (n) { staff[nname(n)] = true; }); }); if (String(r.Status || '') !== 'Completed') return; var u = String(r['User ID'] || '').replace(/\D/g, ''); if (!fv[u]) return; var d = chDateUTC(r['Start Time']); if (d && d >= fv[u].first) (by[u] = by[u] || []).push(d); });
   Object.keys(by).forEach(function (u) { var ds = by[u].sort(); if (ds.length >= RULE_R.N && !staff[nname(fv[u].name)]) out.push({ uid: u, name: fv[u].name, loc: fv[u].loc, first: fv[u].first, count: ds.length, nth: ds[RULE_R.N - 1] }); });
