@@ -15,14 +15,14 @@ var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, pers
 var LEAD = { ts: 0, status: 1, first: 2, last: 3, email: 4, phone: 5, loc: 6, interest: 7, message: 11, page: 13, exclude: 19 };
 var SENDER = { Zurich: 'Abdi', Winterthur: 'Bogdan' };
 var STUDIO = { de: { Zurich: 'Zürich', Winterthur: 'Winterthur' }, en: { Zurich: 'Zurich', Winterthur: 'Winterthur' } };
-var RULE = { A1_H: 48, A2_D: 6, A3_D: 12, C_D: 1, D_D: 3, OPEN: 10, CLOSE: 19, B_OPEN: 7 }; // Ruben 05.09.2026: 48 h, chain 6/12 days, reminder 3 h before class
+var RULE = { A1_H: 48, A2_D: 5, A3_D: 8, C_D: 1, D_D: 3, OPEN: 10, CLOSE: 19, B_OPEN: 7 }; // Ruben 10.09.2026 (go): 48 h, chain 5/8 days, reminder 3 h before class
 var LC_SKIP = /not interested|do not contact|lost|non-client|client|signed/i; // lifecycle stages that stop Flow D
 var TEST_MAIL = /^(testlead|test-endpunkt|test2@|paulinelowe12|waseasdasd)/i;
 var TEXT = {
-  A1: { de: 'Hi {name}, hier ist {sender} von IMPACT {studio}. Danke für deine Anfrage. Wir haben gerade sehr viele Anfragen, ich melde mich so schnell wie möglich telefonisch bei dir. Wann erreiche ich dich am besten?',
-        en: "Hi {name}, this is {sender} from IMPACT {studio}. Thanks for your request. We're getting a lot of requests right now, so I'll call you as soon as I can. When is the best time to reach you?" },
-  A2: { de: 'Hi {name}, hier nochmals {sender}. Falls du noch Interesse an einem Probetraining hast: Wann erreiche ich dich am besten kurz telefonisch?',
-        en: "Hi {name}, {sender} again. If you're still keen on a trial session: when is the best time to reach you for a quick call?" },
+  A1: { de: 'Hi {name}, hier ist {sender} von IMPACT {studio}. Super, dass du unser Training kennenlernen willst. Wir haben gerade sehr viele Anfragen, ich melde mich so schnell wie möglich telefonisch bei dir. Wann erreiche ich dich am besten?', // Flow A texts = Google Doc, Ruben's go 10.09.2026
+        en: "Hi {name}, this is {sender} from IMPACT {studio}. Great that you want to get to know our training. We're getting a lot of requests right now, so I'll call you as soon as I can. When is the best time to reach you?" },
+  A2: { de: 'Hi {name}, Falls du noch Interesse an einem Probetraining hast: Wann erreiche ich dich am besten kurz telefonisch?',
+        en: "Hi {name}, Sorry, it took so long. If you're still keen on a trial session: when is the best time to reach you for a quick call?" },
   A3: { de: 'Hi {name}, letzte Nachricht von mir zu deiner Anfrage. Wenn du später mal starten willst, sag mir kurz, wann ein Anruf passt. Alles Gute!',
         en: "Hi {name}, last message from me about your request. If you'd like to start later on, just tell me when a call suits you. All the best!" },
   B1: { de: 'Hi {name}, kurze Erinnerung: Heute um {time} ist dein Probetraining {class} bei uns in {studio}. Komm bitte 10 Minuten früher. Bis später!',
@@ -64,7 +64,7 @@ function waDryRunHourly() {
     out.push([today, fmtT(now), fmtDT(sendAt(now, flow)), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key]);
   }
   function push(flow, msg, loc, name, lang, trigger, key, vars) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT); }
-  // Flow A: website lead, no trial booking, chain 48 h / 6 d / 12 d. "Due" = the mark fell into the last 24 h (true daily rate, no backlog).
+  // Flow A: website lead, no trial booking, chain 48 h / 5 d / 8 d (Ruben 10.09.). "Due" = the mark fell into the last 24 h (true daily rate, no backlog).
   var h = 3600000, marks = [['A1', RULE.A1_H * h], ['A2', RULE.A2_D * 24 * h], ['A3', RULE.A3_D * 24 * h]];
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
