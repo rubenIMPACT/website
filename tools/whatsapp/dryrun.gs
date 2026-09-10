@@ -63,6 +63,9 @@ var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
   R1: { de: 'Hi {name}, schön, dass du so regelmässig da bist. Wenn dir das Training bei uns gefällt, würdest du uns kurz eine Google-Bewertung schreiben? Das hilft uns enorm: {review_link}',
         en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link}" }
 };
+var STAGE = { lead: 9398, first: 9692, second: 9861, third: 11307, trialBooked: 9693, pending: 10005, lost: 9970, noshow: 11305, debt: 11034 }; // exercise.com lifecycle stage ids (read 10.09.2026)
+var STAGE_SYNC = { pending: true, contacts: false, lost: false, noshow: false, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Before the WhatsApp go-live only "Pending Decision" is live (the others hang on messages that are not sent yet)
+var LEAD_STAGES = ['Lead', 'First Contact', 'Second Contact', 'Third Contact', 'Missed the talk', 'Trial Booked', 'Pending Decision', 're-engage no-shows', 're-engage cancelled trial', '']; // the automation only moves clients that are in one of these; Client, Do Not Contact, Debt collection etc. are never touched
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
 function waDryRunHourly() {
@@ -162,6 +165,12 @@ function waDryRunHourly() {
     });
   }
   payNote += revNote;
+  // Stage sync (Ruben 10.09.): "Pending Decision" on the evening of an attended trial without contract (first run after 20:00), only if the stage was not changed by hand
+  if (STAGE_SYNC.pending && Number(Utilities.formatDate(now, TZ, 'H')) >= 20) {
+    var setN = 0;
+    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(ss, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + t.date + ', no contract by 20:00') === 'set') setN++; } }); });
+    if (setN) payNote += ' Stages: ' + setN + ' x Pending Decision.';
+  }
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, HEAD.length).setValues(out);
   if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('yyyy-mm-dd');
@@ -695,6 +704,26 @@ function chDateUTC(v) { // report stamps "2026-08-07 12:07:00 +0000" (UTC) -> Sw
   var s = String(v || '').trim(), m = /^(\d{4})[\/-](\d{2})[\/-](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?\s*(?:\+0000|UTC|Z)$/.exec(s);
   if (m) return fmtD(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0))));
   return dOfAny(v);
+}
+function setStage(ss, uid, name, stageId, stageName, reason, onlyFrom) { // one lifecycle change via /api/wa (server checks the current stage against onlyFrom), logged in tab "Stage log"; once per uid + stage
+  var log = stageLog(ss), key = uid + ':' + stageId; if (!uid || log.done[key]) return 'already';
+  var b = cfPost({ action: 'set_lifecycle', uid: uid, stage_id: stageId, only_from: onlyFrom || LEAD_STAGES });
+  var res = !b ? 'error' : (b.skipped ? 'skipped (' + b.lifecycle + ')' : (b.unchanged ? 'unchanged' : (b.ok ? 'set' : 'failed ' + (b.status || b.error))));
+  log.sh.appendRow([fmtDT(new Date()), uid, name || '', b ? (b.before || b.lifecycle || '') : '', stageName, res, reason || '']);
+  if (/^(set|unchanged|skipped)/.test(res)) log.done[key] = true;
+  return res;
+}
+function stageLog(ss) { // tab "Stage log": one line per lifecycle change the automation made (or refused); done = uid:stageId already handled
+  var sh = ss.getSheetByName('Stage log'), done = {};
+  if (!sh) { sh = ss.insertSheet('Stage log'); sh.getRange('A1').setValue('Stage log: every lifecycle stage the automation set in exercise.com (or refused: "skipped" = the client was in a protected stage such as Client / Do Not Contact / Debt collection). Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'UID', 'Name', 'From', 'To', 'Result', 'Reason']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [120, 80, 180, 130, 130, 120, 300].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
+  var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { var u = String(r[1] || '').replace(/\D/g, ''), to = String(r[4] || ''), res = String(r[5] || ''); var id = Object.keys(STAGE).filter(function (k) { return STAGE_NAME[k] === to; }).map(function (k) { return STAGE[k]; })[0]; if (u && id && /^(set|unchanged|skipped)/.test(res)) done[u + ':' + id] = true; });
+  return { sh: sh, done: done };
+}
+var STAGE_NAME = { lead: 'Lead', first: 'First Contact', second: 'Second Contact', third: 'Third Contact', trialBooked: 'Trial Booked', pending: 'Pending Decision', lost: 'Not Interested (Lost)', noshow: 're-engage no-shows', debt: 'Debt collection' };
+function waProbeStage() { // one-off (10.09.): test the stage change on Ruben's test account (ruben test, crawford@lxblend.com): read, set First Contact, set back; log only
+  var f = cfPost({ action: 'find_client', email: 'crawford@lxblend.com' }); Logger.log('find: ' + JSON.stringify(f).slice(0, 500)); if (!f || !f.ok) return;
+  var a = cfPost({ action: 'set_lifecycle', uid: f.uid, email: f.email, stage_id: STAGE.first, only_from: LEAD_STAGES }); Logger.log('set First Contact: ' + JSON.stringify(a).slice(0, 300));
+  var back = f.lifecycle_stage_id || STAGE.lead, b = cfPost({ action: 'set_lifecycle', uid: f.uid, email: f.email, stage_id: back, only_from: [] }); Logger.log('set back to ' + (f.lifecycle || 'Lead') + ': ' + JSON.stringify(b).slice(0, 300));
 }
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });

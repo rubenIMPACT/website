@@ -42,6 +42,7 @@ export async function onRequestPost(context) {
     if (p.action === "locations") return j(await locations(H));
     if (p.action === "lifecycle_stages") return j(await lifecycleStages(H));
     if (p.action === "set_lifecycle") return j(await setLifecycle(H, p));
+    if (p.action === "find_client") return j(await findClient(H, p));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
     return j({ error: "exception", detail: String(e && e.message ? e.message : e).slice(0, 200) }, 502);
@@ -243,14 +244,29 @@ async function lifecycleStages(H) {
   }
   return out;
 }
-// Set the lifecycle stage of one client: PUT /api/v2/clients/{cid} (the same write path /api/lead uses for tags). Returns the stage read back.
+// Client record (v3: id = client id for /api/v2/clients/{id}, user_id) by e-mail or user id. q[client_search] is the only search exercise.com honours (see lead.js).
+async function findClient(H, p) {
+  let email = String(p.email || "").toLowerCase().trim(); const uid = String(p.uid || "").replace(/\D/g, "");
+  if (!email && uid) { const r = await getJson(H, API + "/api/v4/users/" + uid); const u = r.json && (r.json.user || r.json); email = String((u && u.email) || "").toLowerCase().trim(); if (!email) return { ok: false, error: "user_not_found", status: r.status }; }
+  if (!email) return { ok: false, error: "email_or_uid_required" };
+  const r = await getJson(H, API + "/api/v3/clients?q%5Bclient_search%5D=" + encodeURIComponent(email) + "&per=25"), js = r.json;
+  let list = Array.isArray(js) ? js : (js && (js.clients || js.client || js.data)) || []; if (list && !Array.isArray(list)) list = [list];
+  const hit = list.find((c) => c && String(c.email || (c.user && c.user.email) || "").toLowerCase() === email) || (list.length === 1 ? list[0] : null);
+  if (!hit || !hit.id) return { ok: false, error: "client_not_found", status: r.status, n: list.length };
+  return { ok: true, cid: String(hit.id), uid: String(hit.user_id || (hit.user && hit.user.id) || uid || ""), email, name: [hit.first_name, hit.last_name].filter(Boolean).join(" ").trim(), lifecycle: String(hit.lifecycle_stage_name || ""), lifecycle_stage_id: String(hit.lifecycle_stage_id || ""), keys: Object.keys(hit).slice(0, 40) };
+}
+// Set the lifecycle stage of one client (by uid or e-mail): reads the client first, refuses when the current stage is not in only_from
+// (guard rail: the automation only moves leads, never clients / do-not-contact / debt collection), then PUT /api/v2/clients/{cid}.
 async function setLifecycle(H, p) {
-  const cid = String(p.cid || "").replace(/\D/g, ""), sid = String(p.stage_id || "").replace(/\D/g, "");
-  if (!cid || !sid) return { error: "cid_and_stage_id_required" };
-  const r = await fetch(API + "/api/v2/clients/" + cid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ client: { lifecycle_stage_id: sid } }) });
+  const sid = String(p.stage_id || "").replace(/\D/g, ""); if (!sid) return { ok: false, error: "stage_id_required" };
+  const f = await findClient(H, p); if (!f.ok) return f;
+  const only = Array.isArray(p.only_from) ? p.only_from.map((x) => String(x).toLowerCase()) : null;
+  if (only && only.length && only.indexOf(f.lifecycle.toLowerCase()) < 0) return { ok: false, skipped: "stage_protected", cid: f.cid, lifecycle: f.lifecycle };
+  if (f.lifecycle_stage_id === sid) return { ok: true, unchanged: true, cid: f.cid, lifecycle: f.lifecycle, before: f.lifecycle };
+  const r = await fetch(API + "/api/v2/clients/" + f.cid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ client: { lifecycle_stage_id: sid } }) });
   const txt = await r.text(); let b = null; try { b = JSON.parse(txt); } catch { /* not json */ }
   const c = b && (b.client || b);
-  return { ok: r.ok, status: r.status, lifecycle: c ? String(c.lifecycle_stage_name || "") : "", lifecycle_stage_id: c ? String(c.lifecycle_stage_id || "") : "", body: r.ok ? undefined : txt.slice(0, 200) };
+  return { ok: r.ok, status: r.status, cid: f.cid, before: f.lifecycle, lifecycle: c ? String(c.lifecycle_stage_name || "") : "", lifecycle_stage_id: c ? String(c.lifecycle_stage_id || "") : "", body: r.ok ? undefined : txt.slice(0, 200) };
 }
 async function locations(H) {
   const out = { ok: true, nodes: {}, locations: {}, info: {} };
