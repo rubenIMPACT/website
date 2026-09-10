@@ -735,3 +735,9 @@ function waProbeVisits() { // one-off (10.09.): why does detailed_visits come ba
   var f = cfPost({ action: 'report', key: 'clients_first_visit', start: addDs(today, -60), end: today, per: 3000, refresh: false, sample: 1, location_id: 2508 });
   Logger.log('FV -> ' + (f ? 'ready=' + f.ready + ' refreshing=' + f.refreshing + ' count=' + f.count + ' filters=' + String(f.filters || '').slice(0, 160) + ' headers=' + JSON.stringify(f.headers || []).slice(0, 300) : 'null'));
 }
+function waProbeLifecycle() { // one-off (10.09.): which lifecycle stages exist in exercise.com (id + name)? read-only, log only
+  var b = cfPost({ action: 'lifecycle_stages' });
+  if (!b) { Logger.log('lifecycle_stages: null'); return; }
+  Logger.log('lifecycle_stages source=' + b.source + ' tried=' + JSON.stringify(b.tried));
+  (b.stages || []).forEach(function (s) { Logger.log('STAGE ' + s.id + ' | ' + s.name + ' | pos ' + s.position); });
+}
