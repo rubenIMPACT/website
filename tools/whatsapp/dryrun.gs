@@ -66,7 +66,7 @@ var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
         en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link}" }
 };
 var STAGE = { lead: 9398, first: 9692, second: 9861, third: 11307, trialBooked: 9693, pending: 10005, lost: 9970, noshow: 11305, cancelled: 11313, debt: 11034 }; // exercise.com lifecycle stage ids (read 10.09.2026)
-var STAGE_SYNC = { pending: true, contacts: false, lost: false, noshow: false, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Before the WhatsApp go-live only "Pending Decision" is live (the others hang on messages that are not sent yet)
+var STAGE_SYNC = { pending: true, contacts: true, lost: false, noshow: false, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Live before the WhatsApp go-live: "Pending Decision" (trial list) and First/Second/Third Contact from the coaches' call ticks; the rest hangs on messages that are not sent yet
 var LEAD_STAGES = ['Lead', 'First Contact', 'Second Contact', 'Third Contact', 'Missed the talk', 'Trial Booked', 'Pending Decision', 're-engage no-shows', 're-engage cancelled trial', '']; // the automation only moves clients that are in one of these; Client, Do Not Contact, Debt collection etc. are never touched
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
@@ -97,6 +97,15 @@ function waDryRunHourly() {
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked', 'A:' + msg + ':' + id, {});
   });
   writeCallLists(leads, trials, trialNames, lastA, calls, now); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
+  if (STAGE_SYNC.contacts) { // Ruben 10.09. ("ja"): the call ticks set First / Second / Third Contact in exercise.com (forward only); after the go-live the sent messages will do the same
+    var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
+    leads.forEach(function (l) {
+      if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l)) return;
+      var n = (calls[l.email.toLowerCase()] || { called: [] }).called.length; if (!n) return;
+      var step = ladder[Math.min(n, 3) - 1]; if (setStage(ss, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'call attempt ' + n + ' ticked in the call list', step[1]) === 'set') stageN++;
+    });
+    if (stageN) Logger.log('stages from call ticks: ' + stageN + ' set');
+  }
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
   var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [];
@@ -788,18 +797,18 @@ function chDateUTC(v) { // report stamps "2026-08-07 12:07:00 +0000" (UTC) -> Sw
   if (m) return fmtD(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0))));
   return dOfAny(v);
 }
-function setStage(ss, uid, name, stageId, stageName, reason, onlyFrom) { // one lifecycle change via /api/wa (server checks the current stage against onlyFrom), logged in tab "Stage log"; once per uid + stage
-  var log = stageLog(ss), key = uid + ':' + stageId; if (!uid || log.done[key]) return 'already';
-  var b = cfPost({ action: 'set_lifecycle', uid: uid, stage_id: stageId, only_from: onlyFrom || LEAD_STAGES });
-  var res = !b ? 'error' : (b.skipped ? 'skipped (' + b.lifecycle + ')' : (b.unchanged ? 'unchanged' : (b.ok ? 'set' : 'failed ' + (b.status || b.error))));
-  log.sh.appendRow([fmtEuDT(new Date()), uid, name || '', b ? (b.before || b.lifecycle || '') : '', stageName, res, reason || '']);
+function setStage(ss, id, name, stageId, stageName, reason, onlyFrom) { // one lifecycle change via /api/wa (server checks the current stage against onlyFrom), logged in tab "Stage log"; once per id + stage. id = exercise.com user id or the lead's e-mail
+  var log = stageLog(ss), key = String(id || '').toLowerCase().trim() + ':' + stageId; if (!id || log.done[key]) return 'already';
+  var b = cfPost(Object.assign({ action: 'set_lifecycle', stage_id: stageId, only_from: onlyFrom || LEAD_STAGES }, /@/.test(String(id)) ? { email: String(id).toLowerCase().trim() } : { uid: id }));
+  var res = !b ? 'error' : (b.skipped ? 'skipped (' + b.lifecycle + ')' : (b.unchanged ? 'unchanged' : (b.ok ? 'set' : (b.error === 'client_not_found' ? 'skipped (not in exercise.com)' : 'failed ' + (b.status || b.error)))));
+  log.sh.appendRow([fmtEuDT(new Date()), id, name || '', b ? (b.before || b.lifecycle || '') : '', stageName, res, reason || '']);
   if (/^(set|unchanged|skipped)/.test(res)) log.done[key] = true;
   return res;
 }
 function stageLog(ssIgnored) { // tab "Stage log" in Team KPIs (Ruben 10.09.: where Abdi and Bogdan work): one line per lifecycle change the automation made (or refused); done = uid:stageId already handled
   var ss = SpreadsheetApp.openById(TEAM_ID), sh = ss.getSheetByName('Stage log'), done = {};
   if (!sh) { sh = ss.insertSheet('Stage log'); sh.getRange('A1').setValue('Stage log: every lifecycle stage the automation set in exercise.com (or refused: "skipped" = the client was in a protected stage such as Client / Do Not Contact / Debt collection). Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'UID', 'Name', 'From', 'To', 'Result', 'Reason']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [120, 80, 180, 130, 130, 120, 300].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
-  var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { var u = String(r[1] || '').replace(/\D/g, ''), to = String(r[4] || ''), res = String(r[5] || ''); var id = Object.keys(STAGE).filter(function (k) { return STAGE_NAME[k] === to; }).map(function (k) { return STAGE[k]; })[0]; if (u && id && /^(set|unchanged|skipped)/.test(res)) done[u + ':' + id] = true; });
+  var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { var u = String(r[1] || '').toLowerCase().trim(), to = String(r[4] || ''), res = String(r[5] || ''); var id = Object.keys(STAGE).filter(function (k) { return STAGE_NAME[k] === to; }).map(function (k) { return STAGE[k]; })[0]; if (u && id && /^(set|unchanged|skipped)/.test(res)) done[u + ':' + id] = true; });
   return { sh: sh, done: done };
 }
 var STAGE_NAME = { lead: 'Lead', first: 'First Contact', second: 'Second Contact', third: 'Third Contact', trialBooked: 'Trial Booked', pending: 'Pending Decision', lost: 'Not Interested (Lost)', noshow: 're-engage no-shows', cancelled: 're-engage cancelled trial', debt: 'Debt collection' };
