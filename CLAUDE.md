@@ -744,3 +744,6 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   weder Verkauf noch Verlust. Detailzeilen "davon erstes PT-Paket" / "davon PT-Pakete beendet" (sales_pt, losses_pt).
 - MonthlySalesCheck neue Gründe: "PT, but had a membership before", "Not the first PT package", "PT package (no client match)"; PT-Personen
   zählen in sold_raw. MA_CATCHUP '2026-09-10 PT…' → Nachlauf Jun–Sep.
+- NACHTRAG 10.09. 12:20 (19e1d0f): Beim Nachlauf (maCatchUp) wird der Monatsabschluss-Tab nur nach dem LETZTEN Monat neu gebaut (Script Property
+  `maNoBuild` = '1' solange die Warteschlange nicht leer ist; runMonatsabschluss überspringt dann buildMonatsabschluss). Grund: der Tab war bei
+  jedem Monatslauf minutenlang leer (Ruben 10.09. 12:15). Der Stundenlauf baut ohnehin stündlich.
