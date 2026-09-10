@@ -231,12 +231,15 @@ async function clientStatus(H, uids) {
 // Location ids -> names (invoices carry destination_id of type Fbm::Location). Two candidate endpoints, both read-only.
 // Lifecycle stages (id + name), read-only probe over the candidate endpoints (10.09.2026: the automation shall set "Not interested" / "Lost" itself).
 async function lifecycleStages(H) {
-  const out = { ok: true, tried: {} };
-  for (const path of ["/api/v2/lifecycle_stages", "/api/v2/lifecycle_stages?per=100", "/api/v4/lifecycle_stages", "/api/v4/clients/lifecycle_stages", "/api/v2/clients/lifecycle_stages"]) {
-    const r = await getJson(H, API + path), b = r.json;
-    const list = Array.isArray(b) ? b : (b && (b.lifecycle_stages || b.lifecycle_stage || b.stages || b.data)) || null;
-    out.tried[path] = { status: r.status, keys: b && typeof b === "object" && !Array.isArray(b) ? Object.keys(b).slice(0, 8) : null, count: Array.isArray(list) ? list.length : null };
-    if (Array.isArray(list) && list.length) { out.stages = list.map((s) => ({ id: String(s.id), name: String(s.name || s.title || ""), position: s.position })); out.source = path; break; }
+  const out = { ok: true, pages: 0, stages: [] }; // GET /api/v4/lifecycle_stages answers { lifecycle_stage: [...], meta } in pages of 5 (probe 10.09.)
+  for (let page = 1; page <= 20; page++) {
+    const r = await getJson(H, API + "/api/v4/lifecycle_stages?page=" + page + "&per=100"), b = r.json;
+    const list = b && (Array.isArray(b.lifecycle_stage) ? b.lifecycle_stage : (Array.isArray(b.lifecycle_stages) ? b.lifecycle_stages : null));
+    if (r.status !== 200 || !list) { out.status = r.status; break; }
+    out.pages++; out.meta = b.meta;
+    list.forEach((s) => out.stages.push({ id: String(s.id), name: String(s.name || s.title || ""), position: s.position }));
+    const total = b.meta && (b.meta.total_pages || b.meta.pages);
+    if (!list.length || (total && page >= Number(total))) break;
   }
   return out;
 }
