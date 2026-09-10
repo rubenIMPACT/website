@@ -73,14 +73,20 @@ export async function onRequestGet(context) {
   if (!tok(env)) return new Response(JSON.stringify({ error: "config", detail: "weder IG_TOKEN noch META_ADS_TOKEN gesetzt" }), { status: 500, headers: { "Content-Type": "application/json" } });
   if (img) { try { return await image(context, img.replace(/[^\w.-]/g, "")); } catch (e) { return new Response("upstream: " + e.message, { status: 502, headers: { "Cache-Control": "no-store" } }); } }
 
-  if (url.searchParams.get("debug") === "1") { // Schrittweise Diagnose, sagt genau welches Recht fehlt
-    const log = [];
-    try {
-      log.push("Token: " + (env.IG_TOKEN ? "IG_TOKEN" : "META_ADS_TOKEN"));
-      const who = await igUserId(env); log.push("Instagram-Kennung " + who.id + " (" + who.via + ")");
-      const posts = await fetchPosts(env); log.push("Beitraege: " + posts.length + (posts[0] ? ", neuester " + posts[0].ts : ""));
-      return new Response(JSON.stringify({ ok: true, log, posts }, null, 2), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-    } catch (e) { log.push("FEHLER: " + e.message); return new Response(JSON.stringify({ ok: false, log }, null, 2), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }); }
+  if (url.searchParams.get("debug") === "1") { // Schrittweise Diagnose: was sieht der Token, was fehlt
+    const t = encodeURIComponent(tok(env)); const log = [];
+    const step = async (name, u) => { try { const js = await gj(G + u + (u.includes("?") ? "&" : "?") + "access_token=" + t); log.push(name + ": " + JSON.stringify(js).slice(0, 400)); return js; } catch (e) { log.push(name + " FEHLER: " + e.message); return null; } };
+    log.push("Token: " + (env.IG_TOKEN ? "IG_TOKEN" : "META_ADS_TOKEN"));
+    await step("wer bin ich (/me)", "/me?fields=id,name");
+    await step("Seiten (/me/accounts)", "/me/accounts?fields=name,instagram_business_account{id,username}&limit=50");
+    const bz = await step("Unternehmen (/me/businesses)", "/me/businesses?fields=id,name&limit=20");
+    for (const b of (bz && Array.isArray(bz.data) ? bz.data : []).slice(0, 3)) {
+      await step("eigene Seiten von " + b.name, "/" + b.id + "/owned_pages?fields=name,instagram_business_account{id,username}&limit=50");
+      await step("Instagram-Konten von " + b.name, "/" + b.id + "/owned_instagram_accounts?fields=id,username&limit=20");
+    }
+    try { const posts = await fetchPosts(env); log.push("Beitraege: " + posts.length + (posts[0] ? ", neuester " + posts[0].ts : "")); }
+    catch (e) { log.push("Feed FEHLER: " + e.message); }
+    return new Response(JSON.stringify({ log }, null, 2), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
   }
 
   const cache = caches.default;
