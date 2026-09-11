@@ -890,3 +890,19 @@ function waDocAddFlowX() { // one-off (Ruben 10.09.): add "Flow X: Cancelled tri
   body.insertParagraph(at, 'Flow X: Cancelled trial').setHeading(DocumentApp.ParagraphHeading.HEADING2);
   Logger.log('Flow X added to the doc (draft text by Claude, Ruben decides)');
 }
+var EV_HEAD = ['Received', 'Time', 'Phone number id', 'WABA', 'Field', 'Direction', 'Counterpart', 'Name', 'Type', 'Text', 'Message id', 'Status', 'Extra'];
+function doPost(e) { // Apps-Script web app: receives the compact WhatsApp events from /api/wahook (Cloudflare) and appends them to the tab "WA Events" (11.09.2026)
+  var out = function (o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); };
+  var p; try { p = JSON.parse(e.postData.contents || '{}'); } catch (err) { return out({ ok: false, error: 'bad_json' }); }
+  if (!p || p.token !== CF_TOKEN) return out({ ok: false, error: 'unauthorized' });
+  if (p.type !== 'wa_events' || !Array.isArray(p.rows) || !p.rows.length) return out({ ok: true, rows: 0 });
+  var sh = eventsSheet(SpreadsheetApp.openById(WA_ID)), rows = p.rows.slice(0, 200).map(function (r) { var d = new Date((Number(r[0]) || Date.now() / 1000) * 1000); return [dayStart(d), fmtT(d), String(r[1] || ''), String(r[2] || ''), String(r[3] || ''), String(r[4] || ''), String(r[5] || ''), String(r[6] || ''), String(r[7] || ''), String(r[8] || ''), String(r[9] || ''), String(r[10] || ''), String(r[11] || '')]; });
+  var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, rows.length, EV_HEAD.length).setValues(rows); sh.getRange(r0, 1, rows.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, rows.length, 2).setNumberFormat('@');
+  return out({ ok: true, rows: rows.length });
+}
+function doGet() { return ContentService.createTextOutput('WhatsApp Automation events endpoint').setMimeType(ContentService.MimeType.TEXT); }
+function eventsSheet(ss) { // tab "WA Events": every WhatsApp event Meta delivers (inbound messages, coach messages from the app, delivery statuses); the chat state for the stop signals is read from here
+  var sh = ss.getSheetByName('WA Events');
+  if (!sh) { sh = ss.insertSheet('WA Events'); sh.getRange('A1').setValue('WA Events: every WhatsApp event from Meta (via Dualhook Webhook Override): "in" = the person wrote to us, "out-app" = a coach wrote from the WhatsApp Business App, "status" = delivery / read status of a sent message, "sync" = one-time history / contact sync after onboarding. Read-only; the hourly run reads the chat state (who wrote last, replies, language) from here.').setFontColor('#666666'); sh.getRange(2, 1, 1, EV_HEAD.length).setValues([EV_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [95, 55, 130, 130, 140, 70, 130, 150, 70, 360, 200, 80, 200].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
+  return sh;
+}
