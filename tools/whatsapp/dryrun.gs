@@ -216,14 +216,18 @@ function readLeads() {
   return out;
 }
 
-function readTrials(loc) {
+function readTrials(loc) { // columns are found by their header names (row 4): the trial tabs got new columns on 11.09. and the fixed offsets read the wrong cells for four days (every row became "OTHER")
   var sh = SpreadsheetApp.openById(TEAM_ID).getSheetByName(TR_SHEETS[loc]), out = [];
   if (!sh || sh.getLastRow() < TR_ROW0) return out;
-  var v = sh.getRange(TR_ROW0, TR_P0, sh.getLastRow() - TR_ROW0 + 1, TR_NCOL).getValues();
+  var head = sh.getRange(TR_ROW0 - 1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h || '').trim(); });
+  var p0 = head.indexOf('Trial-Datum'); if (p0 < 0) { Logger.log('trial tab ' + loc + ': header "Trial-Datum" not found, fixed layout used'); p0 = TR_P0 - 1; }
+  var col = function (name, dflt) { var k = head.indexOf(name, p0); return k >= 0 ? k : p0 + dflt; };
+  var c = { date: p0, name: col('Name', CI.name), art: col('Art', CI.art), cls: col('Klasse', CI.cls), lifecycle: col('Lifecycle-Stage', CI.lifecycle), contract: col('Vertragsunterschrift', CI.contract), uid: col('UID', CI.uid) };
+  var v = sh.getRange(TR_ROW0, 1, sh.getLastRow() - TR_ROW0 + 1, head.length).getValues();
   v.forEach(function (r) {
-    var date = dOf(r[CI.date]); if (!date || !r[CI.uid]) return;
-    var name = String(r[CI.name] || '').trim();
-    out.push({ date: date, name: name, nname: nname(name), art: artOf(r[CI.art]), cls: String(r[CI.cls] || '').trim(), lifecycle: String(r[CI.lifecycle] || '').trim(), contract: dOf(r[CI.contract]), uid: String(r[CI.uid]).trim() });
+    var date = dOf(r[c.date]); if (!date || !r[c.uid]) return;
+    var name = String(r[c.name] || '').trim();
+    out.push({ date: date, name: name, nname: nname(name), art: artOf(r[c.art]), cls: String(r[c.cls] || '').trim(), lifecycle: String(r[c.lifecycle] || '').trim(), contract: dOf(r[c.contract]), uid: String(r[c.uid]).trim() });
   });
   return out;
 }
