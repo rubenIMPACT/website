@@ -66,7 +66,7 @@ var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
         en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link}" }
 };
 var STAGE = { lead: 9398, first: 9692, second: 9861, third: 11307, trialBooked: 9693, pending: 10005, lost: 9970, noshow: 11305, cancelled: 11313, debt: 11034 }; // exercise.com lifecycle stage ids (read 10.09.2026)
-var STAGE_SYNC = { pending: true, contacts: true, lost: false, noshow: false, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Live before the WhatsApp go-live: "Pending Decision" (trial list) and First/Second/Third Contact from the coaches' call ticks; the rest hangs on messages that are not sent yet
+var STAGE_SYNC = { pending: true, contacts: true, lost: false, noshow: true, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Live before the WhatsApp go-live: "Pending Decision" (trial list) and First/Second/Third Contact from the coaches' call ticks; the rest hangs on messages that are not sent yet
 var LEAD_STAGES = ['Lead', 'First Contact', 'Second Contact', 'Third Contact', 'Missed the talk', 'Trial Booked', 'Pending Decision', 're-engage no-shows', 're-engage cancelled trial', '']; // the automation only moves clients that are in one of these; Client, Do Not Contact, Debt collection etc. are never touched
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
@@ -183,6 +183,15 @@ function waDryRunHourly() {
     var setN = 0;
     ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(ss, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + euD(t.date) + ', no contract by 22:00') === 'set') setN++; } }); });
     if (setN) payNote += ' Stages: ' + setN + ' x Pending Decision.';
+  }
+  if (STAGE_SYNC.noshow) { // Ruben 15.09.: the stage follows the EVENT, not the message: the trainer marks a no-show -> "re-engage no-shows"; a booked trial is cancelled -> "re-engage cancelled trial" (trials of the last 7 days, forward only, once per person and stage)
+    var reN = 0;
+    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) {
+      if (t.date < addDs(today, -7) || t.date > addDs(today, 30) || LC_SKIP.test(t.lifecycle)) return;
+      if (t.art === 'NOSHOW' && setStage(ss, t.uid, t.name, STAGE.noshow, STAGE_NAME.noshow, 'no-show on ' + euD(t.date) + ' marked in the trial list') === 'set') reN++;
+      if (t.art === 'CANCELLED' && setStage(ss, t.uid, t.name, STAGE.cancelled, STAGE_NAME.cancelled, 'trial on ' + euD(t.date) + ' cancelled') === 'set') reN++;
+    }); });
+    if (reN) payNote += ' Stages: ' + reN + ' x re-engage.';
   }
   if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, HEAD.length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
   if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
