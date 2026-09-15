@@ -2817,10 +2817,19 @@ function teamMirrorEvents(main, team) {
   var src = main.getSheetByName('Events'); if (!src || src.getLastRow() < 1) return;
   var ev = evSs(), dst = ev.getSheets()[0], v = src.getDataRange().getValues();
   if (dst.getName() !== 'Events') dst.setName('Events');
+  // Ein neu angelegtes Spreadsheet steht auf US-Einstellungen: Datumswerte erschienen als "9/26/2026" (Lehre 15.09.2026).
+  // Land und Zeitzone wie im Team-Sheet setzen (idempotent) und die Spalte "Date" ausdruecklich europaeisch formatieren.
+  try { if (ev.getSpreadsheetLocale() !== 'de_CH') ev.setSpreadsheetLocale('de_CH'); if (ev.getSpreadsheetTimeZone() !== TZ) ev.setSpreadsheetTimeZone(TZ); } catch (eL) { Logger.log('Events-Sheet Land/Zeitzone: ' + eL); }
+  var di = v.length ? v[0].map(String).indexOf('Date') : -1;
+  if (di >= 0) for (var ri = 1; ri < v.length; ri++) { // Text-Datum (2026-09-26 oder 9/26/2026) in ein echtes Datum umwandeln, Mittag gegen Zeitzonen-Verschiebung
+    var x = v[ri][di], mI, mU; if (typeof x !== 'string') continue;
+    if ((mI = x.match(/^(\d{4})-(\d{2})-(\d{2})/))) v[ri][di] = new Date(+mI[1], +mI[2] - 1, +mI[3], 12);
+    else if ((mU = x.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) v[ri][di] = new Date(+mU[3], +mU[1] - 1, +mU[2], 12);
+  }
   if (v.length && dst.getMaxRows() < v.length) dst.insertRowsAfter(dst.getMaxRows(), v.length - dst.getMaxRows());
   if (v.length && dst.getMaxColumns() < v[0].length) dst.insertColumnsAfter(dst.getMaxColumns(), v[0].length - dst.getMaxColumns());
   dst.clearContents();
-  if (v.length) { dst.getRange(1, 1, v.length, v[0].length).setValues(v); dst.getRange(1, 1, 1, v[0].length).setFontWeight('bold'); dst.setFrozenRows(1); dst.getRange(2, 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
+  if (v.length) { dst.getRange(1, 1, v.length, v[0].length).setValues(v); dst.getRange(1, 1, 1, v[0].length).setFontWeight('bold'); dst.setFrozenRows(1); dst.getRange(2, 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy HH:mm'); if (di >= 0) dst.getRange(2, di + 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy'); }
   trProtect(dst, [], 'Mirror of the Events tab in Sales & Marketing Analytics, read-only');
   var old = team.getSheetByName('Events'); if (old && team.getNumSheets() > 1) team.deleteSheet(old); // erst nach dem erfolgreichen Schreiben oben
 }
