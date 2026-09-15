@@ -97,12 +97,13 @@ function waDryRunHourly() {
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked', 'A:' + msg + ':' + id, {});
   });
   writeCallLists(leads, trials, trialNames, lastA, calls, now); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
+  migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
   if (STAGE_SYNC.contacts) { // Ruben 10.09. ("ja"): the call ticks set First / Second / Third Contact in exercise.com (forward only); after the go-live the sent messages will do the same
     var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
     leads.forEach(function (l) {
       if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l)) return;
       var n = (calls[l.email.toLowerCase()] || { called: [] }).called.length; if (!n) return;
-      var step = ladder[Math.min(n, 3) - 1]; if (setStage(ss, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'call attempt ' + n + ' ticked in the call list', step[1]) === 'set') stageN++;
+      var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'call attempt ' + n + ' ticked in the call list', step[1]) === 'set') stageN++;
     });
     if (stageN) Logger.log('stages from call ticks: ' + stageN + ' set');
   }
@@ -181,15 +182,15 @@ function waDryRunHourly() {
   // Stage sync (Ruben 10.09.): "Pending Decision" on the evening of an attended trial without contract (first run after 20:00), only if the stage was not changed by hand
   if (STAGE_SYNC.pending && Number(Utilities.formatDate(now, TZ, 'H')) >= 22) { // Ruben 10.09.: after 22:00, sales can still close until 21:30
     var setN = 0;
-    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(ss, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + euD(t.date) + ', no contract by 22:00') === 'set') setN++; } }); });
+    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(loc, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + euD(t.date) + ', no contract by 22:00') === 'set') setN++; } }); });
     if (setN) payNote += ' Stages: ' + setN + ' x Pending Decision.';
   }
   if (STAGE_SYNC.noshow) { // Ruben 15.09.: the stage follows the EVENT, not the message: the trainer marks a no-show -> "re-engage no-shows"; a booked trial is cancelled -> "re-engage cancelled trial" (trials of the last 7 days, forward only, once per person and stage)
     var reN = 0;
     ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) {
       if (t.date < addDs(today, -7) || t.date > addDs(today, 30) || LC_SKIP.test(t.lifecycle)) return;
-      if (t.art === 'NOSHOW' && setStage(ss, t.uid, t.name, STAGE.noshow, STAGE_NAME.noshow, 'no-show on ' + euD(t.date) + ' marked in the trial list') === 'set') reN++;
-      if (t.art === 'CANCELLED' && setStage(ss, t.uid, t.name, STAGE.cancelled, STAGE_NAME.cancelled, 'trial on ' + euD(t.date) + ' cancelled') === 'set') reN++;
+      if (t.art === 'NOSHOW' && setStage(loc, t.uid, t.name, STAGE.noshow, STAGE_NAME.noshow, 'no-show on ' + euD(t.date) + ' marked in the trial list') === 'set') reN++;
+      if (t.art === 'CANCELLED' && setStage(loc, t.uid, t.name, STAGE.cancelled, STAGE_NAME.cancelled, 'trial on ' + euD(t.date) + ' cancelled') === 'set') reN++;
     }); });
     if (reN) payNote += ' Stages: ' + reN + ' x re-engage.';
   }
@@ -575,6 +576,7 @@ function harvestCalls(now) { // collect the ticks from both call lists into the 
     var short = loc === 'Zurich' ? 'ZH' : 'WT', log = ss.getSheetByName('Call log ' + short) || ss.getSheetByName('Call log');
     if (!log) { log = ss.insertSheet('Call log ' + short); log.getRange('A1').setValue('Call log ' + short + ': one line per tick in the call list ("called" = called, nobody answered; "reached" = spoke to the lead). Feeds "Call attempts" / "Last call attempt" in the call list and the day rows "Anrufe versucht" / "Anrufe geführt" in the Probetrainings tab. Read-only.').setFontColor('#666666'); log.getRange(2, 1, 1, 6).setValues([['Date', 'Time', 'Studio', 'Name', 'Key', 'Event']]).setFontWeight('bold').setBackground('#f3f3f3'); log.setFrozenRows(2); [100, 60, 90, 180, 220, 80].forEach(function (w, i) { log.setColumnWidth(1 + i, w); }); }
     if (log.getRange(2, 1).getValue() !== 'Date') log.getRange(2, 1, 1, 6).setValues([['Date', 'Time', 'Studio', 'Name', 'Key', 'Event']]).setFontWeight('bold').setBackground('#f3f3f3');
+    if (!log.isSheetHidden()) log.hideSheet(); // Ruben 15.09.: the call logs are the memory of the ticks, not a working tab; hidden so the team only sees the call lists
     var n = log.getLastRow();
     if (n >= 3) log.getRange(3, 1, n - 2, 6).getValues().forEach(function (r) { var k = String(r[4] || '').toLowerCase().trim(), ev = String(r[5] || ''), d = r[0] instanceof Date ? r[0] : new Date(String(r[0]).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$3-$2-$1') + 'T' + (String(r[1] || '12:00')) + ':00'); if (!k || isNaN(d.getTime())) return; var st = state[k] = state[k] || { called: [], reached: null, loc: loc }; if (ev === 'reached') st.reached = st.reached && st.reached < d ? st.reached : d; else st.called.push(d); });
     var sh = ss.getSheetByName('Call list ' + short), add = []; if (!sh || sh.getLastRow() < 5) return;
@@ -812,17 +814,19 @@ function chDateUTC(v) { // report stamps "2026-08-07 12:07:00 +0000" (UTC) -> Sw
   if (m) return fmtD(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0))));
   return dOfAny(v);
 }
-function setStage(ss, id, name, stageId, stageName, reason, onlyFrom) { // one lifecycle change via /api/wa (server checks the current stage against onlyFrom), logged in tab "Stage log"; once per id + stage. id = exercise.com user id or the lead's e-mail
-  var log = stageLog(ss), key = String(id || '').toLowerCase().trim() + ':' + stageId; if (!id || log.done[key]) return 'already';
+function setStage(loc, id, name, stageId, stageName, reason, onlyFrom) { // one lifecycle change via /api/wa (server checks the current stage against onlyFrom), logged in the studio's tab "Stage log ZH" / "Stage log WT" (hidden); once per id + stage. id = exercise.com user id or the lead's e-mail
+  var log = stageLog(loc), key = String(id || '').toLowerCase().trim() + ':' + stageId; if (!id || log.done[key]) return 'already';
   var b = cfPost(Object.assign({ action: 'set_lifecycle', stage_id: stageId, only_from: onlyFrom || LEAD_STAGES }, /@/.test(String(id)) ? { email: String(id).toLowerCase().trim() } : { uid: id }));
   var res = !b ? 'error' : (b.skipped ? 'skipped (' + b.lifecycle + ')' : (b.unchanged ? 'unchanged' : (b.ok ? 'set' : (b.error === 'client_not_found' ? 'skipped (not in exercise.com)' : 'failed ' + (b.status || b.error)))));
   log.sh.appendRow([fmtEuDT(new Date()), id, name || '', b ? (b.before || b.lifecycle || '') : '', stageName, res, reason || '']);
   if (/^(set|unchanged|skipped)/.test(res)) log.done[key] = true;
   return res;
 }
-function stageLog(ssIgnored) { // tab "Stage log" in Team KPIs (Ruben 10.09.: where Abdi and Bogdan work): one line per lifecycle change the automation made (or refused); done = uid:stageId already handled
-  var ss = SpreadsheetApp.openById(TEAM_ID), sh = ss.getSheetByName('Stage log'), done = {};
-  if (!sh) { sh = ss.insertSheet('Stage log'); sh.getRange('A1').setValue('Stage log: every lifecycle stage the automation set in exercise.com (or refused: "skipped" = the client was in a protected stage such as Client / Do Not Contact / Debt collection). Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'UID', 'Name', 'From', 'To', 'Result', 'Reason']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [120, 80, 180, 130, 130, 120, 300].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
+var STAGE_MERGED = 'Merged into "Stage log ZH" / "Stage log WT" on 15.09.2026 (Ruben). This tab is no longer written and can be deleted.';
+function stageLog(loc) { // hidden tab "Stage log ZH" / "Stage log WT" in Team KPIs (Ruben 15.09.: one per studio, hidden): one line per lifecycle change the automation made (or refused); done = id:stageId already handled
+  var ss = SpreadsheetApp.openById(TEAM_ID), name = 'Stage log ' + (loc === 'Winterthur' ? 'WT' : 'ZH'), sh = ss.getSheetByName(name), done = {};
+  if (!sh) { sh = ss.insertSheet(name); sh.getRange('A1').setValue('Stage log: every lifecycle stage the automation set in exercise.com (or refused: "skipped" = the client was in a protected stage such as Client / Do Not Contact / Debt collection). Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'UID', 'Name', 'From', 'To', 'Result', 'Reason']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [120, 80, 180, 130, 130, 120, 300].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
+  if (!sh.isSheetHidden()) sh.hideSheet();
   var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { var u = String(r[1] || '').toLowerCase().trim(), to = String(r[4] || ''), res = String(r[5] || ''); var id = Object.keys(STAGE).filter(function (k) { return STAGE_NAME[k] === to; }).map(function (k) { return STAGE[k]; })[0]; if (u && id && /^(set|unchanged|skipped)/.test(res)) done[u + ':' + id] = true; });
   return { sh: sh, done: done };
 }
@@ -847,6 +851,16 @@ function waEuDates() { // one-off (Ruben 10.09.): existing rows to European date
   if (log && ln >= 3) { var lv = log.getRange(3, 1, ln - 2, 9).getValues(); lv.forEach(function (r) { r[0] = r[0] instanceof Date ? fmtEuD(r[0]) : euD(dOf(r[0])); r[5] = r[5] instanceof Date ? fmtEuD(r[5]) : euD(dOf(r[5])); r[8] = String(r[8] || '').replace(/(\d{4})-(\d{2})-(\d{2})/g, '$3.$2.$1'); }); log.getRange(3, 1, lv.length, 9).setValues(lv); log.getRange(3, 1, lv.length, 1).setNumberFormat('@'); log.getRange(3, 6, lv.length, 1).setNumberFormat('@'); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('dd.MM.yyyy');
   Logger.log('EU dates: ' + conv + ' dry-run cells converted, retry log ' + (ln >= 3 ? ln - 2 : 0) + ' rows rewritten');
+}
+function migrateStageLog(trials) { // one-off (Ruben 15.09.): move the rows of the single "Stage log" into "Stage log ZH" / "Stage log WT" (studio = the trial list the id belongs to, else Zurich); the old tab is emptied, marked and hidden, not deleted
+  var ss = SpreadsheetApp.openById(TEAM_ID), old = ss.getSheetByName('Stage log'); if (!old || old.getRange('A3').getValue() === STAGE_MERGED) return;
+  var n = old.getLastRow(), rows = n >= 3 ? old.getRange(3, 1, n - 2, 7).getValues() : [], locOf = {};
+  ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { locOf[String(t.uid)] = loc; }); });
+  var by = { Zurich: [], Winterthur: [] }; rows.forEach(function (r) { var id = String(r[1] || '').trim(); if (!id) return; by[locOf[id] || 'Zurich'].push(r); });
+  ['Zurich', 'Winterthur'].forEach(function (loc) { if (!by[loc].length) return; var sh = stageLog(loc).sh; sh.getRange(sh.getLastRow() + 1, 1, by[loc].length, 7).setValues(by[loc]); });
+  if (n >= 3) old.getRange(3, 1, n - 2, 7).clearContent();
+  old.getRange('A3').setValue(STAGE_MERGED); old.hideSheet();
+  Logger.log('stage log split: ZH ' + by.Zurich.length + ', WT ' + by.Winterthur.length + ' rows moved');
 }
 function installDryRunTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waDryRunHourly') ScriptApp.deleteTrigger(t); });
