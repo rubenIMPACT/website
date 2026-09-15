@@ -773,3 +773,16 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - `klassen.js` metaAds liefert `campaign_id`; `wkUpsert` schreibt sie in Spalte J (seit 15.09. 15:38 alle 60 Meta-Zeilen der letzten 14 Tage). `byId` bevorzugt bei gleicher Nummer die Kampagne mit aktuellen Kosten.
 - Werbekosten-Tab: Kampagnenzeilen NICHT mehr unter Media-Kosten/Website-Leads/CPL, sondern eigener Abschnitt "Kampagnen: Kosten, Website-Leads, Kosten pro Lead" (nach den CPL-Zeilen, vor CPT): je Plattform eine Zwischenzeile, je Kampagne drei Zeilen "Kosten (CHF) · Name", "Leads · Name", "CHF pro Lead · Name" (Keys wkc/leadsc/cplc). Labels muessen eindeutig bleiben (keep-Map fuer Handfarben).
 - Uconic-Bitte (Entwurf an Ruben 15.09.): utm_campaign in allen Anzeigen auf den aktuellen Namen bzw. dynamische Platzhalter im Feld "URL-Parameter"; eine Anzeige (WT Muay Thai, 14.09.) lieferte die Platzhalter {{campaign.name}} unaufgeloest.
+
+
+## EVENTS IN EIGENEM SHEET (15.09.2026, Ruben: "independent from the detailed sales KPIs sheet")
+- "detailed sales KPIs" = das umbenannte Team-Sheet (TEAM_ID). Der Events-Tab dort war nur ein Spiegel (teamMirrorEvents) des
+  Events-Tabs im Analytics-Sheet (Sales & Marketing Analytics), den die Website per logForm/appendRow schreibt. Das ORIGINAL bleibt
+  unveraendert im Analytics-Sheet (Webapp, updateSignupCount, Tab-Name nie aendern).
+- teamMirrorEvents schreibt jetzt in ein eigenes Spreadsheet "IMPACT Events" (evSs(): einmal angelegt, ID in Script Property evId,
+  im selben Drive-Ordner wie das Team-Sheet, gleiches Muster wie paySs/Open Payments), Tab "Events", schreibgeschuetzt.
+  Nach dem ersten erfolgreichen Schreiben wird der alte Events-Tab im Team-Sheet geloescht (Daten gehen nicht verloren).
+- Geprueft vor dem Umbau: kein anderer Code liest den Events-Tab aus dem Team-Sheet (WhatsApp-Skript liest dort nur
+  Probetrainings ZH/WT, updateSignupCount und Zeile 1057 lesen das Analytics-Sheet).
+- Freigaben fuer "IMPACT Events" setzt das Skript NICHT - offen bei Ruben (Hinweis im Analytics-Code MA_TAB_HIDE: "Events sieht
+  Bogdan im Team-Sheet"; das Team-Sheet ist wegen TEAM_SHARED=false aber noch gar nicht geteilt).

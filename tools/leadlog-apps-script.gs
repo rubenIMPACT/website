@@ -2786,14 +2786,30 @@ function waMirrorCancellations(main) {
   if (!dst.getRange(1, w + 1).getValue()) dst.getRange(1, w + 1).setValue('Your notes').setFontWeight('bold').setBackground('#fff8e1');
   return (v.length - 1) + ' rows';
 }
-// Events-Tab aus dem Leads-Log als Werte ins Team-Sheet spiegeln (nur lesen, nur Ruben darf editieren)
+// Events-Tab aus dem Analytics-Sheet (schreibt die Website) als Werte in ein EIGENES Sheet spiegeln (Ruben 15.09.2026: unabhaengig
+// von "detailed sales KPIs"). Nur lesen. Die Datei wird beim ersten Lauf angelegt (ID in den Script Properties, evId) und liegt im
+// selben Drive-Ordner wie das Team-Sheet - gleiches Muster wie Open Payments. Freigaben setzt dieses Skript NICHT (Ruben entscheidet).
+// Der alte Spiegel-Tab im Team-Sheet wird erst entfernt, NACHDEM das neue Sheet erfolgreich geschrieben wurde; Daten gehen dabei
+// keine verloren, das Original bleibt im Analytics-Sheet.
+var EV_TITLE = 'IMPACT Events';
+function evSs() {
+  var pr = PropertiesService.getScriptProperties(), id = pr.getProperty('evId');
+  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) { Logger.log('Events-Sheet neu anlegen: ' + e); } }
+  var ss = SpreadsheetApp.create(EV_TITLE);
+  try { var f = DriveApp.getFileById(ss.getId()), parents = DriveApp.getFileById(TEAM_ID).getParents(); if (parents.hasNext()) { var folder = parents.next(); folder.addFile(f); DriveApp.getRootFolder().removeFile(f); } } catch (e2) { Logger.log('Events-Sheet Ordner: ' + e2); }
+  pr.setProperty('evId', ss.getId());
+  return ss;
+}
 function teamMirrorEvents(main, team) {
   var src = main.getSheetByName('Events'); if (!src || src.getLastRow() < 1) return;
-  var dst = getOrCreate(team, 'Events'), v = src.getDataRange().getValues();
+  var ev = evSs(), dst = ev.getSheets()[0], v = src.getDataRange().getValues();
+  if (dst.getName() !== 'Events') dst.setName('Events');
+  if (v.length && dst.getMaxRows() < v.length) dst.insertRowsAfter(dst.getMaxRows(), v.length - dst.getMaxRows());
+  if (v.length && dst.getMaxColumns() < v[0].length) dst.insertColumnsAfter(dst.getMaxColumns(), v[0].length - dst.getMaxColumns());
   dst.clearContents();
   if (v.length) { dst.getRange(1, 1, v.length, v[0].length).setValues(v); dst.getRange(1, 1, 1, v[0].length).setFontWeight('bold'); dst.setFrozenRows(1); dst.getRange(2, 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
-  trProtect(dst, [], 'Spiegel aus dem Leads-Log, nur lesen');
-  if (dst.getIndex() !== team.getNumSheets()) { team.setActiveSheet(dst); team.moveActiveSheet(team.getNumSheets()); } // ans Ende (Ruben 07.09.)
+  trProtect(dst, [], 'Mirror of the Events tab in Sales & Marketing Analytics, read-only');
+  var old = team.getSheetByName('Events'); if (old && team.getNumSheets() > 1) team.deleteSheet(old); // erst nach dem erfolgreichen Schreiben oben
 }
 // Freigabe des Team-Sheets erst nach der Einfuehrung (Ruben 06.09.: noch nichts im Team gezeigt). Solange TEAM_SHARED false ist,
 // nimmt teamShare() die Freigaben fuer Abdi, Bogdan und support weg (Stundenlauf prueft die Marke einmal je Wert).
@@ -2929,7 +2945,7 @@ function setupTeam() {
   var main = SpreadsheetApp.openById(SHEET_ID), team = teamSs();
   var lines = runProbetrainings('2026-08-01');
   ['Probetrainings ZH', 'Probetrainings WT'].forEach(function (n) { var s = main.getSheetByName(n); if (s) main.deleteSheet(s); });
-  ['Events', 'Probetrainings ZH', 'Probetrainings WT'].forEach(function (n, i) { var s = team.getSheetByName(n); if (s) { team.setActiveSheet(s); team.moveActiveSheet(i + 1); } });
+  ['Probetrainings ZH', 'Probetrainings WT'].forEach(function (n, i) { var s = team.getSheetByName(n); if (s) { team.setActiveSheet(s); team.moveActiveSheet(i + 1); } }); // Events hat seit 15.09. ein eigenes Sheet
   var shared = teamShare();
   setupAnalyse();
   Logger.log(lines + '\n' + shared);
