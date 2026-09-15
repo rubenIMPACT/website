@@ -760,3 +760,9 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Zeile "Anteil Leads aus bezahlten Kanälen"; vierte Grafik "Website-Leads je Kanal pro Monat" (Farben wie Kostengrafik + grau). Diagramme je
   Block 2×2 mit pixelgenauer Position aus den Spaltenbreiten (`colLeft`/`place`, x = 0 und 620 px, zweite Reihe +16 Zeilen, BAND 34), weil die
   Spaltenanker (1/8/15) bei Wochen-/Monatsspalten übereinander lagen. Kanalzuordnung erst ab 02.09.2026, Kampagnen ab 04.09.
+
+## Klassenanalyse: Ranking der Auslastung nach Uhrzeit (Ruben 15.09.2026, Commit 819899b)
+- Neuer Block je Standort zwischen Top/Bottom-10 und der Slot-Tabelle: `timeBlock(sh, r, title, rows)` in `tools/leadlog-apps-script.gs`.
+- Aggregation nur nach Startzeit (`start`), Werktag + Samstag und alle Disziplinen zusammen, Segment "Gratis" (Open Mat) ausgeschlossen; Auslastung = Besuche / Plaetze, sortiert absteigend.
+- Spalten A–I: Rang | Uhrzeit | Klassen | Termine | Besuche | (F leer, im Tab ausgeblendet) | Ø pro Termin | Plaetze | Auslastung; Farbregeln < 16 % rot, > 45 % gruen (wie Slot-Tabelle).
+- Datenquelle bleibt `data.rows` des Klassenanalyse-JSON, keine neue Cloudflare-Logik. Editor = 819899b + Token-Zeile (deployt 15.09.2026 15:12, RUN_NOW entfernt).
