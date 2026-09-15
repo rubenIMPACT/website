@@ -754,3 +754,5 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Probetrainings, Website-Leads oder interner Schlüssel) | Wert | Grund. `mvRead`/`mvApply` überlagern die MonatsHistorie beim Lesen in
   `maContext` (Monatsabschluss + Werbekosten) und `fpValues` (Finanzplan); die berechneten Werte in der MonatsHistorie bleiben. Zelle im
   Monatsabschluss bekommt Notiz "Manuell gesetzt …: <Grund>". Direkte Änderungen im Monatsabschluss-Tab werden stündlich überschrieben.
+- 15.09.2026: Das Analytics-Sheet (ID 1nlA8MOSqYFwj-rI0SYRFh06-VmMTdoUPYEsHf3zwtlE) heisst jetzt "Sales & Marketing Analytics". Skript und
+  Cloudflare arbeiten mit der ID, nichts zu ändern; in Notizen/Texten steht teils noch "Analytics-Sheet" (gemeint ist dasselbe).
