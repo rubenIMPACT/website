@@ -756,3 +756,7 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   Monatsabschluss bekommt Notiz "Manuell gesetzt …: <Grund>". Direkte Änderungen im Monatsabschluss-Tab werden stündlich überschrieben.
 - 15.09.2026: Das Analytics-Sheet (ID 1nlA8MOSqYFwj-rI0SYRFh06-VmMTdoUPYEsHf3zwtlE) heisst jetzt "Sales & Marketing Analytics". Skript und
   Cloudflare arbeiten mit der ID, nichts zu ändern; in Notizen/Texten steht teils noch "Analytics-Sheet" (gemeint ist dasselbe).
+- 15.09.2026 (bacb92d): Werbekosten-Tab: Zeilen "Website-Leads (aus dem Log)" mit + je Plattform (++ je Kampagne) und "organisch/direkt",
+  Zeile "Anteil Leads aus bezahlten Kanälen"; vierte Grafik "Website-Leads je Kanal pro Monat" (Farben wie Kostengrafik + grau). Diagramme je
+  Block 2×2 mit pixelgenauer Position aus den Spaltenbreiten (`colLeft`/`place`, x = 0 und 620 px, zweite Reihe +16 Zeilen, BAND 34), weil die
+  Spaltenanker (1/8/15) bei Wochen-/Monatsspalten übereinander lagen. Kanalzuordnung erst ab 02.09.2026, Kampagnen ab 04.09.
