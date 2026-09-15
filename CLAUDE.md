@@ -790,3 +790,13 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Daten!J (buildDaten) und `kanalOf(gclid, fbclid, ttclid, utm, ref, medium, page)`: utm_content=link_in_bio oder utm_medium=social -> "Instagram/Facebook organisch" (vor fbclid geprueft); utm_source/utm_medium notfalls aus der Seiten-URL (Leads!N), weil die UTM-Spalten erst seit 04.09. gefuellt sind. Formel wird als IF-Kette aus `chain` gebaut. buildDaten() muss nach Formelaenderung einmal laufen (RUN_NOW), es haengt nur an setupAnalyse.
 - Wirkung September (zaehlende Leads): Meta Ads 35 -> 25, Instagram/Facebook organisch 0 -> 10, TikTok Ads 15 -> 19 (Leads 01.-03.09. mit utm_source=tiktok in der URL), Direkt 115 -> 113.
 - Vergleichbarkeit (Befund 15.09.): TikTok-Kosten enden am 06.09. (letzter Import 07.09. 12:13, Gmail hat KEINE Mails mit Betreff "IMPACT TikTok" mehr, der geplante Report im TikTok Ads Manager kommt nicht an -> Ruben). Google Ads: WerbekostenDaten Spalte J ohne Kampagnen-ID, das aktualisierte tools/google-ads-spend-script.js (campaign.id) ist in Google Ads noch nicht eingefuegt -> Zuordnung laeuft ueber Standort + Kids-Heuristik. Klick-IDs und Referrer liegen 30 Tage im localStorage (letzter Klick je Plattform, Prioritaet ttclid > gclid > fbclid), Plattform-Manager zaehlen zusaetzlich View-Through (Meta/TikTok 1 Tag) und Dubletten.
+
+- DATUM IM NEUEN SHEET (15.09. 16:04, ce1e82b): SpreadsheetApp.create legt Sheets mit US-Land an - die Spalte "Date" zeigte
+  "9/26/2026". teamMirrorEvents setzt jetzt Land de_CH und Zeitzone TZ (idempotent), formatiert "Date" als dd.MM.yyyy und wandelt
+  Text-Daten (2026-09-26 / 9/26/2026) in echte Daten um. LEHRE: Bei JEDEM per Skript neu angelegten Spreadsheet Land und Zeitzone
+  setzen (betrifft auch Open Payments, falls es je neu angelegt wird).
+- EINSPIELEN 15.09. ~16:08: ce1e82b ins Apps Script (enthaelt d008e21 "Kanal: Link in Bio" des Analytics-Chats). Der Editor hatte
+  zusaetzlich eine uebrig gebliebene RUN_NOW-Hilfsfunktion des Analytics-Chats; dessen Handstart war laut Ausfuehrungen um 15:37
+  schon Completed. Vor dem Einfuegen geprueft: Editor OHNE diese RUN_NOW-Zeile = exakt d008e21. Durch das Einspielen des gepushten
+  Stands ist RUN_NOW entfernt (so wie das Rezept es nach jedem Handstart verlangt). Waehrend des Einfuegens brach die Chrome-Verbindung
+  ab; danach nur LESEND geprueft (nicht erneut eingefuegt): Stand vollstaendig gespeichert.
