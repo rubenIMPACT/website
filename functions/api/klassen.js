@@ -672,12 +672,12 @@ async function metaAds(env, start, end) {
   if (!env.META_ADS_TOKEN) return { error: "no_meta_token" };
   const rows = [], errors = [];
   for (const acct of Object.keys(META_ACCOUNTS)) {
-    let url = "https://graph.facebook.com/v23.0/" + acct + "/insights?level=campaign&time_increment=1&fields=campaign_name,spend,impressions,clicks,account_currency&limit=500"
+    let url = "https://graph.facebook.com/v23.0/" + acct + "/insights?level=campaign&time_increment=1&fields=campaign_name,campaign_id,spend,impressions,clicks,account_currency&limit=500"
       + "&time_range=" + encodeURIComponent(JSON.stringify({ since: start, until: end })) + "&access_token=" + encodeURIComponent(env.META_ADS_TOKEN);
     for (let guard = 0; url && guard < 30; guard++) {
       const r = await fetch(url); let js = null; try { js = await r.json(); } catch {}
       if (!r.ok || !js || js.error) { errors.push({ account: META_ACCOUNTS[acct], status: r.status, error: js && js.error ? String(js.error.message || js.error.type || "") : "no_json" }); break; }
-      (js.data || []).forEach((d) => rows.push({ date: String(d.date_start || ""), platform: "Meta Ads", account: META_ACCOUNTS[acct], campaign: String(d.campaign_name || ""), spend: Number(d.spend || 0), clicks: Number(d.clicks || 0), impressions: Number(d.impressions || 0), currency: String(d.account_currency || "") }));
+      (js.data || []).forEach((d) => rows.push({ date: String(d.date_start || ""), platform: "Meta Ads", account: META_ACCOUNTS[acct], campaign: String(d.campaign_name || ""), campaign_id: String(d.campaign_id || ""), spend: Number(d.spend || 0), clicks: Number(d.clicks || 0), impressions: Number(d.impressions || 0), currency: String(d.account_currency || "") }));
       url = js.paging && js.paging.next ? js.paging.next : null;
     }
   }
