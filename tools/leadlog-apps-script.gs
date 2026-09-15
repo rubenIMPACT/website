@@ -1453,7 +1453,8 @@ function buildWerbekostenCore(ss, ctx) {
   var chartRow = r + 1, BAND = 34, d = 1; // zwei Diagrammreihen je Block (2x2), je 16 Zeilen à 21 px = 336 px > Diagrammhoehe 320
   // Diagramme pixelgenau setzen: Spaltenbreiten sind bekannt (A 300, Wochen 58, Monate/Jahr 84), sonst lagen die Diagramme uebereinander (Ruben 15.09.)
   var colLeft = function (ci) { var x = 0; for (var i = 1; i < ci; i++) x += (i === 1 ? 300 : (cols[i - 2] && cols[i - 2].w ? 58 : 84)); return x; };
-  var place = function (targetX) { var ci = 1; while (ci <= cols.length && colLeft(ci + 1) <= targetX) ci++; return { col: ci, off: targetX - colLeft(ci) }; };
+  // Diagramme koennen nicht in der eingefrorenen Spalte A liegen, Sheets schiebt sie an den Rand von B: deshalb x ab Spalte B rechnen (Lehre 15.09.)
+  var place = function (x) { var targetX = 300 + x, ci = 2; while (ci <= cols.length && colLeft(ci + 1) <= targetX) ci++; return { col: ci, off: targetX - colLeft(ci) }; };
   sh.getRange(chartRow, 1).setValue('Diagramme').setFontWeight('bold').setFontSize(13); chartRow += 1;
   var tbl = function (headRow, rows, fmt) {
     dsh.getRange(d, 1, 1, headRow.length).setValues([headRow]).setFontWeight('bold');
@@ -2201,9 +2202,12 @@ function buildMonatsabschlussCore(ss) {
     var quo = tbl([b.locDE + ' Quoten', 'Show-up-Rate', 'Verkäufe / Probetrainings', 'Verkäufe / Kontakte', 'Kohorten-Conversion'], hkeys.map(function (kk) { var nsv = g(kk, 'noshow_rate'); return [dt(kk), nsv === '' ? 0 : 1 - num(nsv), num(g(kk, 'conv_sales_trial')), num(g(kk, 'conv_sales_lead')), num(g(kk, 'conv_cohort_rate'))]; }), '0%');
     var wfun = tbl([b.locDE + ' Woche', 'Website-Leads', 'Gespräche', 'Probetrainings', 'Verkäufe', 'Kündigungen'], wkeys.map(function (m) { var mkw = addDs(m, 3).slice(0, 7), o = weekOf(m, mkw); return [dtW(m), sumW(o, 'leads'), sumW(o, 'calls'), sumW(o, 't'), num(daySumFor(wrLocs, m, mkw, 'signed_d:')), num(daySumFor(wrLocs, m, mkw, 'cancels_d:'))]; }), null, 'dd.MM.');
     var wkan = tbl([b.locDE + ' Kanal'].concat(WK_PLATFORMS).concat(['organisch/direkt']), wkeys.map(function (m) { var o = weekOf(m, addDs(m, 3).slice(0, 7)); return [dtW(m)].concat(WK_PLATFORMS.map(function (pn) { return kanW(o, [pn]); })).concat([kanW(o, ORG)]); }), null, 'dd.MM.');
-    var C = function (type, at, w, n, row, col, title, opts) {
+    var colLeftM = function (ci) { var x = 0; for (var i = 1; i < ci; i++) x += (i === 1 ? 300 : (cols[i - 2] && cols[i - 2].w ? 58 : 84)); return x; };
+    var placeM = function (x) { var targetX = 300 + x, ci = 2; while (ci <= cols.length && colLeftM(ci + 1) <= targetX) ci++; return { col: ci, off: targetX - colLeftM(ci) }; }; // pixelgenau ab Spalte B (eingefrorene Spalte A), Lehre 15.09.
+    var C = function (type, at, w, n, row, x, title, opts) {
       if (!n) return;
-      var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(dsh.getRange(at, 1, n + 1, w)).setPosition(row, col, 0, 0)
+      var p = placeM(x);
+      var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(dsh.getRange(at, 1, n + 1, w)).setPosition(row, p.col, p.off, 0)
         .setOption('title', title).setOption('width', 600).setOption('height', 320).setOption('legend', { position: 'bottom' }).setOption('vAxis', { minValue: 0 });
       Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
       sh.insertChart(ch.build());
@@ -2211,10 +2215,10 @@ function buildMonatsabschlussCore(ss) {
     var row0 = chartRow + bi * 2 * BAND;
     sh.getRange(row0, 1).setValue(b.locDE).setFontWeight('bold');
     try {
-      C(Charts.ChartType.COLUMN, fun, 5, hkeys.length, row0 + 1, 1, 'Funnel ' + b.locDE + ' pro Monat', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], hAxis: { format: 'MMM yy' } });
-      C(Charts.ChartType.LINE, quo, 5, hkeys.length, row0 + 1, 8, 'Quoten ' + b.locDE + ' (höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 }, hAxis: { format: 'MMM yy' } });
-      C(Charts.ChartType.LINE, wfun, 7, wkeys.length, row0 + BAND + 1, 1, 'Funnel ' + b.locDE + ' pro Woche', { colors: ['#9e9e9e', '#34a853', '#e2c210', '#1a73e8', '#0b8043', '#d93025'], pointSize: 6, hAxis: { format: 'dd.MM' } });
-      C(Charts.ChartType.COLUMN, wkan, WK_PLATFORMS.length + 2, wkeys.length, row0 + BAND + 1, 8, 'Website-Leads ' + b.locDE + ' pro Woche nach Kanal', { isStacked: true, hAxis: { format: 'dd.MM' } });
+      C(Charts.ChartType.COLUMN, fun, 5, hkeys.length, row0 + 1, 0, 'Funnel ' + b.locDE + ' pro Monat', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], hAxis: { format: 'MMM yy' } });
+      C(Charts.ChartType.LINE, quo, 5, hkeys.length, row0 + 1, 620, 'Quoten ' + b.locDE + ' (höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 }, hAxis: { format: 'MMM yy' } });
+      C(Charts.ChartType.LINE, wfun, 7, wkeys.length, row0 + BAND + 1, 0, 'Funnel ' + b.locDE + ' pro Woche', { colors: ['#9e9e9e', '#34a853', '#e2c210', '#1a73e8', '#0b8043', '#d93025'], pointSize: 6, hAxis: { format: 'dd.MM' } });
+      C(Charts.ChartType.COLUMN, wkan, WK_PLATFORMS.length + 2, wkeys.length, row0 + BAND + 1, 620, 'Website-Leads ' + b.locDE + ' pro Woche nach Kanal', { isStacked: true, hAxis: { format: 'dd.MM' } });
     } catch (e) { Logger.log('Diagramme ' + b.locDE + ': ' + e); }
   });
   sh.setRowHeights(chartRow, blocks.length * 2 * BAND + 1, 21);
