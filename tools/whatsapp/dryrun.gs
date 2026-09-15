@@ -220,9 +220,10 @@ function readTrials(loc) { // columns are found by their header names (row 4): t
   var sh = SpreadsheetApp.openById(TEAM_ID).getSheetByName(TR_SHEETS[loc]), out = [];
   if (!sh || sh.getLastRow() < TR_ROW0) return out;
   var head = sh.getRange(TR_ROW0 - 1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return String(h || '').trim(); });
-  var p0 = head.indexOf('Trial-Datum'); if (p0 < 0) { Logger.log('trial tab ' + loc + ': header "Trial-Datum" not found, fixed layout used'); p0 = TR_P0 - 1; }
-  var col = function (name, dflt) { var k = head.indexOf(name, p0); return k >= 0 ? k : p0 + dflt; };
-  var c = { date: p0, name: col('Name', CI.name), art: col('Art', CI.art), cls: col('Klasse', CI.cls), lifecycle: col('Lifecycle-Stage', CI.lifecycle), contract: col('Vertragsunterschrift', CI.contract), uid: col('UID', CI.uid) };
+  var find = function (names, from) { for (var q = 0; q < names.length; q++) { var k = head.indexOf(names[q], from || 0); if (k >= 0) return k; } return -1; }; // ZH tab is German, WT tab is English (15.09.)
+  var p0 = find(['Trial-Datum', 'Trial date']); if (p0 < 0) { Logger.log('trial tab ' + loc + ': header "Trial-Datum" / "Trial date" not found, fixed layout used'); p0 = TR_P0 - 1; }
+  var col = function (names, dflt) { var k = find(names, p0); return k >= 0 ? k : p0 + dflt; };
+  var c = { date: p0, name: col(['Name'], CI.name), art: col(['Art', 'Type'], CI.art), cls: col(['Klasse', 'Class'], CI.cls), lifecycle: col(['Lifecycle-Stage', 'Lifecycle stage'], CI.lifecycle), contract: col(['Vertragsunterschrift', 'Contract signed'], CI.contract), uid: col(['UID'], CI.uid) };
   var v = sh.getRange(TR_ROW0, 1, sh.getLastRow() - TR_ROW0 + 1, head.length).getValues();
   v.forEach(function (r) {
     var date = dOf(r[c.date]); if (!date || !r[c.uid]) return;
@@ -635,9 +636,10 @@ function fillCallCounts(ss, loc, calls, now) { // day rows of the Probetrainings
   Object.keys(calls).forEach(function (k) { var st = calls[k]; if (st.loc !== loc) return; st.called.forEach(function (d) { var day = fmtD(d); (per[day] = per[day] || { a: 0, c: 0 }).a++; }); if (st.reached) { var day = fmtD(st.reached); var e = per[day] = per[day] || { a: 0, c: 0 }; e.a++; e.c++; } });
   var days = Object.keys(per); if (!days.length) return;
   var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return;
-  var labels = sh.getRange(TR_ROW0, 1, sh.getLastRow() - TR_ROW0 + 1, 1).getValues().map(function (r) { return String(r[0] || '').trim(); });
-  var wd = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' }, written = 0;
-  days.forEach(function (day) { var d = new Date(day + 'T12:00:00'), label = wd[Number(Utilities.formatDate(d, TZ, 'u'))] + ' ' + Utilities.formatDate(d, TZ, 'dd.MM.'); var i = labels.indexOf(label); if (i < 0) return; sh.getRange(TR_ROW0 + i, 2, 1, 2).setValues([[per[day].a, per[day].c]]); written++; });
+  var yr = Number(fmtD(now).slice(0, 4)), mo = Number(fmtD(now).slice(5, 7));
+  var labels = sh.getRange(TR_ROW0, 1, sh.getLastRow() - TR_ROW0 + 1, 1).getValues().map(function (r) { var v = r[0]; if (v instanceof Date) return fmtD(v); var m = /(\d{2})\.(\d{2})\./.exec(String(v || '')); if (!m) return ''; var y = yr; if (Number(m[2]) > mo + 1) y--; else if (Number(m[2]) < mo - 6) y++; return y + '-' + m[2] + '-' + m[1]; }); // day column: ZH 'Do 10.09.' (text), WT real dates
+  var written = 0;
+  days.forEach(function (day) { var i = labels.indexOf(day); if (i < 0) return; sh.getRange(TR_ROW0 + i, 2, 1, 2).setValues([[per[day].a, per[day].c]]); written++; });
   if (written) Logger.log('call counts ' + loc + ': ' + written + ' day rows filled');
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } from the Dry run rows (later: the real outbox)
