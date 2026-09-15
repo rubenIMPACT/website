@@ -1402,6 +1402,18 @@ function buildWerbekostenCore(ss, ctx) {
     });
     writeRow('wk_agency', 'Agenturkosten (CHF' + (loc === 'Gesamt' ? '' : ', Anteil ' + locDE) + ')', M(agencyOf), '#,##0', { year: 'sum' });
     writeRow('wk_total', 'Werbekosten gesamt (CHF)', M(totalM), '#,##0', { bold: true, year: 'sum' });
+    // Website-Leads je Kanal (Ruben 15.09.): Kosten, Leads und Kosten pro Lead stehen so untereinander. Kanal = Klick-ID/UTM/Referrer der
+    // Website-Anfrage, erst seit 02.09.2026; vorher nur der Gesamtwert (Monatszahl aus der Historie). Anrufe/Walk-ins zaehlen als organisch/direkt.
+    var paidLeadsM = function (kk) { if (kk < logM) return ''; var t = 0; WK_PLATFORMS.forEach(function (pn) { t += num(kanM(kk, pn)); }); return t; };
+    var paidLeadsW = function (c) { var t = 0; WK_PLATFORMS.forEach(function (pn) { t += num(kanW(c, pn)); }); return t; };
+    var orgM = function (kk) { var t = leadsM(kk); return kk < logM || t === '' ? '' : num(t) - num(paidLeadsM(kk)); }, orgW = function (c) { var t = leadsW(c); return t === '' ? '' : num(t) - paidLeadsW(c); };
+    writeRow('leads_web', 'Website-Leads (aus dem Log)', M(leadsM, leadsW), '0', { bold: true, weekly: true, year: 'sum', note: 'Website-Anfragen aus dem Log (ohne Dubletten und Tests), vor September 2026 die Monatszahl aus der Historie. Plus: je Kanal (Klick-ID, UTM oder Referrer der Anfrage, erst ab 02.09.2026) und je Kampagne. Anrufe und Walk-ins nach einer Anzeige stehen unter organisch/direkt.' });
+    WK_PLATFORMS.forEach(function (pn) {
+      writeRow('leads:' + pn, '   ' + pn, M(function (kk) { return kanM(kk, pn); }, function (c) { return kanW(c, pn); }), '0', { detail: 1, weekly: true, year: 'sum', note: 'Website-Leads, deren Anfrage über ' + pn + ' kam (letzter Klick). Plus: je Kampagne.' });
+      campsOf(pn).forEach(function (k) { writeRow('leadsc', cLabel(k), M(function (kk) { return lcM(k, kk); }, function (c) { return lcW(k, c); }), '0', { detail: 2, weekly: true, year: 'sum', note: 'Website-Leads dieser Kampagne (utm_campaign bzw. Google-Kampagnen-ID der Anfrage), erst ab 04.09.2026.' }); });
+    });
+    writeRow('leads:org', '   organisch/direkt', M(orgM, orgW), '0', { detail: 1, weekly: true, year: 'sum', note: 'Website-Leads ohne bezahlten Kanal: Google-Suche, Social organisch, direkt, Empfehlung.' });
+    writeRow('paid_leads_share', 'Anteil Leads aus bezahlten Kanälen', M(function (kk) { return ratio(paidLeadsM(kk), leadsM(kk)); }, function (c) { return ratio(paidLeadsW(c), leadsW(c)); }), '0%', { weekly: true, year: yRatio(paidLeadsM, leadsM), note: 'Bezahlte Kanäle (Google, Meta, TikTok) geteilt durch alle Website-Leads. Zeigt, wie stark die Anfragen von Werbung abhängen.' });
     // Kosten je Lead und je Probetraining
     writeRow('cpl', 'Kosten pro Website-Lead (CHF)', M(function (kk) { return ratio(mediaM(kk), leadsM(kk)); }, function (c) { return ratio(mediaW(c), leadsW(c)); }), '#,##0', { bold: true, weekly: true, year: yRatio(mediaM, leadsM) });
     WK_PLATFORMS.forEach(function (pn) {
@@ -1432,33 +1444,41 @@ function buildWerbekostenCore(ss, ctx) {
     blocks.push({ loc: loc, locDE: locDE,
       t1: hkeys.map(function (kk) { return [dt(kk)].concat(WK_PLATFORMS.map(function (pn) { return n0(mediaM(kk, pn)); })); }),
       t2: hkeys.map(function (kk) { return [dt(kk), n0(ratio(mediaM(kk), leadsM(kk))), n0(ratio(mediaM(kk), trialsM(kk))), n0(ratio(mediaM(kk), salesM(kk))), n0(cacAllM(kk))]; }),
-      t3: hkeys.map(function (kk) { return [dt(kk), n0(ratio(ltvM(kk), cacAllM(kk))), n0(ratio(cacAllM(kk), cvNetM(kk)))]; }) });
+      t3: hkeys.map(function (kk) { return [dt(kk), n0(ratio(ltvM(kk), cacAllM(kk))), n0(ratio(cacAllM(kk), cvNetM(kk)))]; }),
+      t4: hkeys.map(function (kk) { return [dt(kk)].concat(WK_PLATFORMS.map(function (pn) { return n0(kanM(kk, pn)); })).concat([n0(orgM(kk))]); }) });
     r += 2;
   });
   // Diagramme unten, je Block ein Band mit drei Diagrammen; Daten im versteckten Tab WKDiagramm
   var dsh = getOrCreate(ss, 'WKDiagramm'); dsh = clearSheet(dsh); if (!dsh.isSheetHidden()) dsh.hideSheet();
-  var chartRow = r + 1, BAND = 17, d = 1;
+  var chartRow = r + 1, BAND = 34, d = 1; // zwei Diagrammreihen je Block (2x2), je 16 Zeilen à 21 px = 336 px > Diagrammhoehe 320
+  // Diagramme pixelgenau setzen: Spaltenbreiten sind bekannt (A 300, Wochen 58, Monate/Jahr 84), sonst lagen die Diagramme uebereinander (Ruben 15.09.)
+  var colLeft = function (ci) { var x = 0; for (var i = 1; i < ci; i++) x += (i === 1 ? 300 : (cols[i - 2] && cols[i - 2].w ? 58 : 84)); return x; };
+  var place = function (targetX) { var ci = 1; while (ci <= cols.length && colLeft(ci + 1) <= targetX) ci++; return { col: ci, off: targetX - colLeft(ci) }; };
   sh.getRange(chartRow, 1).setValue('Diagramme').setFontWeight('bold').setFontSize(13); chartRow += 1;
   var tbl = function (headRow, rows, fmt) {
     dsh.getRange(d, 1, 1, headRow.length).setValues([headRow]).setFontWeight('bold');
     if (rows.length) { dsh.getRange(d + 1, 1, rows.length, headRow.length).setValues(rows); dsh.getRange(d + 1, 1, rows.length, 1).setNumberFormat('mmm yyyy'); if (fmt) dsh.getRange(d + 1, 2, rows.length, headRow.length - 1).setNumberFormat(fmt); }
     var at = d; d += rows.length + 2; return at;
   };
-  var C = function (type, at, w, n, row, col, title, opts) {
+  var C = function (type, at, w, n, row, x, title, opts) { // x = linke Kante in Pixel
     if (!n) return;
-    var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(dsh.getRange(at, 1, n + 1, w)).setPosition(row, col, 0, 0)
+    var p = place(x);
+    var ch = sh.newChart().setChartType(type).setNumHeaders(1).addRange(dsh.getRange(at, 1, n + 1, w)).setPosition(row, p.col, p.off, 0)
       .setOption('title', title).setOption('width', 600).setOption('height', 320).setOption('legend', { position: 'bottom' }).setOption('vAxis', { minValue: 0 }).setOption('hAxis', { format: 'MMM yy' });
     Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
     sh.insertChart(ch.build());
   };
   blocks.forEach(function (b, bi) {
     var a1 = tbl([b.locDE + ' Monat'].concat(WK_PLATFORMS), b.t1, '#,##0'), a2 = tbl([b.locDE + ' Monat', 'CPL', 'CPT', 'CAC Media', 'CAC inkl. Agentur'], b.t2, '#,##0'), a3 = tbl([b.locDE + ' Monat', 'LTV : CAC', 'Payback (Monate)'], b.t3, '0.0');
+    var a4 = tbl([b.locDE + ' Monat'].concat(WK_PLATFORMS).concat(['organisch/direkt']), b.t4, '0');
     var row0 = chartRow + bi * BAND;
     sh.getRange(row0, 1).setValue(b.locDE).setFontWeight('bold');
     try {
-      C(Charts.ChartType.COLUMN, a1, WK_PLATFORMS.length + 1, hkeys.length, row0 + 1, 1, 'Media-Kosten ' + b.locDE + ' je Monat (CHF)', { isStacked: true, colors: ['#4285f4', '#a142f4', '#111111'] }); // Google blau, Meta violett, TikTok schwarz (Ruben 09.09.)
-      C(Charts.ChartType.LINE, a2, 5, hkeys.length, row0 + 1, 8, 'Kosten je Lead, Probetraining und Verkauf ' + b.locDE + ' (CHF)', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], pointSize: 6 });
-      C(Charts.ChartType.LINE, a3, 3, hkeys.length, row0 + 1, 15, 'LTV : CAC und Payback ' + b.locDE, { colors: ['#34a853', '#f29900'], pointSize: 6, series: { 1: { targetAxisIndex: 1 } }, vAxes: { 0: { title: 'LTV : CAC', minValue: 0 }, 1: { title: 'Payback (Monate)', minValue: 0 } } });
+      // 2x2: oben Kosten je Kanal | Leads je Kanal (gleiche Farben), unten Kosten je Lead/Trial/Verkauf | LTV:CAC und Payback
+      C(Charts.ChartType.COLUMN, a1, WK_PLATFORMS.length + 1, hkeys.length, row0 + 1, 0, 'Media-Kosten ' + b.locDE + ' je Monat (CHF)', { isStacked: true, colors: ['#4285f4', '#a142f4', '#111111'] }); // Google blau, Meta violett, TikTok schwarz (Ruben 09.09.)
+      C(Charts.ChartType.COLUMN, a4, WK_PLATFORMS.length + 2, hkeys.length, row0 + 1, 620, 'Website-Leads ' + b.locDE + ' je Kanal pro Monat', { isStacked: true, colors: ['#4285f4', '#a142f4', '#111111', '#9e9e9e'] });
+      C(Charts.ChartType.LINE, a2, 5, hkeys.length, row0 + 17, 0, 'Kosten je Lead, Probetraining und Verkauf ' + b.locDE + ' (CHF)', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], pointSize: 6 });
+      C(Charts.ChartType.LINE, a3, 3, hkeys.length, row0 + 17, 620, 'LTV : CAC und Payback ' + b.locDE, { colors: ['#34a853', '#f29900'], pointSize: 6, series: { 1: { targetAxisIndex: 1 } }, vAxes: { 0: { title: 'LTV : CAC', minValue: 0 }, 1: { title: 'Payback (Monate)', minValue: 0 } } });
     } catch (e) { Logger.log('Diagramme Werbekosten ' + b.locDE + ': ' + e); }
   });
   sh.setRowHeights(chartRow, blocks.length * BAND + 1, 21);
