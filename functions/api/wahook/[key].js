@@ -11,7 +11,8 @@ const j = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: 
 export async function onRequestGet({ request, env, params }) {
   if (!env.WA_HOOK_KEY || params.key !== env.WA_HOOK_KEY) return new Response("not found", { status: 404 });
   const u = new URL(request.url), mode = u.searchParams.get("hub.mode"), tok = u.searchParams.get("hub.verify_token"), ch = u.searchParams.get("hub.challenge");
-  if (mode === "subscribe" && env.WA_VERIFY_TOKEN && tok === env.WA_VERIFY_TOKEN && ch) return new Response(ch, { status: 200, headers: { "Content-Type": "text/plain" } });
+  const verify = env.WA_VERIFY_TOKEN || env.WA_HOOK_KEY; // 15.09.: one shared secret is enough (Ruben pastes one value); a separate WA_VERIFY_TOKEN still wins if set
+  if (mode === "subscribe" && verify && tok === verify && ch) return new Response(ch, { status: 200, headers: { "Content-Type": "text/plain" } });
   return new Response("forbidden", { status: 403 });
 }
 
