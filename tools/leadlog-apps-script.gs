@@ -288,9 +288,18 @@ function buildDaten(ss) {
   sh.getRange('G2').setFormula('=ARRAYFORMULA(' + blank + 'IF((' + B + '="ok")*(F2:F=0),1,0)))');
   sh.getRange('H2').setFormula('=ARRAYFORMULA(' + blank + 'IF(REGEXMATCH(' + B + ',"^dublette")*(F2:F=0),1,0)))');
   sh.getRange('I2').setFormula('=ARRAYFORMULA(' + blank + 'IF(REGEXMATCH(' + B + ',"^error")*(F2:F=0),1,0)))');
-  // Kanal (seit 04.09.2026): Klick-IDs schlagen UTM, UTM schlaegt Referrer; gleiche Logik wie kanalOf() im Script
-  var V = 'LOWER(Leads!V2:V&"")', Q = 'LOWER(Leads!Q2:Q&"")';
-  sh.getRange('J2').setFormula('=ARRAYFORMULA(' + blank + 'IF(Leads!U2:U<>"","TikTok Ads",IF(Leads!O2:O<>"","Google Ads",IF(Leads!P2:P<>"","Meta Ads",IF(REGEXMATCH(' + V + ',"tiktok"),"TikTok Ads",IF(REGEXMATCH(' + V + ',"google"),"Google Ads",IF(REGEXMATCH(' + V + ',"facebook|meta|instagram|ig$"),"Meta Ads",IF(Leads!V2:V<>"","Andere",IF(REGEXMATCH(' + Q + ',"google"),"Google organisch",IF(REGEXMATCH(' + Q + ',"instagram|facebook|fb\\.com"),"Instagram/Facebook organisch",IF(REGEXMATCH(' + Q + ',"tiktok"),"TikTok organisch",IF((Leads!Q2:Q="")+REGEXMATCH(' + Q + ',"impact-martialarts"),"Direkt","Andere")))))))))))))');
+  // Kanal (seit 04.09.2026): Klick-IDs schlagen UTM, UTM schlaegt Referrer; gleiche Logik wie kanalOf() im Script.
+  // utm_source: Spalte V, sonst aus der Seiten-URL (vor 04.09.2026 gab es die UTM-Spalten noch nicht). Link in Bio / Profil-Link von
+  // Instagram (utm_content=link_in_bio oder utm_medium=social) zaehlt als organisch, obwohl Instagram eine fbclid anhaengt (Ruben 15.09.2026).
+  var V = 'LOWER(Leads!V2:V&"")', Q = 'LOWER(Leads!Q2:Q&"")', N = 'LOWER(Leads!N2:N&"")';
+  var S = 'IF(Leads!V2:V<>"",' + V + ',IFERROR(REGEXEXTRACT(' + N + ',"[?&]utm_source=([^&#]*)"),""))';
+  var BIO = '(REGEXMATCH(' + N + ',"utm_content=link_in_bio")+REGEXMATCH(' + N + ',"utm_medium=social(&|$)")+(LOWER(Leads!W2:W&"")="social"))';
+  var chain = [['Leads!U2:U<>""', 'TikTok Ads'], ['Leads!O2:O<>""', 'Google Ads'], [BIO, 'Instagram/Facebook organisch'], ['Leads!P2:P<>""', 'Meta Ads'],
+    ['REGEXMATCH(' + S + ',"tiktok")', 'TikTok Ads'], ['REGEXMATCH(' + S + ',"google")', 'Google Ads'], ['REGEXMATCH(' + S + ',"facebook|meta|instagram|ig$")', 'Meta Ads'], [S + '<>""', 'Andere'],
+    ['REGEXMATCH(' + Q + ',"google")', 'Google organisch'], ['REGEXMATCH(' + Q + ',"instagram|facebook|fb\\.com")', 'Instagram/Facebook organisch'], ['REGEXMATCH(' + Q + ',"tiktok")', 'TikTok organisch'],
+    ['(' + Q + '="")+REGEXMATCH(' + Q + ',"impact-martialarts")', 'Direkt']];
+  var kf = '"Andere"'; for (var ci = chain.length - 1; ci >= 0; ci--) kf = 'IF(' + chain[ci][0] + ',"' + chain[ci][1] + '",' + kf + ')';
+  sh.getRange('J2').setFormula('=ARRAYFORMULA(' + blank + kf + '))');
   sh.getRange('A2:C').setNumberFormat('dd.mm.yyyy');
   sh.getRange(1, 1, 1, 10).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet();
 }
@@ -318,9 +327,13 @@ function buildPlanDaten(ss) {
 // Gespraeche, Placed Trials, Trials, No-Shows und Verkaeufe aus den Probetrainings-Tabs im Team-Sheet. Woche = Montag bis Sonntag.
 var LEAD_WEEK0 = '2026-08-31'; // erste Woche mit Wochenzahlen (Log seit 01.09.2026)
 var KANAL_ORDER = ['Google Ads', 'Meta Ads', 'TikTok Ads', 'Google organisch', 'Instagram/Facebook organisch', 'TikTok organisch', 'Direkt', 'Andere']; // Ruben 04.09.: kein X, Meta = Instagram
-function kanalOf(gclid, fbclid, ttclid, utm, ref) {
-  var u = String(utm || '').toLowerCase(), r = String(ref || '').toLowerCase();
-  if (ttclid) return 'TikTok Ads'; if (gclid) return 'Google Ads'; if (fbclid) return 'Meta Ads';
+// medium/page (15.09.2026): utm_source/utm_medium notfalls aus der Seiten-URL (vor 04.09. keine UTM-Spalten); Link in Bio = organisch trotz fbclid
+function kanalOf(gclid, fbclid, ttclid, utm, ref, medium, page) {
+  var u = String(utm || '').toLowerCase(), r = String(ref || '').toLowerCase(), pg = String(page || '').toLowerCase(), md = String(medium || '').toLowerCase(), m;
+  if (!u && (m = pg.match(/[?&]utm_source=([^&#]*)/))) u = m[1];
+  if (!md && (m = pg.match(/[?&]utm_medium=([^&#]*)/))) md = m[1];
+  var bio = md === 'social' || /utm_content=link_in_bio/.test(pg);
+  if (ttclid) return 'TikTok Ads'; if (gclid) return 'Google Ads'; if (bio) return 'Instagram/Facebook organisch'; if (fbclid) return 'Meta Ads';
   if (/tiktok/.test(u)) return 'TikTok Ads'; if (/google/.test(u)) return 'Google Ads'; if (/facebook|meta|instagram|ig$/.test(u)) return 'Meta Ads'; if (u) return 'Andere';
   if (/google/.test(r)) return 'Google organisch'; if (/instagram|facebook|fb\.com/.test(r)) return 'Instagram/Facebook organisch'; if (/tiktok/.test(r)) return 'TikTok organisch';
   if (!r || /impact-martialarts/.test(r)) return 'Direkt'; return 'Andere';
@@ -2488,14 +2501,14 @@ function trCheck(r, today, T) {
   if (msg && (art === 'Trial' || art === 'No-Show' || art === 'Storniert')) msg += (noteIso && noteIso >= d) ? T.chk.noteYes.replace('{n}', noteD) : T.chk.noteNo;
   return msg;
 }
-// Leads-Log -> Kanal je E-Mail (Fallback: Name). Spalten: A Zeitpunkt, C/D Name, E E-Mail, O gclid, P fbclid, Q Referrer, U ttclid, V utm_source
+// Leads-Log -> Kanal je E-Mail (Fallback: Name). Spalten: A Zeitpunkt, C/D Name, E E-Mail, N Seite, O gclid, P fbclid, Q Referrer, U ttclid, V utm_source, W utm_medium
 function trLeadMap(main) {
   var sh = main.getSheetByName('Leads'), map = { email: {}, name: {} };
   if (!sh || sh.getLastRow() < 2) return map;
   var v = sh.getRange(2, 1, sh.getLastRow() - 1, 24).getValues();
   v.forEach(function (r) {
     var d = dOfCell(r[0]); if (!d) return;
-    var L = { date: d, kanal: kanalOf(r[14], r[15], r[20], r[21], r[16]) };
+    var L = { date: d, kanal: kanalOf(r[14], r[15], r[20], r[21], r[16], r[22], r[13]) };
     var e = String(r[4] || '').toLowerCase().trim(), n = (String(r[2] || '') + ' ' + String(r[3] || '')).toLowerCase().replace(/\s+/g, ' ').trim();
     if (e) (map.email[e] = map.email[e] || []).push(L);
     if (n) (map.name[n] = map.name[n] || []).push(L);
