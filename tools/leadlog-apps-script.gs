@@ -545,6 +545,24 @@ function hitlistBlock(sh, r, title, list) {
   return Math.max(r + 2, hdr + Math.ceil((80 + 22 * vals.length) / 21) + 2);
 }
 
+// Ranking der Auslastung nur nach Uhrzeit (Ruben 15.09.2026): alle Klassen einer Startzeit zusammen (Werktag und Samstag, alle Disziplinen),
+// ohne Gratisklassen; Auslastung = Besuche / Plaetze. Spalte F ist im Tab ausgeblendet, deshalb bleibt sie leer.
+function timeBlock(sh, r, title, rows) {
+  var agg = {};
+  rows.forEach(function (x) { if (x.segment === 'Gratis' || !x.start) return; var k = String(x.start); var o = agg[k] = agg[k] || { t: k, cls: 0, ev: 0, att: 0, cap: 0 }; o.cls++; o.ev += Number(x.events) || 0; o.att += Number(x.attended) || 0; o.cap += Number(x.capacity) || 0; });
+  var list = Object.keys(agg).map(function (k) { return agg[k]; }).filter(function (o) { return o.cap > 0; }).sort(function (a, b) { return (b.att / b.cap) - (a.att / a.cap); });
+  if (!list.length) return r;
+  sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
+  sh.getRange(r, 1, 1, 9).setValues([['Rang', 'Uhrzeit', 'Klassen', 'Termine', 'Besuche', '', 'Ø pro Termin', 'Plätze', 'Auslastung']]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+  var v = list.map(function (o, i) { return [i + 1, o.t, o.cls, o.ev, o.att, '', o.ev ? o.att / o.ev : '', o.cap, o.att / o.cap]; });
+  sh.getRange(r, 1, v.length, 9).setValues(v); sh.getRange(r, 7, v.length, 1).setNumberFormat('0.0'); sh.getRange(r, 9, v.length, 1).setNumberFormat('0%');
+  var mr = sh.getRange(r, 9, v.length, 1);
+  sh.setConditionalFormatRules(sh.getConditionalFormatRules().concat([
+    SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.16).setBackground('#F8CBAD').setRanges([mr]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.45).setBackground('#C6E0B4').setRanges([mr]).build(),
+  ]));
+  return r + v.length + 1;
+}
 function classBlock(sh, r, title, list, color) {
   sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
   // Spalten F und L sind im Tab ausgeblendet, deshalb dort Leerspalten
@@ -647,6 +665,10 @@ function buildKlassenanalyse(ss, data, fileName) {
     hr = classBlock(sh, hr, 'Top 10 Klassen nach Umsatz je Termin (mindestens 4 Termine im Monat)', ranked.slice(0, 10), '#C6E0B4');
     hr = classBlock(sh, hr, 'Bottom 10 Klassen nach Umsatz je Termin (mindestens 4 Termine im Monat)', ranked.slice(-10).reverse(), '#F8CBAD');
   }
+  // ---- Ranking nach Uhrzeit je Standort (Ruben 15.09.2026)
+  locs.forEach(function (lc) {
+    hr = timeBlock(sh, hr, 'Ranking der Auslastung nach Uhrzeit ' + lc + ' ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (alle Klassen dieser Startzeit, Werktag und Samstag zusammen, ohne Gratisklassen)', rows.filter(function (x) { return x.location === lc; }));
+  });
   // ---- Slot-Tabelle
   var HR = hr + 1, D0 = HR + 1, last = D0 + rows.length - 1;
   sh.getRange(HR - 1, 1).setValue('Klassen nach Standort, Wochentag und Uhrzeit (liest sich wie der Stundenplan; Rangliste per Filter)').setFontWeight('bold').setFontSize(12);
