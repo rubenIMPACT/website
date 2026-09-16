@@ -821,3 +821,12 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Custom-Reports-URL: https://ads.tiktok.com/i18n/reporting/list?aadvid=7649350938695876624 (Menue "Analytics" oeffnet per Hover nicht zuverlaessig; Klick auf das ks-menu-item per JS-Event funktioniert). Zeitplan-Dialog: Button ".reporting-tool-scheduled-running", Dialog erscheint erst nach Klick auf den Switch im versteckten Dialog-Body. WICHTIG: Der Dialog-Save setzt nur den lokalen Zustand (Button zeigt "Daily"); dauerhaft wird es erst mit dem Toolbar-"Save" -> Dialog "Save Report" -> Save. Ohne diesen Schritt geht der Zeitplan beim Verlassen verloren (so ist es Ruben am 07.09. passiert). Kontrolle: Report neu oeffnen, Button muss "Daily" zeigen (bestaetigt 16.09. 14:58).
 - Luecke 07.09.-15.09. (plus 17.08.-06.09. als Kontrolle) einmalig per RUN_NOW aus der Report-Tabelle (Last 30 days, 3 Seiten a 20 Zeilen, DOM tr.vi-table__row) nach WerbekostenDaten geschrieben (wkUpsert, TikTok Ads / TK_ACCOUNT, CHF).
 - Erster automatischer Mail-Report erwartet 17.09.2026 morgens; tkImport liest Betreff "IMPACT TikTok" der letzten 4 Tage stuendlich.
+
+- ⚠️ UEBERSCHRIEBEN 16.09. zwischen 14:16 und 14:58: Nach dem Einspielen von 6b7aea0 (Planner-Tab) lag im Apps Script wieder
+  ce1e82b plus eine RUN_NOW-Hilfsfunktion des Analytics-Chats (einmaliger Werbekosten-Nachtrag: wkUpsert + buildWerbekosten).
+  Folge: runProbetrainings 14:58 lief mit dem alten evSs-Code und schrieb die Anmeldungen still in das bereits geloeschte Sheet
+  "IMPACT Events" (Script Property evId), der Planner-Tab entstand nicht. 15:06 repariert: 6b7aea0 wieder eingespielt, die
+  RUN_NOW-Zeile des Analytics-Chats unveraendert als erste Zeile STEHEN GELASSEN (sein Handstart war laut Ausfuehrungen noch nicht
+  gelaufen). AN DEN ANALYTICS-CHAT: RUN_NOW nach dem Lauf nur durch Loeschen DIESER ZEILE entfernen oder origin/main HEAD
+  einspielen - NIE eine eigene aeltere Kopie einfuegen. Vor jedem Einfuegen: git pull, Editor gegen den letzten gepushten Stand
+  diffen (Funktionsnamen UND Inhalt), sonst gehen Aenderungen anderer Chats still verloren.
