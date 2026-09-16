@@ -1330,7 +1330,7 @@ function wkCampAgg(ss) {
 // Zeilennummern, Daten ist eine ARRAYFORMULA ueber Leads). Zuordnung: utm_campaign = Kampagnenname (Meta/TikTok), Google ueber
 // gad_campaignid -> Kampagnen-ID aus dem Google-Ads-Skript, sonst Standort + Little Ninjas/Erwachsene, wenn genau eine aktive Kampagne passt.
 function wkLeadsByCampaignDaily(ss, camp) {
-  var out = {}, dn = ss.getSheetByName('Daten'), ld = ss.getSheetByName('Leads');
+  var out = {}, P = { email: {}, name: {} }, dn = ss.getSheetByName('Daten'), ld = ss.getSheetByName('Leads'); out._person = P; // Person -> [{date, key}] fuer die Kampagnen-Kohorte (16.09.)
   if (!dn || !ld || dn.getLastRow() < 2 || ld.getLastRow() < 2) return out;
   var n = Math.min(dn.getLastRow(), ld.getLastRow()) - 1, dv = dn.getRange(2, 1, n, 10).getValues(), lv = ld.getRange(2, 1, n, 24).getValues();
   var byId = {}, cands = {};
@@ -1352,14 +1352,18 @@ function wkLeadsByCampaignDaily(ss, camp) {
     }
     if (!key) continue;
     var D = out[key] = out[key] || {}, dd = D[d] = D[d] || { Zurich: 0, Winterthur: 0 }; dd[L] += 1;
+    var pe = String(lv[i][4] || '').toLowerCase().trim(), pnm = (String(lv[i][2] || '') + ' ' + String(lv[i][3] || '')).toLowerCase().replace(/\s+/g, ' ').trim();
+    if (pe) (P.email[pe] = P.email[pe] || []).push({ date: d, key: key }); if (pnm) (P.name[pnm] = P.name[pnm] || []).push({ date: d, key: key });
   }
   return out;
 }
 // Kohorten nach Lead-Monat (Ruben 16.09.2026): je Probetraining im Team-Sheet den Website-Lead der Person und dessen Datum.
 // Die E-Mail steht nicht im Team-Sheet, darum Zuordnung ueber den Namen (der Kanal steht bereits im Team-Sheet, per E-Mail ermittelt).
 // Verkauf = Vertragsunterschrift gesetzt. Ergebnis je Standort, Kanal und Lead-Tag: { t: Probetrainings, s: Verkaeufe }.
-function wkCohorts(ss) {
-  var out = { Zurich: {}, Winterthur: {}, matched: 0, unmatched: 0 }, map = trLeadMap(ss), team = null, emailOf = {};
+function wkCohorts(ss, person) {
+  var out = { Zurich: {}, Winterthur: {}, matched: 0, unmatched: 0 }, map = trLeadMap(ss), team = null, emailOf = {}; person = person || { email: {}, name: {} };
+  // Kampagne des Leads (gleiche Regel wie trFindLead: letzter Lead bis einen Tag nach dem Probetraining)
+  var findKey = function (list, date) { if (!list || !list.length) return ''; var lim = addDs(date, 1), before = list.filter(function (l) { return l.date <= lim; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }); return (before[0] || list.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0]).key; };
   var nrm = function (x) { return String(x || '').toLowerCase().replace(/\s+/g, ' ').trim(); };
   // Name -> E-Mail aus der exercise.com-Kundenliste (Phase mc), damit der Lead wie im Team-Sheet per E-Mail gefunden wird (Name allein fand in WT nur 2 von 6)
   try { var today = fmtD(new Date()), pc = maCall({ phase: 'mc', start: today.slice(0, 8) + '01', end: today, today: today }); if (pc && pc.byName) Object.keys(pc.byName).forEach(function (k) { emailOf[nrm(k)] = String((pc.byName[k] || [])[1] || ''); }); else Logger.log('Kohorten: Kundenliste ' + JSON.stringify(pc).slice(0, 200)); } catch (e1) { Logger.log('Kohorten: Kundenliste ' + e1); }
@@ -1369,10 +1373,12 @@ function wkCohorts(ss) {
     ts.getRange(TR_ROW0, TR_P0, ts.getLastRow() - TR_ROW0 + 1, TR_NCOL).getValues().forEach(function (r) {
       if (!r[CI.uid]) return; var d = dOfCell(r[CI.date]); if (!d || !trIsTrial(r)) return;
       var kn = String(r[CI.kanal] || ''); if (!/Ads$/.test(kn)) return; // nur bezahlte Kanaele werden ausgewiesen
-      var ld = trFindLead(map, emailOf[nrm(r[CI.name])] || '', r[CI.name], d); if (!ld) { out.unmatched++; return; }
+      var em = emailOf[nrm(r[CI.name])] || '', ld = trFindLead(map, em, r[CI.name], d); if (!ld) { out.unmatched++; return; }
       out.matched++;
-      var K = out[loc][kn] = out[loc][kn] || {}, o = K[ld.date] = K[ld.date] || { t: 0, s: 0 };
-      o.t += 1; if (dOfCell(r[CI.contract])) o.s += 1;
+      var signed = !!dOfCell(r[CI.contract]), K = out[loc][kn] = out[loc][kn] || {}, o = K[ld.date] = K[ld.date] || { t: 0, s: 0 };
+      o.t += 1; if (signed) o.s += 1;
+      var ck = findKey(person.email[em] || person.name[nrm(r[CI.name])], d); // Kampagnen-Kohorte (Ruben 16.09.)
+      if (ck) { var KC = out[loc]['camp|' + ck] = out[loc]['camp|' + ck] || {}, oc = KC[ld.date] = KC[ld.date] || { t: 0, s: 0 }; oc.t += 1; if (signed) oc.s += 1; }
     });
   });
   return out;
@@ -1399,7 +1405,7 @@ function buildWerbekostenCore(ss, ctx) {
   try { var lr0 = sh.getLastRow(); if (lr0 > 3) { var lab0 = sh.getRange(1, 1, lr0, 1).getValues(), bg0 = sh.getRange(1, 1, lr0, 1).getBackgrounds(), blk0 = '', st0 = []; lab0.forEach(function (row, i) { var t = String(row[0] || ''), b = String(bg0[i][0] || '').toLowerCase(); if (/^(Zürich|Winterthur|Gesamt)/.test(t) && t.indexOf('(CHF') < 0) { blk0 = t.split(' ')[0]; st0 = []; return; } if (!t) return; var ind0 = t.length - t.replace(/^\s+/, '').length; while (st0.length && st0[st0.length - 1][0] >= ind0) st0.pop(); if (b && b !== '#ffffff' && b !== '#f3f3f3') keep[blk0 + '|' + (st0.length ? st0[st0.length - 1][1] : '') + '|' + t.trim()] = b; st0.push([ind0, t.trim()]); }); } } catch (e0) { Logger.log('Werbekosten Farben lesen: ' + e0); }
   sh = clearSheet(sh);
   var cols = ctx.cols, curK = ctx.curK, logM = ctx.logM, num = ctx.num, val = ctx.val, wr = ctx.wr, wkD = ctx.wkD, wkM = ctx.wkM, hkeys = ctx.hkeys, yearMonths = ctx.yearMonths, colOf = ctx.colOf, dt = ctx.dt;
-  var camp = wkCampAgg(ss), lcd = wkLeadsByCampaignDaily(ss, camp), agencyCache = {}, coh = wkCohorts(ss);
+  var camp = wkCampAgg(ss), lcd = wkLeadsByCampaignDaily(ss, camp), agencyCache = {}, coh = wkCohorts(ss, lcd._person);
   Logger.log('Kohorten: ' + coh.matched + ' bezahlte Probetrainings einem Lead zugeordnet, ' + coh.unmatched + ' ohne Lead');
   var agencyM = function (kk) { if (!(kk in agencyCache)) agencyCache[kk] = wkAgency(ss, kk, wkM); return agencyCache[kk]; };
   var need = cols.length + 3; if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
@@ -1423,6 +1429,8 @@ function buildWerbekostenCore(ss, ctx) {
     // Kohorte nach Lead-Monat (Ruben 16.09.): was aus den Leads des Monats/der Woche bis heute wurde; f = 't' Probetraining, 's' Verkauf
     var cohM = function (kk, pn, f) { if (kk < WK_YEAR_FROM) return ''; var t = 0; wrLocs.forEach(function (l) { var K = (coh[l] || {})[pn] || {}; Object.keys(K).forEach(function (d) { if (d.slice(0, 7) === kk) t += K[d][f]; }); }); return t; };
     var cohW = function (c, pn, f) { var t = 0; daysOf(c).forEach(function (d) { wrLocs.forEach(function (l) { var K = (coh[l] || {})[pn] || {}; if (K[d]) t += K[d][f]; }); }); return t; };
+    // Strich statt leer (Ruben 16.09.): Quote/Kosten pro Verkauf ohne Verkauf zeigen '–' statt nichts (nur im Zeitraum ab September)
+    var orDash = function (v, kk) { return v === '' && kk >= WK_YEAR_FROM ? '–' : v; }, orDashW = function (v) { return v === '' ? '–' : v; }, yDash = function (f) { return function (mks) { var v = f(mks); return v === '' ? '–' : v; }; };
     var campW = function (k, c) { var t = 0, any = false; daysOf(c).forEach(function (d) { var m = camp.day[k] && camp.day[k][d]; if (!m) return; any = true; wrLocs.forEach(function (l) { t += m[l] || 0; }); }); return any ? Math.round(t) : ''; };
     var lcM = function (k, kk) { if (kk < WK_ATTR_FROM.slice(0, 7)) return ''; var D = lcd[k] || {}, t = 0; Object.keys(D).forEach(function (d) { if (d.slice(0, 7) === kk) wrLocs.forEach(function (l) { t += D[d][l] || 0; }); }); return t; };
     var lcW = function (k, c) { if (addDs(c.k, 6) < WK_ATTR_FROM) return ''; var D = lcd[k] || {}, t = 0; daysOf(c).forEach(function (d) { if (D[d]) wrLocs.forEach(function (l) { t += D[d][l] || 0; }); }); return t; };
@@ -1459,6 +1467,7 @@ function buildWerbekostenCore(ss, ctx) {
       if (opts.detail) { sh.getRange(r, 1).setFontColor('#666666'); det.push(r); if (opts.detail === 2) det2.push(r); }
       if (opts.bold) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
       var note = opts.note || MA_NOTES[key]; if (note) sh.getRange(r, 1).setNote(note);
+      if (opts.dash) sh.getRange(r, 2, 1, cols.length + 1).setHorizontalAlignment('right');
       var ind = label.length - label.replace(/^\s+/, '').length; while (pstack.length && pstack[pstack.length - 1][0] >= ind) pstack.pop();
       rowMeta[r] = { weekly: !!opts.weekly, label: label, parent: pstack.length ? pstack[pstack.length - 1][1] : '' }; pstack.push([ind, label.trim()]); r++;
     };
@@ -1492,14 +1501,19 @@ function buildWerbekostenCore(ss, ctx) {
       writeRow('cpl:' + pn, '   Kosten pro Lead (CHF)', M(function (kk) { return ratio(mediaM(kk, pn), kanM(kk, pn)); }, function (c) { return ratio(mediaW(c, pn), kanW(c, pn)); }), '#,##0', { weekly: true, year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return kanM(kk, pn); }) });
       writeRow('coh_t:' + pn, '   davon Probetraining (bis heute)', M(function (kk) { return cohM(kk, pn, 't'); }, function (c) { return cohW(c, pn, 't'); }), '0', { weekly: true, year: 'sum', note: 'Leads dieses Monats über ' + pn + ', die bis heute ein Probetraining gemacht haben (Zuordnung Lead ↔ Person über das Team-Sheet). Junge Monate wachsen noch nach.' });
       writeRow('coh_s:' + pn, '   davon Verkauf (bis heute)', M(function (kk) { return cohM(kk, pn, 's'); }, function (c) { return cohW(c, pn, 's'); }), '0', { weekly: true, year: 'sum', note: 'Leads dieses Monats über ' + pn + ', die bis heute einen Vertrag unterschrieben haben. Junge Monate wachsen noch nach.' });
-      writeRow('coh_q:' + pn, '   Quote Lead → Verkauf', M(function (kk) { return ratio(cohM(kk, pn, 's'), kanM(kk, pn)); }, function (c) { return ratio(cohW(c, pn, 's'), kanW(c, pn)); }), '0%', { weekly: true, year: yRatio(function (kk) { return cohM(kk, pn, 's'); }, function (kk) { return kanM(kk, pn); }), note: 'Verkäufe aus den Leads dieses Monats geteilt durch die Leads dieses Monats.' });
-      writeRow('coh_cac:' + pn, '   Kosten pro Verkauf (CHF, Kohorte)', M(function (kk) { return ratio(mediaM(kk, pn), cohM(kk, pn, 's')); }, function (c) { return ratio(mediaW(c, pn), cohW(c, pn, 's')); }), '#,##0', { weekly: true, year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return cohM(kk, pn, 's'); }), note: 'Media-Kosten des Monats geteilt durch die Verkäufe aus den Leads dieses Monats (bis heute). Sinkt, solange die Kohorte nachwächst.' });
+      writeRow('coh_q:' + pn, '   Quote Lead → Verkauf', M(function (kk) { return orDash(ratio(cohM(kk, pn, 's'), kanM(kk, pn)), kk); }, function (c) { return orDashW(ratio(cohW(c, pn, 's'), kanW(c, pn))); }), '0%', { weekly: true, dash: true, year: yDash(yRatio(function (kk) { return cohM(kk, pn, 's'); }, function (kk) { return kanM(kk, pn); })), note: 'Verkäufe aus den Leads dieses Monats geteilt durch die Leads dieses Monats.' });
+      writeRow('coh_cac:' + pn, '   Kosten pro Verkauf (CHF, Kohorte)', M(function (kk) { return orDash(ratio(mediaM(kk, pn), cohM(kk, pn, 's')), kk); }, function (c) { return orDashW(ratio(mediaW(c, pn), cohW(c, pn, 's'))); }), '#,##0', { weekly: true, dash: true, year: yDash(yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return cohM(kk, pn, 's'); })), note: 'Media-Kosten des Monats geteilt durch die Verkäufe aus den Leads dieses Monats (bis heute). Sinkt, solange die Kohorte nachwächst.' });
       campsOf(pn).forEach(function (k) {
         var nm = camp.list[k].camp + (camp.list[k].loc === 'Beide' ? ' (beide Standorte, anteilig)' : '');
         writeRow('camp', '   ' + nm, none, null, { detail: 1, note: 'Kampagne ' + nm + ' (' + pn + '). Kosten je Tag aus WerbekostenDaten, Leads aus den Anzeigen-Links (Kampagnen-Nummer oder Name), seit 01.09.2026.' });
         writeRow('wkc', '      Kosten (CHF)', M(function (kk) { return campM(k, kk); }, function (c) { return campW(k, c); }), '#,##0', { detail: 2, weekly: true, year: 'sum' });
         writeRow('leadsc', '      Leads', M(function (kk) { return lcM(k, kk); }, function (c) { return lcW(k, c); }), '0', { detail: 2, weekly: true, year: 'sum' });
         writeRow('cplc', '      Kosten pro Lead (CHF)', M(function (kk) { return ratio(campM(k, kk), lcM(k, kk)); }, function (c) { return ratio(campW(k, c), lcW(k, c)); }), '#,##0', { detail: 2, weekly: true, year: yRatio(function (kk) { return campM(k, kk); }, function (kk) { return lcM(k, kk); }), note: WK_LEADS_NOTE });
+        var ck = 'camp|' + k; // Kohorte je Kampagne (Ruben 16.09.): Leads dieser Kampagne im Monat -> Probetraining/Verkauf bis heute
+        writeRow('coh_tc', '      davon Probetraining (bis heute)', M(function (kk) { return cohM(kk, ck, 't'); }, function (c) { return cohW(c, ck, 't'); }), '0', { detail: 2, weekly: true, year: 'sum', note: 'Leads dieser Kampagne im Monat, die bis heute ein Probetraining gemacht haben.' });
+        writeRow('coh_sc', '      davon Verkauf (bis heute)', M(function (kk) { return cohM(kk, ck, 's'); }, function (c) { return cohW(c, ck, 's'); }), '0', { detail: 2, weekly: true, year: 'sum', note: 'Leads dieser Kampagne im Monat, die bis heute einen Vertrag unterschrieben haben.' });
+        writeRow('coh_qc', '      Quote Lead → Verkauf', M(function (kk) { return orDash(ratio(cohM(kk, ck, 's'), lcM(k, kk)), kk); }, function (c) { return orDashW(ratio(cohW(c, ck, 's'), lcW(k, c))); }), '0%', { detail: 2, weekly: true, dash: true, year: yDash(yRatio(function (kk) { return cohM(kk, ck, 's'); }, function (kk) { return lcM(k, kk); })), note: 'Verkäufe aus den Leads dieser Kampagne geteilt durch ihre Leads. Strich = noch kein Verkauf oder keine Leads.' });
+        writeRow('coh_cc', '      Kosten pro Verkauf (CHF, Kohorte)', M(function (kk) { return orDash(ratio(campM(k, kk), cohM(kk, ck, 's')), kk); }, function (c) { return orDashW(ratio(campW(k, c), cohW(c, ck, 's'))); }), '#,##0', { detail: 2, weekly: true, dash: true, year: yDash(yRatio(function (kk) { return campM(k, kk); }, function (kk) { return cohM(kk, ck, 's'); })), note: 'Kosten der Kampagne im Monat geteilt durch die Verkäufe aus ihren Leads (bis heute). Strich = noch kein Verkauf.' });
       });
     });
     writeRow('org', 'Organisch / direkt', none, null, { bold: true, note: 'Website-Leads ohne bezahlten Kanal: Google-Suche, Instagram-Profil (Link in Bio), direkt, Empfehlung. Anrufe und Walk-ins zählen hier mit.' });
