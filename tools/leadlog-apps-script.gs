@@ -1177,6 +1177,9 @@ function doGet(e) {
   if (q.token !== TOKEN) return out({ error: 'unauthorized' });
   try {
     if (q.what === 'events') return out({ ok: true, events: readEvents() });
+    if (q.what === 'plan') return out(spReadDecks());
+    if (q.what === 'spdaily') return out({ ok: true, result: spDaily() });
+    if (q.what === 'sptrigger') return out({ ok: true, trigger: installSpTrigger() });
     if (q.what === 'seed') return out({ ok: true, rows: seedOpenDoors() });
     if (q.what === 'setup') { planSheets(); return out({ ok: true }); }
     if (q.what === 'calsync') return out({ ok: true, log: syncCalendar() });
@@ -3096,4 +3099,95 @@ function fpLog(ss, rows) {
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.setColumnWidth(1, 130); sh.setColumnWidth(2, 130); sh.setColumnWidth(5, 340); sh.getRange('A1').setNote(FP_NOTE); }
   if (rows.length) { sh.getRange(sh.getLastRow() + 1, 1, rows.length, head.length).setValues(rows); sh.getRange(2, 1, sh.getLastRow() - 1, 1).setNumberFormat('dd.MM.yyyy HH:mm'); sh.getRange(2, 4, sh.getLastRow() - 1, 1).setNumberFormat('@'); }
   var max = 1000; if (sh.getLastRow() > max + 1) sh.deleteRows(2, sh.getLastRow() - max - 1);
+}
+
+// ===================== STUNDENPLAN AUS DEN GOOGLE-SLIDES-DECKS (16.09.2026) =====================
+// Die Decks "Overall Schedule ZH 2.4" (nur Folie 1) und "Overall Schedule WIN 2.2" sind der Nominalplan (Ruben 16.09.).
+// spReadDecks() liest beide Folien mit Koordinaten (Tagesspalten, Matten, Zeitzeilen, Karten, Trainer-Kuerzel) und liefert
+// dieselbe Struktur wie data/plan-nominal.json im Website-Repo: { zurich:{Mo:{"12:00":[[Klasse,Level,Kuerzel]|null, ...]}}, winterthur:{...} }.
+// Abruf: doGet?token&what=plan (Cloudflare /api/plan-nominal, GitHub-Workflow plan-sync taeglich). spDaily(): Aenderungs-Mail an Ruben.
+var SP_DECKS = { zurich: { id: '1HH42ColN9v9Axln9vFy3kbnQvQD43TOyWq0mCPwpWu4', slide: 0, mats: 2 }, winterthur: { id: '1o82fupJn7Y1PNecAVjGa5G8ziFEHG3QuwxTrtQfJR0o', slide: 0, mats: 1 } };
+var SP_CLASSES = ['Fitness Kickboxing', 'Self Defense Women', 'Self Defense for Women', 'Street Defense', 'Little Ninjas 10-14', 'Little Ninjas 6-9', 'BJJ (No-Gi)', 'BJJ (Gi)', 'Muay Thai', 'Open Mat', 'Wrestling', 'Striking', 'Boxing', 'BJJ', 'MMA'];
+var SP_DAYS = { MONDAY: 'Mo', TUESDAY: 'Di', WEDNESDAY: 'Mi', THURSDAY: 'Do', FRIDAY: 'Fr', SATURDAY: 'Sa', 'SAT.': 'Sa', SAT: 'Sa' };
+function spShapes(elements, acc) { // alle Text-Formen einer Folie, Gruppen aufgeloest
+  elements.forEach(function (el) {
+    var t = el.getPageElementType();
+    if (t === SlidesApp.PageElementType.GROUP) { spShapes(el.asGroup().getChildren(), acc); return; }
+    if (t !== SlidesApp.PageElementType.SHAPE) return;
+    var txt = ''; try { txt = el.asShape().getText().asString(); } catch (e) { return; }
+    txt = txt.replace(/\s+/g, ' ').trim(); if (!txt) return;
+    acc.push({ txt: txt, x: el.getLeft(), y: el.getTop(), w: el.getWidth(), h: el.getHeight() });
+  });
+  return acc;
+}
+function spNorm(txt) {
+  return txt.replace(/Wrest-\s*Ling/i, 'Wrestling').replace(/\bBoxen\b/, 'Boxing').replace(/Little\s+Ninjas\s+(\d+)\s*[–-]\s*(\d+)/, 'Little Ninjas $1-$2').replace(/Self Defense for Women/, 'Self Defense Women');
+}
+function spDeckGrid(cfg) {
+  var slide = SlidesApp.openById(cfg.id).getSlides()[cfg.slide];
+  var sh = spShapes(slide.getPageElements(), []), warn = [];
+  var days = [], mats = [], times = [], cards = [], badges = [];
+  sh.forEach(function (s) {
+    var cx = s.x + s.w / 2, cy = s.y + s.h / 2, u = s.txt.toUpperCase();
+    if (SP_DAYS[u]) { days.push({ wd: SP_DAYS[u], x: cx }); return; }
+    if (/^MAT [AB]$/.test(u) || u === 'A') { mats.push({ mat: u.slice(-1), x: cx, y: cy }); return; }
+    var tm = s.txt.match(/^(\d\d:\d\d)\b/); if (tm) { times.push({ t: tm[1], y: cy }); return; }
+    if (/^[A-Z]{3}$/.test(s.txt)) { badges.push({ code: s.txt, x: cx, y: cy }); return; }
+    if (/\(\d/.test(s.txt) || /Classes/i.test(s.txt)) return; // Legende / Zaehlung
+    var n = spNorm(s.txt), cls = null;
+    for (var i = 0; i < SP_CLASSES.length; i++) { if (n.indexOf(SP_CLASSES[i]) === 0) { cls = SP_CLASSES[i]; break; } }
+    if (!cls) return;
+    var rest = n.slice(cls.length).trim(), lv = /^(Basics|All Levels|Competition)/.exec(rest);
+    if (rest && !lv) warn.push('Unbekannter Zusatz bei "' + s.txt + '"');
+    cards.push({ name: cls, lv: lv ? lv[1] : '', x: s.x, y: s.y, w: s.w, h: s.h, cx: cx, cy: cy, codes: [] });
+  });
+  days.sort(function (a, b) { return a.x - b.x; }); times.sort(function (a, b) { return a.y - b.y; });
+  if (days.length < 6) warn.push('Nur ' + days.length + ' Tagesspalten erkannt'); if (times.length < 5) warn.push('Nur ' + times.length + ' Zeitzeilen erkannt');
+  var colGap = days.length > 1 ? (days[days.length - 1].x - days[0].x) / (days.length - 1) : 200;
+  var rowGap = times.length > 1 ? (times[times.length - 1].y - times[0].y) / (times.length - 1) : 60;
+  badges.forEach(function (b) { // Kuerzel gehoert zur Karte, in deren Flaeche es liegt (Toleranz 6pt)
+    var hit = null; cards.forEach(function (c) { if (b.x >= c.x - 6 && b.x <= c.x + c.w + 6 && b.y >= c.y - 6 && b.y <= c.y + c.h + 6) hit = c; });
+    if (hit) hit.codes.push(b);
+  });
+  var grid = {}; days.forEach(function (d) { grid[d.wd] = {}; });
+  cards.forEach(function (c) {
+    var d = null, dd = 1e9; days.forEach(function (x) { var v = Math.abs(x.x - c.cx); if (v < dd) { dd = v; d = x; } });
+    var t = null, dt = 1e9; times.forEach(function (x) { var v = Math.abs(x.y - c.cy); if (v < dt) { dt = v; t = x; } });
+    if (!d || !t || dd > colGap * 0.6 || dt > rowGap * 0.6) { warn.push('Karte ohne Raster: ' + c.name + ' ' + c.lv + ' @' + Math.round(c.cx) + '/' + Math.round(c.cy)); return; }
+    c.codes.sort(function (a, b) { return (a.y - b.y) || (a.x - b.x); });
+    var cell = [c.name, c.lv, c.codes.map(function (b) { return b.code; }).join('+')];
+    var dayMats = mats.filter(function (m) { return Math.abs(m.x - d.x) < colGap * 0.6; }).sort(function (a, b) { return a.x - b.x; });
+    var slot = 0; if (dayMats.length > 1) { var md = 1e9; dayMats.forEach(function (m, i) { var v = Math.abs(m.x - c.cx); if (v < md) { md = v; slot = i; } }); }
+    var row = grid[d.wd][t.t] || (grid[d.wd][t.t] = []);
+    if (cfg.mats === 2 && dayMats.length > 1) { while (row.length < 2) row.push(null); if (row[slot]) warn.push('Doppelbelegung ' + d.wd + ' ' + t.t + ' Matte ' + slot); row[slot] = cell; }
+    else { row.push({ cell: cell, x: c.cx }); }
+  });
+  Object.keys(grid).forEach(function (wd) { Object.keys(grid[wd]).forEach(function (t) {
+    var row = grid[wd][t]; if (row.length && row[0] && row[0].cell !== undefined) { row.sort(function (a, b) { return a.x - b.x; }); grid[wd][t] = row.map(function (r) { return r.cell; }); }
+  }); });
+  return { grid: grid, warnings: warn, cards: cards.length };
+}
+function spReadDecks() {
+  var out = { ok: true, generated: Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm'), warnings: [] };
+  Object.keys(SP_DECKS).forEach(function (loc) {
+    var r = spDeckGrid(SP_DECKS[loc]); out[loc] = r.grid; out[loc + '_cards'] = r.cards;
+    r.warnings.forEach(function (w) { out.warnings.push(loc + ': ' + w); });
+  });
+  return out;
+}
+function spFlat(g) { var m = {}; ['zurich', 'winterthur'].forEach(function (loc) { var G = g[loc] || {}; Object.keys(G).forEach(function (wd) { Object.keys(G[wd]).forEach(function (t) { G[wd][t].forEach(function (c, i) { if (c) m[loc + ' ' + wd + ' ' + t + ' #' + (i + 1)] = c.join(' | '); }); }); }); }); return m; }
+function spDaily() { // taeglich: Folien lesen, mit letztem Stand vergleichen, Aenderungen an Ruben mailen
+  var r = spReadDecks(), pr = PropertiesService.getScriptProperties();
+  var now = spFlat(r), last = JSON.parse(pr.getProperty('spLast') || '{}'), lines = [];
+  Object.keys(now).forEach(function (k) { if (!last[k]) lines.push('NEU      ' + k + ': ' + now[k]); else if (last[k] !== now[k]) lines.push('GEAENDERT ' + k + ': ' + last[k] + '  ->  ' + now[k]); });
+  Object.keys(last).forEach(function (k) { if (!now[k]) lines.push('WEG      ' + k + ': ' + last[k]); });
+  if (r.warnings.length) mailOnce('spwarn', '[Stundenplan] Folie nicht sauber lesbar', r.warnings.join('\n') + '\n\nDie Website bleibt auf dem letzten Stand, bis die Folie wieder lesbar ist.');
+  if (lines.length && Object.keys(last).length) MailApp.sendEmail(MAIL.fallback, '[Stundenplan] Folie geaendert: ' + lines.length + ' Zellen', 'Aenderungen auf den Overall-Schedule-Folien (Stand ' + r.generated + '):\n\n' + lines.join('\n') + '\n\nWebsite, Kursseiten und Training-Plan-Tool ziehen beim naechsten taeglichen Lauf (GitHub, ca. 06:30) nach.');
+  pr.setProperty('spLast', JSON.stringify(now));
+  return { changed: lines.length, warnings: r.warnings.length };
+}
+function installSpTrigger() {
+  var have = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'spDaily'; });
+  if (!have) ScriptApp.newTrigger('spDaily').timeBased().atHour(5).nearMinute(30).everyDays(1).inTimezone(TZ).create();
+  return have ? 'vorhanden' : 'angelegt';
 }
