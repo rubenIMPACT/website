@@ -815,3 +815,9 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   philipp.archiviert@uconic.com dort Datei-Organisator-Rechte - geerbt aus der Drive-Mitgliedschaft, deshalb auf Dateiebene NICHT
   herabstufbar ("Can't downgrade member permissions"). Ruben hat ihn am 16.09. aus dem Shared Drive entfernt, geprueft per
   Datei-Freigaben: info@, ruben@, support@, bogdan@ (Organisator), abdi@, joao@ (Kommentieren).
+
+## TikTok-Report wieder aktiv (16.09.2026, per Chrome MCP nach Ruben-Login)
+- Ursache: Report "IMPACT TikTok" (Ads Manager > Analytics > Custom reports, reportId 7682730287242018834) war seit 07.09. angelegt, aber "Scheduled running" war AUS, kein Empfaenger, Format xlsx -> nie gelaufen. Jetzt: Scheduled running AN, Daily (Mail morgens vor 12:00), Empfaenger ruben@impact-martialarts.com, Format csv, Zeitraum "Yesterday", Dimensionen Campaign name + By Day, Metriken Spend/Impressions/Clicks (destination).
+- Custom-Reports-URL: https://ads.tiktok.com/i18n/reporting/list?aadvid=7649350938695876624 (Menue "Analytics" oeffnet per Hover nicht zuverlaessig; Klick auf das ks-menu-item per JS-Event funktioniert). Zeitplan-Dialog: Button ".reporting-tool-scheduled-running", Dialog erscheint erst nach Klick auf den Switch im versteckten Dialog-Body.
+- Luecke 07.09.-15.09. (plus 17.08.-06.09. als Kontrolle) einmalig per RUN_NOW aus der Report-Tabelle (Last 30 days, 3 Seiten a 20 Zeilen, DOM tr.vi-table__row) nach WerbekostenDaten geschrieben (wkUpsert, TikTok Ads / TK_ACCOUNT, CHF).
+- Erster automatischer Mail-Report erwartet 17.09.2026 morgens; tkImport liest Betreff "IMPACT TikTok" der letzten 4 Tage stuendlich.
