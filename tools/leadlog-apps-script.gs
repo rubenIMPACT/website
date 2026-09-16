@@ -1383,6 +1383,17 @@ function wkCohorts(ss, person) {
   });
   return out;
 }
+// Wochenspalten als Spaltengruppe (Ruben 16.09.2026): ein Klick auf das Minus/Plus ueber der Kopfzeile klappt alle Wochen zu oder auf.
+// Standard offen; war die Gruppe vor dem Neuaufbau zugeklappt, bleibt sie zu. Alte Gruppen werden vorher entfernt (clearSheet loescht nur Zeilen).
+function colGroupWeeks(sh, cols, firstCol) {
+  var wasCollapsed = false, maxC = sh.getMaxColumns();
+  for (var c = 1; c <= maxC; c++) { try { var g = sh.getColumnGroup(c, 1); if (g) { if (g.isCollapsed()) wasCollapsed = true; g.remove(); } } catch (e0) {} }
+  var runs = [], cur = null;
+  cols.forEach(function (x, ci) { var col = firstCol + ci; if (x.w) { if (cur && cur[1] === col - 1) cur[1] = col; else { cur = [col, col]; runs.push(cur); } } else cur = null; });
+  runs.forEach(function (g) { try { sh.getRange(1, g[0], 1, g[1] - g[0] + 1).shiftColumnGroupDepth(1); if (wasCollapsed) sh.getColumnGroup(g[0], 1).collapse(); } catch (e) { Logger.log('Spaltengruppe Wochen: ' + e); } });
+  try { sh.setColumnGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE); } catch (e1) {}
+  return runs;
+}
 function buildWerbekosten(ss) { // nie zwei Baue gleichzeitig (auch nicht neben dem Monatsabschluss-Bau): sonst leere und ueberlagerte Diagramme (Lehre 09.09.)
   var lock = LockService.getUserLock(); if (!lock.tryLock(30000)) { Logger.log('Werbekosten: anderer Bau laeuft, uebersprungen'); return; }
   try { buildWerbekostenCore(ss, maContext(ss)); } finally { lock.releaseLock(); }
@@ -1540,7 +1551,8 @@ function buildWerbekostenCore(ss, ctx) {
   // Diagramme pixelgenau setzen: Spaltenbreiten sind bekannt (A 300, Wochen 58, Monate/Jahr 84), sonst lagen die Diagramme uebereinander (Ruben 15.09.)
   var colLeft = function (ci) { var x = 0; for (var i = 1; i < ci; i++) x += (i === 1 ? 300 : (cols[i - 2] && cols[i - 2].w ? 58 : 84)); return x; };
   // Diagramme koennen nicht in der eingefrorenen Spalte A liegen, Sheets schiebt sie an den Rand von B: deshalb x ab Spalte B rechnen (Lehre 15.09.)
-  var place = function (x) { var targetX = 300 + x, ci = 2; while (ci <= cols.length && colLeft(ci + 1) <= targetX) ci++; return { col: ci, off: targetX - colLeft(ci) }; };
+  // Anker immer Spalte B plus Pixelversatz: so verschieben sich die Diagramme nicht, wenn die Wochenspalten eingeklappt sind (Ruben 16.09.)
+  var place = function (x) { return { col: 2, off: x }; };
   sh.getRange(chartRow, 1).setValue('Diagramme').setFontWeight('bold').setFontSize(13); chartRow += 1;
   var tbl = function (headRow, rows, fmt) {
     dsh.getRange(d, 1, 1, headRow.length).setValues([headRow]).setFontWeight('bold');
@@ -1571,6 +1583,7 @@ function buildWerbekostenCore(ss, ctx) {
   sh.setRowHeights(chartRow, blocks.length * BAND + 1, 21);
   sh.setColumnWidth(1, 300); cols.forEach(function (c, ci) { sh.setColumnWidth(2 + ci, c.w ? 58 : 84); });
   sh.setFrozenColumns(1);
+  colGroupWeeks(sh, cols, 2);
   try { sh.setRowGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE); sh.collapseAllRowGroups(); } catch (e) { Logger.log('Zeilengruppen Werbekosten: ' + e); }
 }
 // ------------------------------------------------------------ TikTok Ads (07.09.2026, Ruben: "TikTok auch anlegen")
@@ -2289,7 +2302,7 @@ function buildMonatsabschlussCore(ss) {
     var wfun = tbl([b.locDE + ' Woche', 'Website-Leads', 'Gespräche', 'Probetrainings', 'Verkäufe', 'Kündigungen'], wkeys.map(function (m) { var mkw = addDs(m, 3).slice(0, 7), o = weekOf(m, mkw); return [dtW(m), sumW(o, 'leads'), sumW(o, 'calls'), sumW(o, 't'), num(daySumFor(wrLocs, m, mkw, 'signed_d:')), num(daySumFor(wrLocs, m, mkw, 'cancels_d:'))]; }), null, 'dd.MM.');
     var wkan = tbl([b.locDE + ' Kanal'].concat(WK_PLATFORMS).concat(['organisch/direkt']), wkeys.map(function (m) { var o = weekOf(m, addDs(m, 3).slice(0, 7)); return [dtW(m)].concat(WK_PLATFORMS.map(function (pn) { return kanW(o, [pn]); })).concat([kanW(o, ORG)]); }), null, 'dd.MM.');
     var colLeftM = function (ci) { var x = 0; for (var i = 1; i < ci; i++) x += (i === 1 ? 300 : (cols[i - 2] && cols[i - 2].w ? 58 : 84)); return x; };
-    var placeM = function (x) { var targetX = 300 + x, ci = 2; while (ci <= cols.length && colLeftM(ci + 1) <= targetX) ci++; return { col: ci, off: targetX - colLeftM(ci) }; }; // pixelgenau ab Spalte B (eingefrorene Spalte A), Lehre 15.09.
+    var placeM = function (x) { return { col: 2, off: x }; }; // Anker Spalte B plus Pixel: unabhaengig von eingeklappten Wochenspalten (Ruben 16.09.) // pixelgenau ab Spalte B (eingefrorene Spalte A), Lehre 15.09.
     var C = function (type, at, w, n, row, x, title, opts) {
       if (!n) return;
       var p = placeM(x);
@@ -2310,6 +2323,7 @@ function buildMonatsabschlussCore(ss) {
   sh.setRowHeights(chartRow, blocks.length * 2 * BAND + 1, 21);
   sh.setColumnWidth(1, 300); cols.forEach(function (c, ci) { sh.setColumnWidth(2 + ci, c.w ? 58 : 84); });
   sh.setFrozenColumns(1); // Spalte A bleibt beim seitlichen Scrollen stehen (Ruben 05.09.2026)
+  colGroupWeeks(sh, cols, 2);
   try { sh.setRowGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE); sh.collapseAllRowGroups(); } catch (e) { Logger.log('Zeilengruppen: ' + e); }
   [MA_HIST, MA_COHORT].forEach(function (n) { var h = ss.getSheetByName(n); if (h && !h.isSheetHidden()) h.hideSheet(); });
   try { wkScheduleBuild(); } catch (e3) { Logger.log('Werbekosten-Bau planen: ' + e3); } // Werbekosten-Tab eine Minute spaeter in eigener Ausfuehrung (6-Minuten-Limit)
