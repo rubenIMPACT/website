@@ -3,28 +3,21 @@
   "zurich": "Overall Schedule ZH 2.4, Folie 1 (1HH42ColN9v9Axln9vFy3kbnQvQD43TOyWq0mCPwpWu4)",
   "winterthur": "Overall Schedule WIN 2.2 (1o82fupJn7Y1PNecAVjGa5G8ziFEHG3QuwxTrtQfJR0o)",
   "transcribed": "16.09.2026",
-  "note": "Nominalplan. Zellen: [Klasse, Level, Trainerkuerzel]; Mat A zuerst. Aendert sich die Folie, hier nachziehen, dann tools/schedule-check.py laufen lassen."
+  "note": "Nominalplan, automatisch aus den Slides (Apps Script spReadDecks -> /api/plan-nominal -> tools/plan_from_api.py). NICHT von Hand aendern: die Folie aendern, der taegliche Workflow zieht nach. Zellen: [Klasse, Level, Trainerkuerzel]; Mat A zuerst.",
+  "synced": "16.09.2026 aus den Slides (Apps Script)"
  },
  "zurich": {
   "Mo": {
-   "12:00": [
+   "17:40": [
     [
-     "Boxing",
-     "Basics",
-     "QUE"
+     "Fitness Kickboxing",
+     "",
+     "NAS"
     ],
     [
-     "Wrestling",
+     "BJJ (Gi)",
      "Basics",
-     "LAS"
-    ]
-   ],
-   "15:40": [
-    null,
-    [
-     "Little Ninjas 6-9",
-     "",
-     "LAS"
+     "FLO"
     ]
    ],
    "16:30": [
@@ -39,18 +32,6 @@
      "LAS"
     ]
    ],
-   "17:40": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "NAS"
-    ],
-    [
-     "BJJ (Gi)",
-     "Basics",
-     "FLO"
-    ]
-   ],
    "18:50": [
     [
      "Muay Thai",
@@ -60,6 +41,18 @@
     [
      "Wrestling",
      "All Levels",
+     "LAS"
+    ]
+   ],
+   "12:00": [
+    [
+     "Boxing",
+     "Basics",
+     "QUE"
+    ],
+    [
+     "Wrestling",
+     "Basics",
      "LAS"
     ]
    ],
@@ -74,17 +67,17 @@
      "",
      "NAS"
     ]
+   ],
+   "15:40": [
+    null,
+    [
+     "Little Ninjas 6-9",
+     "",
+     "LAS"
+    ]
    ]
   },
   "Di": {
-   "09:40": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "NAS"
-    ],
-    null
-   ],
    "12:00": [
     [
      "Muay Thai",
@@ -94,38 +87,6 @@
     [
      "BJJ (Gi)",
      "All Levels",
-     "JOA"
-    ]
-   ],
-   "16:30": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "NAS"
-    ],
-    null
-   ],
-   "17:40": [
-    [
-     "Street Defense",
-     "",
-     "SAM"
-    ],
-    [
-     "Little Ninjas 10-14",
-     "",
-     "JOA"
-    ]
-   ],
-   "18:50": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "NAS"
-    ],
-    [
-     "MMA",
-     "Basics",
      "JOA"
     ]
    ],
@@ -140,39 +101,59 @@
      "All Levels",
      "JOA"
     ]
-   ]
-  },
-  "Mi": {
-   "12:00": [
-    [
-     "Muay Thai",
-     "All Levels",
-     "NTE"
-    ],
-    [
-     "Open Mat",
-     "",
-     ""
-    ]
    ],
-   "15:40": [
-    null,
+   "17:40": [
     [
-     "Little Ninjas 6-9",
-     "",
-     "LAS"
-    ]
-   ],
-   "16:30": [
-    [
-     "Self Defense Women",
+     "Street Defense",
      "",
      "SAM"
     ],
     [
      "Little Ninjas 10-14",
      "",
+     "JOA"
+    ]
+   ],
+   "16:30": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "NAS"
+    ],
+    null
+   ],
+   "18:50": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "NAS"
+    ],
+    [
+     "MMA",
+     "Basics",
+     "JOA"
+    ]
+   ],
+   "09:40": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "NAS"
+    ],
+    null
+   ]
+  },
+  "Mi": {
+   "20:00": [
+    [
+     "Wrestling",
+     "All Levels",
      "LAS"
+    ],
+    [
+     "Muay Thai",
+     "All Levels",
+     "SER"
     ]
    ],
    "17:40": [
@@ -185,6 +166,18 @@
      "MMA",
      "All Levels",
      "LAS"
+    ]
+   ],
+   "12:00": [
+    [
+     "Muay Thai",
+     "All Levels",
+     "NTE"
+    ],
+    [
+     "Open Mat",
+     "",
+     ""
     ]
    ],
    "18:50": [
@@ -199,21 +192,77 @@
      "FLO+LAS"
     ]
    ],
-   "20:00": [
+   "16:30": [
     [
-     "Wrestling",
-     "All Levels",
-     "LAS"
+     "Self Defense Women",
+     "",
+     "SAM"
     ],
     [
-     "Muay Thai",
-     "All Levels",
-     "SER"
+     "Little Ninjas 10-14",
+     "",
+     "LAS"
+    ]
+   ],
+   "15:40": [
+    null,
+    [
+     "Little Ninjas 6-9",
+     "",
+     "LAS"
     ]
    ]
   },
   "Do": {
-   "07:00": [
+   "20:00": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "NAS"
+    ],
+    [
+     "BJJ (No-Gi)",
+     "All Levels",
+     "DAR"
+    ]
+   ],
+   "17:40": [
+    [
+     "Boxing",
+     "All Levels",
+     "NTE"
+    ],
+    [
+     "Fitness Kickboxing",
+     "",
+     "NAS"
+    ]
+   ],
+   "12:00": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "NAS"
+    ],
+    [
+     "BJJ (No-Gi)",
+     "Basics",
+     "JOA"
+    ]
+   ],
+   "18:50": [
+    [
+     "MMA",
+     "All Levels",
+     "NTE"
+    ],
+    [
+     "BJJ (No-Gi)",
+     "Basics",
+     "DAR"
+    ]
+   ],
+   "16:30": [
     [
      "Muay Thai",
      "Basics",
@@ -229,27 +278,7 @@
     ],
     null
    ],
-   "10:50": [
-    null,
-    [
-     "BJJ",
-     "Competition",
-     "JOA"
-    ]
-   ],
-   "12:00": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "NAS"
-    ],
-    [
-     "BJJ (No-Gi)",
-     "Basics",
-     "JOA"
-    ]
-   ],
-   "16:30": [
+   "07:00": [
     [
      "Muay Thai",
      "Basics",
@@ -257,11 +286,33 @@
     ],
     null
    ],
+   "10:50": [
+    null,
+    [
+     "BJJ",
+     "Competition",
+     "JOA"
+    ]
+   ]
+  },
+  "Fr": {
    "17:40": [
     [
-     "Boxing",
+     "Muay Thai",
      "All Levels",
      "NTE"
+    ],
+    [
+     "BJJ (Gi)",
+     "Basics",
+     "JOA"
+    ]
+   ],
+   "16:30": [
+    [
+     "MMA",
+     "Basics",
+     "JOA"
     ],
     [
      "Fitness Kickboxing",
@@ -271,37 +322,15 @@
    ],
    "18:50": [
     [
-     "MMA",
-     "All Levels",
+     "Boxing",
+     "Basics",
      "NTE"
     ],
     [
      "BJJ (No-Gi)",
-     "Basics",
-     "DAR"
-    ]
-   ],
-   "20:00": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "NAS"
-    ],
-    [
-     "BJJ (No-Gi)",
      "All Levels",
-     "DAR"
+     "JOA"
     ]
-   ]
-  },
-  "Fr": {
-   "10:50": [
-    [
-     "Striking",
-     "Competition",
-     "SER"
-    ],
-    null
    ],
    "12:00": [
     [
@@ -315,42 +344,6 @@
      ""
     ]
    ],
-   "16:30": [
-    [
-     "MMA",
-     "Basics",
-     "JOA"
-    ],
-    [
-     "Fitness Kickboxing",
-     "",
-     "NAS"
-    ]
-   ],
-   "17:40": [
-    [
-     "Muay Thai",
-     "All Levels",
-     "NTE"
-    ],
-    [
-     "BJJ (Gi)",
-     "Basics",
-     "JOA"
-    ]
-   ],
-   "18:50": [
-    [
-     "Boxing",
-     "Basics",
-     "NTE"
-    ],
-    [
-     "BJJ (No-Gi)",
-     "All Levels",
-     "JOA"
-    ]
-   ],
    "20:00": [
     [
      "Wrestling",
@@ -358,20 +351,28 @@
      "LAS"
     ],
     null
+   ],
+   "10:50": [
+    [
+     "Striking",
+     "Competition",
+     "SER"
+    ],
+    null
    ]
   },
   "Sa": {
-   "09:40": [
-    [
-     "MMA",
-     "Basics",
-     "NTE+DAR"
-    ]
-   ],
    "10:50": [
     [
      "Muay Thai",
      "All Levels",
+     "NTE+DAR"
+    ]
+   ],
+   "09:40": [
+    [
+     "MMA",
+     "Basics",
      "NTE+DAR"
     ]
    ],
@@ -386,31 +387,10 @@
  },
  "winterthur": {
   "Mo": {
-   "12:00": [
-    [
-     "Muay Thai",
-     "All Levels",
-     "SER"
-    ]
-   ],
-   "16:30": [
-    [
-     "Little Ninjas 10-14",
-     "",
-     "JOA"
-    ]
-   ],
    "17:40": [
     [
      "BJJ (No-Gi)",
      "Basics",
-     "JOA"
-    ]
-   ],
-   "18:50": [
-    [
-     "BJJ (Gi)",
-     "All Levels",
      "JOA"
     ]
    ],
@@ -420,13 +400,41 @@
      "All Levels",
      "JOA"
     ]
+   ],
+   "12:00": [
+    [
+     "Muay Thai",
+     "All Levels",
+     "SER"
+    ]
+   ],
+   "18:50": [
+    [
+     "BJJ (Gi)",
+     "All Levels",
+     "JOA"
+    ]
+   ],
+   "16:30": [
+    [
+     "Little Ninjas 10-14",
+     "",
+     "JOA"
+    ]
    ]
   },
   "Di": {
-   "10:50": [
+   "18:50": [
+    [
+     "Boxing",
+     "Basics",
+     "SER"
+    ]
+   ],
+   "20:00": [
     [
      "Wrestling",
-     "Competition",
+     "All Levels",
      "LAS"
     ]
    ],
@@ -434,13 +442,6 @@
     [
      "MMA",
      "Basics",
-     "LAS"
-    ]
-   ],
-   "15:40": [
-    [
-     "Little Ninjas 6-9",
-     "",
      "LAS"
     ]
    ],
@@ -458,22 +459,36 @@
      "SER"
     ]
    ],
-   "18:50": [
+   "15:40": [
     [
-     "Boxing",
-     "Basics",
-     "SER"
+     "Little Ninjas 6-9",
+     "",
+     "LAS"
     ]
    ],
-   "20:00": [
+   "10:50": [
     [
      "Wrestling",
-     "All Levels",
+     "Competition",
      "LAS"
     ]
    ]
   },
   "Mi": {
+   "18:50": [
+    [
+     "BJJ (No-Gi)",
+     "Basics",
+     "JOA"
+    ]
+   ],
+   "17:40": [
+    [
+     "MMA",
+     "Basics",
+     "JOA"
+    ]
+   ],
    "12:00": [
     [
      "BJJ (No-Gi)",
@@ -485,20 +500,6 @@
     [
      "Little Ninjas 10-14",
      "",
-     "JOA"
-    ]
-   ],
-   "17:40": [
-    [
-     "MMA",
-     "Basics",
-     "JOA"
-    ]
-   ],
-   "18:50": [
-    [
-     "BJJ (No-Gi)",
-     "Basics",
      "JOA"
     ]
    ],
@@ -511,18 +512,18 @@
    ]
   },
   "Do": {
-   "12:00": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "SER"
-    ]
-   ],
    "16:30": [
     [
      "BJJ (Gi)",
      "Basics",
      "JOA"
+    ]
+   ],
+   "18:50": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "SER"
     ]
    ],
    "17:40": [
@@ -532,33 +533,33 @@
      "JOA"
     ]
    ],
-   "18:50": [
-    [
-     "Fitness Kickboxing",
-     "",
-     "SER"
-    ]
-   ],
    "20:00": [
     [
      "Muay Thai",
      "All Levels",
      "SER"
     ]
+   ],
+   "12:00": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "SER"
+    ]
    ]
   },
   "Fr": {
+   "20:00": [
+    [
+     "Boxing",
+     "All Levels",
+     "SER"
+    ]
+   ],
    "12:00": [
     [
      "Wrestling",
      "All Levels",
-     "LAS"
-    ]
-   ],
-   "15:40": [
-    [
-     "Little Ninjas 6-9",
-     "",
      "LAS"
     ]
    ],
@@ -569,13 +570,6 @@
      "LAS"
     ]
    ],
-   "17:40": [
-    [
-     "MMA",
-     "All Levels",
-     "LAS"
-    ]
-   ],
    "18:50": [
     [
      "Muay Thai",
@@ -583,11 +577,18 @@
      "SER"
     ]
    ],
-   "20:00": [
+   "15:40": [
     [
-     "Boxing",
+     "Little Ninjas 6-9",
+     "",
+     "LAS"
+    ]
+   ],
+   "17:40": [
+    [
+     "MMA",
      "All Levels",
-     "SER"
+     "LAS"
     ]
    ]
   },
