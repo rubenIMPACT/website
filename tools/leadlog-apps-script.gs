@@ -3162,7 +3162,7 @@ function spDeckGrid(cfg) {
     var dayMats = mats.filter(function (m) { return m.wd === d.wd; }).sort(function (a, b) { return a.x - b.x; });
     var slot = 0; if (dayMats.length > 1) { var md = 1e9; dayMats.forEach(function (m, i) { var v = Math.abs(m.x - c.cx); if (v < md) { md = v; slot = i; } }); }
     var row = grid[d.wd][t.t] || (grid[d.wd][t.t] = []);
-    if (cfg.mats === 2 && dayMats.length > 1) { while (row.length < 2) row.push(null); if (row[slot]) { if (row[slot].join('|') !== cell.join('|')) warn.push('Doppelbelegung ' + d.wd + ' ' + t.t + ' Matte ' + slot + ': ' + row[slot].join(' ') + ' vs ' + cell.join(' ')); else notes.push('Doppelte Karte ' + d.wd + ' ' + t.t + ' (' + cell[0] + ') ignoriert'); } row[slot] = cell; }
+    if (cfg.mats === 2 && dayMats.length > 1) { while (row.length < 2) row.push(null); if (row[slot]) notes.push('Verdeckte Karte ' + d.wd + ' ' + t.t + ' Matte ' + (slot + 1) + ': "' + row[slot].join(' ') + '" liegt unter "' + cell.join(' ') + '", die obere gilt'); row[slot] = cell; } // Folien-Reihenfolge = Zeichenreihenfolge: die spaeter gelesene Karte liegt oben
     else { row.push({ cell: cell, x: c.cx }); }
   });
   Object.keys(grid).forEach(function (wd) { Object.keys(grid[wd]).forEach(function (t) {
