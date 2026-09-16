@@ -3108,6 +3108,7 @@ function fpLog(ss, rows) {
 // Abruf: doGet?token&what=plan (Cloudflare /api/plan-nominal, GitHub-Workflow plan-sync taeglich). spDaily(): Aenderungs-Mail an Ruben.
 var SP_DECKS = { zurich: { id: '1HH42ColN9v9Axln9vFy3kbnQvQD43TOyWq0mCPwpWu4', slide: 0, mats: 2 }, winterthur: { id: '1o82fupJn7Y1PNecAVjGa5G8ziFEHG3QuwxTrtQfJR0o', slide: 0, mats: 1 } };
 var SP_CLASSES = ['Fitness Kickboxing', 'Self Defense Women', 'Self Defense for Women', 'Street Defense', 'Little Ninjas 10-14', 'Little Ninjas 6-9', 'BJJ (No-Gi)', 'BJJ (Gi)', 'Muay Thai', 'Open Mat', 'Wrestling', 'Striking', 'Boxing', 'BJJ', 'MMA'];
+var SP_CODES = ['QUE', 'LAS', 'SER', 'NAS', 'FLO', 'NTE', 'JOA', 'SAM', 'DAR']; // Kuerzel laut Legende; unbekannte (z.B. verdeckte Reste RUB/JOR) werden ignoriert und in notes gemeldet
 var SP_DAYS = { MONDAY: 'Mo', TUESDAY: 'Di', WEDNESDAY: 'Mi', THURSDAY: 'Do', FRIDAY: 'Fr', SATURDAY: 'Sa', 'SAT.': 'Sa', SAT: 'Sa' };
 function spShapes(elements, acc) { // alle Text-Formen einer Folie, Gruppen aufgeloest
   elements.forEach(function (el) {
@@ -3126,13 +3127,13 @@ function spNorm(txt) {
 function spDeckGrid(cfg) {
   var slide = SlidesApp.openById(cfg.id).getSlides()[cfg.slide];
   var sh = spShapes(slide.getPageElements(), []), warn = [];
-  var days = [], mats = [], times = [], cards = [], badges = [];
+  var days = [], mats = [], times = [], cards = [], badges = [], notes = [];
   sh.forEach(function (s) {
     var cx = s.x + s.w / 2, cy = s.y + s.h / 2, u = s.txt.toUpperCase();
     if (SP_DAYS[u]) { days.push({ wd: SP_DAYS[u], x: cx }); return; }
     if (/^MAT [AB]$/.test(u) || u === 'A') { mats.push({ mat: u.slice(-1), x: cx, y: cy }); return; }
     var tm = s.txt.match(/^(\d\d:\d\d)\b/); if (tm) { times.push({ t: tm[1], y: cy }); return; }
-    if (/^[A-Z]{3}$/.test(s.txt)) { badges.push({ code: s.txt, x: cx, y: cy }); return; }
+    if (/^[A-Z]{3}$/.test(s.txt)) { if (SP_CODES.indexOf(s.txt) >= 0) badges.push({ code: s.txt, x: cx, y: cy }); else notes.push('Unbekanntes Kuerzel ' + s.txt + ' @' + Math.round(cx) + '/' + Math.round(cy) + ' ignoriert'); return; }
     if (/\(\d/.test(s.txt) || /Classes/i.test(s.txt)) return; // Legende / Zaehlung
     var n = spNorm(s.txt), cls = null;
     for (var i = 0; i < SP_CLASSES.length; i++) { if (n.indexOf(SP_CLASSES[i]) === 0) { cls = SP_CLASSES[i]; break; } }
@@ -3144,6 +3145,7 @@ function spDeckGrid(cfg) {
   days.sort(function (a, b) { return a.x - b.x; }); times.sort(function (a, b) { return a.y - b.y; });
   if (days.length < 6) warn.push('Nur ' + days.length + ' Tagesspalten erkannt'); if (times.length < 5) warn.push('Nur ' + times.length + ' Zeitzeilen erkannt');
   var colGap = days.length > 1 ? (days[days.length - 1].x - days[0].x) / (days.length - 1) : 200;
+  mats.forEach(function (m) { var d = null, dd = 1e9; days.forEach(function (x) { var v = Math.abs(x.x - m.x); if (v < dd) { dd = v; d = x; } }); m.wd = d ? d.wd : null; });
   var rowGap = times.length > 1 ? (times[times.length - 1].y - times[0].y) / (times.length - 1) : 60;
   badges.forEach(function (b) { // Kuerzel gehoert zur Karte, in deren Flaeche es liegt (Toleranz 6pt)
     var hit = null; cards.forEach(function (c) { if (b.x >= c.x - 6 && b.x <= c.x + c.w + 6 && b.y >= c.y - 6 && b.y <= c.y + c.h + 6) hit = c; });
@@ -3155,23 +3157,24 @@ function spDeckGrid(cfg) {
     var t = null, dt = 1e9; times.forEach(function (x) { var v = Math.abs(x.y - c.cy); if (v < dt) { dt = v; t = x; } });
     if (!d || !t || dd > colGap * 0.6 || dt > rowGap * 0.6) { warn.push('Karte ohne Raster: ' + c.name + ' ' + c.lv + ' @' + Math.round(c.cx) + '/' + Math.round(c.cy)); return; }
     c.codes.sort(function (a, b) { return (a.y - b.y) || (a.x - b.x); });
-    var cell = [c.name, c.lv, c.codes.map(function (b) { return b.code; }).join('+')];
-    var dayMats = mats.filter(function (m) { return Math.abs(m.x - d.x) < colGap * 0.6; }).sort(function (a, b) { return a.x - b.x; });
+    var seen = {}, codes = []; c.codes.forEach(function (b) { if (!seen[b.code]) { seen[b.code] = 1; codes.push(b.code); } });
+    var cell = [c.name, c.lv, codes.join('+')];
+    var dayMats = mats.filter(function (m) { return m.wd === d.wd; }).sort(function (a, b) { return a.x - b.x; });
     var slot = 0; if (dayMats.length > 1) { var md = 1e9; dayMats.forEach(function (m, i) { var v = Math.abs(m.x - c.cx); if (v < md) { md = v; slot = i; } }); }
     var row = grid[d.wd][t.t] || (grid[d.wd][t.t] = []);
-    if (cfg.mats === 2 && dayMats.length > 1) { while (row.length < 2) row.push(null); if (row[slot]) warn.push('Doppelbelegung ' + d.wd + ' ' + t.t + ' Matte ' + slot); row[slot] = cell; }
+    if (cfg.mats === 2 && dayMats.length > 1) { while (row.length < 2) row.push(null); if (row[slot]) { if (row[slot].join('|') !== cell.join('|')) warn.push('Doppelbelegung ' + d.wd + ' ' + t.t + ' Matte ' + slot + ': ' + row[slot].join(' ') + ' vs ' + cell.join(' ')); else notes.push('Doppelte Karte ' + d.wd + ' ' + t.t + ' (' + cell[0] + ') ignoriert'); } row[slot] = cell; }
     else { row.push({ cell: cell, x: c.cx }); }
   });
   Object.keys(grid).forEach(function (wd) { Object.keys(grid[wd]).forEach(function (t) {
     var row = grid[wd][t]; if (row.length && row[0] && row[0].cell !== undefined) { row.sort(function (a, b) { return a.x - b.x; }); grid[wd][t] = row.map(function (r) { return r.cell; }); }
   }); });
-  return { grid: grid, warnings: warn, cards: cards.length };
+  return { grid: grid, warnings: warn, notes: notes, cards: cards.length };
 }
 function spReadDecks() {
-  var out = { ok: true, generated: Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm'), warnings: [] };
+  var out = { ok: true, generated: Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm'), warnings: [], notes: [] };
   Object.keys(SP_DECKS).forEach(function (loc) {
     var r = spDeckGrid(SP_DECKS[loc]); out[loc] = r.grid; out[loc + '_cards'] = r.cards;
-    r.warnings.forEach(function (w) { out.warnings.push(loc + ': ' + w); });
+    r.warnings.forEach(function (w) { out.warnings.push(loc + ': ' + w); }); r.notes.forEach(function (w) { out.notes.push(loc + ': ' + w); });
   });
   return out;
 }
