@@ -840,3 +840,9 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - LIVE BESTAETIGT 16.09. nach dem Lauf 15:58: Event Planner hat die Tabs 2026, 2027, "IMPACT Event sign-ups" (letzter Tab, gid
   1813362880). Kopfzeile Timestamp..Event ID, 18 Anmeldungen = Zaehler "Sign-ups" 18 bei Open Doors Zuerich im Planner,
   Timestamp dd.MM.yyyy HH:mm, Date 26.09.2026. Das separate Sheet "IMPACT Events" liegt im Papierkorb (Rubens OK 16.09.).
+
+## Kohorte nach Lead-Monat, Jahresspalte ab September, letzter Klick (Ruben 16.09.2026, Commit d22f869)
+- Werbekosten-Tab je Plattform: statt monatsbezogener Probetrainings/CPT/Verkaeufe/CAC jetzt Kohorten-Zeilen (Spalte = Monat/Woche der Anfrage): "davon Probetraining (bis heute)", "davon Verkauf (bis heute)", "Quote Lead -> Verkauf", "Kosten pro Verkauf (CHF, Kohorte)". Quelle `wkCohorts(ss)`: Team-Sheet-Probetrainings (trIsTrial, Kanal-Spalte) per Name (`trFindLead(map, '', name, datum)`) dem Website-Lead zugeordnet, Lead-Datum = Kohortentag, Verkauf = Vertragsunterschrift (CI.contract) gesetzt. Log meldet zugeordnet/ohne Lead. Keys coh_t:/coh_s:/coh_q:/coh_cac:<pn>. tk:/cpt:/sk:/cac: je Plattform entfallen (tkM/skM bleiben fuer paidM).
+- Jahresspalte im Werbekosten-Tab = nur Monate >= `WK_YEAR_FROM` ('2026-09'), Kopf "2026 ab Sep" mit Notiz; Grund: Jan-Aug ohne Kanal-Zuordnung verfaelschen Kosten und Quoten. Monatsabschluss unveraendert.
+- Website (38 Seiten + 2 Templates, Snippet mit imp_ref): Formular schickt nur noch die zeitlich letzte Klick-ID (Zeitstempel aus localStorage bzw. jetzt bei URL-Parameter), aeltere Klick-IDs werden im Formular geleert. Damit ist die feste Reihenfolge ttclid > gclid > fbclid in kanalOf/Daten!J nur noch theoretisch. Auto-Deploy via Push.
+- Regel (Ruben 16.09.): IMMER erst fragen, bevor gebaut wird.
