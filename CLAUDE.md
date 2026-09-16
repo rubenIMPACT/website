@@ -852,3 +852,7 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Unter jeder Kampagne jetzt 7 Zeilen: Kosten, Leads, Kosten pro Lead, davon Probetraining (bis heute), davon Verkauf (bis heute), Quote Lead -> Verkauf, Kosten pro Verkauf (CHF, Kohorte). Keys coh_tc/coh_sc/coh_qc/coh_cc.
 - Technik: `wkLeadsByCampaignDaily` haengt `out._person` an (E-Mail und Name -> [{date, key}] je zugeordnetem Lead); `wkCohorts(ss, person)` findet je Probetraining zusaetzlich den Kampagnen-Key (`findKey`, letzter Lead bis einen Tag nach dem Probetraining) und zaehlt unter `out[loc]['camp|' + key]`.
 - Strich: `orDash`/`orDashW`/`yDash` setzen '–' statt '' bei Quote und Kosten pro Verkauf (Plattform und Kampagne) im Zeitraum ab WK_YEAR_FROM; Zeilen mit `dash: true` werden rechtsbuendig gesetzt.
+
+## Wochenspalten ein-/ausklappbar (Ruben 16.09.2026, Commit 1c1ae63)
+- `colGroupWeeks(sh, cols, 2)` am Ende von buildWerbekostenCore und buildMonatsabschluss: entfernt alte Spaltengruppen (clearSheet loescht nur Zeilen, Spaltengruppen bleiben sonst und wuerden pro Bau tiefer), legt je zusammenhaengendem Wochenlauf (cols[].w) eine Gruppe an, Toggle BEFORE. Standard offen; war die Gruppe vor dem Bau zugeklappt (isCollapsed), wird sie wieder zugeklappt.
+- Diagramme in beiden Tabs jetzt mit Anker Spalte B plus reinem Pixelversatz (`place`/`placeM` = { col: 2, off: x }), damit eingeklappte Wochenspalten nichts verschieben.
