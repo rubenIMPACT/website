@@ -800,3 +800,7 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   schon Completed. Vor dem Einfuegen geprueft: Editor OHNE diese RUN_NOW-Zeile = exakt d008e21. Durch das Einspielen des gepushten
   Stands ist RUN_NOW entfernt (so wie das Rezept es nach jedem Handstart verlangt). Waehrend des Einfuegens brach die Chrome-Verbindung
   ab; danach nur LESEND geprueft (nicht erneut eingefuegt): Stand vollstaendig gespeichert.
+
+## Google-Ads-Skript aktualisiert (15.09.2026 abends, per Chrome MCP)
+- tools/google-ads-spend-script.js (Stand 2b9788f, mit campaign.id) in Google Ads > Tools > Bulk-Aktionen > Skripte > "Werbekosten -> Analytics Sheet" eingefuegt (CodeMirror: `.CodeMirror.CodeMirror.setValue(src)`, dann Save, Run ohne Vorschau). Taeglicher Lauf 06:05 schreibt seit 16.09.2026 die Kampagnen-ID in WerbekostenDaten Spalte J (alle 60 Google-Zeilen ab 01.09. gefuellt). Google-Leads mit gad_campaignid im Link werden damit per Nummer zugeordnet, der Rest weiter per Standort/Kids-Heuristik.
+- TikTok: Ads Manager verlangt Login mit Passwort (Chrome hat es gespeichert), Claude darf das nicht ausloesen -> Ruben loggt sich im Tab der Claude-Tab-Gruppe ein, dann geplanten Report (taeglich, CSV, Kampagne je Tag, Betreff "IMPACT TikTok", an ruben@) neu anlegen.
