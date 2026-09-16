@@ -854,5 +854,5 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Strich: `orDash`/`orDashW`/`yDash` setzen '–' statt '' bei Quote und Kosten pro Verkauf (Plattform und Kampagne) im Zeitraum ab WK_YEAR_FROM; Zeilen mit `dash: true` werden rechtsbuendig gesetzt.
 
 ## Wochenspalten ein-/ausklappbar (Ruben 16.09.2026, Commit 1c1ae63)
-- `colGroupWeeks(sh, cols, 2)` am Ende von buildWerbekostenCore und buildMonatsabschluss: entfernt alte Spaltengruppen (clearSheet loescht nur Zeilen, Spaltengruppen bleiben sonst und wuerden pro Bau tiefer), legt je zusammenhaengendem Wochenlauf (cols[].w) eine Gruppe an, Toggle BEFORE. Standard offen; war die Gruppe vor dem Bau zugeklappt (isCollapsed), wird sie wieder zugeklappt.
+- `colGroupWeeks(sh, cols, 2)` am Ende von buildWerbekostenCore und buildMonatsabschluss: entfernt alte Spaltengruppen (clearSheet loescht nur Zeilen, Spaltengruppen bleiben sonst und wuerden pro Bau tiefer), legt je zusammenhaengendem Wochenlauf (cols[].w) eine Gruppe an, Toggle AFTER (rechts der Gruppe = ueber dem Monat der Wochen; BEFORE sass ueber dem Vormonat, Ruben 16.09.). Standard offen; war die Gruppe vor dem Bau zugeklappt (isCollapsed), wird sie wieder zugeklappt.
 - Diagramme in beiden Tabs jetzt mit Anker Spalte B plus reinem Pixelversatz (`place`/`placeM` = { col: 2, off: x }), damit eingeklappte Wochenspalten nichts verschieben.
