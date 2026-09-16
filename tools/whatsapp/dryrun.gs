@@ -88,20 +88,24 @@ function waDryRunHourly() {
   // message 1, message 3 = 48 h after message 2, then the chain ends. Each slot is filled by the coach after a call (M1-M3, visible
   // only after the WhatsApp connection) or, when the 48 h run out, by the automation (A1-A3). "Due" = the mark fell into the last 24 h (no backlog).
   var h = 3600000, lastA = lastFlowA(sh), calls = harvestCalls(now); // calls = the coaches' ticks in the call lists ("Called, no answer" / "Reached"), the call signal we do not get from WhatsApp
+  var openLeads = leads.filter(function (l) { return l.loc && !l.test && l.status === 'ok' && l.email && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && l.ts.getTime() >= now.getTime() - 45 * 24 * h; });
+  var stages = leadStages(openLeads); // Ruben 16.09.: the stage the coach sets in exercise.com after the call (Not interested, Do not contact, Client ...) stops the chain and removes the lead from the call list
+  var stageOfLead = function (l) { return stages[(l.email || '').toLowerCase().trim()] || ''; };
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return; // booked, attended, no-show or cancelled: Flow A is over
+    if (LC_SKIP.test(stageOfLead(l))) return; // closed in exercise.com (Not interested, Do not contact, Lost, Client ...): no automatic message
     var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
     if (st.reached || slot >= RULE.A_MAX) return; // reached by phone: the coach owns the lead, the automation is off
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
-    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked', 'A:' + msg + ':' + id, {});
+    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {});
   });
-  writeCallLists(leads, trials, trialNames, lastA, calls, now); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
+  writeCallLists(leads, trials, trialNames, lastA, calls, now, stages); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
   migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
   if (STAGE_SYNC.contacts) { // Ruben 10.09. ("ja"): the call ticks set First / Second / Third Contact in exercise.com (forward only); after the go-live the sent messages will do the same
     var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
     leads.forEach(function (l) {
-      if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l)) return;
+      if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l) || LC_SKIP.test(stageOfLead(l))) return;
       var n = (calls[l.email.toLowerCase()] || { called: [] }).called.length; if (!n) return;
       var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'call attempt ' + n + ' ticked in the call list', step[1]) === 'set') stageN++;
     });
@@ -599,13 +603,14 @@ function readPlans() { // lead e-mail -> latest training plan link (Leads Log, t
   sh.getRange(2, 1, sh.getLastRow() - 1, 19).getValues().forEach(function (r) { var e = String(r[18] || '').toLowerCase().trim(), link = String(r[14] || '').trim(); if (e && /^https?:\/\//.test(link)) m[e] = link; });
   return m;
 }
-function writeCallLists(leads, trials, trialNames, lastA, calls, now) { // tabs "Call list ZH" / "Call list WT" in Team KPIs (Ruben 10.09.), rebuilt every run
+function writeCallLists(leads, trials, trialNames, lastA, calls, now, stages) { // tabs "Call list ZH" / "Call list WT" in Detailed Sales KPIs (Ruben 10.09.), rebuilt every run; stages = lifecycle per e-mail from exercise.com (16.09.: closed leads leave the list)
   var ss = SpreadsheetApp.openById(TEAM_ID), h = 3600000, cut = now.getTime() - 30 * 24 * h, rows = { Zurich: [], Winterthur: [] }, plans = readPlans();
   var task = ['Call today. If nobody answers: send M1', 'Call. If nobody answers: send M2', 'Last call. If nobody answers: send M3', 'Closed: three messages, no reply. No further action'];
   var prio = [1, 2, 3, 6], colors = ['#f4cccc', '#fce5cd', '#fff2cc', '#efefef'];
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return;
+    if (LC_SKIP.test((stages || {})[(l.email || '').toLowerCase().trim()] || '')) return; // Ruben 16.09.: closed in exercise.com by the coach (Not interested, Do not contact, Client ...) -> off the list, no tick needed
     var st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt, key = (l.email || l.nname).toLowerCase();
     if (l.ts.getTime() < cut && !slot && !st.reached) return; // older than 30 days without any contact: backlog from before the automation
     var p, c, t, next;
@@ -643,6 +648,13 @@ function fillCallCounts(ss, loc, calls, now) { // day rows of the Probetrainings
   var written = 0;
   days.forEach(function (day) { var i = labels.indexOf(day); if (i < 0) return; sh.getRange(TR_ROW0 + i, 2, 1, 2).setValues([[per[day].a, per[day].c]]); written++; });
   if (written) Logger.log('call counts ' + loc + ': ' + written + ' day rows filled');
+}
+function leadStages(leads) { // e-mail -> lifecycle stage in exercise.com for these leads (40 per call via /api/wa clients_by_email); {} on error
+  var emails = [], seen = {}; leads.forEach(function (l) { var e = (l.email || '').toLowerCase().trim(); if (e && !seen[e]) { seen[e] = true; emails.push(e); } });
+  var out = {}, found = 0;
+  for (var i = 0; i < emails.length; i += 40) { var b = cfPost({ action: 'clients_by_email', emails: emails.slice(i, i + 40) }); if (!b) continue; Object.keys(b.clients || {}).forEach(function (e) { if (b.clients[e]) { out[e] = String(b.clients[e].lifecycle || ''); found++; } }); }
+  Logger.log('lead stages: ' + emails.length + ' asked, ' + found + ' found in exercise.com, ' + emails.filter(function (e) { return LC_SKIP.test(out[e] || ''); }).length + ' closed (LC_SKIP)');
+  return out;
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } from the Dry run rows (later: the real outbox)
   var m = {}, n = sh.getLastRow(); if (n < TR_ROW0) return m;
