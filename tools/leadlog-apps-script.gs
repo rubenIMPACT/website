@@ -1359,14 +1359,17 @@ function wkLeadsByCampaignDaily(ss, camp) {
 // Die E-Mail steht nicht im Team-Sheet, darum Zuordnung ueber den Namen (der Kanal steht bereits im Team-Sheet, per E-Mail ermittelt).
 // Verkauf = Vertragsunterschrift gesetzt. Ergebnis je Standort, Kanal und Lead-Tag: { t: Probetrainings, s: Verkaeufe }.
 function wkCohorts(ss) {
-  var out = { Zurich: {}, Winterthur: {}, matched: 0, unmatched: 0 }, map = trLeadMap(ss), team = null;
+  var out = { Zurich: {}, Winterthur: {}, matched: 0, unmatched: 0 }, map = trLeadMap(ss), team = null, emailOf = {};
+  var nrm = function (x) { return String(x || '').toLowerCase().replace(/\s+/g, ' ').trim(); };
+  // Name -> E-Mail aus der exercise.com-Kundenliste (Phase mc), damit der Lead wie im Team-Sheet per E-Mail gefunden wird (Name allein fand in WT nur 2 von 6)
+  try { var today = fmtD(new Date()), pc = maCall({ phase: 'mc', start: today.slice(0, 8) + '01', end: today, today: today }); if (pc && pc.byName) Object.keys(pc.byName).forEach(function (k) { emailOf[nrm(k)] = String((pc.byName[k] || [])[1] || ''); }); else Logger.log('Kohorten: Kundenliste ' + JSON.stringify(pc).slice(0, 200)); } catch (e1) { Logger.log('Kohorten: Kundenliste ' + e1); }
   try { team = teamSs(); } catch (e) { Logger.log('Kohorten: Team-Sheet ' + e); return out; }
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var ts = team.getSheetByName(TR_SHEETS[loc]); if (!ts || ts.getLastRow() < TR_ROW0) return;
     ts.getRange(TR_ROW0, TR_P0, ts.getLastRow() - TR_ROW0 + 1, TR_NCOL).getValues().forEach(function (r) {
       if (!r[CI.uid]) return; var d = dOfCell(r[CI.date]); if (!d || !trIsTrial(r)) return;
-      var kn = String(r[CI.kanal] || ''); if (!kn) return;
-      var ld = trFindLead(map, '', r[CI.name], d); if (!ld) { out.unmatched++; return; }
+      var kn = String(r[CI.kanal] || ''); if (!/Ads$/.test(kn)) return; // nur bezahlte Kanaele werden ausgewiesen
+      var ld = trFindLead(map, emailOf[nrm(r[CI.name])] || '', r[CI.name], d); if (!ld) { out.unmatched++; return; }
       out.matched++;
       var K = out[loc][kn] = out[loc][kn] || {}, o = K[ld.date] = K[ld.date] || { t: 0, s: 0 };
       o.t += 1; if (dOfCell(r[CI.contract])) o.s += 1;
@@ -1397,7 +1400,7 @@ function buildWerbekostenCore(ss, ctx) {
   sh = clearSheet(sh);
   var cols = ctx.cols, curK = ctx.curK, logM = ctx.logM, num = ctx.num, val = ctx.val, wr = ctx.wr, wkD = ctx.wkD, wkM = ctx.wkM, hkeys = ctx.hkeys, yearMonths = ctx.yearMonths, colOf = ctx.colOf, dt = ctx.dt;
   var camp = wkCampAgg(ss), lcd = wkLeadsByCampaignDaily(ss, camp), agencyCache = {}, coh = wkCohorts(ss);
-  Logger.log('Kohorten: ' + coh.matched + ' Probetrainings einem Lead zugeordnet, ' + coh.unmatched + ' ohne Lead');
+  Logger.log('Kohorten: ' + coh.matched + ' bezahlte Probetrainings einem Lead zugeordnet, ' + coh.unmatched + ' ohne Lead');
   var agencyM = function (kk) { if (!(kk in agencyCache)) agencyCache[kk] = wkAgency(ss, kk, wkM); return agencyCache[kk]; };
   var need = cols.length + 3; if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
   sh.setFrozenColumns(0); sh.getRange(2, 1, 1, sh.getMaxColumns()).breakApart();
