@@ -804,3 +804,14 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 ## Google-Ads-Skript aktualisiert (15.09.2026 abends, per Chrome MCP)
 - tools/google-ads-spend-script.js (Stand 2b9788f, mit campaign.id) in Google Ads > Tools > Bulk-Aktionen > Skripte > "Werbekosten -> Analytics Sheet" eingefuegt (CodeMirror: `.CodeMirror.CodeMirror.setValue(src)`, dann Save, Run ohne Vorschau). Taeglicher Lauf 06:05 schreibt seit 16.09.2026 die Kampagnen-ID in WerbekostenDaten Spalte J (alle 60 Google-Zeilen ab 01.09. gefuellt). Google-Leads mit gad_campaignid im Link werden damit per Nummer zugeordnet, der Rest weiter per Standort/Kids-Heuristik.
 - TikTok: Ads Manager verlangt Login mit Passwort (Chrome hat es gespeichert), Claude darf das nicht ausloesen -> Ruben loggt sich im Tab der Claude-Tab-Gruppe ein, dann geplanten Report (taeglich, CSV, Kampagne je Tag, Betreff "IMPACT TikTok", an ruben@) neu anlegen.
+
+- UMBAU 16.09.2026 (Ruben): KEIN eigenes Sheet mehr. teamMirrorEvents schreibt die Anmeldungen als Tab "IMPACT Event sign-ups"
+  in den Event Planner (PLAN_ID, Shared Drive "IMPACT Overall", Ordner "Event Planner"). evSs()/EV_TITLE entfernt. Die Planner-Logik
+  der Website liest nur Tabs mit "Activity" in A1; der neue Tab hat "Timestamp" in A1 und steht immer am Ende (planSheet() faellt
+  ohne Activity-Tab auf den ERSTEN Tab zurueck). Land/Zeitzone des Planners werden nicht angefasst, nur die Datumsspalten des Tabs
+  formatiert. Das am 15.09. angelegte separate Sheet "IMPACT Events" (1j1o0OvOlOErp9Y5LfTCh2ZoJGo6CIYrkIP_ml6gpA58) wird nicht mehr
+  beschrieben; loeschen nur nach Rubens OK.
+- ZUGRIFF: Kontaktdaten (Name/E-Mail/Telefon) im Planner sieht jedes Mitglied des Shared Drive "IMPACT Overall". Vor dem Umbau hatte
+  philipp.archiviert@uconic.com dort Datei-Organisator-Rechte - geerbt aus der Drive-Mitgliedschaft, deshalb auf Dateiebene NICHT
+  herabstufbar ("Can't downgrade member permissions"). Ruben hat ihn am 16.09. aus dem Shared Drive entfernt, geprueft per
+  Datei-Freigaben: info@, ruben@, support@, bogdan@ (Organisator), abdi@, joao@ (Kommentieren).

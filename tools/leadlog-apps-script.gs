@@ -2799,27 +2799,19 @@ function waMirrorCancellations(main) {
   if (!dst.getRange(1, w + 1).getValue()) dst.getRange(1, w + 1).setValue('Your notes').setFontWeight('bold').setBackground('#fff8e1');
   return (v.length - 1) + ' rows';
 }
-// Events-Tab aus dem Analytics-Sheet (schreibt die Website) als Werte in ein EIGENES Sheet spiegeln (Ruben 15.09.2026: unabhaengig
-// von "detailed sales KPIs"). Nur lesen. Die Datei wird beim ersten Lauf angelegt (ID in den Script Properties, evId) und liegt im
-// selben Drive-Ordner wie das Team-Sheet - gleiches Muster wie Open Payments. Freigaben setzt dieses Skript NICHT (Ruben entscheidet).
-// Der alte Spiegel-Tab im Team-Sheet wird erst entfernt, NACHDEM das neue Sheet erfolgreich geschrieben wurde; Daten gehen dabei
-// keine verloren, das Original bleibt im Analytics-Sheet.
-var EV_TITLE = 'IMPACT Events';
-function evSs() {
-  var pr = PropertiesService.getScriptProperties(), id = pr.getProperty('evId');
-  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) { Logger.log('Events-Sheet neu anlegen: ' + e); } }
-  var ss = SpreadsheetApp.create(EV_TITLE);
-  try { var f = DriveApp.getFileById(ss.getId()), parents = DriveApp.getFileById(TEAM_ID).getParents(); if (parents.hasNext()) { var folder = parents.next(); folder.addFile(f); DriveApp.getRootFolder().removeFile(f); } } catch (e2) { Logger.log('Events-Sheet Ordner: ' + e2); }
-  pr.setProperty('evId', ss.getId());
-  return ss;
-}
+// Event-Anmeldungen aus dem Analytics-Sheet (Tab "Events", schreibt die Website per logForm) als Werte in den Event Planner
+// spiegeln, Tab "IMPACT Event sign-ups" (Ruben 16.09.2026: kein eigenes Sheet, sondern ein Tab im bisherigen Planner). Nur lesen.
+// Der Planner gehoert der Website-Event-Logik (PLAN_ID): planSheets/planSheet/migratePlanSheet/updateSignupCount lesen dort NUR
+// Tabs mit "Activity" in A1 - dieser Tab hat "Timestamp" in A1 und wird ignoriert. planSheet() faellt ohne Activity-Tab auf den
+// ERSTEN Tab zurueck, deshalb steht der Tab immer am Ende. Land/Zeitzone des Planners werden NICHT angefasst (fremde Datei),
+// nur die Datumsspalten dieses Tabs werden ausdruecklich europaeisch formatiert. Zugriff = Mitglieder des Shared Drive
+// "IMPACT Overall" (Uconic-Konto am 16.09. von Ruben entfernt, bevor Kontaktdaten hierher kamen).
+var EV_TAB = 'IMPACT Event sign-ups';
 function teamMirrorEvents(main, team) {
   var src = main.getSheetByName('Events'); if (!src || src.getLastRow() < 1) return;
-  var ev = evSs(), dst = ev.getSheets()[0], v = src.getDataRange().getValues();
-  if (dst.getName() !== 'Events') dst.setName('Events');
-  // Ein neu angelegtes Spreadsheet steht auf US-Einstellungen: Datumswerte erschienen als "9/26/2026" (Lehre 15.09.2026).
-  // Land und Zeitzone wie im Team-Sheet setzen (idempotent) und die Spalte "Date" ausdruecklich europaeisch formatieren.
-  try { if (ev.getSpreadsheetLocale() !== 'de_CH') ev.setSpreadsheetLocale('de_CH'); if (ev.getSpreadsheetTimeZone() !== TZ) ev.setSpreadsheetTimeZone(TZ); } catch (eL) { Logger.log('Events-Sheet Land/Zeitzone: ' + eL); }
+  var plan = SpreadsheetApp.openById(PLAN_ID), v = src.getDataRange().getValues();
+  var dst = plan.getSheetByName(EV_TAB) || plan.insertSheet(EV_TAB, plan.getNumSheets());
+  if (dst.getIndex() !== plan.getNumSheets()) { plan.setActiveSheet(dst); plan.moveActiveSheet(plan.getNumSheets()); } // nie erster Tab (planSheet-Fallback)
   var di = v.length ? v[0].map(String).indexOf('Date') : -1;
   if (di >= 0) for (var ri = 1; ri < v.length; ri++) { // Text-Datum (2026-09-26 oder 9/26/2026) in ein echtes Datum umwandeln, Mittag gegen Zeitzonen-Verschiebung
     var x = v[ri][di], mI, mU; if (typeof x !== 'string') continue;
@@ -2829,9 +2821,13 @@ function teamMirrorEvents(main, team) {
   if (v.length && dst.getMaxRows() < v.length) dst.insertRowsAfter(dst.getMaxRows(), v.length - dst.getMaxRows());
   if (v.length && dst.getMaxColumns() < v[0].length) dst.insertColumnsAfter(dst.getMaxColumns(), v[0].length - dst.getMaxColumns());
   dst.clearContents();
-  if (v.length) { dst.getRange(1, 1, v.length, v[0].length).setValues(v); dst.getRange(1, 1, 1, v[0].length).setFontWeight('bold'); dst.setFrozenRows(1); dst.getRange(2, 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy HH:mm'); if (di >= 0) dst.getRange(2, di + 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy'); }
+  if (v.length) {
+    dst.getRange(1, 1, v.length, v[0].length).setValues(v); dst.getRange(1, 1, 1, v[0].length).setFontWeight('bold'); dst.setFrozenRows(1);
+    dst.getRange(2, 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy HH:mm');
+    if (di >= 0) dst.getRange(2, di + 1, Math.max(1, v.length - 1), 1).setNumberFormat('dd.MM.yyyy');
+  }
   trProtect(dst, [], 'Mirror of the Events tab in Sales & Marketing Analytics, read-only');
-  var old = team.getSheetByName('Events'); if (old && team.getNumSheets() > 1) team.deleteSheet(old); // erst nach dem erfolgreichen Schreiben oben
+  var old = team.getSheetByName('Events'); if (old && team.getNumSheets() > 1) team.deleteSheet(old); // alter Spiegel im Team-Sheet (seit 15.09. weg)
 }
 // Freigabe des Team-Sheets erst nach der Einfuehrung (Ruben 06.09.: noch nichts im Team gezeigt). Solange TEAM_SHARED false ist,
 // nimmt teamShare() die Freigaben fuer Abdi, Bogdan und support weg (Stundenlauf prueft die Marke einmal je Wert).
