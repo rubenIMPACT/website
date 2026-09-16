@@ -847,3 +847,8 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Jahresspalte im Werbekosten-Tab = nur Monate >= `WK_YEAR_FROM` ('2026-09'), Kopf "2026 ab Sep" mit Notiz; Grund: Jan-Aug ohne Kanal-Zuordnung verfaelschen Kosten und Quoten. Monatsabschluss unveraendert.
 - Website (38 Seiten + 2 Templates, Snippet mit imp_ref): Formular schickt nur noch die zeitlich letzte Klick-ID (Zeitstempel aus localStorage bzw. jetzt bei URL-Parameter), aeltere Klick-IDs werden im Formular geleert. Damit ist die feste Reihenfolge ttclid > gclid > fbclid in kanalOf/Daten!J nur noch theoretisch. Auto-Deploy via Push.
 - Regel (Ruben 16.09.): IMMER erst fragen, bevor gebaut wird.
+
+## Kohorte je Kampagne + Strich statt leer (Ruben 16.09.2026, Commit d080910)
+- Unter jeder Kampagne jetzt 7 Zeilen: Kosten, Leads, Kosten pro Lead, davon Probetraining (bis heute), davon Verkauf (bis heute), Quote Lead -> Verkauf, Kosten pro Verkauf (CHF, Kohorte). Keys coh_tc/coh_sc/coh_qc/coh_cc.
+- Technik: `wkLeadsByCampaignDaily` haengt `out._person` an (E-Mail und Name -> [{date, key}] je zugeordnetem Lead); `wkCohorts(ss, person)` findet je Probetraining zusaetzlich den Kampagnen-Key (`findKey`, letzter Lead bis einen Tag nach dem Probetraining) und zaehlt unter `out[loc]['camp|' + key]`.
+- Strich: `orDash`/`orDashW`/`yDash` setzen '–' statt '' bei Quote und Kosten pro Verkauf (Plattform und Kampagne) im Zeitraum ab WK_YEAR_FROM; Zeilen mit `dash: true` werden rechtsbuendig gesetzt.
