@@ -836,3 +836,7 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Keys unveraendert (wk:, leads:, cpl:, tk:, cpt:, sk:, cac:, wkc/leadsc/cplc), neue Keys plat:<pn>, camp, org, trials, sales, sales:org. Diagramme unveraendert (nutzen die Helfer, nicht die Zeilen).
 - Handfarben (keep-Map) jetzt mit Schluessel Block|Elternzeile|Label (Elternzeile = naechste weniger eingerueckte Zeile darueber), weil "Kosten (CHF)" mehrfach vorkommt; rowMeta traegt parent (pstack in writeRow).
 - Entscheide: pro Kampagne nur Kosten/Leads/CPL (Probetrainings/Verkaeufe je Kampagne bewusst weggelassen, zu kleine Zahlen); Kampagnen standardmaessig eingeklappt. Ruben: "Ab jetzt frag immer erst, bevor du baust."
+
+- LIVE BESTAETIGT 16.09. nach dem Lauf 15:58: Event Planner hat die Tabs 2026, 2027, "IMPACT Event sign-ups" (letzter Tab, gid
+  1813362880). Kopfzeile Timestamp..Event ID, 18 Anmeldungen = Zaehler "Sign-ups" 18 bei Open Doors Zuerich im Planner,
+  Timestamp dd.MM.yyyy HH:mm, Date 26.09.2026. Das separate Sheet "IMPACT Events" liegt im Papierkorb (Rubens OK 16.09.).
