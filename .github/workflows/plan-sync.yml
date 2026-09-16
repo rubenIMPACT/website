@@ -1,0 +1,20 @@
+name: Stundenplan aus den Slides
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 4 * * *'   # taeglich 06:30 Zuerich (Sommerzeit); Apps Script liest die Folien um 05:30
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/plan_from_api.py
+      - run: python3 tools/build_plan.py
+      - run: python3 tools/schedule-check.py
+      - run: |
+          git config user.name "Ruben Crawford"
+          git config user.email "ruben@impact-martialarts.com"
+          git add data/plan-nominal.json zurich winterthur en training-plan/index.html
+          git diff --cached --quiet && echo "Keine Aenderung" || { git commit -m "Stundenplan aus den Slides nachgezogen ($(date +%d.%m.%Y))"; git push; }
