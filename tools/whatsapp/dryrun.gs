@@ -947,3 +947,25 @@ function eventsSheet(ss) { // tab "WA Events": every WhatsApp event Meta deliver
   if (!sh) { sh = ss.insertSheet('WA Events'); sh.getRange('A1').setValue('WA Events: every WhatsApp event from Meta (via Dualhook Webhook Override): "in" = the person wrote to us, "out-app" = a coach wrote from the WhatsApp Business App, "status" = delivery / read status of a sent message, "sync" = one-time history / contact sync after onboarding. Read-only; the hourly run reads the chat state (who wrote last, replies, language) from here.').setFontColor('#666666'); sh.getRange(2, 1, 1, EV_HEAD.length).setValues([EV_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [95, 55, 130, 130, 140, 70, 130, 150, 70, 360, 200, 80, 200].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
   return sh;
 }
+function waDocTimingFix() { // one-off (Ruben 16.09.): the Doc "WhatsApp Messages IMPACT" still showed the fixed days for Flow A (48 h / 5 days / 8 days after the request); since 10.09. the chain is rolling (every further message 48 h after the LAST message or call). Also: heading "Flow E" -> "Flow R" for the review request and its trigger as decided. Only "When" cells, trigger paragraphs and the rule bullet change, never the DE/EN texts. Plus two sentences in the "Call list guide" about the stage the coach sets
+  var esc = function (s) { return s.replace(/[.*+?^$(){}|[\]\\]/g, '\\$&'); };
+  var apply = function (docId, reps) {
+    var body = DocumentApp.openById(docId).getBody(), out = [];
+    reps.forEach(function (p) { var pat = p[0], n = 0, r = body.findText(pat); while (r) { n++; r = body.findText(pat, r); } if (n) body.replaceText(pat, p[1]); out.push(n); });
+    return out;
+  };
+  var doc = apply('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY', [
+    [esc('A1 after 48 hours, A2 after 5 days, A3 after 8 days. The chain stops as soon as Abdi has written, a trial is booked, or the person replies.'), 'Rolling chain of 3 positions: position 1 is A1 (48 hours after the request) or M1 (the coach writes after the first unanswered call). Every further position comes 48 hours after the LAST message or call, automatic (A2, A3) unless the coach has called or written by then. M2 and M3 only after a real call. The chain stops for good as soon as the person replies, a trial is booked, the coach ticks "Reached", or the lead is closed in exercise.com (Not interested, Do not contact, Lost, Client).'],
+    [esc('48 h after request, no booking'), '48 h after the request, no booking, no call yet'],
+    [esc('5 days after request, no booking, no reply'), '48 h after position 1 (A1 or M1), no booking, no reply'],
+    [esc('8 days after request, no booking, no reply'), '48 h after position 2 (A2 or M2), no booking, no reply'],
+    [esc('which stops for good as soon as a human has written to the person, a trial is booked, or the person replies.'), 'which stops for good as soon as the person replies, a trial is booked, the coach reaches the person by phone, or the lead is closed in exercise.com. A message or call by the coach does not stop it, it restarts the 48-hour clock.'],
+    [esc('Flow E: Google review request'), 'Flow R: Google review request'],
+    [esc('Not in Phase 0. Trigger to be decided, for example after the 10th check-in. Sent from Abdi') + '.s or Bogdan.s number in the existing chat\\.', 'Trigger: 7th completed check-in of a new member (first visit inside the last 45 days), Zurich first (Abdi). Once per member, sent from Abdi\'s or Bogdan\'s number in the existing chat with the studio\'s own Google review link.']
+  ]);
+  var guide = apply('1tkVCsXmxz4kHrtkj7veRMmaJzCOEA6wFvTWP0-ewUBI', [
+    [esc('Do not delete the row, it comes back.'), 'Do not delete the row, it comes back. If you spoke to the lead and it is over, set the lifecycle stage Not Interested or Do Not Contact in exercise.com: the lead leaves the list within the hour and gets no automatic message.'],
+    [esc('They will follow automatically once the WhatsApp messages go live.'), 'They will follow automatically once the WhatsApp messages go live. A stage you set by hand is respected right away: Not Interested or Do Not Contact takes the lead off the call list and out of the automatic messages within the hour (since 16 Sep 2026).']
+  ]);
+  Logger.log('doc timing fix: messages doc ' + doc.join(',') + ' (expected 1 each), guide ' + guide.join(',') + ' (expected 1 each)');
+}
