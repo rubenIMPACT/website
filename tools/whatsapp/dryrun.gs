@@ -85,9 +85,10 @@ function waDryRunHourly() {
   }
   function push(flow, msg, loc, name, lang, trigger, key, vars) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT); }
   // Flow A: website lead, no trial booking. Rolling chain (Ruben 10.09.): message 1 = 48 h after the request, message 2 = 48 h after
-  // message 1, message 3 = 48 h after message 2, then the chain ends. Each slot is filled by the coach after a call (M1-M3, visible
-  // only after the WhatsApp connection) or, when the 48 h run out, by the automation (A1-A3). "Due" = the mark fell into the last 24 h (no backlog).
-  var h = 3600000, lastA = lastFlowA(sh), calls = harvestCalls(now); // calls = the coaches' ticks in the call lists ("Called, no answer" / "Reached"), the call signal we do not get from WhatsApp
+  // message 1, message 3 = 48 h after message 2, then the chain ends. Each slot is filled by the coach after a call (M1-M3 from the quick
+  // replies, seen as webhook echoes of the connected number) or, when the 48 h run out, by the automation (A1-A3). "Due" = the mark fell into the last 24 h (no backlog).
+  // Ruben 16.09.: the team works in exercise.com only (no sheet, no ticks): a reply of the lead or the stage Not Interested / Do Not Contact ends the chain.
+  var h = 3600000, lastA = lastFlowA(sh), calls = contactEvents(leads, now); // calls = per lead: the coach's own WhatsApp messages before any reply (webhook echoes) and the lead's first reply
   var openLeads = leads.filter(function (l) { return l.loc && !l.test && l.status === 'ok' && l.email && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && l.ts.getTime() >= now.getTime() - 45 * 24 * h; });
   var stages = leadStages(openLeads); // Ruben 16.09.: the stage the coach sets in exercise.com after the call (Not interested, Do not contact, Client ...) stops the chain and removes the lead from the call list
   var stageOfLead = function (l) { return stages[(l.email || '').toLowerCase().trim()] || ''; };
@@ -96,20 +97,20 @@ function waDryRunHourly() {
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return; // booked, attended, no-show or cancelled: Flow A is over
     if (LC_SKIP.test(stageOfLead(l))) return; // closed in exercise.com (Not interested, Do not contact, Lost, Client ...): no automatic message
     var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
-    if (st.reached || slot >= RULE.A_MAX) return; // reached by phone: the coach owns the lead, the automation is off
+    if (st.replied || slot >= RULE.A_MAX) return; // the lead replied: the coach owns the chat, the automation is off
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {});
   });
-  writeCallLists(leads, trials, trialNames, lastA, calls, now, stages); // Ruben 10.09.: call list per studio in Team KPIs (replaces the lifecycle stages First/Second/Third Contact as the team's working list)
+  writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
   migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
-  if (STAGE_SYNC.contacts) { // Ruben 10.09. ("ja"): the call ticks set First / Second / Third Contact in exercise.com (forward only); after the go-live the sent messages will do the same
+  if (STAGE_SYNC.contacts) { // Ruben 16.09.: the coach's own messages (M1-M3 from the quick replies, seen as webhook echoes) set First / Second / Third Contact in exercise.com (forward only); nobody sets them by hand any more
     var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
     leads.forEach(function (l) {
       if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l) || LC_SKIP.test(stageOfLead(l))) return;
-      var n = (calls[l.email.toLowerCase()] || { called: [] }).called.length; if (!n) return;
-      var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'call attempt ' + n + ' ticked in the call list', step[1]) === 'set') stageN++;
+      var cs = calls[l.email.toLowerCase()] || { called: [] }, n = cs.called.length; if (!n || cs.replied) return; // after a reply the chat is a conversation, not an attempt
+      var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'message ' + n + ' by ' + SENDER[l.loc] + ' from the WhatsApp app (' + fmtEuDT(cs.called[n - 1]) + ')', step[1]) === 'set') stageN++;
     });
-    if (stageN) Logger.log('stages from call ticks: ' + stageN + ' set');
+    if (stageN) Logger.log('stages from coach messages: ' + stageN + ' set');
   }
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
@@ -572,75 +573,101 @@ function ensureSheets(ss) {
   }
   return sh;
 }
-var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Plan', 'Request', 'Days', 'Call attempts', 'Last call attempt', 'Messages so far', 'Your task', 'Automation next', 'Called, no answer', 'Reached', 'Updated', 'Key']; // Ruben 10.09.: attempts + time of the last attempt
-var CALL_NOTE = 'Rebuilt every hour from the Leads Log and the trial lists: every website lead of this studio without a trial booking. Priority 1 (red) = nobody has contacted the lead yet: call today, if nobody answers send M1. Priority 2 (orange) = message 1 is out (or one call was made), no reply: call, if nobody answers send M2. Priority 3 (yellow) = message 2 is out, no reply: last call, if nobody answers send M3. Priority 4 (green) = reached by phone: propose the trial date and book it. Priority 6 (grey) = three messages, no reply: closed, no further action. Tick "Called, no answer" after every unsuccessful call (the tick is collected within the hour, counted in "Call attempts" with the time in "Last call attempt", then cleared; the 48 h clock restarts from your call). Tick "Reached" once you spoke to the lead: the row turns green and the automation stops for this lead. "Automation next" is the moment the automation sends the next message by itself (48 h after the last message or call). Leads leave the list as soon as a trial is booked. The ticks also fill "Anrufe versucht" and "Anrufe geführt" in the day rows of the Probetrainings tab. "Plan" is the training plan the lead built on the website, if any.';
-function harvestCalls(now) { // collect the ticks from both call lists into the tabs "Call log ZH" / "Call log WT" (Team KPIs, split per studio by Ruben 10.09.), clear "Called", keep "Reached"; returns the state per lead key
-  var ss = SpreadsheetApp.openById(TEAM_ID), state = {};
-  ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var short = loc === 'Zurich' ? 'ZH' : 'WT', log = ss.getSheetByName('Call log ' + short) || ss.getSheetByName('Call log');
-    if (!log) { log = ss.insertSheet('Call log ' + short); log.getRange('A1').setValue('Call log ' + short + ': one line per tick in the call list ("called" = called, nobody answered; "reached" = spoke to the lead). Feeds "Call attempts" / "Last call attempt" in the call list and the day rows "Anrufe versucht" / "Anrufe geführt" in the Probetrainings tab. Read-only.').setFontColor('#666666'); log.getRange(2, 1, 1, 6).setValues([['Date', 'Time', 'Studio', 'Name', 'Key', 'Event']]).setFontWeight('bold').setBackground('#f3f3f3'); log.setFrozenRows(2); [100, 60, 90, 180, 220, 80].forEach(function (w, i) { log.setColumnWidth(1 + i, w); }); }
-    if (log.getRange(2, 1).getValue() !== 'Date') log.getRange(2, 1, 1, 6).setValues([['Date', 'Time', 'Studio', 'Name', 'Key', 'Event']]).setFontWeight('bold').setBackground('#f3f3f3');
-    if (!log.isSheetHidden()) log.hideSheet(); // Ruben 15.09.: the call logs are the memory of the ticks, not a working tab; hidden so the team only sees the call lists
-    var n = log.getLastRow();
-    if (n >= 3) log.getRange(3, 1, n - 2, 6).getValues().forEach(function (r) { var k = String(r[4] || '').toLowerCase().trim(), ev = String(r[5] || ''), d = r[0] instanceof Date ? r[0] : new Date(String(r[0]).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$3-$2-$1') + 'T' + (String(r[1] || '12:00')) + ':00'); if (!k || isNaN(d.getTime())) return; var st = state[k] = state[k] || { called: [], reached: null, loc: loc }; if (ev === 'reached') st.reached = st.reached && st.reached < d ? st.reached : d; else st.called.push(d); });
-    var sh = ss.getSheetByName('Call list ' + short), add = []; if (!sh || sh.getLastRow() < 5) return;
-    sh.getRange(5, 1, sh.getLastRow() - 4, CALL_HEAD.length).getValues().forEach(function (r) { var k = String(r[16] || '').toLowerCase().trim(); if (!k) return; var st = state[k] = state[k] || { called: [], reached: null, loc: loc };
-      if (r[13] === true) { st.called.push(now); add.push([dayStart(now), fmtT(now), loc, r[1], k, 'called']); }
-      if (r[14] === true && !st.reached) { st.reached = now; add.push([dayStart(now), fmtT(now), loc, r[1], k, 'reached']); } });
-    if (add.length) { var r0 = log.getLastRow() + 1; log.getRange(r0, 1, add.length, 6).setValues(add); log.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); Logger.log('call log ' + short + ': ' + add.length + ' new ticks'); }
+var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Plan', 'Request', 'Days', 'Coach messages', 'Last coach message', 'Automatic messages', 'Status', 'Automation next', 'Updated', 'Key']; // since 16.09. (Ruben: no sheet, no ticks) a hidden overview for Ruben
+var CALL_NOTE = 'Overview for Ruben, rebuilt every hour. Since 16.09.2026 the team works in exercise.com only (no ticks): every website lead of this studio without a trial booking and not closed in exercise.com (Not Interested, Do Not Contact, Client). "Coach messages" = messages the coach sent to the lead from the WhatsApp Business app before the lead replied (seen through the webhook, only for connected numbers; ticks from before 16.09. still count). Priority 1 (red) = no contact yet, 2 (orange) = one contact, 3 (yellow) = two contacts, 4 (green) = the lead replied (the coach owns the chat), 6 (grey) = three contacts, no reply. "Automation next" = the moment the automation sends the next message by itself (48 h after the last message). Leads leave the list as soon as a trial is booked or the coach sets Not Interested.';
+function normPhone(s) { var d = String(s || '').replace(/\D/g, ''); if (d.slice(0, 2) === '00') d = d.slice(2); if (d.length === 10 && d.charAt(0) === '0') d = '41' + d.slice(1); return d; } // WhatsApp wa_id form: country code + number, digits only; Swiss 07x -> 417x
+function atTime(d, hhmm) { return new Date(Utilities.formatDate(d, TZ, 'yyyy-MM-dd') + 'T' + (/^\d{2}:\d{2}$/.test(String(hhmm)) ? hhmm : '12:00') + ':00' + Utilities.formatDate(d, TZ, 'XXX')); } // date cell + "HH:mm" cell -> Date (Swiss time)
+function contactEvents(leads, now) { // Ruben 16.09. (no sheet, no ticks): per lead e-mail { called: [Date] = the coach's own WhatsApp messages to the lead before any reply (tab "WA Events", direction "out-app": M1-M3 from the quick replies or free text), replied: Date = the lead's first message to us, loc }. Ticks from before 16.09. (Call log rows "called" / "reached") still count so this week's chains keep their position
+  var state = {}, byPhone = {}, msgN = 0, inN = 0, legacy = 0;
+  leads.forEach(function (l) { if (!l.loc || l.test || l.status !== 'ok' || !l.email) return; var p = normPhone(l.phone); if (p.length >= 9) byPhone[p] = l; }); // later leads win (same number, new request)
+  var st0 = function (l) { var k = l.email.toLowerCase(); return state[k] = state[k] || { called: [], replied: null, loc: l.loc }; };
+  var ev = eventsSheet(SpreadsheetApp.openById(WA_ID)), n = ev.getLastRow();
+  if (n >= 3) ev.getRange(3, 1, n - 2, EV_HEAD.length).getValues().forEach(function (r) {
+    var dir = String(r[5] || ''); if (dir !== 'in' && dir !== 'out-app') return;
+    var l = byPhone[normPhone(r[6])]; if (!l || !(r[0] instanceof Date)) return;
+    var d = atTime(r[0], String(r[1] || '')); if (d.getTime() < l.ts.getTime()) return; // older than the request: not this episode
+    var st = st0(l); if (dir === 'in') { if (!st.replied || d < st.replied) st.replied = d; inN++; } else { st.called.push(d); msgN++; }
   });
+  ['Zurich', 'Winterthur'].forEach(function (loc) { callLog(loc).rows.forEach(function (e) { if (e.ev !== 'called' && e.ev !== 'reached') return; var k = e.key; if (!state[k] && !leads.some(function (l) { return l.email === k; })) return; var st = state[k] = state[k] || { called: [], replied: null, loc: loc }; if (e.ev === 'reached') { if (!st.replied || e.d < st.replied) st.replied = e.d; } else st.called.push(e.d); legacy++; }); });
+  Object.keys(state).forEach(function (k) { var st = state[k]; st.called.sort(function (a, b) { return a - b; }); if (st.replied) st.called = st.called.filter(function (d) { return d < st.replied; }); });
+  Logger.log('contact events: ' + msgN + ' coach messages, ' + inN + ' replies matched to leads' + (legacy ? ', ' + legacy + ' ticks from before 16.09.' : ''));
   return state;
 }
-function leadState(l, lastA, calls, now) { // slot = messages so far (automatic ones + the coach's calls, 3 at most), lastAt = last message or call, reached = spoke to the lead
-  var id = l.email || l.nname, sentA = lastA[id] || {}, cs = calls[(l.email || '').toLowerCase()] || { called: [], reached: null };
+function callLog(loc) { // hidden tab "Call log ZH" / "Call log WT" in Detailed Sales KPIs: until 15.09. the ticks ("called" / "reached"), since 16.09. the memory of "booked" (a lead's trial appeared in the trial list) and "lost" (Not Interested set in exercise.com) for the day rows "Anrufe versucht" / "Anrufe geführt"; "seed" = state at the switch, not counted
+  var ss = SpreadsheetApp.openById(TEAM_ID), short = loc === 'Winterthur' ? 'WT' : 'ZH', sh = ss.getSheetByName('Call log ' + short), head = ['Date', 'Time', 'Studio', 'Name', 'Key', 'Event', 'Ref'];
+  var note = 'Call log ' + short + ': memory of the contact events for the day rows "Anrufe versucht" / "Anrufe geführt" in the Probetrainings tab. Until 15.09.2026 the ticks of the call list ("called" / "reached"); since 16.09.2026 (Ruben: the team works in exercise.com, no ticks) "booked" = the trial of a website lead appeared in the trial list, "lost" = Not Interested / Do Not Contact set in exercise.com, "seed" = state at the switch (not counted). Coach messages and replies are read from the tab "WA Events" in the sheet "WhatsApp Automation". Read-only.';
+  if (!sh) { sh = ss.insertSheet('Call log ' + short); sh.setFrozenRows(2); [100, 60, 90, 180, 220, 80, 200].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
+  if (sh.getRange('A1').getValue() !== note) { sh.getRange('A1').setValue(note).setFontColor('#666666'); sh.getRange(2, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3'); }
+  if (!sh.isSheetHidden()) sh.hideSheet();
+  var rows = [], has = {}, n = sh.getLastRow();
+  if (n >= 3) sh.getRange(3, 1, n - 2, head.length).getValues().forEach(function (r) { var k = String(r[4] || '').toLowerCase().trim(), ev = String(r[5] || ''), d = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : new Date(String(r[0]).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$3-$2-$1') + 'T' + (String(r[1] || '12:00')) + ':00'); if (!k || !ev || isNaN(d.getTime())) return; rows.push({ d: d, key: k, ev: ev, ref: String(r[6] || '') }); has[ev + ':' + k] = true; });
+  return { sh: sh, rows: rows, has: has };
+}
+function bookedLostEvents(leads, trials, stages, now) { // per studio: the "booked" / "lost" events (Call log) incl. the ones found in this run, plus the old "reached" ticks; approximation for "Anrufe geführt" (Ruben 16.09.: "Näherung reicht")
+  var out = { Zurich: [], Winterthur: [] }, leadN = {}; leads.forEach(function (l) { if (l.loc && !l.test) leadN[l.nname] = true; });
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    var log = callLog(loc), first = !log.rows.some(function (e) { return /^(seed|booked|lost)$/.test(e.ev); }), add = [];
+    trials[loc].forEach(function (t) { var key = String(t.uid || '').toLowerCase().trim(); if (!key || !leadN[t.nname] || log.has['booked:' + key] || log.has['seed:' + key]) return; var ev = first ? 'seed' : 'booked'; log.has[ev + ':' + key] = true; add.push([dayStart(now), fmtT(now), loc, t.name, key, ev, 'trial ' + euD(t.date) + ' in the trial list']); });
+    leads.forEach(function (l) { if (l.loc !== loc || l.test || l.status !== 'ok' || !l.email) return; var s = stages[l.email] || ''; if (!/not interested|lost|do not contact/i.test(s)) return; var key = l.email; if (log.has['lost:' + key] || log.has['seed:' + key]) return; var ev = first ? 'seed' : 'lost'; log.has[ev + ':' + key] = true; add.push([dayStart(now), fmtT(now), loc, l.name, key, ev, s]); });
+    if (add.length) { var r0 = log.sh.getLastRow() + 1; log.sh.getRange(r0, 1, add.length, 7).setValues(add); log.sh.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); Logger.log('call log ' + (loc === 'Winterthur' ? 'WT' : 'ZH') + ': ' + add.length + ' ' + (first ? 'seed rows (state at the switch, not counted)' : 'new booked / lost events')); }
+    out[loc] = log.rows.filter(function (e) { return /^(booked|lost|reached)$/.test(e.ev); }).concat(add.filter(function (r) { return r[5] !== 'seed'; }).map(function (r) { return { d: now, key: r[4], ev: r[5], ref: r[6] }; }));
+  });
+  return out;
+}
+function leadState(l, lastA, calls, now) { // slot = contacts so far (automatic messages + the coach's own messages, 3 at most), lastAt = last message, replied = the lead's first reply (the coach owns the chat)
+  var id = l.email || l.nname, sentA = lastA[id] || {}, cs = calls[(l.email || '').toLowerCase()] || { called: [], replied: null };
   var done = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }), times = done.map(function (m) { return sentA[m]; }).concat(cs.called);
   var lastAt = times.length ? new Date(Math.max.apply(null, times.map(function (d) { return d.getTime(); }))) : null;
-  var allCalls = cs.called.concat(cs.reached ? [cs.reached] : []), lastCall = allCalls.length ? new Date(Math.max.apply(null, allCalls.map(function (d) { return d.getTime(); }))) : null;
-  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length), lastAt: lastAt, done: done, sentA: sentA, calls: allCalls.length, lastCall: lastCall, reached: cs.reached };
+  var lastCall = cs.called.length ? new Date(Math.max.apply(null, cs.called.map(function (d) { return d.getTime(); }))) : null;
+  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length, lastCall: lastCall, replied: cs.replied };
 }
 function readPlans() { // lead e-mail -> latest training plan link (Leads Log, tab "Trainingsplan": Link col 15, E-Mail col 19)
   var m = {}, sh = SpreadsheetApp.openById(MAIN_ID).getSheetByName('Trainingsplan'); if (!sh || sh.getLastRow() < 2) return m;
   sh.getRange(2, 1, sh.getLastRow() - 1, 19).getValues().forEach(function (r) { var e = String(r[18] || '').toLowerCase().trim(), link = String(r[14] || '').trim(); if (e && /^https?:\/\//.test(link)) m[e] = link; });
   return m;
 }
-function writeCallLists(leads, trials, trialNames, lastA, calls, now, stages) { // tabs "Call list ZH" / "Call list WT" in Detailed Sales KPIs (Ruben 10.09.), rebuilt every run; stages = lifecycle per e-mail from exercise.com (16.09.: closed leads leave the list)
+function writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, events) { // tabs "Call list ZH" / "Call list WT" in Detailed Sales KPIs: since 16.09. (Ruben: the team works in exercise.com, no sheet, no ticks) a hidden overview for Ruben, rebuilt every run; stages = lifecycle per e-mail from exercise.com, events = booked / lost per studio for the day rows
   var ss = SpreadsheetApp.openById(TEAM_ID), h = 3600000, cut = now.getTime() - 30 * 24 * h, rows = { Zurich: [], Winterthur: [] }, plans = readPlans();
-  var task = ['Call today. If nobody answers: send M1', 'Call. If nobody answers: send M2', 'Last call. If nobody answers: send M3', 'Closed: three messages, no reply. No further action'];
+  var task = ['No contact yet', 'One contact, no reply', 'Two contacts, no reply', 'Closed: three contacts, no reply'];
   var prio = [1, 2, 3, 6], colors = ['#f4cccc', '#fce5cd', '#fff2cc', '#efefef'];
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return;
-    if (LC_SKIP.test((stages || {})[(l.email || '').toLowerCase().trim()] || '')) return; // Ruben 16.09.: closed in exercise.com by the coach (Not interested, Do not contact, Client ...) -> off the list, no tick needed
+    if (LC_SKIP.test((stages || {})[(l.email || '').toLowerCase().trim()] || '')) return; // closed in exercise.com by the coach (Not Interested, Do Not Contact, Client ...)
     var st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt, key = (l.email || l.nname).toLowerCase();
-    if (l.ts.getTime() < cut && !slot && !st.reached) return; // older than 30 days without any contact: backlog from before the automation
+    if (l.ts.getTime() < cut && !slot && !st.replied) return; // older than 30 days without any contact: backlog from before the automation
     var p, c, t, next;
-    if (st.reached) { if (st.reached.getTime() < now.getTime() - 21 * 24 * h) return; p = 4; c = '#d9ead3'; t = 'Reached on ' + fmtEuD(st.reached) + ': propose the trial date and book it in exercise.com'; next = 'nothing (reached, the automation is off)'; }
-    else { if (slot >= RULE.A_MAX && lastAt && lastAt.getTime() < now.getTime() - 7 * 24 * h) return; p = prio[slot]; c = colors[slot]; t = task[slot]; var due = slot >= RULE.A_MAX ? null : new Date(lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h); next = !due ? 'nothing (lead closed)' : (due.getTime() < now.getTime() - 24 * h ? 'no automatic message (the moment passed before the automation started): call by hand' : fmtEuDT(sendAt(due, 'A')) + ': A' + (slot + 1) + ' goes out automatically'); }
-    rows[l.loc].push({ p: p, c: c, ts: l.ts.getTime(), plan: plans[key] || '', r: [p, l.name, l.phone, l.lang.toUpperCase(), l.interest, plans[key] ? 'Plan' : '', fmtEuDT(l.ts), Math.floor((now.getTime() - l.ts.getTime()) / (24 * h)), st.calls, st.lastCall ? fmtEuDT(st.lastCall) : '', st.done.map(function (m) { return m + ' ' + fmtEuD(st.sentA[m]); }).join(', '), t, next, false, !!st.reached, fmtEuDT(now), key] });
+    if (st.replied) { if (st.replied.getTime() < now.getTime() - 21 * 24 * h) return; p = 4; c = '#d9ead3'; t = 'Replied on ' + fmtEuDT(st.replied) + ': the coach owns the chat'; next = 'nothing (the lead replied)'; }
+    else { if (slot >= RULE.A_MAX && lastAt && lastAt.getTime() < now.getTime() - 7 * 24 * h) return; p = prio[slot]; c = colors[slot]; t = task[slot]; var due = slot >= RULE.A_MAX ? null : new Date(lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h); next = !due ? 'nothing (lead closed)' : (due.getTime() < now.getTime() - 24 * h ? 'no automatic message (the moment passed before the automation started)' : fmtEuDT(sendAt(due, 'A')) + ': A' + (slot + 1) + ' goes out automatically'); }
+    rows[l.loc].push({ p: p, c: c, ts: l.ts.getTime(), plan: plans[key] || '', r: [p, l.name, l.phone, l.lang.toUpperCase(), l.interest, plans[key] ? 'Plan' : '', fmtEuDT(l.ts), Math.floor((now.getTime() - l.ts.getTime()) / (24 * h)), st.calls, st.lastCall ? fmtEuDT(st.lastCall) : '', st.done.map(function (m) { return m + ' ' + fmtEuD(st.sentA[m]); }).join(', '), t, next, fmtEuDT(now), key] });
   });
+  var props = PropertiesService.getScriptProperties();
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var name = loc === 'Zurich' ? 'Call list ZH' : 'Call list WT', sh = ss.getSheetByName(name);
-    if (!sh) { sh = ss.insertSheet(name); sh.getRange('A1').setValue(name + ': who to call today').setFontSize(14).setFontWeight('bold'); sh.setFrozenRows(4); }
-    [60, 200, 130, 70, 150, 60, 130, 50, 60, 130, 200, 300, 260, 90, 80, 120, 10].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
-    sh.getRange('A2:Q2').breakApart(); sh.getRange('A2').setValue(CALL_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('A2:P2').merge(); sh.setRowHeight(2, 130);
+    if (!sh) { sh = ss.insertSheet(name); sh.setFrozenRows(4); }
+    sh.getRange('A1').setValue(name + ': leads overview for Ruben (the team works in exercise.com)').setFontSize(14).setFontWeight('bold');
+    [60, 200, 130, 70, 150, 60, 130, 50, 60, 130, 200, 220, 260, 120, 10].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); });
+    sh.getRange('A2:Q2').breakApart(); sh.getRange('A2').setValue(CALL_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('A2:N2').merge(); sh.setRowHeight(2, 110);
     var list = rows[loc].sort(function (a, b) { return a.p !== b.p ? a.p - b.p : a.ts - b.ts; });
     sh.getRange('A3').setValue(list.length + ' leads: ' + [1, 2, 3, 4, 6].map(function (p) { return list.filter(function (x) { return x.p === p; }).length + ' x priority ' + p; }).join(', ') + '. ' + fmtEuDT(now));
+    var n = sh.getLastRow(), wide = Math.max(CALL_HEAD.length, 17); if (n >= 4) sh.getRange(4, 1, n - 3, wide).clearContent().clearDataValidations().setBackground(null); // 17 = the old layout with the two tick columns
     sh.getRange(4, 1, 1, CALL_HEAD.length).setValues([CALL_HEAD]).setFontWeight('bold').setBackground('#f3f3f3');
-    var n = sh.getLastRow(); if (n >= 5) sh.getRange(5, 1, n - 4, CALL_HEAD.length).clearContent().clearDataValidations().setBackground(null);
     if (list.length) {
       sh.getRange(5, 1, list.length, CALL_HEAD.length).setValues(list.map(function (x) { return x.r; }));
       sh.getRange(5, 1, list.length, CALL_HEAD.length).setBackgrounds(list.map(function (x) { return CALL_HEAD.map(function () { return x.c; }); }));
-      sh.getRange(5, 3, list.length, 1).setNumberFormat('@'); sh.getRange(5, 12, list.length, 2).setWrap(true); sh.getRange(5, 14, list.length, 2).insertCheckboxes();
+      sh.getRange(5, 3, list.length, 1).setNumberFormat('@'); sh.getRange(5, 12, list.length, 2).setWrap(true);
       sh.getRange(5, 6, list.length, 1).setRichTextValues(list.map(function (x) { var rt = SpreadsheetApp.newRichTextValue().setText(x.plan ? 'Plan' : ''); if (x.plan) rt.setLinkUrl(0, 4, x.plan); return [rt.build()]; }));
     }
-    sh.hideColumns(CALL_HEAD.length);
-    fillCallCounts(ss, loc, calls, now);
+    sh.showColumns(16, 2); sh.hideColumns(CALL_HEAD.length);
+    if (!props.getProperty('calllist_hidden_' + loc)) { sh.hideSheet(); props.setProperty('calllist_hidden_' + loc, fmtEuDT(now)); } // hidden once at the switch (16.09.); Ruben can show it again, the run does not hide it a second time
+    fillCallCounts(ss, loc, calls, events[loc], now);
   });
   Logger.log('call lists: ZH ' + rows.Zurich.length + ', WT ' + rows.Winterthur.length);
 }
-function fillCallCounts(ss, loc, calls, now) { // day rows of the Probetrainings tab: B "Anrufe versucht" (every call), C "Anrufe geführt" (reached), from the Call log, only for days with ticks
-  var per = {};
-  Object.keys(calls).forEach(function (k) { var st = calls[k]; if (st.loc !== loc) return; st.called.forEach(function (d) { var day = fmtD(d); (per[day] = per[day] || { a: 0, c: 0 }).a++; }); if (st.reached) { var day = fmtD(st.reached); var e = per[day] = per[day] || { a: 0, c: 0 }; e.a++; e.c++; } });
+function fillCallCounts(ss, loc, calls, events, now) { // day rows of the Probetrainings tab: B "Anrufe versucht" = leads the coach contacted that day (one per lead and day, plus booked / lost), C "Anrufe geführt" = booked + lost that day (approximation, Ruben 16.09.: "Näherung reicht"); only days with events are written
+  var per = {}, seen = {}, day;
+  Object.keys(calls).forEach(function (k) { var st = calls[k]; if (st.loc !== loc) return; st.called.forEach(function (d) { day = fmtD(d); if (seen[day + ':' + k]) return; seen[day + ':' + k] = true; (per[day] = per[day] || { a: 0, c: 0 }).a++; }); });
+  (events || []).forEach(function (e) { day = fmtD(e.d); var p = per[day] = per[day] || { a: 0, c: 0 }; if (!seen[day + ':' + e.key]) { seen[day + ':' + e.key] = true; p.a++; } p.c++; });
   var days = Object.keys(per); if (!days.length) return;
   var sh = ss.getSheetByName(TR_SHEETS[loc]); if (!sh || sh.getLastRow() < TR_ROW0) return;
   var yr = Number(fmtD(now).slice(0, 4)), mo = Number(fmtD(now).slice(5, 7));
@@ -968,4 +995,38 @@ function waDocTimingFix() { // one-off (Ruben 16.09.): the Doc "WhatsApp Message
     [esc('They will follow automatically once the WhatsApp messages go live.'), 'They will follow automatically once the WhatsApp messages go live. A stage you set by hand is respected right away: Not Interested or Do Not Contact takes the lead off the call list and out of the automatic messages within the hour (since 16 Sep 2026).']
   ]);
   Logger.log('doc timing fix: messages doc ' + doc.join(',') + ' (expected 1 each), guide ' + guide.join(',') + ' (expected 1 each)');
+}
+function waTeamRulebook() { // one-off (Ruben 16.09., go): the Google Doc "Call list guide (Abdi, Bogdan)" becomes "Working in exercise.com (Abdi, Bogdan)": Ruben's rulebook (no sheet, no ticks) replaces sections 1-10; the messages Doc loses "the coach ticks Reached" (nobody ticks anything any more)
+  var doc = DocumentApp.openById('1tkVCsXmxz4kHrtkj7veRMmaJzCOEA6wFvTWP0-ewUBI'), body = doc.getBody();
+  if (body.findText('You work only in exercise\\.com')) { Logger.log('rulebook already in the doc'); } else {
+    body.clear();
+    var H = DocumentApp.ParagraphHeading, prev = null;
+    var p = function (t, h) { var x = body.appendParagraph(t); if (h) x.setHeading(h); prev = null; return x; };
+    var li = function (t) { var x = body.appendListItem(t).setGlyphType(DocumentApp.GlyphType.BULLET); if (prev) x.setListId(prev); prev = x; return x; };
+    p('Working in exercise.com (Abdi, Bogdan)', H.HEADING1);
+    p('You work only in exercise.com. No sheet, no ticks. Version 16 Sep 2026.');
+    p('1. Stages you set yourself', H.HEADING2);
+    li('Not Interested (Lost): as soon as a lead says no. The automatic messages to this lead stop within the hour.');
+    li('Do Not Contact: if the person asks never to be contacted again. Same effect, and nothing ever changes it back.');
+    p('That is all. First / Second / Third Contact come from your messages (point 5).');
+    p('2. Stages exercise.com sets by itself', H.HEADING2);
+    li('Trial Booked: when you book the trial.');
+    li('Client: when the package is sold.');
+    p('3. Stages the automation sets (do not set them by hand)', H.HEADING2);
+    li('First Contact / Second Contact / Third Contact: after your 1st, 2nd and 3rd message to a lead who has not replied yet.');
+    li('re-engage no-shows: after a trial is marked as No-Show.');
+    li('re-engage cancelled trial: after a booked trial is cancelled.');
+    li('Pending Decision: after 22:00 on the day of an attended trial when no contract is signed.');
+    p('The automation only moves a lead forward, and only from a lead stage. It never changes Client, Not Interested (Lost), Do Not Contact or Debt collection.');
+    p('4. Cancelling a trial', H.HEADING2);
+    p('Always use "Cancel Trial". Never delete the booking, otherwise the automation does not see the cancellation.');
+    p('5. Automatic WhatsApp messages to new leads', H.HEADING2);
+    p('A website lead without a trial gets at most three contacts, shared between you and the automation. After a call nobody answered, send M1 / M2 / M3 from your quick replies and add the name. The automation sees the message from your number, sets the stage for you and waits 48 hours before its own next message. If you do nothing, it sends the first message 48 hours after the request and each further one 48 hours after the last message. It stops as soon as the trial is booked, the lead replies, or the stage is Not Interested (Lost) or Do Not Contact. Calls without a message are invisible to it, so always send the message.');
+    var first = body.getChild(0); if (first.getType() === DocumentApp.ElementType.PARAGRAPH && !first.asParagraph().getText()) body.removeChild(first);
+    doc.setName('Working in exercise.com (Abdi, Bogdan)');
+    Logger.log('rulebook written, doc renamed');
+  }
+  var mb = DocumentApp.openById('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY').getBody(), n = 0;
+  [[', the coach ticks .Reached., or the lead is closed', ', or the lead is closed'], [', the coach reaches the person by phone, or the lead is closed', ', or the lead is closed'], ['A message or call by the coach does not stop it', 'A message by the coach does not stop it']].forEach(function (r) { if (mb.findText(r[0])) { mb.replaceText(r[0], r[1]); n++; } });
+  Logger.log('messages doc: ' + n + ' of 3 "Reached" phrases replaced');
 }
