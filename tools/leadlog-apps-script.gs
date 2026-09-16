@@ -1391,7 +1391,7 @@ function colGroupWeeks(sh, cols, firstCol) {
   var runs = [], cur = null;
   cols.forEach(function (x, ci) { var col = firstCol + ci; if (x.w) { if (cur && cur[1] === col - 1) cur[1] = col; else { cur = [col, col]; runs.push(cur); } } else cur = null; });
   runs.forEach(function (g) { try { sh.getRange(1, g[0], 1, g[1] - g[0] + 1).shiftColumnGroupDepth(1); if (wasCollapsed) sh.getColumnGroup(g[0], 1).collapse(); } catch (e) { Logger.log('Spaltengruppe Wochen: ' + e); } });
-  try { sh.setColumnGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE); } catch (e1) {}
+  try { sh.setColumnGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.AFTER); } catch (e1) {} // AFTER = Toggle rechts der Gruppe, also ueber dem Monat, zu dem die Wochen gehoeren (Ruben 16.09.: BEFORE sass ueber August)
   return runs;
 }
 function buildWerbekosten(ss) { // nie zwei Baue gleichzeitig (auch nicht neben dem Monatsabschluss-Bau): sonst leere und ueberlagerte Diagramme (Lehre 09.09.)
