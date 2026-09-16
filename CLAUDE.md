@@ -830,3 +830,9 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
   gelaufen). AN DEN ANALYTICS-CHAT: RUN_NOW nach dem Lauf nur durch Loeschen DIESER ZEILE entfernen oder origin/main HEAD
   einspielen - NIE eine eigene aeltere Kopie einfuegen. Vor jedem Einfuegen: git pull, Editor gegen den letzten gepushten Stand
   diffen (Funktionsnamen UND Inhalt), sonst gehen Aenderungen anderer Chats still verloren.
+
+## Werbekosten-Tab neu aufgebaut (Ruben 16.09.2026, Commit 0665bca): "alles direkt unter jeder Kampagne"
+- Je Standort-Block: Zusammenfassung (Werbekosten gesamt, Agentur, Media, Website-Leads, CPL, Probetrainings, CPT, Verkaeufe, CAC, CAC inkl. Agentur, LTV:CAC, Payback, Anteil Leads/Verkaeufe bezahlt), dann je Plattform (Google/Meta/TikTok) EINE fette Kopfzeile ohne Zahlen und darunter Kosten, Leads, Kosten pro Lead, Probetrainings, Kosten pro Probetraining, Verkaeufe, CAC; darunter je Kampagne eine Namenszeile (detail 1) und Kosten/Leads/Kosten pro Lead (detail 2); zum Schluss "Organisch / direkt" mit Leads und Verkaeufen. Nur die Kampagnenzeilen sind gruppiert (eine Stufe, standardmaessig zu).
+- Keys unveraendert (wk:, leads:, cpl:, tk:, cpt:, sk:, cac:, wkc/leadsc/cplc), neue Keys plat:<pn>, camp, org, trials, sales, sales:org. Diagramme unveraendert (nutzen die Helfer, nicht die Zeilen).
+- Handfarben (keep-Map) jetzt mit Schluessel Block|Elternzeile|Label (Elternzeile = naechste weniger eingerueckte Zeile darueber), weil "Kosten (CHF)" mehrfach vorkommt; rowMeta traegt parent (pstack in writeRow).
+- Entscheide: pro Kampagne nur Kosten/Leads/CPL (Probetrainings/Verkaeufe je Kampagne bewusst weggelassen, zu kleine Zahlen); Kampagnen standardmaessig eingeklappt. Ruben: "Ab jetzt frag immer erst, bevor du baust."
