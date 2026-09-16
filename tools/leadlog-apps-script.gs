@@ -1304,7 +1304,7 @@ function wkAgency(ss, mk, agg) {
   var o = agg[mk], tz = o ? (o.Zurich.plat['TikTok Ads'] || 0) : 0, tw = o ? (o.Winterthur.plat['TikTok Ads'] || 0) : 0, tot = tz + tw, sz = tot ? tz / tot : 0.5;
   return { Zurich: (zh + tk * sz) * rate, Winterthur: (wt + tk * (1 - sz)) * rate };
 }
-var WK_NOTE = 'Werbekosten und Wirkung je Standort, gleicher Aufbau wie der Monatsabschluss: Wochen vor ihrem Monat, Monate von links nach rechts, Jahr rechts. Zeilen mit + zeigen die Plattformen. Der Abschnitt Kampagnen zeigt je Kampagne Kosten, Website-Leads und Kosten pro Lead untereinander. Definitionen als Notiz an der Zeile und im Tab Methodik.';
+var WK_NOTE = 'Werbekosten und Wirkung je Standort, gleicher Aufbau wie der Monatsabschluss: Wochen vor ihrem Monat, Monate von links nach rechts, Jahr rechts. Je Standort zuerst die Zusammenfassung, dann jede Plattform genau einmal mit Kosten, Leads, Kosten pro Lead, Probetrainings und Verkäufen, direkt darunter ihre Kampagnen (Plus aufklappen: Kosten, Leads, Kosten pro Lead). Definitionen als Notiz an der Zeile und im Tab Methodik.';
 var WK_NOTE_FULL = 'Media-Kosten je Tag aus dem versteckten Tab WerbekostenDaten (Google Ads: Google-Ads-Skript täglich; Meta: Marketing API täglich 06:30; TikTok: täglicher Report-Anhang per Mail, Betreff "IMPACT TikTok"). Standort aus dem Kampagnennamen, Kampagnen ohne Standort nach Einstellung "Werbekosten-Split ohne Standort" aufgeteilt. Agentur = Pauschalen je Standort plus TikTok-Pauschale nach TikTok-Ausgaben (Tab Einstellungen). Kampagnenzeilen: nur Kampagnen mit Kosten in den gezeigten Monaten, nach Kosten sortiert. Website-Leads je Kampagne aus dem Anzeigen-Link (Meta/TikTok: utm_campaign = Kampagnenname; Google: Kampagnen-ID gad_campaignid, zugeordnet über das Google-Ads-Skript, sonst Standort plus Little Ninjas/Erwachsene), erfasst seit 04.09.2026. CPL = Media / Website-Leads, CPT = Media / durchgeführte Probetrainings (je Plattform: Probetrainings, deren Website-Anfrage über die Plattform kam, ab September 2026), CAC = Media / Verkäufe (Paket aktiviert), CAC inkl. Agentur = (Media + Agentur) / Verkäufe, je Plattform nach Klick-ID des Leads (letzter Klick, Richtwert). Anteil Verkäufe aus bezahlten Kanälen = Verkäufe mit Google/Meta/TikTok-Lead geteilt durch alle Verkäufe. LTV : CAC = LTV netto (Tab Monatsabschluss) / CAC inkl. Agentur; Payback = CAC inkl. Agentur / Abo-Umsatz netto je Kunde und Monat. Jahresspalte: Kosten summiert, Quoten neu aus den Summen der Monate, in denen beide Werte stehen.';
 var WK_LEADS_NOTE = 'Kosten der Kampagne geteilt durch die Website-Leads aus ihren Anzeigen-Links (seit 01.09.2026). Zuordnung über die Kampagnen-Nummer im Link (Meta: utm_id, Google: gad_campaignid), sonst über den Kampagnennamen (utm_campaign); fehlt bei Google beides, zählt Standort plus Little Ninjas/Erwachsene. Der Werbeanzeigenmanager von Meta zählt grosszügiger (7 Tage nach Klick, 1 Tag nach Ansicht, mit Dubletten) und liegt deshalb höher.';
 var WK_ATTR_FROM = '2026-09-01'; // Seiten-URL mit Klick-ID/UTM steht seit Log-Start im Lead-Log; utm_campaign als eigene Spalte erst seit 04.09. (d146bdb), davor aus der URL gelesen (15.09.)
@@ -1373,7 +1373,7 @@ function buildWerbekostenCore(ss, ctx) {
   var sh = getOrCreate(ss, WK_VIEW);
   // Von Hand gefaerbte Zeilen (Farbe in Spalte A) ueberleben den Neuaufbau: Schluessel = Block + Zeilentext (Ruben 09.09.: "alle Farben weg, ich faerbe selbst")
   var keep = {};
-  try { var lr0 = sh.getLastRow(); if (lr0 > 3) { var lab0 = sh.getRange(1, 1, lr0, 1).getValues(), bg0 = sh.getRange(1, 1, lr0, 1).getBackgrounds(), blk0 = ''; lab0.forEach(function (row, i) { var t = String(row[0] || ''), b = String(bg0[i][0] || '').toLowerCase(); if (/^(Zürich|Winterthur|Gesamt)/.test(t) && t.indexOf('(CHF') < 0) blk0 = t.split(' ')[0]; if (t && b && b !== '#ffffff' && b !== '#f3f3f3') keep[blk0 + '|' + t] = b; }); } } catch (e0) { Logger.log('Werbekosten Farben lesen: ' + e0); }
+  try { var lr0 = sh.getLastRow(); if (lr0 > 3) { var lab0 = sh.getRange(1, 1, lr0, 1).getValues(), bg0 = sh.getRange(1, 1, lr0, 1).getBackgrounds(), blk0 = '', st0 = []; lab0.forEach(function (row, i) { var t = String(row[0] || ''), b = String(bg0[i][0] || '').toLowerCase(); if (/^(Zürich|Winterthur|Gesamt)/.test(t) && t.indexOf('(CHF') < 0) { blk0 = t.split(' ')[0]; st0 = []; return; } if (!t) return; var ind0 = t.length - t.replace(/^\s+/, '').length; while (st0.length && st0[st0.length - 1][0] >= ind0) st0.pop(); if (b && b !== '#ffffff' && b !== '#f3f3f3') keep[blk0 + '|' + (st0.length ? st0[st0.length - 1][1] : '') + '|' + t.trim()] = b; st0.push([ind0, t.trim()]); }); } } catch (e0) { Logger.log('Werbekosten Farben lesen: ' + e0); }
   sh = clearSheet(sh);
   var cols = ctx.cols, curK = ctx.curK, logM = ctx.logM, num = ctx.num, val = ctx.val, wr = ctx.wr, wkD = ctx.wkD, wkM = ctx.wkM, hkeys = ctx.hkeys, yearMonths = ctx.yearMonths, colOf = ctx.colOf, dt = ctx.dt;
   var camp = wkCampAgg(ss), lcd = wkLeadsByCampaignDaily(ss, camp), agencyCache = {};
@@ -1384,7 +1384,7 @@ function buildWerbekostenCore(ss, ctx) {
   sh.getRange('A2').setValue('Methodik').setFontColor('#999999'); sh.getRange('B2').setValue(WK_NOTE).setFontColor('#666666').setWrap(true); sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 44);
   var r = 4, blocks = [];
   ['Zurich', 'Winterthur', 'Gesamt'].forEach(function (loc) {
-    var locDE = loc === 'Zurich' ? 'Zürich' : loc === 'Winterthur' ? 'Winterthur' : 'Gesamt', wrLocs = loc === 'Gesamt' ? ['Zurich', 'Winterthur'] : [loc], rowMeta = {}, det = [], det2 = [];
+    var locDE = loc === 'Zurich' ? 'Zürich' : loc === 'Winterthur' ? 'Winterthur' : 'Gesamt', wrLocs = loc === 'Gesamt' ? ['Zurich', 'Winterthur'] : [loc], rowMeta = {}, det = [], det2 = [], pstack = [];
     sh.getRange(r, 1).setValue(locDE + (loc === 'Gesamt' ? ' (Zürich + Winterthur)' : '')).setFontWeight('bold').setFontSize(13); r++;
     maHeader(sh, r, ctx, true); var hdr = r; r++;
     var vOf = function (kk, name) { if (loc === 'Gesamt') return ctx.gOf(kk, name); var v = val[kk + '|' + loc + '|' + name]; return v === undefined || v === '' ? '' : v; };
@@ -1431,60 +1431,55 @@ function buildWerbekostenCore(ss, ctx) {
       if (opts.detail) { sh.getRange(r, 1).setFontColor('#666666'); det.push(r); if (opts.detail === 2) det2.push(r); }
       if (opts.bold) sh.getRange(r, 1, 1, row.length).setFontWeight('bold');
       var note = opts.note || MA_NOTES[key]; if (note) sh.getRange(r, 1).setNote(note);
-      rowMeta[r] = { weekly: !!opts.weekly, label: label }; r++;
+      var ind = label.length - label.replace(/^\s+/, '').length; while (pstack.length && pstack[pstack.length - 1][0] >= ind) pstack.pop();
+      rowMeta[r] = { weekly: !!opts.weekly, label: label, parent: pstack.length ? pstack[pstack.length - 1][1] : '' }; pstack.push([ind, label.trim()]); r++;
     };
     var campsOf = function (pn) { return Object.keys(camp.list).filter(function (k) { var L = camp.list[k]; if (L.plat !== pn) return false; if (loc !== 'Gesamt' && L.loc !== loc && L.loc !== 'Beide') return false; return hkeys.some(function (kk) { return num(campM(k, kk)) > 0; }); }).sort(function (a, b) { return camp.list[b].tot - camp.list[a].tot; }); };
-    // Kosten
-    writeRow('wk_media', 'Werbekosten Media (CHF)', M(function (kk) { return mediaM(kk); }, function (c) { return mediaW(c); }), '#,##0', { bold: true, weekly: true, year: 'sum' });
-    WK_PLATFORMS.forEach(function (pn) {
-      writeRow('wk:' + pn, '   ' + pn + ' (CHF)', M(function (kk) { return mediaM(kk, pn); }, function (c) { return mediaW(c, pn); }), '#,##0', { detail: 1, weekly: true, year: 'sum', note: 'Media-Kosten ' + pn + ', Standort aus dem Kampagnennamen. Je Kampagne: Abschnitt Kampagnen weiter unten.' });
-    });
-    writeRow('wk_agency', 'Agenturkosten (CHF' + (loc === 'Gesamt' ? '' : ', Anteil ' + locDE) + ')', M(agencyOf), '#,##0', { year: 'sum' });
-    writeRow('wk_total', 'Werbekosten gesamt (CHF)', M(totalM), '#,##0', { bold: true, year: 'sum' });
-    // Website-Leads je Kanal (Ruben 15.09.): Kosten, Leads und Kosten pro Lead stehen so untereinander. Kanal = Klick-ID/UTM/Referrer der
-    // Website-Anfrage, erst seit 02.09.2026; vorher nur der Gesamtwert (Monatszahl aus der Historie). Anrufe/Walk-ins zaehlen als organisch/direkt.
+    // Aufbau (Ruben 16.09.2026): Standort-Zusammenfassung, dann jede Plattform genau EINMAL mit allem, was zu ihr gehoert
+    // (Kosten, Leads, Kosten pro Lead, Probetrainings, Verkaeufe), direkt darunter ihre Kampagnen (Name als eigene Zeile,
+    // dann Kosten / Leads / Kosten pro Lead, eine Gruppenstufe). Nichts mehr an mehreren Stellen.
     var paidLeadsM = function (kk) { if (kk < logM) return ''; var t = 0; WK_PLATFORMS.forEach(function (pn) { t += num(kanM(kk, pn)); }); return t; };
     var paidLeadsW = function (c) { var t = 0; WK_PLATFORMS.forEach(function (pn) { t += num(kanW(c, pn)); }); return t; };
     var orgM = function (kk) { var t = leadsM(kk); return kk < logM || t === '' ? '' : num(t) - num(paidLeadsM(kk)); }, orgW = function (c) { var t = leadsW(c); return t === '' ? '' : num(t) - paidLeadsW(c); };
-    writeRow('leads_web', 'Website-Leads (aus dem Log)', M(leadsM, leadsW), '0', { bold: true, weekly: true, year: 'sum', note: 'Website-Anfragen aus dem Log (ohne Dubletten und Tests), vor September 2026 die Monatszahl aus der Historie. Plus: je Kanal (Klick-ID, UTM oder Referrer der Anfrage, erst ab 02.09.2026). Je Kampagne: Abschnitt Kampagnen weiter unten. Anrufe und Walk-ins nach einer Anzeige stehen unter organisch/direkt.' });
-    WK_PLATFORMS.forEach(function (pn) {
-      writeRow('leads:' + pn, '   ' + pn, M(function (kk) { return kanM(kk, pn); }, function (c) { return kanW(c, pn); }), '0', { detail: 1, weekly: true, year: 'sum', note: 'Website-Leads, deren Anfrage über ' + pn + ' kam (letzter Klick). Je Kampagne: Abschnitt Kampagnen weiter unten.' });
-    });
-    writeRow('leads:org', '   organisch/direkt', M(orgM, orgW), '0', { detail: 1, weekly: true, year: 'sum', note: 'Website-Leads ohne bezahlten Kanal: Google-Suche, Social organisch, direkt, Empfehlung.' });
-    writeRow('paid_leads_share', 'Anteil Leads aus bezahlten Kanälen', M(function (kk) { return ratio(paidLeadsM(kk), leadsM(kk)); }, function (c) { return ratio(paidLeadsW(c), leadsW(c)); }), '0%', { weekly: true, year: yRatio(paidLeadsM, leadsM), note: 'Bezahlte Kanäle (Google, Meta, TikTok) geteilt durch alle Website-Leads. Zeigt, wie stark die Anfragen von Werbung abhängen.' });
-    // Kosten je Lead und je Probetraining
+    var none = function () { return ''; };
+    writeRow('wk_total', 'Werbekosten gesamt (CHF)', M(totalM), '#,##0', { bold: true, year: 'sum' });
+    writeRow('wk_agency', '   Agenturkosten (CHF' + (loc === 'Gesamt' ? '' : ', Anteil ' + locDE) + ')', M(agencyOf), '#,##0', { year: 'sum' });
+    writeRow('wk_media', 'Media-Kosten (CHF)', M(function (kk) { return mediaM(kk); }, function (c) { return mediaW(c); }), '#,##0', { bold: true, weekly: true, year: 'sum' });
+    writeRow('leads_web', 'Website-Leads (aus dem Log)', M(leadsM, leadsW), '0', { bold: true, weekly: true, year: 'sum', note: 'Website-Anfragen aus dem Log (ohne Dubletten und Tests), vor September 2026 die Monatszahl aus der Historie. Je Plattform und Kampagne: weiter unten.' });
     writeRow('cpl', 'Kosten pro Website-Lead (CHF)', M(function (kk) { return ratio(mediaM(kk), leadsM(kk)); }, function (c) { return ratio(mediaW(c), leadsW(c)); }), '#,##0', { bold: true, weekly: true, year: yRatio(mediaM, leadsM) });
-    WK_PLATFORMS.forEach(function (pn) {
-      writeRow('cpl:' + pn, '   CPL ' + pn + ' (CHF)', M(function (kk) { return ratio(mediaM(kk, pn), kanM(kk, pn)); }, function (c) { return ratio(mediaW(c, pn), kanW(c, pn)); }), '#,##0', { detail: 1, weekly: true, year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return kanM(kk, pn); }), note: 'Media-Kosten ' + pn + ' geteilt durch Website-Leads mit Klick-ID oder UTM von ' + pn + '.' });
-    });
-    // Kampagnen (Ruben 15.09.): je Kampagne Kosten, Website-Leads und Kosten pro Lead direkt untereinander statt verteilt auf drei Abschnitte
-    writeRow('camp_head', 'Kampagnen: Kosten, Website-Leads, Kosten pro Lead', function () { return ''; }, null, { bold: true, note: 'Je Kampagne drei Zeilen: Media-Kosten (CHF), Website-Leads aus ihren Anzeigen-Links, Kosten pro Lead. Reihenfolge nach Kosten, nur Kampagnen mit Kosten in den gezeigten Monaten. ' + WK_LEADS_NOTE });
-    WK_PLATFORMS.forEach(function (pn) {
-      var ks = campsOf(pn); if (!ks.length) return;
-      writeRow('camp:' + pn, '   ' + pn, function () { return ''; }, null, { detail: 1 });
-      ks.forEach(function (k) {
-        var nm = camp.list[k].camp + (camp.list[k].loc === 'Beide' ? ' (beide Standorte, anteilig)' : '');
-        writeRow('wkc', '      Kosten (CHF) · ' + nm, M(function (kk) { return campM(k, kk); }, function (c) { return campW(k, c); }), '#,##0', { detail: 2, weekly: true, year: 'sum', note: 'Media-Kosten der Kampagne ' + nm + ' (' + pn + ').' });
-        writeRow('leadsc', '      Leads · ' + nm, M(function (kk) { return lcM(k, kk); }, function (c) { return lcW(k, c); }), '0', { detail: 2, weekly: true, year: 'sum', note: 'Website-Leads aus den Anzeigen-Links der Kampagne ' + nm + ' (Kampagnen-Nummer oder Name im Link), seit 01.09.2026.' });
-        writeRow('cplc', '      CHF pro Lead · ' + nm, M(function (kk) { return ratio(campM(k, kk), lcM(k, kk)); }, function (c) { return ratio(campW(k, c), lcW(k, c)); }), '#,##0', { detail: 2, weekly: true, year: yRatio(function (kk) { return campM(k, kk); }, function (kk) { return lcM(k, kk); }), note: WK_LEADS_NOTE });
-      });
-    });
+    writeRow('trials', 'Probetrainings (durchgeführt)', M(trialsM, trialsW), '0', { weekly: true, year: 'sum', note: 'Erstbesucher mit Check-in (exercise.com), gleiche Zahl wie im Monatsabschluss.' });
     writeRow('cpt', 'Kosten pro Probetraining (CHF)', M(function (kk) { return ratio(mediaM(kk), trialsM(kk)); }, function (c) { return ratio(mediaW(c), trialsW(c)); }), '#,##0', { bold: true, weekly: true, year: yRatio(mediaM, trialsM) });
-    WK_PLATFORMS.forEach(function (pn) { writeRow('cpt:' + pn, '   CPT ' + pn + ' (CHF)', M(function (kk) { return ratio(mediaM(kk, pn), tkM(kk, pn)); }, function (c) { return ratio(mediaW(c, pn), tkW(c, pn)); }), '#,##0', { detail: 1, weekly: true, year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return tkM(kk, pn); }), note: 'Media-Kosten ' + pn + ' geteilt durch durchgeführte Probetrainings, deren Website-Anfrage über ' + pn + ' kam (Kanal im Team-Sheet), ab September 2026.' }); });
-    // Kosten je Verkauf
+    writeRow('sales', 'Verkäufe (Paket)', M(salesM, salesW), '0', { weekly: true, year: 'sum', note: 'Verkäufe des Monats (Vertragsunterschrift), gleiche Zahl wie im Monatsabschluss.' });
     writeRow('cac', 'CAC Media (CHF je Verkauf)', M(function (kk) { return ratio(mediaM(kk), salesM(kk)); }, function (c) { return ratio(mediaW(c), salesW(c)); }), '#,##0', { bold: true, weekly: true, year: yRatio(mediaM, salesM) });
-    WK_PLATFORMS.forEach(function (pn) {
-      writeRow('sk:' + pn, '   Verkäufe aus ' + pn + '-Leads', M(function (kk) { return skM(kk, pn); }), '0', { detail: 1, year: 'sum', note: 'Verkäufe des Monats, deren Website-Anfrage über ' + pn + ' kam (Klick-ID oder UTM, letzter Klick).' });
-      writeRow('cac:' + pn, '   CAC ' + pn + ' (CHF je Verkauf)', M(function (kk) { return ratio(mediaM(kk, pn), skM(kk, pn)); }), '#,##0', { detail: 1, year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return skM(kk, pn); }) });
-    });
     writeRow('cac_all', 'CAC inkl. Agentur (CHF je Verkauf)', M(cacAllM), '#,##0', { bold: true, year: yCacAll });
-    writeRow('paid_share', 'Anteil Verkäufe aus bezahlten Kanälen', M(function (kk) { return ratio(paidM(kk), salesM(kk)); }), '0%', { year: yRatio(paidM, salesM) });
-    // Rentabilitaet (LTV steht im Monatsabschluss)
     writeRow('ltv_cac_all', 'LTV : CAC (inkl. Agentur)', M(function (kk) { return ratio(ltvM(kk), cacAllM(kk)); }), '0.0', { bold: true, year: function (mks) { return ratio(yLast(ltvM)(mks), yCacAll(mks)); } });
     writeRow('payback', 'Payback in Monaten', M(function (kk) { return ratio(cacAllM(kk), cvNetM(kk)); }), '0.0', { year: function (mks) { return ratio(yCacAll(mks), yLast(cvNetM)(mks)); } });
+    writeRow('paid_leads_share', 'Anteil Leads aus bezahlten Kanälen', M(function (kk) { return ratio(paidLeadsM(kk), leadsM(kk)); }, function (c) { return ratio(paidLeadsW(c), leadsW(c)); }), '0%', { weekly: true, year: yRatio(paidLeadsM, leadsM), note: 'Bezahlte Kanäle (Google, Meta, TikTok) geteilt durch alle Website-Leads. Zeigt, wie stark die Anfragen von Werbung abhängen.' });
+    writeRow('paid_share', 'Anteil Verkäufe aus bezahlten Kanälen', M(function (kk) { return ratio(paidM(kk), salesM(kk)); }), '0%', { year: yRatio(paidM, salesM) });
+    // Je Plattform einmal alles, darunter die Kampagnen
+    WK_PLATFORMS.forEach(function (pn) {
+      writeRow('plat:' + pn, pn, none, null, { bold: true, note: 'Alles zu ' + pn + ': Media-Kosten (Standort aus dem Kampagnennamen), Website-Leads mit Klick-ID oder UTM von ' + pn + ' (letzter Klick), Probetrainings und Verkäufe dieser Leads. Darunter die einzelnen Kampagnen (Plus aufklappen).' });
+      writeRow('wk:' + pn, '   Kosten (CHF)', M(function (kk) { return mediaM(kk, pn); }, function (c) { return mediaW(c, pn); }), '#,##0', { weekly: true, year: 'sum' });
+      writeRow('leads:' + pn, '   Leads', M(function (kk) { return kanM(kk, pn); }, function (c) { return kanW(c, pn); }), '0', { weekly: true, year: 'sum', note: 'Website-Leads, deren Anfrage über ' + pn + ' kam (letzter Klick, 30 Tage).' });
+      writeRow('cpl:' + pn, '   Kosten pro Lead (CHF)', M(function (kk) { return ratio(mediaM(kk, pn), kanM(kk, pn)); }, function (c) { return ratio(mediaW(c, pn), kanW(c, pn)); }), '#,##0', { weekly: true, year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return kanM(kk, pn); }) });
+      writeRow('tk:' + pn, '   Probetrainings', M(function (kk) { return tkM(kk, pn); }, function (c) { return tkW(c, pn); }), '0', { weekly: true, year: 'sum', note: 'Durchgeführte Probetrainings, deren Website-Anfrage über ' + pn + ' kam (Team-Sheet, seit September 2026).' });
+      writeRow('cpt:' + pn, '   Kosten pro Probetraining (CHF)', M(function (kk) { return ratio(mediaM(kk, pn), tkM(kk, pn)); }, function (c) { return ratio(mediaW(c, pn), tkW(c, pn)); }), '#,##0', { weekly: true, year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return tkM(kk, pn); }) });
+      writeRow('sk:' + pn, '   Verkäufe', M(function (kk) { return skM(kk, pn); }), '0', { year: 'sum', note: 'Verkäufe des Monats, deren Website-Anfrage über ' + pn + ' kam (Klick-ID oder UTM, letzter Klick).' });
+      writeRow('cac:' + pn, '   CAC (CHF je Verkauf)', M(function (kk) { return ratio(mediaM(kk, pn), skM(kk, pn)); }), '#,##0', { year: yRatio(function (kk) { return mediaM(kk, pn); }, function (kk) { return skM(kk, pn); }) });
+      campsOf(pn).forEach(function (k) {
+        var nm = camp.list[k].camp + (camp.list[k].loc === 'Beide' ? ' (beide Standorte, anteilig)' : '');
+        writeRow('camp', '   ' + nm, none, null, { detail: 1, note: 'Kampagne ' + nm + ' (' + pn + '). Kosten je Tag aus WerbekostenDaten, Leads aus den Anzeigen-Links (Kampagnen-Nummer oder Name), seit 01.09.2026.' });
+        writeRow('wkc', '      Kosten (CHF)', M(function (kk) { return campM(k, kk); }, function (c) { return campW(k, c); }), '#,##0', { detail: 2, weekly: true, year: 'sum' });
+        writeRow('leadsc', '      Leads', M(function (kk) { return lcM(k, kk); }, function (c) { return lcW(k, c); }), '0', { detail: 2, weekly: true, year: 'sum' });
+        writeRow('cplc', '      Kosten pro Lead (CHF)', M(function (kk) { return ratio(campM(k, kk), lcM(k, kk)); }, function (c) { return ratio(campW(k, c), lcW(k, c)); }), '#,##0', { detail: 2, weekly: true, year: yRatio(function (kk) { return campM(k, kk); }, function (kk) { return lcM(k, kk); }), note: WK_LEADS_NOTE });
+      });
+    });
+    writeRow('org', 'Organisch / direkt', none, null, { bold: true, note: 'Website-Leads ohne bezahlten Kanal: Google-Suche, Instagram-Profil (Link in Bio), direkt, Empfehlung. Anrufe und Walk-ins zählen hier mit.' });
+    writeRow('leads:org', '   Leads', M(orgM, orgW), '0', { weekly: true, year: 'sum' });
+    writeRow('sales:org', '   Verkäufe', M(function (kk) { var sg = salesM(kk), pd = paidM(kk); return sg === '' || pd === '' ? '' : num(sg) - num(pd); }), '0', { year: 'sum', note: 'Verkäufe des Monats minus Verkäufe aus bezahlten Kanälen.' });
     // Keine Skriptfarben im Datenbereich (Ruben 09.09.); von Hand gefaerbte Zeilen zurueckschreiben; Jahresspalten fett; EINE Gruppenstufe wie im
     // Monatsabschluss (Plattformen und ihre Kampagnen klappen zusammen auf, Kampagnen sind eingerueckt)
-    Object.keys(rowMeta).forEach(function (rr) { var b = keep[locDE.split(' ')[0] + '|' + rowMeta[rr].label]; if (b) sh.getRange(Number(rr), 1, 1, cols.length + 1).setBackground(b); });
+    Object.keys(rowMeta).forEach(function (rr) { var b = keep[locDE.split(' ')[0] + '|' + rowMeta[rr].parent + '|' + rowMeta[rr].label.trim()]; if (b) sh.getRange(Number(rr), 1, 1, cols.length + 1).setBackground(b); });
     cols.forEach(function (c, ci) { if (c.y) sh.getRange(hdr + 1, 2 + ci, r - hdr - 1, 1).setFontWeight('bold'); });
     var groupsOf = function (rows) { var g = []; rows.sort(function (a, b) { return a - b; }).forEach(function (x) { var last = g[g.length - 1]; if (last && x === last[1] + 1) last[1] = x; else g.push([x, x]); }); return g; };
     groupsOf(det).forEach(function (g) { try { sh.getRange(g[0], 1, g[1] - g[0] + 1, 1).shiftRowGroupDepth(1); } catch (e) { Logger.log('Gruppe ' + g + ': ' + e); } });
