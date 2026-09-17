@@ -2133,14 +2133,15 @@ function maContext(ss) {
   var wkCache = {}, weekOf = function (monday, mk) { var key = monday + '|' + mk; if (!wkCache[key]) wkCache[key] = wrWeekOf(wr, monday, mk); return wkCache[key]; };
   // Spalten: Monate ab MA_FROM bis zum laufenden Monat; ab LEAD_WEEK0 die Kalenderwochen vor ihrem Monat (Monat des Donnerstags); nach Dezember und nach dem laufenden Monat eine Jahresspalte
   var cols = [], yearMonths = {}, k = MA_FROM;
-  var weeksOf = function (mk) { var out = [], m = LEAD_WEEK0; while (m <= curMon) { if (addDs(m, 3).slice(0, 7) === mk) out.push(m); m = addDs(m, 7); } return out; };
+  // Variante 2 (Ruben 17.09.): jede Woche, die Tage im Monat hat, steht bei diesem Monat (Randwochen also in beiden Monaten, je mit ihren Tagen)
+  var weeksOf = function (mk) { var out = [], m = LEAD_WEEK0, first = mk + '-01'; while (m <= curMon) { if (m.slice(0, 7) === mk || (m < first && addDs(m, 6) >= first)) out.push(m); m = addDs(m, 7); } return out; };
   while (k <= curK) {
     weeksOf(k).forEach(function (m) { cols.push({ w: true, k: m, mk: k }); });
     cols.push({ m: true, k: k }); (yearMonths[k.slice(0, 4)] = yearMonths[k.slice(0, 4)] || []).push(cols.length - 1);
     if (k.slice(5) === '12' || k === curK) cols.push({ y: true, k: k.slice(0, 4), partial: k === curK && k.slice(5) !== '12' });
     k = nextMonth(k);
   }
-  var hkeys = cols.filter(function (c) { return c.m; }).map(function (c) { return c.k; }), wkeys = cols.filter(function (c) { return c.w; }).map(function (c) { return c.k; });
+  var hkeys = cols.filter(function (c) { return c.m; }).map(function (c) { return c.k; }), wkeys = cols.filter(function (c) { return c.w; }).map(function (c) { return c.k; }).filter(function (m, i, a) { return a.indexOf(m) === i; }); // Randwochen stehen zweimal in cols, in den Wochendiagrammen nur einmal
   var dt = function (kk) { return new Date(kk + '-01T00:00:00'); }, dtW = function (m) { return new Date(m + 'T12:00:00'); }, colOf = function (ci) { return colA1(2 + ci); };
   var both = function (kk, name) { var a = val[kk + '|Zurich|' + name], b = val[kk + '|Winterthur|' + name]; var ea = a === undefined || a === '', eb = b === undefined || b === ''; return ea && eb ? '' : num(a) + num(b); };
   var div = function (a, b) { return a === '' || b === '' || !num(b) ? '' : num(a) / num(b); };
@@ -2161,7 +2162,7 @@ function maContext(ss) {
 // Kopfzeile eines Blocks: Monate, Kalenderwochen (KW) und Jahre, mit Notizen
 function maHeader(sh, r, ctx, plain) { // plain = ohne Hintergrundfarben (Werbekosten, Ruben 09.09.)
   var cols = ctx.cols, curK = ctx.curK, curMon = ctx.curMon, dt = ctx.dt, dtW = ctx.dtW;
-  var head = ['Kennzahl'].concat(cols.map(function (c) { return c.m ? dt(c.k) : c.w ? 'KW ' + isoWeek(dtW(c.k)) + (c.k === curMon ? ' (läuft)' : '') : c.k + (c.partial ? ' (bis heute)' : ''); }));
+  var head = ['Kennzahl'].concat(cols.map(function (c) { return c.m ? dt(c.k) : c.w ? 'KW ' + isoWeek(dtW(c.k)) + ((c.k.slice(0, 7) !== c.mk || addDs(c.k, 6).slice(0, 7) !== c.mk) ? ' (Teil)' : '') + (c.k === curMon ? ' (läuft)' : '') : c.k + (c.partial ? ' (bis heute)' : ''); }));
   sh.getRange(r, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground(plain ? null : '#f3f3f3');
   cols.forEach(function (c, ci) {
     var cell = sh.getRange(r, 2 + ci);
@@ -2314,6 +2315,11 @@ function buildMonatsabschlussCore(ss) {
       if (rows.length) { dsh.getRange(d + 1, 1, rows.length, headRow.length).setValues(rows); dsh.getRange(d + 1, 1, rows.length, 1).setNumberFormat(dateFmt || 'mmm yyyy'); if (fmt) dsh.getRange(d + 1, 2, rows.length, headRow.length - 1).setNumberFormat(fmt); }
       var at = d; d += rows.length + 2; return at;
     };
+    // Neue Diagramme zuerst (Ruben 17.09.): Umsatz (exercise.com, Bank, Abo, Einzelverkaeufe) und Verkaeufe/Verluste/Nettowachstum je Monat
+    var mdSum = function (kk, prefix) { var t = 0, any = false; for (var i = 1; i <= 31; i++) { var dd = kk + '-' + (i < 10 ? '0' + i : i); wrLocs.forEach(function (l) { var v = val[kk + '|' + l + '|' + prefix + dd]; if (v !== undefined && v !== '') { any = true; t += num(v); } }); } return any ? t : ''; };
+    var revRow = function (kk) { var ag = g(kk, 'abo_gross'), og = g(kk, 'one_gross'), cash = (ag !== '' || og !== '') ? num(ag) + num(og) : num(mdSum(kk, 'cash_d:')), abo = ag !== '' ? num(ag) : num(mdSum(kk, 'abo_d:')); var bank = 0; ['stripe', 'adyen', 'customers', 'other'].forEach(function (f) { bank += num(bankOf(b.loc, kk, f)); }); return [dt(kk), cash, bank, abo, cash - abo]; };
+    var rev = tbl([b.locDE + ' Umsatz', 'Zahlungen exercise.com', 'Bankeingang', 'davon Abo', 'davon Einzelverkäufe'], hkeys.map(revRow), '#,##0');
+    var sal = tbl([b.locDE + ' Verkäufe', 'Verkäufe', 'Verluste', 'Nettowachstum'], hkeys.map(function (kk) { var sg = num(g(kk, 'sales_signed')), lo = num(g(kk, 'cancellations')); return [dt(kk), sg, lo, sg - lo]; }));
     var fun = tbl([b.locDE + ' Monat', 'Neue Kontakte', 'Probetrainings', 'Verkäufe', 'Kündigungen'], hkeys.map(function (kk) { var la = g(kk, 'leads_all'), lw = g(kk, 'leads_web'); return [dt(kk), num(la) || num(lw), num(g(kk, 'trial_attended')), num(g(kk, 'new_customers')), num(g(kk, 'cancellations'))]; }));
     var quo = tbl([b.locDE + ' Quoten', 'Show-up-Rate', 'Verkäufe / Probetrainings', 'Verkäufe / Kontakte', 'Kohorten-Conversion'], hkeys.map(function (kk) { var nsv = g(kk, 'noshow_rate'); return [dt(kk), nsv === '' ? 0 : 1 - num(nsv), num(g(kk, 'conv_sales_trial')), num(g(kk, 'conv_sales_lead')), num(g(kk, 'conv_cohort_rate'))]; }), '0%');
     var wfun = tbl([b.locDE + ' Woche', 'Website-Leads', 'Gespräche', 'Probetrainings', 'Verkäufe', 'Kündigungen'], wkeys.map(function (m) { var mkw = addDs(m, 3).slice(0, 7), o = weekOf(m, mkw); return [dtW(m), sumW(o, 'leads'), sumW(o, 'calls'), sumW(o, 't'), num(daySumFor(wrLocs, m, mkw, 'signed_d:')), num(daySumFor(wrLocs, m, mkw, 'cancels_d:'))]; }), null, 'dd.MM.');
@@ -2328,16 +2334,18 @@ function buildMonatsabschlussCore(ss) {
       Object.keys(opts || {}).forEach(function (o) { ch = ch.setOption(o, opts[o]); });
       sh.insertChart(ch.build());
     };
-    var row0 = chartRow + bi * 2 * BAND;
+    var row0 = chartRow + bi * 3 * BAND;
     sh.getRange(row0, 1).setValue(b.locDE).setFontWeight('bold');
     try {
-      C(Charts.ChartType.COLUMN, fun, 5, hkeys.length, row0 + 1, 0, 'Funnel ' + b.locDE + ' pro Monat', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], hAxis: { format: 'MMM yy' } });
-      C(Charts.ChartType.LINE, quo, 5, hkeys.length, row0 + 1, 620, 'Quoten ' + b.locDE + ' (höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 }, hAxis: { format: 'MMM yy' } });
-      C(Charts.ChartType.LINE, wfun, 7, wkeys.length, row0 + BAND + 1, 0, 'Funnel ' + b.locDE + ' pro Woche', { colors: ['#9e9e9e', '#34a853', '#e2c210', '#1a73e8', '#0b8043', '#d93025'], pointSize: 6, hAxis: { format: 'dd.MM' } });
-      C(Charts.ChartType.COLUMN, wkan, WK_PLATFORMS.length + 2, wkeys.length, row0 + BAND + 1, 620, 'Website-Leads ' + b.locDE + ' pro Woche nach Kanal', { isStacked: true, hAxis: { format: 'dd.MM' } });
+      C(Charts.ChartType.LINE, rev, 5, hkeys.length, row0 + 1, 0, 'Umsatz ' + b.locDE + ' pro Monat (CHF brutto)', { colors: ['#1a73e8', '#34a853', '#a142f4', '#f29900'], pointSize: 6, hAxis: { format: 'MMM yy' } });
+      C(Charts.ChartType.COLUMN, sal, 4, hkeys.length, row0 + 1, 620, 'Verkäufe, Verluste und Nettowachstum ' + b.locDE + ' pro Monat', { colors: ['#1a73e8', '#d93025', '#34a853'], hAxis: { format: 'MMM yy' } });
+      C(Charts.ChartType.COLUMN, fun, 5, hkeys.length, row0 + BAND + 1, 0, 'Funnel ' + b.locDE + ' pro Monat', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], hAxis: { format: 'MMM yy' } });
+      C(Charts.ChartType.LINE, quo, 5, hkeys.length, row0 + BAND + 1, 620, 'Quoten ' + b.locDE + ' (höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 }, hAxis: { format: 'MMM yy' } });
+      C(Charts.ChartType.LINE, wfun, 7, wkeys.length, row0 + 2 * BAND + 1, 0, 'Funnel ' + b.locDE + ' pro Woche', { colors: ['#9e9e9e', '#34a853', '#e2c210', '#1a73e8', '#0b8043', '#d93025'], pointSize: 6, hAxis: { format: 'dd.MM' } });
+      C(Charts.ChartType.COLUMN, wkan, WK_PLATFORMS.length + 2, wkeys.length, row0 + 2 * BAND + 1, 620, 'Website-Leads ' + b.locDE + ' pro Woche nach Kanal', { isStacked: true, hAxis: { format: 'dd.MM' } });
     } catch (e) { Logger.log('Diagramme ' + b.locDE + ': ' + e); }
   });
-  sh.setRowHeights(chartRow, blocks.length * 2 * BAND + 1, 21);
+  sh.setRowHeights(chartRow, blocks.length * 3 * BAND + 1, 21);
   sh.setColumnWidth(1, 300); cols.forEach(function (c, ci) { sh.setColumnWidth(2 + ci, c.w ? 58 : 84); });
   sh.setFrozenColumns(1); // Spalte A bleibt beim seitlichen Scrollen stehen (Ruben 05.09.2026)
   colGroupWeeks(sh, cols, 2);
