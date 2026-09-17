@@ -2338,8 +2338,8 @@ function buildMonatsabschlussCore(ss) {
     sh.getRange(row0, 1).setValue(b.locDE).setFontWeight('bold');
     try {
       C(Charts.ChartType.LINE, rev, 5, hkeys.length, row0 + 1, 0, 'Umsatz ' + b.locDE + ' pro Monat (CHF brutto)', { colors: ['#1a73e8', '#34a853', '#a142f4', '#f29900'], pointSize: 6, hAxis: { format: 'MMM yy' } });
-      C(Charts.ChartType.COLUMN, sal, 4, hkeys.length, row0 + 1, 620, 'Verkäufe, Verluste und Nettowachstum ' + b.locDE + ' pro Monat', { colors: ['#1a73e8', '#d93025', '#34a853'], hAxis: { format: 'MMM yy' } });
-      C(Charts.ChartType.COLUMN, fun, 5, hkeys.length, row0 + BAND + 1, 0, 'Funnel ' + b.locDE + ' pro Monat', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], hAxis: { format: 'MMM yy' } });
+      C(Charts.ChartType.LINE, sal, 4, hkeys.length, row0 + 1, 620, 'Verkäufe, Verluste und Nettowachstum ' + b.locDE + ' pro Monat', { colors: ['#1a73e8', '#d93025', '#34a853'], pointSize: 6, hAxis: { format: 'MMM yy' } }); // Linie mit Punkten statt Balken (Ruben 17.09.)
+      C(Charts.ChartType.LINE, fun, 5, hkeys.length, row0 + BAND + 1, 0, 'Funnel ' + b.locDE + ' pro Monat', { colors: ['#9e9e9e', '#e2c210', '#1a73e8', '#d93025'], pointSize: 6, hAxis: { format: 'MMM yy' } }); // Linie mit Punkten statt Balken (Ruben 17.09.)
       C(Charts.ChartType.LINE, quo, 5, hkeys.length, row0 + BAND + 1, 620, 'Quoten ' + b.locDE + ' (höher = besser)', { colors: ['#34a853', '#1a73e8', '#f29900', '#9e9e9e'], pointSize: 6, vAxis: { format: '#%', minValue: 0 }, hAxis: { format: 'MMM yy' } });
       C(Charts.ChartType.LINE, wfun, 7, wkeys.length, row0 + 2 * BAND + 1, 0, 'Funnel ' + b.locDE + ' pro Woche', { colors: ['#9e9e9e', '#34a853', '#e2c210', '#1a73e8', '#0b8043', '#d93025'], pointSize: 6, hAxis: { format: 'dd.MM' } });
       C(Charts.ChartType.COLUMN, wkan, WK_PLATFORMS.length + 2, wkeys.length, row0 + 2 * BAND + 1, 620, 'Website-Leads ' + b.locDE + ' pro Woche nach Kanal', { isStacked: true, hAxis: { format: 'dd.MM' } });
