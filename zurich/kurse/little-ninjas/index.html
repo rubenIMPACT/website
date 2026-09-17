@@ -523,23 +523,6 @@ var data=JSON.parse(el.textContent);
 var WDN={Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
 function render(){box.innerHTML=data.map(function(e){return '<div class="ksrow"><div class="kd">'+WDN[e.wd]+'<div class="kt">'+e.t+'</div></div><div><div class="kn">'+e.n+'</div><small>'+e.lv+' · '+e.who+'</small></div></div>'}).join('')}
 render();
-function ageKey(n){var m=(n||'').match(/\d+/);return m?m[0]:''}
-fetch('/api/schedule?loc='+LOC).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
-if(!j.days)return;
-var W=['So','Mo','Di','Mi','Do','Fr','Sa'],seen={};
-j.days.forEach(function(d){
-var wd=W[new Date(d.date+'T12:00:00').getDay()];
-if(seen[wd])return;seen[wd]=1;
-(d.sessions||[]).forEach(function(sn){
-if(sn.slug!=='little-ninjas')return;
-var hit=null,i;
-for(i=0;i<data.length;i++){if(data[i].wd===wd&&data[i].t===sn.time&&!data[i]._m){hit=data[i];break}}
-if(!hit){for(i=0;i<data.length;i++){if(data[i].wd===wd&&!data[i]._m&&ageKey(data[i].n)===ageKey(sn.name)){hit=data[i];hit.t=sn.time;break}}}
-if(hit){hit._m=1;if(sn.coach)hit.who=sn.coach}
-});
-});
-render();
-}).catch(function(){});
 })();/*kidsched*/</script>
 <script>
 (function(){var hv=document.getElementById('herovid'),sb=document.getElementById('soundbtn'),hero=document.querySelector('.kidvideo'),hsec=document.querySelector('.kidshero');
