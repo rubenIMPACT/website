@@ -1117,7 +1117,7 @@ var CAL_TAG = '[IMPACT Events]';
 function authCalendar() { return CalendarApp.getDefaultCalendar().getName(); } // einmal im Editor ausfuehren (Kalender-Freigabe)
 function installCalendarTrigger() {
   var have = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'syncCalendar'; });
-  if (!have) ScriptApp.newTrigger('syncCalendar').timeBased().everyMinutes(10).create();
+  if (!have) ScriptApp.newTrigger('syncCalendar').timeBased().everyHours(3).create(); // alle 3 h statt 10 Min (Ruben 17.09., Laufzeit)
   return have ? 'trigger existiert' : 'trigger angelegt';
 }
 function syncCalendar() {
@@ -2472,7 +2472,7 @@ var LC_CLIENT = ['Client', 'Dependant client', 'Signed but no payment'];
 var LC_NOSHOW_OK = ['re-engage no-shows', 're-engage cancelled trial'].concat(LC_POST);
 var LC_EXCLUDE = ['Non-Client']; // Assistant Coach, Friends & Family: kein Trial
 var LC_PAY_OPEN = 'Signed but no payment';
-var TR_TRIG_VER = 'np1'; // Marke aendern = Trigger werden beim naechsten Stundenlauf neu angelegt // aendert sich, wenn die Trigger neu gesetzt werden muessen; der Stundenlauf zieht das selbst nach
+var TR_TRIG_VER = 'np2'; // Marke aendern = Trigger werden beim naechsten Stundenlauf neu angelegt // aendert sich, wenn die Trigger neu gesetzt werden muessen; der Stundenlauf zieht das selbst nach
 var TR_T = {
   de: {
     title: 'Probetrainings Zürich',
@@ -3020,13 +3020,15 @@ function trStaleAlarm() { // kein erfolgreicher Lauf seit > 3 h innerhalb 10-22 
   } catch (e) { Logger.log('Stale-Alarm: ' + e); }
 }
 function installTrialTriggers() {
-  ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail', 'runWerbekostenDaily', 'runLTVMonthly', 'runMonatsabschlussDaily', 'spDaily'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail', 'runWerbekostenDaily', 'runLTVMonthly', 'runMonatsabschlussDaily', 'spDaily', 'syncCalendar', 'importKlassenanalyse'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('runProbetrainingsHourly').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('trDailyMail').timeBased().atHour(12).nearMinute(0).everyDays(1).inTimezone(TZ).create();
   ScriptApp.newTrigger('runWerbekostenDaily').timeBased().atHour(6).nearMinute(30).everyDays(1).inTimezone(TZ).create();
   ScriptApp.newTrigger('runLTVMonthly').timeBased().onMonthDay(1).atHour(7).inTimezone(TZ).create(); // 07:00 statt 05:00 (Nachtpause, Ruben 17.09.)
   ScriptApp.newTrigger('runMonatsabschlussDaily').timeBased().atHour(6).nearMinute(20).everyDays(1).inTimezone(TZ).create(); // laufender Monat + Finanzplan-Uebertrag (07.09.); 06:20 statt 04:30 (Nachtpause, Ruben 17.09.)
   ScriptApp.newTrigger('spDaily').timeBased().atHour(6).nearMinute(50).everyDays(1).inTimezone(TZ).create(); // 06:50 statt 05:30 (Nachtpause)
+  ScriptApp.newTrigger('syncCalendar').timeBased().everyHours(3).create(); // Kalender-Abgleich alle 3 h statt alle 10 Min (Ruben 17.09.)
+  ScriptApp.newTrigger('importKlassenanalyse').timeBased().atHour(6).nearMinute(10).everyDays(1).inTimezone(TZ).create(); // Klassenanalyse taeglich 06:10 statt stuendlich (Ruben 17.09.)
   Logger.log('Trigger installiert: runProbetrainingsHourly (stuendlich, Pause 01-05), trDailyMail (12:00), runWerbekostenDaily (06:30), runMonatsabschlussDaily (06:20), runLTVMonthly (1., 07:00), spDaily (06:50)');
 }
 // Einmalig (04.09.2026): Team-Sheet aufbauen, Tabs aus dem Leads-Log entfernen, Analyse neu bauen
