@@ -703,7 +703,7 @@ async function ltv(H, p) {
     // Cash-Block (Ruben 06.09.): je Tag und Standort Anzahl, Betrag, Stripe-Gebuehr, Rueckerstattung, MwSt und "Net After Refunds"
     // (= Betrag - Rueckerstattung - Gebuehr = das, was Stripe 7 Kalendertage spaeter auszahlt)
     const by = {}, st = {};
-    all.forEach((x) => { const sv = String(x["Status"] || ""); st[sv] = (st[sv] || 0) + 1; if (!/succeeded/i.test(sv)) return; const d = chDate(x["Created"]), l = locOf(x["Location"] || x["Destination"]), k = d + "|" + l, a = by[k] = by[k] || [d, l, 0, 0, 0, 0, 0, 0]; a[2]++; a[3] += num(x["Amount"]); a[4] += num(x["Fee"]); a[5] += num(x["Amount Refund"]); a[6] += num(x["Tax"]); a[7] += num(x["Net After Refunds"]); });
+    all.forEach((x) => { const sv = String(x["Status"] || ""); st[sv] = (st[sv] || 0) + 1; if (!/succeeded/i.test(sv)) return; const d = chDate(x["Created"]), l = locOf(x["Location"] || x["Destination"]), k = d + "|" + l, a = by[k] = by[k] || [d, l, 0, 0, 0, 0, 0, 0, 0]; a[2]++; a[3] += num(x["Amount"]); a[4] += num(x["Fee"]); a[5] += num(x["Amount Refund"]); a[6] += num(x["Tax"]); a[7] += num(x["Net After Refunds"]); if (/subscription/i.test(String(x["Purchase Type"] || ""))) a[8] += num(x["Amount"]) - num(x["Amount Refund"]); }); // a[8] = Abo brutto je Tag (Wochenwerte Monatsabschluss, 17.09.)
     return { ready: true, month: mk, kind, n: all.length, statuses: st, rows: Object.keys(by).sort().map((k) => by[k].map((v, i) => (i < 3 ? v : Math.round(v * 100) / 100))) };
   }
   if (kind === "cancelled") {

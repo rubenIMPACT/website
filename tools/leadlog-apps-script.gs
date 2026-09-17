@@ -1121,6 +1121,7 @@ function installCalendarTrigger() {
   return have ? 'trigger existiert' : 'trigger angelegt';
 }
 function syncCalendar() {
+  if (nightPause()) return;
   try { recountSignups(); } catch (rc) {} // Sign-ups alle 10 Min nachzaehlen (geloeschte Testzeilen)
   var cal = CalendarApp.getDefaultCalendar(); var log = []; var today = new Date(); today.setHours(0, 0, 0, 0);
   // Gleiche ID in mehreren Jahres-Tabs (Tab-Kopien): nur der Tab, dessen Name das Jahr des Events ist, legt Termine an
@@ -1673,7 +1674,7 @@ var LTV_TABS = {
   charges: { name: LTV_DATA, head: LTV_HEAD },
   cancelled: { name: 'KuendigungenMonat', head: ['Monat', 'UID', 'E-Mail', 'Standort', 'Ende', 'Converted', 'Paket', 'Grund'] },
   lifecycle: { name: 'LifecycleMonat', head: ['Monat', 'E-Mail', 'Datum', 'Von', 'Nach'] },
-  sums: { name: 'ZahlungenTag', head: ['Monat', 'Datum', 'Standort', 'Anzahl', 'Betrag', 'Gebuehr', 'Refund', 'MwSt', 'Auszahlung'] }, // Cash-Block (06.09.)
+  sums: { name: 'ZahlungenTag', head: ['Monat', 'Datum', 'Standort', 'Anzahl', 'Betrag', 'Gebuehr', 'Refund', 'MwSt', 'Auszahlung', 'Abo brutto'] }, // Cash-Block (06.09.); Abo brutto je Tag seit 17.09. (Wochenwerte)
 };
 var LTV_FLAGS = 'KundenFlags', LTV_FLAGS_HEAD = ['UID', 'E-Mail', 'Migriert', 'Erstellt', 'TrialZH', 'TrialWT', 'StageID'];
 function nextMonth(mk) { return monthKeyStr(new Date(+mk.slice(0, 4), +mk.slice(5, 7), 1)); }
@@ -1688,6 +1689,12 @@ function ltvTab(ss, kind) {
 function ltvRows(ss, kind) {
   var t = LTV_TABS[kind], sh = ss.getSheetByName(t.name); if (!sh || sh.getLastRow() < 2) return [];
   return sh.getRange(2, 1, sh.getLastRow() - 1, t.head.length).getValues().map(function (r) { r[0] = mkOf(r[0]); return r; }).filter(function (r) { return /^\d{4}-\d{2}$/.test(r[0]); });
+}
+// Laufender Monat: Tageszahlungen neu holen (Zeilen des Monats ersetzen), fuer Wochen- und Monatswerte im Monatsabschluss (Ruben 17.09.2026)
+function ltvRefreshSums(ss, mk) {
+  var sh = ltvTab(ss, 'sums'), n = sh.getLastRow();
+  if (n >= 2) { var a = sh.getRange(2, 1, n - 1, 1).getValues(); for (var i = a.length - 1; i >= 0; i--) if (mkOf(a[i][0]) === mk) sh.deleteRow(i + 2); }
+  return ltvFetch(ss, mk, 'sums');
 }
 function ltvRead(ss) { return ltvRows(ss, 'charges').map(function (r) { return { mk: r[0], uid: String(r[1]), email: String(r[2] || ''), loc: String(r[3] || ''), type: String(r[4] || ''), net: Number(r[5]) || 0, gross: Number(r[6]) || 0, n: Number(r[7]) || 0 }; }); }
 function ltvQueue(ss) {
@@ -1925,11 +1932,11 @@ var MA_NOTES = {
   cancellations: 'Gleiche Zahl wie Verluste (Abo beendet).',
   debt_collection: 'Nur zur Information: Kontakte, die im Monat auf die Lifecycle-Stage Debt collection gewechselt sind (Nichtzahler). Zählt nicht als Verlust, solange das Abo nicht beendet ist.',
   net_growth: 'Verkäufe minus Verluste.',
-  cv_active: 'Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben (aus den Zahlungen in exercise.com, deshalb bis 2025 zurück). Personen, nicht Abos.',
+  cv_active: 'Kunden, die ein Abo gestartet und bis zu diesem Monat nicht wirksam gekündigt haben (aus den Zahlungen in exercise.com, deshalb bis 2025 zurück). Personen, nicht Abos. Laufender Monat und seine Wochen: Stand des letzten Laufs = Abos laut Report Active Subscriptions ohne geplante Starts (Abos, nicht Personen), wird am Monatsende durch den endgültigen Wert ersetzt.',
   cv_nopay: 'Davon Kunden ohne Abo-Belastung in diesem Monat: Pause, geplatzte Zahlung oder ausgelaufener Vertrag ohne Kündigungseintrag.',
   subs_total: 'Zum Vergleich: alle Abos am Tag des Laufs laut Report Active Subscriptions (laufend, Kündigung auf Periodenende, pausiert, geplanter Start). Zählt Abos, nicht Personen. Erst ab September 2026.',
   churn_rate: 'Verluste des Monats geteilt durch Kunden mit laufendem Abo. Jahr: alle Verluste geteilt durch alle Kundenmonate, nur Monate mit beiden Werten.',
-  cash_paid: 'Alle erfolgreichen Belastungen in exercise.com im Monat, brutto inkl. MwSt, nach Rückerstattungen. Jahreszahler zählen im Monat der Zahlung.',
+  cash_paid: 'Alle erfolgreichen Belastungen in exercise.com im Monat, brutto inkl. MwSt, nach Rückerstattungen. Jahreszahler zählen im Monat der Zahlung. Wochen und laufender Monat: Tageswerte, einmal täglich um 06:20 aktualisiert, der laufende Monat ist bis Monatsende unvollständig. Abos werden am Abo-Stichtag abgebucht, Wochenwerte schwanken deshalb stark.',
   abo_gross: 'Belastungen mit Abo-Bezug. Der Mehrbetrag der ersten Abo-Belastung (Zürich bucht das Starterpaket mit dem Abo zusammen ab) zählt bei den Einmalkäufen.',
   one_gross: 'Belastungen ohne Abo-Bezug: Starterpakete, Shop, Personal Training, Events.',
   cash_vat: 'Brutto minus brutto geteilt durch 1.081.',
@@ -1973,10 +1980,13 @@ function runMonatsabschluss(start, end) {
   maStoreCohorts(ss, mk, data.cohort || {});
   try { maWriteSalesCheck(ss, mk, data.sold_excluded_list || []); } catch (eSC) { Logger.log('MonthlySalesCheck: ' + eSC); }
   var lines = [];
+  var sumsRows = []; try { ltvRefreshSums(ss, mk); sumsRows = ltvRows(ss, 'sums').filter(function (r) { return r[0] === mk; }); } catch (eS) { Logger.log('Tageszahlungen ' + mk + ': ' + eS); }
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var L = data.locations[loc] || {}, m = {};
     Object.keys(L).forEach(function (k) { if (typeof L[k] === 'number') m[k] = L[k]; });
     [['starts_by_day', 'starts_d:'], ['cancels_by_day', 'cancels_d:'], ['leads_by_day', 'leads_d:'], ['debt_by_day', 'debt_d:'], ['signed_by_day', 'signed_d:']].forEach(function (dk) { var o = L[dk[0]] || {}; Object.keys(o).forEach(function (d) { m[dk[1] + d] = o[d]; }); }); // Tageswerte fuer die Wochenspalten (Ruben 07.09.)
+    sumsRows.forEach(function (sr) { if (String(sr[2]) !== loc) return; var d = dOfCell(sr[1]); if (!d) return; m['cash_d:' + d] = Math.round((Number(sr[4]) || 0) - (Number(sr[6]) || 0)); m['abo_d:' + d] = Math.round(Number(sr[9]) || 0); }); // Tageszahlungen brutto nach Refund, davon Abo (Ruben 17.09.)
+    if (L.subs_total !== undefined) m.cv_active_live = (Number(L.subs_total) || 0) - (Number(L.scheduled_subs) || 0); // laufender Monat: Kunden mit laufendem Abo = Stand des Laufs (Abos laut Report ohne geplante Starts)
     var fvNet = (L.first_visits || 0) - (L.first_visits_excluded || 0);
     m.noshow_rate = fvNet ? (L.trial_noshow || 0) / fvNet : 0;
     m.conv_simple = L.trial_attended ? (L.new_customers || 0) / L.trial_attended : 0;
@@ -1984,7 +1994,7 @@ function runMonatsabschluss(start, end) {
     m.conv_sales_lead = L.leads_all ? (L.sales_signed || 0) / L.leads_all : 0;
     var cnt = {}; ((data.signed || {})[loc] || []).forEach(function (sg) { var ld = trFindLead(leadMap, sg.email, '', sg.date); if (ld && ld.kanal) cnt[ld.kanal] = (cnt[ld.kanal] || 0) + 1; });
     KANAL_ORDER.forEach(function (kn) { m['sales_kanal:' + kn] = cnt[kn] || 0; });
-    maStoreMetricsMany(ss, [{ mk: mk, loc: loc, metrics: m, drop: ['starts_d:', 'cancels_d:', 'leads_d:', 'debt_d:', 'signed_d:'] }]);
+    maStoreMetricsMany(ss, [{ mk: mk, loc: loc, metrics: m, drop: ['starts_d:', 'cancels_d:', 'leads_d:', 'debt_d:', 'signed_d:', 'cash_d:', 'abo_d:'] }]);
     lines.push(loc + ': ' + (L.trial_attended || 0) + ' Probetrainings, ' + (L.new_customers || 0) + ' Neukunden, ' + (L.cancellations || 0) + ' Kuendigungen, netto ' + (L.net_growth || 0) + ', Abo-Umsatz brutto ' + (L.rev_membership_gross || 0) + ' CHF');
   });
   // Kohorten-Conversion fuer diesen und die zwei Vormonate
@@ -2184,6 +2194,7 @@ function buildMonatsabschlussCore(ss) {
     var mediaOf = function (agg, kk, pn) { var w = agg[kk]; if (!w) return ''; var pick = function (o) { return pn ? (o.plat[pn] || 0) : o.media; }; return Math.round(wrLocs.reduce(function (s, l) { return s + pick(w[l]); }, 0)); };
     var agencyOf = function (kk) { if (kk > curK || kk < '2026-01') return ''; var a = agencyM(kk); return Math.round(wrLocs.reduce(function (s, l) { return s + a[l]; }, 0)); };
     var daySum = function (c, prefix) { return daySumFor(wrLocs, c.k, c.mk, prefix); };
+    var monthDays = function (kk, prefix) { var s = 0, any = false; for (var i = 1; i <= 31; i++) { var d = kk + '-' + (i < 10 ? '0' + i : i); wrLocs.forEach(function (l) { var v = val[kk + '|' + l + '|' + prefix + d]; if (v !== undefined && v !== '') { any = true; s += num(v); } }); } return any ? s : ''; }; // Summe der Tageswerte eines Monats (laufender Monat, Ruben 17.09.)
     var mediaWeek = function (c, pn) { var s = 0, any = false; for (var i = 0; i < 7; i++) { var d = addDs(c.k, i); if (d.slice(0, 7) !== c.mk) continue; var w = wkD[d]; if (!w) continue; any = true; wrLocs.forEach(function (l) { s += pn ? (w[l].plat[pn] || 0) : w[l].media; }); } return any ? Math.round(s) : ''; };
     var V = function (key) { // Wert einer Kennzahl je Spalte: Woche aus Log, Team-Sheet und Tageswerten, Monat aus exercise.com (Team-Sheet-Monatswerte ab MA_TEAM_FROM)
       return function (c) {
@@ -2205,7 +2216,10 @@ function buildMonatsabschlussCore(ss) {
           case 'losses': return c.w ? daySum(c, 'cancels_d:') : vOf(kk, 'cancellations'); // Variante A (Ruben 09.09.): nur beendete Abos, Debt collection kein Verlust
           case 'net_growth': var s1 = c.w ? daySum(c, 'starts_d:') : vOf(kk, 'new_customers'), s2 = V('losses')(c); return s1 === '' && s2 === '' ? '' : num(s1) - num(s2);
           case 'subs_total': if (kk < MA_SNAP_FROM) return ''; var st = vOf(kk, key); if (st !== '') return st; var a = vOf(kk, 'active_subs'); return a === '' ? '' : num(a) + num(vOf(kk, 'paused_subs')) + num(vOf(kk, 'scheduled_subs'));
-          case 'cash_paid': var ag = vOf(kk, 'abo_gross'), og = vOf(kk, 'one_gross'); return ag === '' && og === '' ? '' : num(ag) + num(og);
+          case 'cash_paid': if (c.w) return daySum(c, 'cash_d:'); var ag = vOf(kk, 'abo_gross'), og = vOf(kk, 'one_gross'); if (ag !== '' || og !== '') return num(ag) + num(og); return monthDays(kk, 'cash_d:'); // Woche und laufender Monat aus Tageszahlungen (Ruben 17.09.)
+          case 'abo_gross': if (c.w) return daySum(c, 'abo_d:'); var ag2 = vOf(kk, 'abo_gross'); return ag2 !== '' ? ag2 : monthDays(kk, 'abo_d:');
+          case 'one_gross': if (c.w) { var cpw = daySum(c, 'cash_d:'); return cpw === '' ? '' : num(cpw) - num(daySum(c, 'abo_d:')); } var og2 = vOf(kk, 'one_gross'); if (og2 !== '') return og2; var cpm = monthDays(kk, 'cash_d:'); return cpm === '' ? '' : num(cpm) - num(monthDays(kk, 'abo_d:'));
+          case 'cv_active': if (c.w) return vOf(c.mk, 'cv_active_live'); var cva = vOf(kk, 'cv_active'); return cva !== '' ? cva : vOf(kk, 'cv_active_live'); // laufender Monat und seine Wochen: Stand des letzten Laufs
           case 'cash_total': var ff = ['stripe', 'adyen', 'customers', 'other'].map(function (f) { return bankOf(loc, kk, f); }); return ff.every(function (x) { return x === ''; }) ? '' : ff.reduce(function (s, x) { return s + num(x); }, 0);
           case 'cash_diff': var bs = bankOf(loc, kk, 'stripe'), ex = cashOf[loc][kk] ? cashOf[loc][kk].expect : undefined; return bs === '' || ex === undefined ? '' : Math.round(num(bs) - ex);
           case 'wk_media': return c.w ? mediaWeek(c) : mediaOf(wkM, kk);
@@ -2260,13 +2274,13 @@ function buildMonatsabschlussCore(ss) {
       put(def[0], def[1], fn, def[2], { detail: fl.indexOf('d') >= 0, weekly: fl.indexOf('w') >= 0, bold: fl.indexOf('b') >= 0 });
     });
     // Umsatz: brutto zuerst, davon netto und MwSt (Ruben 07.09.2026), alles aus derselben Quelle (Charges); Bank als eine Kontrollzeile mit Details
-    put('cash_paid', 'Zahlungen der Kunden brutto (inkl. MwSt)', V('cash_paid'), '#,##0', B);
-    put('abo_gross', '   davon Abo', V('abo_gross'), '#,##0', D);
-    put('one_gross', '   davon Einmalkäufe (Starterpakete, Shop, PT)', V('one_gross'), '#,##0', D);
-    put('cash_vat', 'MwSt darin (8.1 %)', function (c, ci) { var a = cellOf('cash_paid', ci); return '=IF(' + a + '="","",' + a + '-' + a + '/' + VAT + ')'; }, '#,##0');
-    put('cash_net', 'Umsatz netto', divVat('cash_paid'), '#,##0', B);
-    put('cv_abo_gross', 'Abo-Umsatz brutto je Kunde', ratio('abo_gross', 'cv_active'), '#,##0', B);
-    put('cv_abo_net', 'Abo-Umsatz netto je Kunde', divVat('cv_abo_gross'), '#,##0');
+    put('cash_paid', 'Zahlungen der Kunden brutto (inkl. MwSt)', V('cash_paid'), '#,##0', { bold: true, weekly: true });
+    put('abo_gross', '   davon Abo', V('abo_gross'), '#,##0', { detail: true, weekly: true });
+    put('one_gross', '   davon Einmalkäufe (Starterpakete, Shop, PT)', V('one_gross'), '#,##0', { detail: true, weekly: true });
+    put('cash_vat', 'MwSt darin (8.1 %)', function (c, ci) { var a = cellOf('cash_paid', ci); return '=IF(' + a + '="","",' + a + '-' + a + '/' + VAT + ')'; }, '#,##0', { weekly: true });
+    put('cash_net', 'Umsatz netto', divVat('cash_paid'), '#,##0', { bold: true, weekly: true });
+    put('cv_abo_gross', 'Abo-Umsatz brutto je Kunde', ratio('abo_gross', 'cv_active'), '#,##0', { bold: true, weekly: true });
+    put('cv_abo_net', 'Abo-Umsatz netto je Kunde', divVat('cv_abo_gross'), '#,##0', { weekly: true });
     put('cash_total', 'Bankeingang gesamt laut Konto', V('cash_total'), '#,##0', B);
     put('bank:stripe', '   davon Stripe', V('bank:stripe'), '#,##0', D);
     put('bank:adyen', '   davon Magicline (Adyen)', V('bank:adyen'), '#,##0', D);
@@ -2458,7 +2472,7 @@ var LC_CLIENT = ['Client', 'Dependant client', 'Signed but no payment'];
 var LC_NOSHOW_OK = ['re-engage no-shows', 're-engage cancelled trial'].concat(LC_POST);
 var LC_EXCLUDE = ['Non-Client']; // Assistant Coach, Friends & Family: kein Trial
 var LC_PAY_OPEN = 'Signed but no payment';
-var TR_TRIG_VER = 'wm2'; // Marke aendern = Trigger werden beim naechsten Stundenlauf neu angelegt // aendert sich, wenn die Trigger neu gesetzt werden muessen; der Stundenlauf zieht das selbst nach
+var TR_TRIG_VER = 'np1'; // Marke aendern = Trigger werden beim naechsten Stundenlauf neu angelegt // aendert sich, wenn die Trigger neu gesetzt werden muessen; der Stundenlauf zieht das selbst nach
 var TR_T = {
   de: {
     title: 'Probetrainings Zürich',
@@ -2969,8 +2983,10 @@ function payDailyMail() {
   lines.push('', 'https://docs.google.com/spreadsheets/d/' + ss.getId());
   MailApp.sendEmail({ to: [MAIL.fallback].concat(PAY_ACCESS).join(','), subject: '[Open payments] ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy'), body: lines.join('\n') });
 }
+// Nachtpause (Ruben 17.09.2026): letzter Lauf um 00:xx, erster um 06:xx; dazwischen laufen keine automatischen Aktualisierungen
+function nightPause() { var h = Number(Utilities.formatDate(new Date(), TZ, 'H')); return h >= 1 && h <= 5; }
 function runProbetrainingsHourly() {
-  var h = Number(Utilities.formatDate(new Date(), TZ, 'H')); if (h < 9 || h > 22) return;
+  if (nightPause()) return;
   try { var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('trTrigVer') !== TR_TRIG_VER) { installTrialTriggers(); pr.setProperty('trTrigVer', TR_TRIG_VER); } } catch (e0) { Logger.log('Trigger-Update: ' + e0); }
   try { var pr1 = PropertiesService.getScriptProperties(); if (pr1.getProperty('teamShareVer') !== String(TEAM_SHARED)) { Logger.log(teamShare()); pr1.setProperty('teamShareVer', String(TEAM_SHARED)); } } catch (e3) { Logger.log('Team-Freigabe: ' + e3); }
   try { maQueueCatchUp(); } catch (e1) { Logger.log('Monats-Nachlauf: ' + e1); }
@@ -3004,13 +3020,14 @@ function trStaleAlarm() { // kein erfolgreicher Lauf seit > 3 h innerhalb 10-22 
   } catch (e) { Logger.log('Stale-Alarm: ' + e); }
 }
 function installTrialTriggers() {
-  ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail', 'runWerbekostenDaily', 'runLTVMonthly', 'runMonatsabschlussDaily'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (['runProbetrainingsHourly', 'trDailyMail', 'runWerbekostenDaily', 'runLTVMonthly', 'runMonatsabschlussDaily', 'spDaily'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('runProbetrainingsHourly').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('trDailyMail').timeBased().atHour(12).nearMinute(0).everyDays(1).inTimezone(TZ).create();
   ScriptApp.newTrigger('runWerbekostenDaily').timeBased().atHour(6).nearMinute(30).everyDays(1).inTimezone(TZ).create();
-  ScriptApp.newTrigger('runLTVMonthly').timeBased().onMonthDay(1).atHour(5).inTimezone(TZ).create();
-  ScriptApp.newTrigger('runMonatsabschlussDaily').timeBased().atHour(4).nearMinute(30).everyDays(1).inTimezone(TZ).create(); // laufender Monat + Finanzplan-Uebertrag (07.09.)
-  Logger.log('Trigger installiert: runProbetrainingsHourly (stuendlich, 09-22), trDailyMail (12:00), runWerbekostenDaily (06:30)');
+  ScriptApp.newTrigger('runLTVMonthly').timeBased().onMonthDay(1).atHour(7).inTimezone(TZ).create(); // 07:00 statt 05:00 (Nachtpause, Ruben 17.09.)
+  ScriptApp.newTrigger('runMonatsabschlussDaily').timeBased().atHour(6).nearMinute(20).everyDays(1).inTimezone(TZ).create(); // laufender Monat + Finanzplan-Uebertrag (07.09.); 06:20 statt 04:30 (Nachtpause, Ruben 17.09.)
+  ScriptApp.newTrigger('spDaily').timeBased().atHour(6).nearMinute(50).everyDays(1).inTimezone(TZ).create(); // 06:50 statt 05:30 (Nachtpause)
+  Logger.log('Trigger installiert: runProbetrainingsHourly (stuendlich, Pause 01-05), trDailyMail (12:00), runWerbekostenDaily (06:30), runMonatsabschlussDaily (06:20), runLTVMonthly (1., 07:00), spDaily (06:50)');
 }
 // Einmalig (04.09.2026): Team-Sheet aufbauen, Tabs aus dem Leads-Log entfernen, Analyse neu bauen
 function setupTeam() {
