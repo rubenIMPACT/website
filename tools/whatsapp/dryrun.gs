@@ -1030,3 +1030,10 @@ function waTeamRulebook() { // one-off (Ruben 16.09., go): the Google Doc "Call 
   [[', the coach ticks .Reached., or the lead is closed', ', or the lead is closed'], [', the coach reaches the person by phone, or the lead is closed', ', or the lead is closed'], ['A message or call by the coach does not stop it', 'A message by the coach does not stop it']].forEach(function (r) { if (mb.findText(r[0])) { mb.replaceText(r[0], r[1]); n++; } });
   Logger.log('messages doc: ' + n + ' of 3 "Reached" phrases replaced');
 }
+
+// One-off probe (17.09.2026): does the script see support@ as a "Send mail as" address? Needed before payment e-mails go out from support@.
+function waProbeAliases() {
+  var a = GmailApp.getAliases();
+  Logger.log('Send-as addresses visible to the script: ' + (a.length ? a.join(', ') : 'none'));
+  Logger.log(a.indexOf('support@impact-martialarts.com') >= 0 ? 'OK: support@impact-martialarts.com can be used as sender' : 'MISSING: support@impact-martialarts.com not in the list');
+}
