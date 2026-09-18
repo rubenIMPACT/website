@@ -1197,6 +1197,11 @@ function blogSheet() {
   var ss = SpreadsheetApp.openById(BLOG_ID);
   var sh = ss.getSheets()[0];
   if (String(sh.getRange(1, 1).getValue()) !== BLOG_HEAD[0]) blogSetup(ss, sh);
+  var props = PropertiesService.getScriptProperties(); // first fill exactly once (checkbox cells count as content, so getLastRow is useless here)
+  if (props.getProperty('blogSeeded') !== '1') {
+    var titles = sh.getRange(2, 3, Math.max(1, sh.getMaxRows() - 1), 1).getValues().some(function (r) { return String(r[0]).trim() !== ''; });
+    if (titles || blogSeed(sh) > 0) props.setProperty('blogSeeded', '1');
+  }
   return sh;
 }
 function blogSetup(ss, sh) {
@@ -1215,7 +1220,6 @@ function blogSetup(ss, sh) {
   sh.getRange(2, 7, rows, 2).setFontColor('#888888');
   [70, 90, 260, 300, 220, 420, 220, 200].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
   sh.setRowHeightsForced(2, rows, 42); // long texts stay compact; the full text is visible in the formula bar
-  if (sh.getLastRow() < 2) blogSeed(sh);
 }
 // First fill: the six posts that were already on the website (data/blog.json in the public repo).
 function blogSeed(sh) {
