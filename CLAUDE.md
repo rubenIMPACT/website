@@ -871,7 +871,7 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - 17.09.2026 10:07-10:22: manueller Monatsabschluss-Bau kurz nach dem Stundenlauf (:58 Team -> ~:00 MA-Bau -> ~:04 Werbekosten-Bau) kollidierte trotz Lock: Tab hatte zwei Jahresspalten, getCharts() defekt -> clearSheet hat den Tab Monatsabschluss NEU angelegt (neue gid 569871022, alte Links auf gid=1040235381 zeigen ins Leere), erster Neubau scheiterte am Spreadsheet-Timeout, zweiter Bau 50 s ok. REGEL: manuelle Monatsabschluss-/Werbekosten-Baue nie zwischen :55 und :12 starten (nicht nur :08).
 
 ## IMPACT App section (18.09.2026)
-- `<section class="appsec" id="app">` on BJJ pages (ZH/WT, DE/EN, before `#zeiten`) and homepage DE/EN (before `#instagram`). CSS marker `/*appsec*/`, script ends with `/*appsec*/`.
+- `<section class="appsec" id="app">` on BJJ pages (ZH/WT, DE/EN, before `#zeiten`) homepage DE/EN and the four city pages (`zurich/`, `winterthur/`, `en/zurich/`, `en/winterthur/`), each before `#instagram`; city pages link the CTA with `?loc=`. CSS marker `/*appsec*/`, script ends with `/*appsec*/`.
 - Video `assets/impact-app.mp4` (720x1280, 4.6 MB, English narration, burned-in captions), poster `assets/impact-app-poster.jpg`. `preload="none"`, playback via IntersectionObserver.
 - Sound button `#appsnd` mirrors the hero button (fixed bottom right on mobile, only visible while section is in view; inside the video box on desktop). Sound on: restart at 0, hero video gets muted, on mobile class `cinema` fades the text. Leaving the section mutes again.
 - Mobile while muted: video skips the first 5 s (title card would collide with the headline). Needs Range support, so local tests need a range-capable server (python http.server cannot seek).
