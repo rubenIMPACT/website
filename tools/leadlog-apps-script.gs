@@ -1177,7 +1177,7 @@ function syncCalendar() {
    One row = one post. Read by Cloudflare /api/blog (what=blog) and turned into static pages once a day by the GitHub workflow
    blog-sync (tools/blog_from_api.py + tools/build_blog.py). Only rows with a tick in "Website" and all required fields are exported. */
 var BLOG_ID = '13PcwnjnrlX6kLLfrVWk3-sQTB9O7Z6aXD-_wBmUVQ7k';
-var BLOG_HEAD = ['Website', 'Date', 'Title', 'Description', 'Photo URL', 'Text', 'Slug', 'Check'];
+var BLOG_HEAD = ['Website', 'Date', 'Title', 'Description', 'Photo URL', 'Text', 'Website URL', 'Slug', 'Check'];
 var BLOG_NOTES = [
   'Tick = the post goes online with the next daily build (every morning). Remove the tick = the post is taken off the website with the next build.',
   'Publication date, e.g. 18.09.2026. The newest post is listed first.',
@@ -1185,7 +1185,8 @@ var BLOG_NOTES = [
   'One or two sentences. Google shows them under the title in the search results. Empty = "<Title> – Artikel von IMPACT Martial Arts."',
   'Photo at the top of the post. Paste a normal Google Drive link (no public sharing needed, Ruben\'s account must be able to open the file) or any https image link. Landscape format works best. Empty = post without photo.',
   'The article. Empty line = new paragraph. Line starting with "# " = subheading. Lines starting with "- " = bullet list. **bold**, *italic*, [link text](https://...). New line inside a cell: Ctrl+Enter (Mac: Cmd+Enter).',
-  'Web address of the post (www.impact-martialarts.com/articles/<slug>/). Filled in automatically from the title. Do not change it afterwards, old links would break.',
+  'Link to the post on the website. Filled in by the script for every ticked post. A new post opens under this link after the next build.',
+  'Hidden helper column: the last part of the link (www.impact-martialarts.com/articles/<slug>/). Filled in automatically from the title the first time and then kept, so the link stays the same even if the title changes. Do not change it, old links would break.',
   'Filled in by the script: OK = will be online, otherwise what is still missing.'
 ];
 function blogSlug(title) {
@@ -1197,6 +1198,15 @@ function blogSheet() {
   var ss = SpreadsheetApp.openById(BLOG_ID);
   var sh = ss.getSheets()[0];
   if (String(sh.getRange(1, 1).getValue()) !== BLOG_HEAD[0]) blogSetup(ss, sh);
+  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  if (head.indexOf('Website URL') < 0 && head.indexOf('Slug') >= 0) { // 18.09.2026 (Ruben): visible link column, Slug becomes a hidden helper
+    var sc = head.indexOf('Slug') + 1;
+    sh.insertColumnBefore(sc);
+    sh.getRange(1, sc).setValue('Website URL').setNote(BLOG_NOTES[6]);
+    sh.getRange(1, sc + 1).setNote(BLOG_NOTES[7]);
+    sh.getRange(2, sc, sh.getMaxRows() - 1, 1).setNumberFormat('@').setFontColor('#888888').setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    sh.setColumnWidth(sc, 320); sh.hideColumns(sc + 1);
+  }
   var props = PropertiesService.getScriptProperties(); // first fill exactly once (checkbox cells count as content, so getLastRow is useless here)
   if (props.getProperty('blogSeeded') !== '1') {
     var titles = sh.getRange(2, 3, Math.max(1, sh.getMaxRows() - 1), 1).getValues().some(function (r) { return String(r[0]).trim() !== ''; });
@@ -1217,8 +1227,9 @@ function blogSetup(ss, sh) {
   sh.getRange(2, 3, rows, n - 2).setNumberFormat('@');
   sh.getRange(2, 1, rows, n).setVerticalAlignment('top').setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
   sh.getRange(2, 3, rows, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  sh.getRange(2, 7, rows, 2).setFontColor('#888888');
-  [70, 90, 260, 300, 220, 420, 220, 200].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  sh.getRange(2, 7, rows, 3).setFontColor('#888888');
+  [70, 90, 260, 300, 220, 420, 320, 220, 200].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  sh.hideColumns(8);
   sh.setRowHeightsForced(2, rows, 42); // long texts stay compact; the full text is visible in the formula bar
 }
 // First fill: the six posts that were already on the website (data/blog.json in the public repo).
@@ -1246,7 +1257,7 @@ function blogRead() {
     var on = v[col.Website] === true, dv = v[col.Date], date = '';
     if (dv instanceof Date) date = Utilities.formatDate(dv, TZ, 'yyyy-MM-dd');
     else { var m = String(dv || '').trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (m) date = m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); }
-    if (!title && !text && !on) { if (String(v[col.Check] || '') !== '') sh.getRange(i + 2, col.Check + 1).setValue(''); return; }
+    if (!title && !text && !on) { if (String(v[col.Check] || '') !== '') sh.getRange(i + 2, col.Check + 1).setValue(''); if (String(v[col['Website URL']] || '') !== '') sh.getRange(i + 2, col['Website URL'] + 1).setValue(''); return; }
     if (!slug && title) {
       var base = blogSlug(title) || 'post', k = 1; slug = base;
       while (used[slug]) { k++; slug = base + '-' + k; }
@@ -1256,6 +1267,8 @@ function blogRead() {
     if (slug && !/^[a-z0-9-]+$/.test(slug)) miss.push('Slug (only a-z, 0-9 and -)');
     var check = miss.length ? 'Missing: ' + miss.join(', ') : (on ? 'OK' : 'OK, not ticked');
     if (String(v[col.Check] || '') !== check) sh.getRange(i + 2, col.Check + 1).setValue(check);
+    var link = (on && !miss.length) ? 'https://www.impact-martialarts.com/articles/' + slug + '/' : '';
+    if (String(v[col['Website URL']] || '') !== link) sh.getRange(i + 2, col['Website URL'] + 1).setValue(link);
     if (!on) return;
     if (miss.length) { notes.push('row ' + (i + 2) + ': ' + check); return; }
     posts.push({ slug: slug, date: date, title: title, description: String(v[col.Description] || '').trim(), image: String(v[col['Photo URL']] || '').trim(), text: text });
