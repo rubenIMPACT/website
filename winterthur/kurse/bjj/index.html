@@ -549,6 +549,30 @@ nav .logo img{height:32px}
 
 @media(min-width:900px){.claimband ul{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px}.claimband li{white-space:nowrap}}
 </style>
+<style>/*appsec*/
+.appsec{position:relative;overflow:hidden;aspect-ratio:9/16;display:flex;flex-direction:column;justify-content:flex-end;background:#000}
+.appsec .app-media{position:absolute;inset:0}
+.appsec .app-media video{width:100%;height:100%;object-fit:cover;display:block}
+.appsec .app-ovl{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.15) 30%,rgba(0,0,0,.82) 52%,#000 86%);transition:opacity .45s}
+.appsec .app-content{position:relative;z-index:2;padding:0 var(--mx) 36px;transition:opacity .45s}
+.appsec h2{font-size:clamp(30px,8.4vw,44px);line-height:1.02;text-transform:uppercase;font-weight:800;margin:10px 0 14px}
+.appsec .app-content p{color:#ddd;font-size:16px;line-height:1.6;max-width:520px;margin-bottom:24px}
+.appsec.cinema .app-content{opacity:0;pointer-events:none}
+.appsec.cinema .app-ovl{opacity:.2}
+.appsnd{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;width:54px;height:54px;border-radius:99px;background:rgba(0,0,0,.7);border:2px solid var(--gold);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:opacity .3s}
+.appsnd.hid{opacity:0;pointer-events:none}
+.appsnd svg{display:none}.appsnd .ic-off{display:block}.appsnd.sndon .ic-off{display:none}.appsnd.sndon .ic-on{display:block}
+@media(min-width:900px){
+.appsec{flex-direction:row;align-items:center;justify-content:space-between;aspect-ratio:auto;padding:90px var(--mx)}
+.appsec .app-media{position:relative;inset:auto;order:2;flex:none;height:min(680px,78vh);aspect-ratio:9/16;border-radius:14px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.6);margin-left:40px}
+.appsec .app-ovl{display:none}
+.appsec .app-content{order:1;padding:0;min-width:0}
+.appsec h2{font-size:clamp(44px,4.4vw,62px)}
+.appsec .app-content p{font-size:17px}
+.appsnd{position:absolute;bottom:16px;right:16px;z-index:3}
+.appsec.cinema .app-content{opacity:1;pointer-events:auto}
+}
+</style>
 </head>
 <body>
 <div class="navwrap" id="navwrap"><div class="topbar"><a href="/ueber-uns/">Über uns</a><a href="/events/">Events</a><a href="/karriere/">Karriere</a><a href="/articles/">Blog</a><span class="langtog"><span class="lt-on">DE</span><span class="lt-sep">/</span><a href="/en/winterthur/classes/bjj/">EN</a></span></div>
@@ -743,6 +767,17 @@ Technoparkstrasse 3, Winterthur
 
 <div class="photo rev fullphoto" style="aspect-ratio:990/540"><img src="/assets/wf/34464361-6a356508e92bb161c27da37c-IMPACT-Website-12-.png" alt="IMPACT Community nach dem Training" loading="lazy" onerror="this.remove()"><div class="cap">Die Community · IMPACT</div></div>
 
+
+<section class="appsec" id="app">
+<div class="app-media"><video id="appvid" muted playsinline preload="none" poster="/assets/impact-app-poster.jpg"><source src="/assets/impact-app.mp4" type="video/mp4"></video><button class="appsnd hid" id="appsnd" type="button" aria-label="Ton an" data-off="Ton aus"><svg class="ic-off" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg><svg class="ic-on" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></button></div>
+<div class="app-ovl"></div>
+<div class="app-content">
+<div class="idx rev">IMPACT APP</div>
+<h2 class="rev">Lern weiter,<br><span class="accent">auch zu Hause.</span></h2>
+<p class="rev">In der IMPACT-App siehst du die Themen der kommenden Woche, schaust dir die Technik vor der Stunde an und vertiefst sie mit unserer Online Training Library, wo immer du gerade bist.</p>
+<a class="cta" href="#anmelden">Gratis Probetraining</a>
+</div>
+</section>
 
 <section class="chapter" id="zeiten">
 <div class="chaphead">
@@ -966,5 +1001,19 @@ t.addEventListener('click',function(e){
 });});
 document.addEventListener('click',function(e){var d=document.querySelector('.dd.open');if(d&&!d.contains(e.target))d.classList.remove('open');});
 })();/*ddtap*/</script>
-<script defer src="/assets/track.js"></script></body>
+<script defer src="/assets/track.js"></script><script>
+(function(){var sec=document.getElementById('app'),v=document.getElementById('appvid'),b=document.getElementById('appsnd');if(!sec||!v||!b)return;
+var SKIP=5;function ov(){return window.innerWidth<900}
+v.addEventListener('loadedmetadata',function(){if(v.muted&&ov()&&v.currentTime<SKIP)try{v.currentTime=SKIP}catch(e){}});
+v.addEventListener('ended',function(){try{v.currentTime=(v.muted&&ov())?SKIP:0}catch(e){}var p=v.play();if(p&&p.catch)p.catch(function(){})});
+var L_ON=b.getAttribute('aria-label'),L_OFF=b.getAttribute('data-off');
+function mute(){v.muted=true;b.classList.remove('sndon');sec.classList.remove('cinema');b.setAttribute('aria-label',L_ON)}
+b.addEventListener('click',function(){
+ if(v.muted){var hv=document.getElementById('herovid');if(hv&&!hv.muted){var sb=document.getElementById('soundbtn');if(sb)sb.click();else hv.muted=true}
+  try{v.currentTime=0}catch(e){}v.muted=false;b.classList.add('sndon');b.setAttribute('aria-label',L_OFF);if(window.innerWidth<900)sec.classList.add('cinema');var p=v.play();if(p&&p.catch)p.catch(function(){})}
+ else mute()});
+if('IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(e){
+ b.classList.toggle('hid',!e.isIntersecting);if(e.isIntersecting){if(v.paused){var p=v.play();if(p&&p.catch)p.catch(function(){})}}else{v.pause();if(!v.muted)mute()}})},{threshold:.25}).observe(sec)}
+})();/*appsec*/</script>
+</body>
 </html>
