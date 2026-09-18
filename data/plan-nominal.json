@@ -4,7 +4,7 @@
   "winterthur": "Overall Schedule WIN 2.2 (1o82fupJn7Y1PNecAVjGa5G8ziFEHG3QuwxTrtQfJR0o)",
   "transcribed": "16.09.2026",
   "note": "Nominalplan, automatisch aus den Slides (Apps Script spReadDecks -> /api/plan-nominal -> tools/plan_from_api.py). NICHT von Hand aendern: die Folie aendern, der taegliche Workflow zieht nach. Zellen: [Klasse, Level, Trainerkuerzel]; Mat A zuerst.",
-  "synced": "17.09.2026 aus den Slides (Apps Script)"
+  "synced": "18.09.2026 aus den Slides (Apps Script)"
  },
  "zurich": {
   "Mo": {
