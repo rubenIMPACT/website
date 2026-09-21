@@ -34,9 +34,10 @@ GitHub Actions (daily): plan-sync  = timetable from the Google Slides decks -> p
 | Blog `/articles/` | Google Sheet "IMPACT Blog" | workflow `blog-sync` -> `tools/build_blog.py` | daily ~06:50 or "Run workflow" |
 | Events `/events/` | Google Sheet "Event Planner" (tick "Website") | read live by the page via `/api/events` | ~5 minutes |
 | Instagram tiles | Instagram account @impactmartialarts_ch | read live via `/api/instagram` | ~1 hour |
-| Everything else (texts, team, course pages, photos) | the HTML files in this repo | edit, check, push | ~90 seconds |
+| Team and staff (cards, bios, coach cards on course pages) | Google Sheet "IMPACT Website Content", tab Team | workflow `content-sync` -> `tools/build_team.py` | tick "Publish now" (~3 min) or daily ~07:10 |
+| Everything else (texts, course pages, photos) | the HTML files in this repo | edit, check, push | ~90 seconds |
 
-A sheet-based CMS for team and course pages is planned (same pattern as the blog). Until then these are edited in the HTML.
+Course page texts move into the same sheet next (one tab per discipline: Section, Field, Location, Deutsch, English). Until then they are edited in the HTML.
 
 ## Folder map
 
@@ -46,10 +47,10 @@ A sheet-based CMS for team and course pages is planned (same pattern as the blog
 | `en/` | English mirror (36 pages). Change German content = change the English twin too |
 | `training-plan/index.html` | Members' training-plan tool, one self-contained file (English) |
 | `assets/` | Images, videos, fonts, `track.js` (funnel events) |
-| `data/` | `plan-nominal.json` (timetable), `blog.json` (posts), `events.json` (emergency fallback). Written by the workflows |
+| `data/` | `plan-nominal.json` (timetable), `blog.json` (posts), `team.json` (team), `coach-lineups.json` (coaches per course page), `events.json` (emergency fallback). Written by the workflows |
 | `functions/api/` | Cloudflare Functions (server code). `functions/_middleware.js` = all redirects from old URLs |
 | `tools/` | Active scripts (see below). `tools/archive/` = one-off migration scripts, never run again |
-| `.github/workflows/` | `plan-sync.yml`, `blog-sync.yml` (daily), `mirror-assets.yml` (one-off from the Webflow migration) |
+| `.github/workflows/` | `plan-sync.yml`, `blog-sync.yml`, `content-sync.yml` (daily + tick box), `mirror-assets.yml` (one-off from the Webflow migration) |
 | `docs/` | Handbook: `how-to.md`, `website.md`, `automations.md`, `apps-script.md`, `accounts.md` |
 | `_redirects`, `_routes.json`, `robots.txt`, `sitemap.xml`, `404.html` | Cloudflare Pages / SEO basics |
 
@@ -59,6 +60,7 @@ Active scripts in `tools/`:
 |---|---|
 | `plan_from_api.py`, `build_plan.py`, `schedule-check.py` | Timetable: fetch from slides, write all 35 places, verify cell by cell |
 | `blog_from_api.py`, `build_blog.py` | Blog: fetch sheet + photos, build article pages, index, sitemap |
+| `content_from_api.py`, `build_team.py` | Team: fetch the Team tab + photos, build cards, bio overlays and coach cards everywhere |
 | `training-plan-check.py` | Regression check of the training-plan tool (needs the Playwright venv) |
 | `build_kurse.py` | Course-page text blocks (content dictionary per discipline, DE/EN). Basis for the planned CMS |
 | `leadlog-apps-script.gs` | Reference copy of the Google Apps Script (without the token line) |

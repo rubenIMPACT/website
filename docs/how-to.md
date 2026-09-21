@@ -21,11 +21,12 @@ If the slide cannot be read cleanly the workflow stops and nothing changes.
 Find the page folder (URL = folder), edit `index.html`, and do the same in the `/en/` twin. Photos go to `assets/` (absolute paths `/assets/...`,
 JPEG/AVIF, long edge max. ~2000 px). Videos: H.264 yuv420p + AAC, `+faststart`, poster image, `preload="none"` below the fold.
 
-## Add or change a trainer / staff member (today, before the CMS)
-A person appears in several places. Search the repo for the name. Usual places:
-`zurich/team/`, `winterthur/team/`, the city pages `zurich/`, `winterthur/`, `ueber-uns/`, the course pages of their disciplines
-(coach section: `<p class="sum">` = first paragraph, `<div class="biofull">` = rest), plus all `/en/` twins.
-On team/city/about pages the long bio sits in the JSON block `<script id="trbios">`. Cards without a bio carry class `nobio`.
+## Add or change a trainer / staff member
+Google Sheet "IMPACT Website Content", tab "Team": one row per person (Name, Location Both/Zürich/Winterthur, roles, highlight, photo link, summary, bio,
+ticks for Website / Homepage / Founder, Order). Column "Check" must say `OK`. Then tick "PUBLISH NOW" in A1 (or wait for the next morning).
+The build rewrites the cards and bio overlays on all team, city, about and home pages and the coach cards on the course pages, German and English.
+Never edit these cards in the HTML, the next build overwrites them. WHO coaches which course (and in which order) is in `data/coach-lineups.json`
+until the course tabs exist; a new coach must be added there once by a developer. The head coach block on the BJJ pages is hand-made HTML.
 
 ## Change something on ALL pages (header, footer, tracking)
 Shared CSS/JS is copied into every page and tagged with a marker comment such as `/*solidnav*/` or `/*hdr2*/` (list in `docs/website.md`).

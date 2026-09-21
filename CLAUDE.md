@@ -907,3 +907,13 @@ tools/klassenanalyse/fetch_reports.js rechnet identisch (window.__ka_opt). Lesar
 (Kontrollinstrument, keine Entscheidungsgrundlage; Kannibalisierung passiert am Verkaufstisch, nicht bei Bestandskunden). Getestet
 lokal mit synthetischen Check-ins (REVENUE) und einem SpreadsheetApp-Mock (Builder rendert, Verlauf ab 2 Monaten). Apps Script per
 EDITOR-PASTE nachziehen, dann runKlassenanalyse('2026-08-01','2026-08-31') fuer den August-Neuaufbau mit Zeitfenstern.
+
+## Team CMS live (21.09.2026, Ruben: "bau das team tab")
+- Sheet "IMPACT Website Content" (ID 1XLfrTszrkO0RJGPGpASZLfIO4KdeOkySe7GMzQnM7qs, Drive folder "IMPACT Website"), tab Team, 16 columns: Website | Order | Name | Location (Both/Zürich/Winterthur, NO default, Ruben: "unparteiisch") | Homepage | Founder | Role DE/EN | Highlight DE/EN | Photo URL | Summary DE/EN | Bio DE/EN | Check. Row 1 = publish row, row 2 = headers. Seeded once from data/team.json (Script Property `ctTeamSeeded`).
+- Apps Script prefix `ct` (NOT `team*`: that is the Team KPIs sheet). `what=team` -> `ctTeamRead`. Webapp version 38. `PUB_TARGETS[CONTENT_ID]` with tab '' = tick box works on every tab; trigger installed via `/api/blog?what=pubtrigger`.
+- `/api/content?what=team` (`functions/api/content.js`, ALLOWED list), `tools/content_from_api.py`, `tools/build_team.py`, workflow `content-sync.yml` (05:10 UTC + dispatch). First tick-box run 21.09. 11:28: 25 s, success.
+- Builder verified against the old pages: visible content identical except Ruben's decisions of 21.09. (Sergei bio "über 300 Kämpfe"/"over 300 fights" everywhere + "Disziplinen: … ." punctuation; Nathan role "MMA, Muay Thai & BJJ Coach" everywhere), the EN course pages now show the ENGLISH role lines (they carried German "Boxen"/"Fitness Kickboxen Coach"), and the about pages follow the one Order column (Rania now after Paloma instead of third).
+- Coach lineups per course page live in `data/coach-lineups.json` (created from the pages 21.09.); unticking a person hides the coach card, ticking again restores it. Moves into the course tabs later. BJJ pages' `coachsec` block (João) is NOT generated.
+- Bio overlay inserts paragraphs via textContent (safe). Course/team text is escaped by the builder.
+- TODO with the next script change: `pubStamp` writes "Last read" into G1, which cuts off the status text in the Team tab (narrow columns D-F) - move the stamp to the last column.
+- NEXT: course page tabs (Section | Field | Location | Deutsch | English), all texts and headers editable (Ruben 21.09.), no approval step.

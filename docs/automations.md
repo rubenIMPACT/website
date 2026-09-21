@@ -25,8 +25,19 @@ Sheet --Apps Script blogRead (what=blog)--> /api/blog --> workflow blog-sync (da
 - Safety: empty or unreadable sheet = abort; more than half of the articles disappearing = abort.
 - An existing article page is its own template, so sitewide edits survive. New posts are cloned from the first article folder.
 
+## Team from the sheet "IMPACT Website Content" (tab "Team")
+```
+Sheet --Apps Script ctTeamRead (what=team)--> /api/content?what=team --> workflow content-sync (daily 05:10 UTC, or the tick box)
+   tools/content_from_api.py -> data/team.json + new photos to assets/team/<name>.jpg (max. 1200 px)
+   tools/build_team.py       -> team cards + <script id="trbios"> on 12 pages, coach cards on 26 course pages (lineups: data/coach-lineups.json)
+```
+- Rules: Location decides the city/team pages, tick Homepage = home pages, tick Founder = founders block on the about pages, Order = position everywhere,
+  empty bio = card without overlay, empty summary = first bio paragraph is the intro on course pages.
+- Safety: fewer than 5 people or an unreadable sheet = abort. A person without a photo is skipped with a warning. A course page never loses its last coach.
+- The Apps Script functions for this sheet carry the prefix `ct` (content). `team*`/`tr*` functions belong to the Team KPIs sheet, a different thing.
+
 ## "Publish now" tick box in the content sheets
-Row 1 of a content sheet (today: "IMPACT Blog") has a tick box in A1. An installable onEdit trigger of the Apps Script (`publishOnEdit`, runs as Ruben,
+Row 1 of a content sheet ("IMPACT Blog", every tab of "IMPACT Website Content") has a tick box in A1. An installable onEdit trigger of the Apps Script (`publishOnEdit`, runs as Ruben,
 so it works for every editor of the sheet) starts the matching GitHub workflow through the GitHub API, unticks the box and writes the status into D1.
 G1 shows when the website build last read the sheet. The GitHub token (fine-grained, repository `rubenIMPACT/website`, permission "Actions: read and write")
 is stored ONLY in the Apps Script project settings > Script properties > `GITHUB_TOKEN`. New sheets are registered in `PUB_TARGETS`; afterwards call
