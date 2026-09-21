@@ -25,14 +25,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'data', 'courses.json')
 EN_SLUG = {'boxen': 'boxing', 'ringen': 'wrestling', 'fitness-kickboxen': 'fitness-kickboxing'}
 DISCIPLINES = [('bjj', 'BJJ'), ('muay-thai', 'Muay Thai'), ('mma', 'MMA'), ('boxen', 'Boxing'), ('ringen', 'Wrestling'),
-               ('fitness-kickboxen', 'Fitness Kickboxing'), ('street-defense', 'Street Defense'), ('personal-training', 'Personal Training')]
+               ('fitness-kickboxen', 'Fitness Kickboxing'), ('street-defense', 'Street Defense'), ('personal-training', 'Personal Training'),
+               ('little-ninjas', 'Little Ninjas')]
+KIDS = ('little-ninjas',)   # different page template: sections without ids, extra element types (see TOKEN_KIDS)
 LOCS = {'Zürich': 'zurich', 'Winterthur': 'winterthur'}
 SECTION_LABEL = {'seo': 'SEO (Google)', 'hero': 'Hero', 'banner': 'Banner', 'sportart': 'About the sport', 'beweis': 'Reviews', 'ablauf': 'How the trial works',
                  'photos': 'Photo captions', 'anmelden': 'Sign-up block', 'warum': 'Why IMPACT', 'coach': 'Head coach block', 'gi': 'Extra block',
-                 'app': 'IMPACT App', 'zeiten': 'Timetable block', 'faq': 'FAQ', 'final': 'Closing'}
+                 'app': 'IMPACT App', 'zeiten': 'Timetable block', 'faq': 'FAQ', 'final': 'Closing', 'benefits': 'Benefits', 'kurse': 'Age groups'}
 FIELD_LABEL = {'title': 'Title', 'description': 'Description', 'headline': 'Headline', 'kicker': 'Kicker', 'heading': 'Title', 'sub': 'Subline', 'lead': 'Lead',
                'text': 'Text', 'bullet': 'Bullet', 'q': 'Question', 'a': 'Answer', 'h': 'Heading', 'detail': 'Detail', 'point': 'Point',
-               'button': 'Button', 'caption': 'Caption', 'side': 'Side text'}
+               'button': 'Button', 'caption': 'Caption', 'side': 'Side text', 'quote': 'Quote', 'who': 'Quote author', 'label': 'Label', 'link': 'Link text'}
 REPEATABLE = ('text', 'bullet', 'point', 'detail', 'q', 'a')
 
 
@@ -60,8 +62,10 @@ def split_inner(inner):
     suf = m.group(1) if m and m.group(1).strip() else ''
     if suf:
         rest = rest[:len(rest) - len(suf)]
-    tail_ws = rest[len(rest.rstrip()):]
-    return pre, rest.rstrip(), tail_ws + suf
+    tail_ws = rest[len(rest.rstrip()):]; rest = rest.rstrip()
+    if rest.startswith('<b>') and rest.endswith('</b>') and rest.count('<b>') == 1:   # whole text in one <b>: keep the wrapper out of the sheet
+        return pre + '<b>', rest[3:-4], '</b>' + tail_ws + suf
+    return pre, rest, tail_ws + suf
 
 
 def to_text(h):
@@ -77,15 +81,19 @@ def to_text(h):
     h = re.sub(r'<span class="accent[^"]*">(.*?)</span>', r'*\1*', h, flags=re.S)
     if '<span class="ulink">' in h:
         flags.add('ul'); h = re.sub(r'<span class="ulink">(.*?)</span>', r'_\1_', h, flags=re.S)
+    if '<b>' in h:
+        flags.add('b'); h = re.sub(r'<b>(.*?)</b>', r'**\1**', h, flags=re.S)
     h = re.sub(r'<br\s*/?>', '\n', h)
     if re.search(r'<[a-zA-Z/]', h):
         return None, flags, ac
-    return html.unescape(h), flags, ac
+    return html.unescape(h.replace('&shy;', '[-]')).replace('\xad', '[-]'), flags, ac
 
 
 def to_html(text, flags, ac):
-    t = html.escape(text.replace('\r', ''), quote=False)
+    t = html.escape(text.replace('\r', ''), quote=False).replace('[-]', '&shy;')   # [-] = soft hyphen (allowed break inside a long word)
     accent = ac or 'accent'
+    if 'b' in flags:
+        t = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', t, flags=re.S)
     if 'rw' in flags:
         out = []
         for part in re.split(r'(\*.+?\*)', t, flags=re.S):
@@ -109,9 +117,20 @@ TOKEN = re.compile(r'(?P<open><(?:section|header)\b[^>]*>)|(?P<close></(?:sectio
                    r'|(?P<point><div class="rev(?: [^"]*)?"(?P<pattrs>[^>]*)>(?P<pinner>\s*%s[^<]+)(?=<small\b))'
                    r'|(?P<cta><a\b(?P<cattrs>[^>]*class="cta"[^>]*)>(?P<cinner>.*?)</a>)' % SVG, re.S)
 
+TOKEN_KIDS = re.compile(r'(?P<open><(?:section|header)\b[^>]*>)|(?P<close></(?:section|header)>)|(?P<band>\x00)|(?P<photo>\x00)'
+                        r'|(?P<leaf><(?P<tag>h1|h2|h3|h4|p|summary|blockquote)\b(?P<attrs>[^>]*)>(?P<inner>.*?)</(?P=tag)>)'
+                        r'|(?P<dleaf><(?:div|span)\b(?P<dattrs>[^>]*class="(?:idx|kick|age|who|go)\b[^"]*"[^>]*)>(?P<dinner>(?:(?!<div\b).)*?)</(?:div|span)>)'
+                        r'|(?P<point>\x00)(?P<pattrs>)(?P<pinner>)'
+                        r'|(?P<cta><a\b(?P<cattrs>[^>]*class="cta(?: [^"]*)?"[^>]*)>(?P<cinner>.*?)</a>)', re.S)
+KIDS_SECTION = (('class="kidwhy"', 'benefits'), ('kidrev', 'beweis'), ('class="kidsgrid"', 'kurse'), ('id="kidsched"', 'zeiten'), ('kidfaq', 'faq'))
+
 
 def region(s):
-    a = s.find('<header class="hero'); b = s.find('<footer')
+    a = s.find('<header class="hero')
+    if a < 0:
+        a = s.find('<header class="pagehero')
+    b = s.find('<div class="floatcta"', a) if s.find('<div class="floatcta"', a) > 0 else s.find('<footer')
+    b = min(b, s.find('<footer')) if s.find('<footer') > 0 else b
     if a < 0 or b < 0:
         sys.exit('FEHLER: hero/footer nicht gefunden')
     return a, b
@@ -121,25 +140,30 @@ def kind_of(tag, attrs, in_details):
     cls = (re.search(r'class="([^"]*)"', attrs) or [None, ''])[1].split()
     if tag == 'h1': return 'headline'
     if tag == 'h2': return 'heading'
-    if tag == 'h3': return 'h'
+    if tag in ('h3', 'h4'): return 'h'
+    if tag == 'blockquote': return 'quote'
     if tag == 'summary': return 'q'
     if tag == 'li': return 'bullet'
     if tag == 'small': return 'detail'
     if tag == 'p': return 'a' if in_details else ('sub' if 'sub' in cls else 'lead' if 'lead' in cls else 'text')
-    if tag == 'div': return 'kicker' if 'idx' in cls else 'caption' if 'cap' in cls else 'side'
+    if tag == 'div': return ('kicker' if ('idx' in cls or 'kick' in cls) else 'caption' if 'cap' in cls else 'label' if 'age' in cls else 'who' if 'who' in cls
+                             else 'link' if 'go' in cls else 'side')
     if tag == 'a': return 'button'
     if tag == 'point': return 'point'
 
 
-def scan(s):
+def scan(s, kids=False):
     """Yields dicts for every editable element in document order (absolute positions in s)."""
     a, b = region(s); reg = s[a:b]
     masked = MASK.sub(lambda m: ' ' * len(m.group(0)), reg)
     sec, counters, out = None, {}, []
-    for m in TOKEN.finditer(masked):
+    for m in (TOKEN_KIDS if kids else TOKEN).finditer(masked):
         if m.group('open'):
-            t = m.group('open'); i = re.search(r'id="([^"]*)"', t); c = re.search(r'class="([^"]*)"', t)
-            sec = i.group(1) if i else ('hero' if c and 'hero' in c.group(1).split() else 'final' if c and 'final' in c.group(1).split() else (c.group(1).split()[0] if c else 'x'))
+            t = m.group('open'); i = re.search(r'id="([^"]*)"', t); c = re.search(r'class="([^"]*)"', t); cl = c.group(1).split() if c else []
+            sec = i.group(1) if i else ('hero' if ('hero' in cl or 'pagehero' in cl) else 'final' if 'final' in cl else (cl[0] if cl else 'x'))
+            if kids and not i and sec not in ('hero', 'final'):
+                body = masked[m.start():masked.find('</section>', m.start())]
+                sec = next((name for marker, name in KIDS_SECTION if marker in t or marker in body), sec)
             continue
         if m.group('close'):
             sec = None; continue
@@ -152,6 +176,7 @@ def scan(s):
             tag, attrs, inner, g = m.group('tag'), m.group('attrs'), m.group('inner'), 'inner'
         elif m.group('dleaf'):
             tag, attrs, inner, g = 'div', m.group('dattrs'), m.group('dinner'), 'dinner'
+            real = 'span' if m.group('dleaf').startswith('<span') else 'div'
         elif m.group('point'):
             tag, attrs, inner, g = 'point', m.group('pattrs'), m.group('pinner'), 'pinner'
         else:
@@ -161,7 +186,7 @@ def scan(s):
         in_details = masked.rfind('<details', 0, m.start()) > masked.rfind('</details>', 0, m.start())
         kind = kind_of(tag, attrs, in_details)
         out.append(dict(sec=sec, kind=kind, tag=tag, attrs=attrs, start=a + m.start(g), end=a + m.end(g), el_start=a + m.start(), el_end=a + m.end(),
-                        attrs_pos=a + m.start() + 1 + len('div' if tag == 'point' else tag)))
+                        attrs_pos=a + m.start() + 1 + len('div' if tag == 'point' else (real if m.group('dleaf') else tag))))
     # number the fields per section
     prev = None
     for e in out:
@@ -208,14 +233,15 @@ def key_from_labels(section, field):
 
 
 # ---------------------------------------------------------------- tag
-def tag_page(path):
+def tag_page(path, kids=False):
     f = os.path.join(ROOT, path); s = open(f, encoding='utf-8').read()
-    els = scan(s); skipped = []; edits = []
+    els = scan(s, kids); skipped = []; edits = []
     for e in els:
         pre, mid, suf = split_inner(s[e['start']:e['end']])
         text, flags, ac = to_text(mid)
         same_words = text is not None and re.sub(r'<[^>]+>', '', to_html(text, flags, ac)) == re.sub(r'<[^>]+>', '', mid)
-        if text is None or (to_html(text, flags, ac) != mid and not ('rw' in flags and same_words)):   # rw: word grouping may differ, text is identical
+        same_meaning = text is not None and html.unescape(to_html(text, flags, ac)) == html.unescape(mid)   # &rarr; vs the arrow character etc.
+        if text is None or (not same_meaning and not ('rw' in flags and same_words)):   # rw: word grouping may differ, text is identical
             skipped.append('%s <%s> %s' % (e['key'], e['tag'], re.sub(r'\s+', ' ', mid)[:70])); continue
         if 'data-ct=' in e['attrs']:
             continue
@@ -399,7 +425,7 @@ def build_page(path, want, lang, problems):
             continue
         pre, mid, suf = split_inner(s[e['start']:e['end']])
         new = to_html(want[e['key']], e['flags'], e['ac'])
-        if new != mid:
+        if html.unescape(new) != html.unescape(mid):   # rewrite only when the meaning changes (keeps entities like &rarr; as they were)
             s = s[:e['start']] + pre + new + suf + s[e['end']:]
     # 4) SEO + FAQ schema
     def meta(s, rx, value, quote):   # only rewrite when the meaning changes (keeps the original escaping otherwise)
@@ -444,7 +470,7 @@ if __name__ == '__main__':
     if cmd == 'tag':
         total = 0
         for slug, loc, lang, path in pages():
-            n, skipped = tag_page(path); total += n
+            n, skipped = tag_page(path, slug in KIDS); total += n
             for x in skipped:
                 print('nicht editierbar (bleibt wie es ist): %s  %s' % (path, x))
         print('markiert:', total)

@@ -1456,19 +1456,18 @@ function ctTeamRead() {
 /* ===== Website content sheet: one tab per discipline -> texts of the course pages (21.09.2026, Ruben) =====
    Row = Section | Field | Location (Both / Zürich / Winterthur, no default) | Deutsch | English | Check. Read via what=courses, built by tools/ct_courses.py.
    The tab only carries labels; tools/ct_courses.py maps "Section + Field" to the data-ct key in the pages (one place for that logic). */
-var CT_COURSE_TABS = ['BJJ', 'Muay Thai', 'MMA', 'Boxing', 'Wrestling', 'Fitness Kickboxing', 'Street Defense', 'Personal Training'];
+var CT_COURSE_TABS = ['BJJ', 'Muay Thai', 'MMA', 'Boxing', 'Wrestling', 'Fitness Kickboxing', 'Street Defense', 'Personal Training', 'Little Ninjas'];
 var CT_COURSE_HEAD = ['Section', 'Field', 'Location', 'Deutsch', 'English', 'Check'];
 var CT_COURSE_NOTES = [
   'Part of the page, from top to bottom. Keep the spelling: the website finds the place on the page through Section + Field.',
   'Which text inside that part. Repeating fields can be added or removed: Text 4, Bullet 5, Point 5 + Detail 5, Question 8 + Answer 8. A new one appears after the one with the next smaller number.',
   'Both = same text in Zürich and Winterthur. Zürich / Winterthur = text only for that location. For different texts make two rows, one per location. A field that has only a Zürich row does not exist on the Winterthur page (and the other way round). There is no default.',
-  'German text. *gold* = accent colour. Line break in the cell (Ctrl+Enter, Mac: Cmd+Enter) = line break on the page. _word_ = underlined (only in the three steps).',
+  'German text. *gold* = accent colour. Line break in the cell (Ctrl+Enter, Mac: Cmd+Enter) = line break on the page. _word_ = underlined (only in the three steps). **bold** works in the Little Ninjas quote. [-] = place where a long word may break on small screens.',
   'English text, same rules.',
   'Filled in by the script: OK or what is missing.'
 ];
-function ctCoursesSetup(ss) {
-  var props = PropertiesService.getScriptProperties();
-  if (props.getProperty('ctCoursesSeeded') === '1') return;
+function ctCoursesSetup(ss) { // creates and fills every tab of CT_COURSE_TABS that does not exist yet (a renamed or deleted tab comes back with the repo state)
+  if (CT_COURSE_TABS.every(function (t) { return !!ss.getSheetByName(t); })) return;
   var r = UrlFetchApp.fetch('https://raw.githubusercontent.com/rubenIMPACT/website/main/data/courses.json', { muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) throw new Error('courses.json not reachable');
   var courses = JSON.parse(r.getContentText()).courses || [], n = CT_COURSE_HEAD.length;
@@ -1494,7 +1493,6 @@ function ctCoursesSetup(ss) {
     });
     sh.getRange(d0, 1, vals.length, n).setValues(vals).setBackgrounds(bg).setFontWeights(weight);
   });
-  props.setProperty('ctCoursesSeeded', '1');
 }
 function ctCoursesRead() {
   var ss = SpreadsheetApp.openById(CONTENT_ID), out = [], notes = [], R0 = CT_HR + 1;
@@ -1503,6 +1501,8 @@ function ctCoursesRead() {
     var sh = ss.getSheetByName(tab);
     if (!sh) { notes.push('tab missing: ' + tab); return; }
     if (typeof sh.getRange(1, 1).getValue() !== 'boolean') pubRowFormat(sh, CT_COURSE_HEAD.length);
+    var nC = CT_COURSE_HEAD.length; // remove the stray empty column G that an old pubRowFormat created (21.09.2026)
+    if (sh.getMaxColumns() > nC && sh.getRange(1, nC + 1, sh.getMaxRows(), sh.getMaxColumns() - nC).getValues().every(function (r) { return r.join('') === ''; })) sh.deleteColumns(nC + 1, sh.getMaxColumns() - nC);
     var head = sh.getRange(CT_HR, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = {};
     CT_COURSE_HEAD.forEach(function (h) { col[h] = head.indexOf(h); if (col[h] < 0) throw new Error('Tab ' + tab + ': column "' + h + '" is missing'); });
     var last = sh.getLastRow(); if (last <= CT_HR) { notes.push('tab empty: ' + tab); return; }
@@ -1545,7 +1545,6 @@ function pubRowFormat(sh, n) {
   sh.getRange(1, 1).setNumberFormat('General').insertCheckboxes().setValue(false); // A1 must NOT be text format, otherwise the tick box shows the word "false" (21.09.2026)
   sh.getRange(1, 2).setValue('PUBLISH NOW');
   sh.getRange(1, 4).setValue(PUB_HINT).setFontWeight('normal');
-  sh.getRange(1, 7).setFontWeight('normal');
   sh.setRowHeight(1, 34);
 }
 function pubStamp(sh) { // "Last read" goes into the last header column, so it never covers the status text in D1

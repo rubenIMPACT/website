@@ -4168,6 +4168,444 @@
      "field": "Button"
     }
    ]
+  },
+  {
+   "slug": "little-ninjas",
+   "tab": "Little Ninjas",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "Kindertraining Zürich – Kampfsport für Kinder | IMPACT Martial Arts",
+     "en": "Kids Training Zurich – Martial Arts for Kids | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "Kindertraining Winterthur – Kampfsport für Kinder | IMPACT Martial Arts",
+     "en": "Kids Training Winterthur – Martial Arts for Kids | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Kampfsport für Kinder in Zürich: Little Ninjas (6–14 Jahre) für Selbstvertrauen, Disziplin und Fitness. Jetzt gratis Probetraining fürs Kind sichern.",
+     "en": "Martial arts for kids in Zurich: Little Ninjas (ages 6–14) for confidence, discipline and fitness. Claim a free trial class for your child.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "Kampfsport für Kinder in Winterthur: Little Ninjas (6–14 Jahre) für Selbstvertrauen, Disziplin und Fitness. Jetzt gratis Probetraining fürs Kind sichern.",
+     "en": "Martial arts for kids in Winterthur: Little Ninjas (ages 6–14) for confidence, discipline and fitness. Claim a free trial class for your child.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.kicker",
+     "location": "Zürich",
+     "de": "IMPACT Zürich · Kindertraining",
+     "en": "IMPACT Zurich · Kids training",
+     "section": "Hero",
+     "field": "Kicker"
+    },
+    {
+     "key": "hero.kicker",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur · Kindertraining",
+     "en": "IMPACT Winterthur · Kids training",
+     "section": "Hero",
+     "field": "Kicker"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "Wir machen *Kinder stark.*",
+     "en": "We make *kids strong.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.text1",
+     "location": "Zürich",
+     "de": "Spassiges, strukturiertes Kampfsporttraining, das Selbstvertrauen, Koordination und wichtige Lebenskompetenzen für Kinder im Alter von 6 bis 14 Jahren aufbaut – hier bei IMPACT in Zürich.",
+     "en": "Fun, structured martial arts training that builds confidence, coordination and life skills for kids aged 6 to 14 – right here at IMPACT in Zurich.",
+     "section": "Hero",
+     "field": "Text 1"
+    },
+    {
+     "key": "hero.text1",
+     "location": "Winterthur",
+     "de": "Spassiges, strukturiertes Kampfsporttraining, das Selbstvertrauen, Koordination und wichtige Lebenskompetenzen für Kinder im Alter von 6 bis 14 Jahren aufbaut – hier bei IMPACT in Winterthur.",
+     "en": "Fun, structured martial arts training that builds confidence, coordination and life skills for kids aged 6 to 14 – right here at IMPACT in Winterthur.",
+     "section": "Hero",
+     "field": "Text 1"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "benefits.h1",
+     "location": "Both",
+     "de": "Selbstvertrauen",
+     "en": "Confidence",
+     "section": "Benefits",
+     "field": "Heading 1"
+    },
+    {
+     "key": "benefits.text1",
+     "location": "Both",
+     "de": "Kinder wachsen über sich hinaus, lernen mit Erfolgen und Rückschlägen umzugehen und treten selbstbewusster auf.",
+     "en": "Kids grow beyond themselves, learn to handle wins and setbacks, and carry themselves with more confidence.",
+     "section": "Benefits",
+     "field": "Text 1"
+    },
+    {
+     "key": "benefits.h2",
+     "location": "Both",
+     "de": "Respekt & Disziplin",
+     "en": "Respekt & Disziplin",
+     "section": "Benefits",
+     "field": "Heading 2"
+    },
+    {
+     "key": "benefits.text2",
+     "location": "Both",
+     "de": "Feste Rituale, klare Regeln und Teamarbeit vermitteln Respekt, Fokus und Selbstdisziplin – auf der Matte und im Alltag.",
+     "en": "Steady rituals, clear rules and teamwork teach respect, focus and self-discipline – on the mats and in everyday life.",
+     "section": "Benefits",
+     "field": "Text 2"
+    },
+    {
+     "key": "benefits.h3",
+     "location": "Both",
+     "de": "Fitness & Koordination",
+     "en": "Fitness & Koordination",
+     "section": "Benefits",
+     "field": "Heading 3"
+    },
+    {
+     "key": "benefits.text3",
+     "location": "Both",
+     "de": "Spielerische Bewegung baut Kraft, Beweglichkeit und Koordination auf und hält die Kinder aktiv und gesund.",
+     "en": "Playful movement builds strength, mobility and coordination, and keeps kids active and healthy.",
+     "section": "Benefits",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "beweis.quote",
+     "location": "Both",
+     "de": "«Vielen Dank an das ganze IMPACT Team, allen voran an Emrah, der die Ninjas trainiert. **Mein Sohn findet es der Hammer** bei euch zu trainieren, er hat schon so viel gelernt. Einfach top. Danke für alles.»",
+     "en": "“A big thank you to the whole IMPACT team, above all to Emrah, who trains the Ninjas. **My son thinks training with you is awesome** – he has already learned so much. Simply great. Thank you for everything.”",
+     "section": "Reviews",
+     "field": "Quote"
+    },
+    {
+     "key": "beweis.who",
+     "location": "Both",
+     "de": "Edwin Roth · Google-Rezension",
+     "en": "Edwin Roth · Google review",
+     "section": "Reviews",
+     "field": "Quote author"
+    },
+    {
+     "key": "kurse.heading",
+     "location": "Both",
+     "de": "Kindertraining *Kurse.*",
+     "en": "Kids training *classes.*",
+     "section": "Age groups",
+     "field": "Title"
+    },
+    {
+     "key": "kurse.label1",
+     "location": "Both",
+     "de": "Alter 6–9",
+     "en": "Ages 6–9",
+     "section": "Age groups",
+     "field": "Label 1"
+    },
+    {
+     "key": "kurse.h1",
+     "location": "Both",
+     "de": "Little Ninjas (6–9)",
+     "en": "Little Ninjas (6–9)",
+     "section": "Age groups",
+     "field": "Heading 1"
+    },
+    {
+     "key": "kurse.text1",
+     "location": "Both",
+     "de": "Ein unterhaltsamer, spielerischer Kampfsportkurs, der Selbstvertrauen, Koordination und Konzentration aufbaut. Kinder bleiben aktiv und lernen dabei Respekt, Teamarbeit und Selbstdisziplin in einer sicheren, ermutigenden Umgebung.",
+     "en": "A fun, playful martial arts class that builds confidence, coordination and concentration. Kids stay active while learning respect, teamwork and self-discipline in a safe, encouraging environment.",
+     "section": "Age groups",
+     "field": "Text 1"
+    },
+    {
+     "key": "kurse.link1",
+     "location": "Both",
+     "de": "Gratis Probetraining →",
+     "en": "Free Trial Class →",
+     "section": "Age groups",
+     "field": "Link text 1"
+    },
+    {
+     "key": "kurse.label2",
+     "location": "Both",
+     "de": "Alter 10–14",
+     "en": "Ages 10–14",
+     "section": "Age groups",
+     "field": "Label 2"
+    },
+    {
+     "key": "kurse.h2",
+     "location": "Both",
+     "de": "Little Ninjas (10–14)",
+     "en": "Little Ninjas (10–14)",
+     "section": "Age groups",
+     "field": "Heading 2"
+    },
+    {
+     "key": "kurse.text2",
+     "location": "Both",
+     "de": "Ein energiegeladenes Kampfsportprogramm mit Fokus auf Kraft, Fitness und Selbstvertrauen. Kinder lernen praktische Selbstverteidigung, Disziplin und mentale Stärke und entwickeln gleichzeitig Führungsqualitäten und Teamfähigkeit.",
+     "en": "A high-energy martial arts program focused on strength, fitness and confidence. Kids learn practical self defense, discipline and mental toughness while developing leadership and teamwork.",
+     "section": "Age groups",
+     "field": "Text 2"
+    },
+    {
+     "key": "kurse.link2",
+     "location": "Both",
+     "de": "Gratis Probetraining →",
+     "en": "Free Trial Class →",
+     "section": "Age groups",
+     "field": "Link text 2"
+    },
+    {
+     "key": "zeiten.heading",
+     "location": "Both",
+     "de": "Trainings[-]*zeiten.*",
+     "en": "Training *times.*",
+     "section": "Timetable block",
+     "field": "Title"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Eltern *fragen.*",
+     "en": "Parents *ask.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Ab welchem Alter kann mein Kind mitmachen?",
+     "en": "From what age can my child join?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Ab 6 Jahren. Wir trainieren in zwei Altersgruppen: Little Ninjas 6 bis 9 und Little Ninjas 10 bis 14. So ist das Training immer altersgerecht.",
+     "en": "From age 6. We train in two age groups: Little Ninjas 6 to 9 and Little Ninjas 10 to 14, so training is always age-appropriate.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Both",
+     "de": "Ist Kampfsport nicht zu gefährlich für mein Kind?",
+     "en": "Isn't martial arts too dangerous for my child?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Both",
+     "de": "Nein. Sicherheit steht bei uns an erster Stelle: Das Training ist spielerisch aufgebaut, es gibt keine harten Treffer, und unsere ausgebildeten Trainer haben jederzeit ein Auge auf jedes Kind.",
+     "en": "No. Safety comes first: sessions are playful by design, there are no hard hits, and our trained coaches keep an eye on every child at all times.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Macht Kampfsport mein Kind aggressiv?",
+     "en": "Will martial arts make my child aggressive?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Im Gegenteil. Kinder lernen bei uns Respekt, klare Regeln und Selbstkontrolle. Wer seine Energie im Training loswird und Grenzen kennt, tritt im Alltag ruhiger und selbstbewusster auf.",
+     "en": "Quite the opposite. Kids learn respect, clear rules and self-control. A child who burns off energy in training and knows where the limits are is calmer and more confident in everyday life.",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Mein Kind ist schüchtern oder unsportlich. Passt das trotzdem?",
+     "en": "My child is shy or not sporty. Is this still a fit?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Both",
+     "de": "Ja, genau dafür ist das Training da. Jedes Kind startet auf seinem Level und wächst in seinem Tempo. Viele unserer selbstbewusstesten Ninjas waren am Anfang die leisesten.",
+     "en": "Yes – that is exactly what the training is for. Every child starts at their own level and grows at their own pace. Many of our most confident Ninjas were the quietest at the start.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Both",
+     "de": "Was braucht mein Kind für das Probetraining?",
+     "en": "What does my child need for the trial class?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Both",
+     "de": "Nur bequeme Sportkleidung und etwas zu trinken. Trainiert wird barfuss auf der Matte, alles Weitere stellen wir.",
+     "en": "Just comfortable sportswear and something to drink. Training is barefoot on the mats – we provide everything else.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "faq.q6",
+     "location": "Both",
+     "de": "Kann ich beim Training zuschauen?",
+     "en": "Can I watch the training?",
+     "section": "FAQ",
+     "field": "Question 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Both",
+     "de": "Ja, beim Probetraining bist du als Elternteil herzlich willkommen. So siehst du selbst, wie wir mit den Kindern arbeiten.",
+     "en": "Yes – parents are very welcome at the trial class. That way you can see for yourself how we work with the kids.",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "faq.q7",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 7"
+    },
+    {
+     "key": "faq.a7",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 7"
+    },
+    {
+     "key": "faq.a7",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 7"
+    },
+    {
+     "key": "faq.q8",
+     "location": "Both",
+     "de": "Wie melde ich mein Kind an?",
+     "en": "How do I sign my child up?",
+     "section": "FAQ",
+     "field": "Question 8"
+    },
+    {
+     "key": "faq.a8",
+     "location": "Both",
+     "de": "Einfach das Formular ausfüllen und ein gratis Probetraining sichern. Wir rufen dich vorher kurz an und beantworten alle Fragen.",
+     "en": "Just fill in the form to claim a free trial class. We'll give you a quick call beforehand and answer all your questions.",
+     "section": "FAQ",
+     "field": "Answer 8"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "Terminvereinbarung",
+     "en": "Terminvereinbarung",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere deinem Kind das *gratis* Probetraining",
+     "en": "Claim your child’s *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam den Einstieg für dein Kind. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your child's first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam den Einstieg für dein Kind. Bis bald auf der Matte.",
+     "en": "We'll give you a call and plan your child's first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Bereit, dein Kind *stark zu machen?*",
+     "en": "Ready to make your child *strong?*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
   }
  ]
 }
