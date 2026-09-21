@@ -25,6 +25,13 @@ Sheet --Apps Script blogRead (what=blog)--> /api/blog --> workflow blog-sync (da
 - Safety: empty or unreadable sheet = abort; more than half of the articles disappearing = abort.
 - An existing article page is its own template, so sitewide edits survive. New posts are cloned from the first article folder.
 
+## "Publish now" tick box in the content sheets
+Row 1 of a content sheet (today: "IMPACT Blog") has a tick box in A1. An installable onEdit trigger of the Apps Script (`publishOnEdit`, runs as Ruben,
+so it works for every editor of the sheet) starts the matching GitHub workflow through the GitHub API, unticks the box and writes the status into D1.
+G1 shows when the website build last read the sheet. The GitHub token (fine-grained, repository `rubenIMPACT/website`, permission "Actions: read and write")
+is stored ONLY in the Apps Script project settings > Script properties > `GITHUB_TOKEN`. New sheets are registered in `PUB_TARGETS`; afterwards call
+`/api/blog?what=pubtrigger` once to install the trigger. Two starts within 2 minutes are ignored.
+
 ## Events from the sheet "Event Planner"
 - The events page calls `/api/events` in the browser (stale-while-revalidate cache, fresh after 5 minutes). Only ticked rows, never "Company event",
   no internal fields. Photos through `/api/event-image?id=<Drive id>` (file is read as Ruben, no public sharing needed).

@@ -4,7 +4,7 @@ Short recipes for the most common jobs. "Push" always means: checks from the REA
 
 ## Publish a blog post
 Open the Google Sheet "IMPACT Blog" > new row: Date, Title, Description, Photo URL (normal Drive link), Text, then tick "Website".
-Column "Check" must say `OK`. Online next morning, or at once: GitHub > Actions > "Blog aus dem Google Sheet" > Run workflow (~3 min).
+Column "Check" must say `OK`. Online next morning, or at once: tick the box "PUBLISH NOW" in cell A1 (the status next to it confirms the start, online ~3 minutes later).
 Take a post offline: remove the tick. Never edit title/date/photo/body of an article in the HTML, the next build overwrites it.
 
 ## Add or change an event

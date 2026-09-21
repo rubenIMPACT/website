@@ -9,7 +9,7 @@ A second, independent project "WhatsApp Automation" belongs to the WhatsApp work
 
 ## How the website talks to it
 - `doPost` : leads (`/api/lead`), training plans (`type:'plan'`), forms (`kind` event / cancellation).
-- `doGet?token=...&what=` : `events`, `image&id=`, `plan`, `blog`, plus maintenance calls (`setup`, `calsync`, `caltrigger`, `spdaily`, `sptrigger`, `recount`, `migrate`, `setreg`).
+- `doGet?token=...&what=` : `events`, `image&id=`, `plan`, `blog`, plus maintenance calls (`pubtrigger`, `setup`, `calsync`, `caltrigger`, `spdaily`, `sptrigger`, `recount`, `migrate`, `setreg`).
 - The web app URL is stored in Cloudflare as `LEADLOG_URL`. Deploying a new version keeps the URL.
 
 ## Map of the file (search for the banner comments)
@@ -24,7 +24,8 @@ A second, independent project "WhatsApp Automation" belongs to the WhatsApp work
 | 891 | Events from the planner sheet (`readEvents`, `planSheet`, sign-up counter, `driveImage`) | website `/events/` |
 | 1101 | Google Calendar invitations (`syncCalendar`) | event planner |
 | 1176 | Blog (`blogRead`, `blogSetup`, `blogSeed`) | website `/articles/` |
-| ~1280 | `doGet` | website |
+| ~1290 | "Publish now" tick box (`publishOnEdit`, `installPublishTriggers`, `PUB_TARGETS`) | content sheets |
+| ~1330 | `doGet` | website |
 | 1300 / 1696 | Ad spend (Google, Meta, TikTok), advertising tab | analytics |
 | 1767 | LTV | analytics |
 | ~2200 | Month-end report (`ma*`, `buildMonatsabschluss`) | analytics |
@@ -60,6 +61,7 @@ Tabs that the web app writes by name must never be renamed and their header orde
 | `spDaily` (timetable change mail) | daily 06:50 |
 | `trDailyMail` | daily 12:00 |
 | `syncCalendar` | every 3 hours |
+| `publishOnEdit` | on edit of a content sheet (installable trigger per sheet) |
 | `runKlassenanalyseMonthly`, `runLTVMonthly` | 1st of the month 06:00 / 07:00 |
 One-off chain triggers (`maCatchUp`, `runLTVChain`, `runMonatsabschlussBuild`, `runWerbekostenBuild`) exist because one execution is limited to 6 minutes.
 
