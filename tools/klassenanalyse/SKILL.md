@@ -134,6 +134,32 @@ Disziplin (nur Umsatz je Termin, KEINE Trainerstunden, alle Klassen dauern 60 Mi
 RisikoHistorie plus Namensliste des Monats mit manueller Notizspalte (bleibt beim Import erhalten). Kein Grenzumsatz:
 faellt eine Klasse weg, wandern die Besuche in andere Klassen.
 
+## Zeitfenster und Randzeiten-Abo (seit 21.09.2026, Entscheid Ruben)
+
+Vorbereitung und spaeter monatliche Kontrolle fuer das Randzeiten-Abo (geplant 01.01.2027 mit der Preiserhoehung; nur
+Werktage vor 16:30, 12 Monate Laufzeit, nur Neuabschluesse und Downgrades zum Laufzeitende, AGB 5b). `REVENUE` ordnet
+jeden Check-in eines Mitglieds einem Fenster zu: rand (Werktag, Start vor `randBefore`, Standard 16:30), prime (Werktag ab
+16:30), sa (Samstag/Sonntag). Je Mitglied ueber alle Check-ins des Monats an beiden Standorten eine Gruppe: nur Randzeit,
+ueberwiegend Randzeit (>= 70 %), gemischt, nur Prime, nur Samstag, ohne Besuch; Kids-Abos (NINJA) ausgeklammert.
+Ausgabe `revenue.bands[Standort][Gruppe]` = {n, chf, tiers Basic/Core/Advanced/Pro/Andere, n_core_plus, chf_core_plus,
+exposed}. **Exponiert** = Abo-Netto der Core+-Mitglieder (Core, Advanced, Pro) in nur/ueberwiegend Randzeit minus
+Randzeiten-Preis netto (`randPrice` brutto / 1.081, Standard 149), nur positive Differenzen: Obergrenze des Umsatzes, der
+beim Wechsel zum Randzeiten-Abo wegfallen koennte (Basic liegt unter dem Randzeiten-Preis, nicht exponiert). Dazu
+`revenue.slot_users[Standort|Tagtyp|HH:MM]` = {users, rand_only, rand_mostly}: Mitglieder mit Abo je Uhrzeit (unique) und
+wie viele davon nur bzw. ueberwiegend Randzeit trainieren. Parameter kommen im Serverlauf aus dem Tab Einstellungen
+("Randzeit bis Uhrzeit", "Randzeiten-Abo Preis brutto CHF/Monat"), im Browser-Fallback aus `window.__ka_opt =
+{randBefore:'16:30', randPrice:149}` vor `collect()`.
+
+Im Sheet: das Uhrzeit-Ranking ist seit 21.09.2026 in Werktag und Samstag getrennt (dieselbe Uhrzeit laeuft an beiden
+voellig verschieden: ZH 10:50 samstags 56 %, werktags zwei tote Competition-Klassen; in ZH ist 09:40 werktags staerker
+als samstags, in Winterthur gibt es 09:40 nur samstags) und zeigt je Uhrzeit Mitglieder (unique), davon nur Randzeit,
+davon ueberwiegend Randzeit. Darunter je Standort der Block "Mitglieder nach Zeitfenster" mit Verlauf (versteckter Tab
+ZeitfensterHistorie). Lesart: das ist ein Kontrollinstrument, keine Entscheidungsgrundlage. Die Exposition aendert den
+Launch-Entscheid nicht (Worst Case wenige tausend CHF, verteilt ueber ein Jahr Verlaengerungen). Nach dem Launch
+monatlich lesen: waechst "nur Randzeit" bei Core+, ohne dass die Mitgliederzahl steigt, wandern Leute ab statt dazu. Die
+eigentliche Kannibalisierung passiert am Verkaufstisch (Randzeiten-Abo als Antwort auf "zu teuer" statt auf "ich kann
+nur morgens"); das misst der Monatsabschluss ueber den Anteil Randzeit an den Neuverkaeufen, nicht die Klassenanalyse.
+
 ## Hitlist Kampfsportarten (seit 03.09.2026, Entscheid Ruben)
 
 Mindestschwelle je Standort (Ruben 03.09.2026): Index nur bei Ø >= 3 Personen pro Klasse UND >= 4 Terminen im Monat, sonst `null` (Sheet zeigt n/a); das Mittel nimmt dann nur den anderen Standort.
