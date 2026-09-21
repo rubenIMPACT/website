@@ -468,6 +468,7 @@ function importKlassenanalyse(force) {
   var data = JSON.parse(f.getBlob().getDataAsString('UTF-8'));
   var ss = SpreadsheetApp.openById(SHEET_ID);
   updateKlassenHistorie(ss, data);
+  if (data.revenue && data.revenue.bands) updateZeitfensterHistorie(ss, data);
   buildKlassenanalyse(ss, data, f.getName());
   if (data.revenue) { updateRisikoHistorie(ss, data); buildRisiko(ss, data, f.getName()); }
   props.setProperty('KA_LAST', stamp);
@@ -558,23 +559,86 @@ function hitlistBlock(sh, r, title, list) {
   return Math.max(r + 2, hdr + Math.ceil((80 + 22 * vals.length) / 21) + 2);
 }
 
-// Ranking der Auslastung nur nach Uhrzeit (Ruben 15.09.2026): alle Klassen einer Startzeit zusammen (Werktag und Samstag, alle Disziplinen),
-// ohne Gratisklassen; Auslastung = Besuche / Plaetze. Spalte F ist im Tab ausgeblendet, deshalb bleibt sie leer.
-function timeBlock(sh, r, title, rows) {
+// Ranking der Auslastung nur nach Uhrzeit (Ruben 15.09.2026): alle Klassen einer Startzeit zusammen (alle Disziplinen), ohne Gratisklassen;
+// Auslastung = Besuche / Plaetze. Seit 21.09.2026 (Ruben) Werktag und Samstag GETRENNT (daytype), weil dieselbe Uhrzeit an beiden voellig
+// verschieden laeuft (ZH 10:50: Samstag 56 %, werktags zwei tote Competition-Klassen). Dazu je Uhrzeit die Mitglieder mit Abo (unique, aus
+// Itemized Visits) und wie viele davon nur bzw. ueberwiegend in Randzeiten trainieren (slotUsers = data.revenue.slot_users).
+// Spalten F und L sind im Tab ausgeblendet, deshalb bleiben sie leer.
+function timeBlock(sh, r, title, rows, daytype, slotUsers, loc) {
   var agg = {};
-  rows.forEach(function (x) { if (x.segment === 'Gratis' || !x.start) return; var k = String(x.start); var o = agg[k] = agg[k] || { t: k, cls: 0, ev: 0, att: 0, cap: 0 }; o.cls++; o.ev += Number(x.events) || 0; o.att += Number(x.attended) || 0; o.cap += Number(x.capacity) || 0; });
+  rows.forEach(function (x) { if (x.segment === 'Gratis' || !x.start || (x.daytype || 'Werktag') !== daytype) return; var k = String(x.start); var o = agg[k] = agg[k] || { t: k, cls: 0, ev: 0, att: 0, cap: 0 }; o.cls++; o.ev += Number(x.events) || 0; o.att += Number(x.attended) || 0; o.cap += Number(x.capacity) || 0; });
   var list = Object.keys(agg).map(function (k) { return agg[k]; }).filter(function (o) { return o.cap > 0; }).sort(function (a, b) { return (b.att / b.cap) - (a.att / a.cap); });
   if (!list.length) return r;
+  var su = slotUsers || null;
   sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
-  sh.getRange(r, 1, 1, 9).setValues([['Rang', 'Uhrzeit', 'Klassen', 'Termine', 'Besuche', '', 'Ø pro Termin', 'Plätze', 'Auslastung']]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
-  var v = list.map(function (o, i) { return [i + 1, o.t, o.cls, o.ev, o.att, '', o.ev ? o.att / o.ev : '', o.cap, o.att / o.cap]; });
-  sh.getRange(r, 1, v.length, 9).setValues(v); sh.getRange(r, 7, v.length, 1).setNumberFormat('0.0'); sh.getRange(r, 9, v.length, 1).setNumberFormat('0%');
+  var hh = ['Rang', 'Uhrzeit', 'Klassen', 'Termine', 'Besuche', '', 'Ø pro Termin', 'Plätze', 'Auslastung', 'Mitglieder (unique)', 'davon nur Randzeit', '', 'davon überw. Randzeit'];
+  sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3').setWrap(true); r++;
+  var v = list.map(function (o, i) {
+    var s = su ? su[[loc, daytype, o.t].join('|')] : null;
+    return [i + 1, o.t, o.cls, o.ev, o.att, '', o.ev ? o.att / o.ev : '', o.cap, o.att / o.cap, s ? s.users : '', s ? s.rand_only : '', '', s ? s.rand_mostly : ''];
+  });
+  sh.getRange(r, 1, v.length, hh.length).setValues(v); sh.getRange(r, 7, v.length, 1).setNumberFormat('0.0'); sh.getRange(r, 9, v.length, 1).setNumberFormat('0%'); sh.getRange(r, 10, v.length, 4).setNumberFormat('0');
   var mr = sh.getRange(r, 9, v.length, 1);
   sh.setConditionalFormatRules(sh.getConditionalFormatRules().concat([
     SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.16).setBackground('#F8CBAD').setRanges([mr]).build(),
     SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0.45).setBackground('#C6E0B4').setRanges([mr]).build(),
   ]));
   return r + v.length + 1;
+}
+
+// ------------------------------------------------------------ Mitglieder nach Zeitfenster (Ruben 21.09.2026, Vorbereitung Randzeiten-Abo)
+// data.revenue.bands = { Zurich: { 'nur Randzeit': {n, chf, tiers:{Basic,Core,Advanced,Pro,Andere}, n_core_plus, chf_core_plus, exposed}, ... }, ... }
+// data.revenue.band_params = { rand_before:'16:30', rand_price:149, rand_price_net:137.84, mostly_share:0.7 }
+// Kontrollinstrument, keine Entscheidungsgrundlage: zeigt, wie viele Mitglieder heute ausschliesslich oder ueberwiegend in Randzeiten
+// trainieren und welcher Abo-Umsatz bei einem Wechsel zum Randzeiten-Abo (nur zum Laufzeitende, AGB 5b) hoechstens wegfallen koennte.
+// Nach dem Launch monatlich lesen: waechst "nur Randzeit" bei Core+ ohne dass die Mitgliederzahl steigt, wandern Leute ab statt dazu.
+var ZF_HIST = 'ZeitfensterHistorie'; // Monat | Standort | Gruppe | Mitglieder | CHF/Monat | davon Core+ | Exponiert
+var ZF_GROUPS = ['nur Randzeit', 'überwiegend Randzeit', 'gemischt', 'nur Prime', 'nur Samstag', 'ohne Besuch', 'Kids (ausgeklammert)'];
+function updateZeitfensterHistorie(ss, data) {
+  var sh = getOrCreate(ss, ZF_HIST), head = ['Monat', 'Standort', 'Gruppe', 'Mitglieder', 'CHF/Monat', 'davon Core+', 'Exponiert'];
+  if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet(); }
+  var mk = monthKey(data), bands = (data.revenue || {}).bands || {};
+  var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return !(r[0] instanceof Date) || Utilities.formatDate(r[0], TZ, 'yyyy-MM') !== mk.key; }) : [];
+  Object.keys(bands).sort().forEach(function (loc) {
+    ZF_GROUPS.forEach(function (g) { var x = bands[loc][g]; if (!x) return; keep.push([mk.month, loc, g, x.n || 0, x.chf || 0, x.n_core_plus || 0, x.exposed || 0]); });
+  });
+  keep.sort(function (a, b) { return (a[0].getTime() - b[0].getTime()) || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) || (ZF_GROUPS.indexOf(a[2]) - ZF_GROUPS.indexOf(b[2])); });
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, head.length).clearContent();
+  if (keep.length) sh.getRange(2, 1, keep.length, head.length).setValues(keep);
+  sh.getRange('A2:A').setNumberFormat('mmm yyyy'); sh.getRange('E2:E').setNumberFormat('#,##0'); sh.getRange('G2:G').setNumberFormat('#,##0');
+}
+function bandBlock(sh, r, ss, loc, data) {
+  var rv = data.revenue || {}, bands = (rv.bands || {})[loc], prm = rv.band_params || {};
+  if (!bands) return r;
+  var win = data.window || {}, fmt = function (d) { var p = String(d || '').split('-'); return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : d; };
+  sh.getRange(r, 1).setValue('Mitglieder nach Zeitfenster ' + loc + ' ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (Randzeit = Werktag, Klassenstart vor ' + (prm.rand_before || '16:30') + '; Randzeiten-Preis CHF ' + (prm.rand_price || 149) + ' brutto)').setFontWeight('bold').setFontSize(12); r++;
+  // Spalten F und L sind im Tab ausgeblendet, deshalb dort Leerspalten
+  var hh = ['Gruppe', 'Mitglieder', 'Anteil', 'Abo-Umsatz CHF/Monat', 'Ø CHF', '', 'Basic', 'Core', 'Advanced', 'Pro', 'Andere', '', 'davon Core+', 'CHF Core+', 'Exponiert CHF/Monat'];
+  var hdr = r;
+  sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3').setWrap(true); r++;
+  var total = { n: 0, chf: 0, tiers: { Basic: 0, Core: 0, Advanced: 0, Pro: 0, Andere: 0 }, n_core_plus: 0, chf_core_plus: 0, exposed: 0 };
+  ZF_GROUPS.forEach(function (g) { var x = bands[g]; if (!x) return; total.n += x.n || 0; total.chf += x.chf || 0; ['Basic', 'Core', 'Advanced', 'Pro', 'Andere'].forEach(function (t) { total.tiers[t] += (x.tiers || {})[t] || 0; }); total.n_core_plus += x.n_core_plus || 0; total.chf_core_plus += x.chf_core_plus || 0; total.exposed += x.exposed || 0; });
+  var row = function (name, x) { var t = x.tiers || {}; return [name, x.n || 0, total.n ? (x.n || 0) / total.n : '', x.chf || 0, x.n ? (x.chf || 0) / x.n : '', '', t.Basic || 0, t.Core || 0, t.Advanced || 0, t.Pro || 0, t.Andere || 0, '', x.n_core_plus || 0, x.chf_core_plus || 0, x.exposed || 0]; };
+  var vals = ZF_GROUPS.filter(function (g) { return bands[g]; }).map(function (g) { return row(g, bands[g]); });
+  vals.push(row('Total', total));
+  sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
+  sh.getRange(r, 3, vals.length, 1).setNumberFormat('0%'); sh.getRange(r, 4, vals.length, 2).setNumberFormat('#,##0'); sh.getRange(r, 7, vals.length, 5).setNumberFormat('0'); sh.getRange(r, 13, vals.length, 1).setNumberFormat('0'); sh.getRange(r, 14, vals.length, 2).setNumberFormat('#,##0');
+  sh.getRange(r + vals.length - 1, 1, 1, hh.length).setFontWeight('bold');
+  sh.getRange(r, 15, 2, 1).setBackground('#FCE4D6'); // Exponiert bei nur/ueberwiegend Randzeit hervorheben
+  r += vals.length;
+  // Verlauf (ab dem zweiten Import): nur Randzeit / ueberwiegend / Exponiert je Monat
+  var hist = ss.getSheetByName(ZF_HIST), hv = hist && hist.getLastRow() > 1 ? hist.getRange(2, 1, hist.getLastRow() - 1, 7).getValues() : [], byM = {}, order = [];
+  hv.forEach(function (x) { if (!(x[0] instanceof Date) || x[1] !== loc) return; var k = Utilities.formatDate(x[0], TZ, 'yyyy-MM'); if (!byM[k]) { byM[k] = { d: x[0], mem: 0 }; order.push(k); } var b = byM[k]; b[x[2]] = { n: x[3], ex: x[6] }; b.mem += Number(x[3]) || 0; });
+  if (order.length > 1) {
+    order.sort();
+    sh.getRange(r, 1).setValue('Verlauf ' + loc).setFontWeight('bold'); r++;
+    sh.getRange(r, 1, 1, 7).setValues([['Monat', 'Mitglieder', 'nur Randzeit', 'Anteil', 'überw. Randzeit', '', 'Exponiert CHF/Monat']]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+    var vr = order.slice(-12).map(function (k) { var b = byM[k], a = b['nur Randzeit'] || { n: 0, ex: 0 }, u = b['überwiegend Randzeit'] || { n: 0, ex: 0 }; return [b.d, b.mem, a.n, b.mem ? a.n / b.mem : '', u.n, '', (Number(a.ex) || 0) + (Number(u.ex) || 0)]; });
+    sh.getRange(r, 1, vr.length, 7).setValues(vr); sh.getRange(r, 1, vr.length, 1).setNumberFormat('mmm yyyy'); sh.getRange(r, 4, vr.length, 1).setNumberFormat('0%'); sh.getRange(r, 7, vr.length, 1).setNumberFormat('#,##0');
+    r += vr.length;
+  }
+  sh.getRange(r, 1).setValue('Jeder Check-in eines Mitglieds fällt in ein Fenster: Randzeit (Werktag, Start vor ' + (prm.rand_before || '16:30') + '), Prime (Werktag ab ' + (prm.rand_before || '16:30') + ') oder Samstag. Gruppe je Mitglied über alle Check-ins des Monats an beiden Standorten: nur Randzeit = 100 %, überwiegend = ab ' + Math.round((prm.mostly_share || 0.7) * 100) + ' %. Kids-Abos ausgeklammert. Exponiert = Abo-Netto der Core+-Mitglieder (Core, Advanced, Pro) in nur/überwiegend Randzeit minus Randzeiten-Preis netto (CHF ' + (prm.rand_price_net || '') + '), nur positive Differenzen; Basic liegt darunter. Obergrenze: Downgrade nur zum Laufzeitende (AGB 5b), und wer nur in Randzeiten trainiert, verlängert sonst oft gar nicht. Preis und Uhrzeit im Tab Einstellungen.').setFontColor('#666666').setFontStyle('italic');
+  return r + 2;
 }
 function classBlock(sh, r, title, list, color) {
   sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
@@ -678,9 +742,13 @@ function buildKlassenanalyse(ss, data, fileName) {
     hr = classBlock(sh, hr, 'Top 10 Klassen nach Umsatz je Termin (mindestens 4 Termine im Monat)', ranked.slice(0, 10), '#C6E0B4');
     hr = classBlock(sh, hr, 'Bottom 10 Klassen nach Umsatz je Termin (mindestens 4 Termine im Monat)', ranked.slice(-10).reverse(), '#F8CBAD');
   }
-  // ---- Ranking nach Uhrzeit je Standort (Ruben 15.09.2026)
+  // ---- Ranking nach Uhrzeit je Standort (Ruben 15.09.2026), seit 21.09.2026 Werktag und Samstag getrennt, danach Mitglieder nach Zeitfenster
+  var slotUsers = (data.revenue || {}).slot_users || null;
   locs.forEach(function (lc) {
-    hr = timeBlock(sh, hr, 'Ranking der Auslastung nach Uhrzeit ' + lc + ' ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (alle Klassen dieser Startzeit, Werktag und Samstag zusammen, ohne Gratisklassen)', rows.filter(function (x) { return x.location === lc; }));
+    var lrows = rows.filter(function (x) { return x.location === lc; });
+    hr = timeBlock(sh, hr, 'Ranking der Auslastung nach Uhrzeit ' + lc + ' Werktag ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (alle Klassen dieser Startzeit Mo bis Fr, ohne Gratisklassen)', lrows, 'Werktag', slotUsers, lc);
+    hr = timeBlock(sh, hr, 'Ranking der Auslastung nach Uhrzeit ' + lc + ' Samstag ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (alle Klassen dieser Startzeit am Samstag, ohne Gratisklassen)', lrows, 'Sa', slotUsers, lc);
+    hr = bandBlock(sh, hr, ss, lc, data);
   });
   // ---- Slot-Tabelle
   var HR = hr + 1, D0 = HR + 1, last = D0 + rows.length - 1;
@@ -722,6 +790,7 @@ function buildKlassenanalyse(ss, data, fileName) {
     'Besuche je Teilnehmer = Buchungen / Unique Users (beide aus dem Recurring-Report, enthalten No-Shows). Gratisklassen (Open Mat) sind aus Vergleichen ausgeschlossen. Spalte "Aktion" ist manuell und bleibt beim nächsten Import erhalten.',
     'Bewertung: < 5 Termine = zu wenig Termine; < 10% tot; < 16% schliessen prüfen; < 28% schwach; > 45% Kapazität prüfen. Competition-Klassen nicht nach Ø bewerten (Kaderaufbau), Kids in Ferienmonaten nach unten verzerrt.',
     'Umsatz (Value Pricing, seit 03.09.2026): Netto-Abobetrag pro Monat je Mitglied (ohne MwSt, Jahres-/Halbjahresabos auf Monate umgerechnet, Coupon abgezogen) gleichmässig auf dessen Check-ins des Monats verteilt und je Klasse summiert. Umsatz je Termin = Umsatz / Termine. Check-ins ohne Abo (Probetraining, Gäste) = 0 CHF. Das Abo-Geld der Mitglieder ohne Besuch (Tab Kündigungsrisiko) steckt in keiner Klasse, darum ist die Summe der Klassen kleiner als der Abo-Umsatz. Kein Grenzumsatz: fällt eine Klasse weg, wandern die Besuche in andere Klassen.',
+    'Uhrzeit-Ranking (seit 21.09.2026) Werktag und Samstag getrennt, mit Mitgliedern (unique, nur mit Abo) je Uhrzeit und dem Anteil, der nur bzw. überwiegend in Randzeiten trainiert. Block "Mitglieder nach Zeitfenster" je Standort: Kontrollinstrument für das Randzeiten-Abo (Definitionen unter dem Block, Preis und Uhrzeit im Tab Einstellungen).',
   ];
   for (var n = 0; n < notes.length; n++) sh.getRange(last + 2 + n, 1).setValue(notes[n]).setFontStyle('italic').setFontColor('#666666');
 }
@@ -822,6 +891,7 @@ function klassenCall(body) {
   return j;
 }
 function runKlassenanalyse(start, end) {
+  var ss = SpreadsheetApp.openById(SHEET_ID), st = stGet(ss); // Zeitfenster-Parameter (Randzeit bis Uhrzeit, Randzeiten-Preis) aus Einstellungen
   var p1 = klassenCall({ phase: 1, start: start, end: end });
   if (p1.error) throw new Error('Phase 1: ' + JSON.stringify(p1).slice(0, 300));
   Logger.log('Phase 1 gestartet: ' + JSON.stringify(p1.started));
@@ -829,9 +899,9 @@ function runKlassenanalyse(start, end) {
   for (i = 0; i < 8; i++) { Utilities.sleep(25000); p2 = klassenCall({ phase: 2, start: start, end: end }); if (p2.error) throw new Error('Phase 2: ' + JSON.stringify(p2).slice(0, 300)); if (p2.ready) break; }
   if (!p2 || !p2.ready) throw new Error('Phase 2 nicht fertig: ' + JSON.stringify(p2).slice(0, 200));
   Logger.log('Phase 2: Popular Zuerich ' + (p2.popular_zh || []).length + ' Services');
-  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p3 = klassenCall({ phase: 3, start: start, end: end, popular_zh: p2.popular_zh }); if (p3.error) throw new Error('Phase 3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
+  for (i = 0; i < 8; i++) { Utilities.sleep(25000); p3 = klassenCall({ phase: 3, start: start, end: end, popular_zh: p2.popular_zh, rand_before: String(st['Randzeit bis Uhrzeit'] || '16:30'), rand_price: Number(st['Randzeiten-Abo Preis brutto CHF/Monat']) || 149 }); if (p3.error) throw new Error('Phase 3: ' + JSON.stringify(p3).slice(0, 300)); if (p3.ready) break; }
   if (!p3 || !p3.ready) throw new Error('Phase 3 nicht fertig: ' + JSON.stringify(p3).slice(0, 200));
-  var data = p3.data, ss = SpreadsheetApp.openById(SHEET_ID), name = 'klassenanalyse-' + start.slice(0, 7) + '.json';
+  var data = p3.data, name = 'klassenanalyse-' + start.slice(0, 7) + '.json';
   // Archivkopie (ersetzt eine aeltere Datei desselben Monats); der Drive-Import ueberspringt sie per Stempel
   var it = DriveApp.getFoldersByName(KA_FOLDER);
   if (it.hasNext()) {
@@ -841,6 +911,7 @@ function runKlassenanalyse(start, end) {
     PropertiesService.getScriptProperties().setProperty('KA_LAST', f.getId() + '@' + f.getLastUpdated().getTime());
   }
   updateKlassenHistorie(ss, data);
+  if (data.revenue && data.revenue.bands) updateZeitfensterHistorie(ss, data);
   buildKlassenanalyse(ss, data, name + ' (API)');
   if (data.revenue) { updateRisikoHistorie(ss, data); buildRisiko(ss, data, name + ' (API)'); }
   var sum = data.summary || {}, mem = (data.revenue || {}).members || {}, lines = [];
@@ -1364,6 +1435,8 @@ var ST_DEFAULTS = [
   ['Agentur bis', '', 'Letzter Monat mit Agenturkosten (yyyy-MM). Leer = laeuft noch.'],
   ['EUR in CHF', '0.94', 'Kurs fuer die Umrechnung der Agenturkosten - bitte pruefen.'],
   ['Werbekosten-Split ohne Standort', '0.5', 'Anteil Zuerich fuer Kampagnen ohne Standort im Namen (Rest Winterthur).'],
+  ['Randzeit bis Uhrzeit', '16:30', 'Klassenanalyse, Block "Mitglieder nach Zeitfenster": Werktagsklassen mit Start VOR dieser Uhrzeit zählen als Randzeit (Ruben 21.09.2026). Wirkt beim nächsten Klassenanalyse-Lauf.'],
+  ['Randzeiten-Abo Preis brutto CHF/Monat', '149', 'Geplanter Preis des Randzeiten-Abos inkl. MwSt. Spalte "Exponiert" = Abo-Netto der Core+-Mitglieder in nur/überwiegend Randzeit minus dieser Preis netto (nur positive Differenzen).'],
 ];
 var ST_OBSOLETE = /^(Agentur EUR\/Monat|Prognose: |Saisonindex )/; // alte Einstellungen (Prognose bis 2030 abgeschafft, Agentur je Standort; Ruben 07.09.2026) werden beim Lesen entfernt
 function stGet(ss) {
@@ -2525,7 +2598,7 @@ function buildMethodik(ss) {
     ['Bank', 'Gutschriften je Monat und Standort aus dem Kontoauszug (nur Eingänge), von Hand eingetragen: Stripe = alle Gutschriften "Stripe Payments UK Ltd" (exercise.com), Magicline (Adyen) = Auszahlungen des alten Studio-Systems, Customer transfers = Überweisungen von Mitgliedern und Stiftungen (Umsatz, fehlt in exercise.com), Other = kein Umsatz (Steuerrückzahlungen, Versicherungen, unbenannte Eingänge). Stripe zahlt 7 Kalendertage nach der Belastung aus; der Abgleich steht im Monatsabschluss (Erwarteter Bankeingang, Differenz).'],
     ['Finanzplan-Übertrag', FP_NOTE],
     ['Manuelle Werte', 'Von Hand gesetzte Monatswerte (Monat 2026-01, Standort, Kennzahl Verkäufe/Verluste/Neue Kontakte/Probetrainings, Wert, Grund), z. B. Verkäufe in den Migrationsmonaten. Ersetzen den berechneten Wert in Monatsabschluss, Werbekosten und Finanzplan-Übertrag; die Zelle trägt eine Notiz.'],
-    ['Einstellungen', 'Agentur-Pauschalen je Standort und für TikTok in EUR pro Monat mit Von/Bis, Wechselkurs EUR in CHF, Anteil Zürich für Kampagnen ohne Standort im Namen.'],
+    ['Einstellungen', 'Agentur-Pauschalen je Standort und für TikTok in EUR pro Monat mit Von/Bis, Wechselkurs EUR in CHF, Anteil Zürich für Kampagnen ohne Standort im Namen. Für die Klassenanalyse: "Randzeit bis Uhrzeit" (Werktagsklassen mit Start davor zählen als Randzeit) und "Randzeiten-Abo Preis brutto CHF/Monat" (Spalte Exponiert im Block Mitglieder nach Zeitfenster).'],
     ['Team KPIs (Probetrainings Zürich und Winterthur)', TR_T.de.rule],
     ['Open Payments', 'Eigenes Sheet fürs Geldeintreiben: Personen mit der Lifecycle-Stage "Signed but no payment" (Vertrag unterschrieben, keine Zahlungsmethode), beide Standorte, älteste zuerst, ab 30 Tagen rot. Stündlich aus exercise.com. Wer in exercise.com auf "Client" gesetzt wird, verschwindet beim nächsten Lauf.']
   ];
