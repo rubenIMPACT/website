@@ -926,3 +926,9 @@ EDITOR-PASTE nachziehen, dann runKlassenanalyse('2026-08-01','2026-08-31') fuer 
 - Workflow content-sync was deleted and recreated on GitHub (PAT has no workflow scope) and now calls `tools/content_build.py` (team + courses). Tick box test from the MMA tab 21.09. 11:59: 28 s, success.
 - NOT in the sheet: #zeiten (slides), duosec coach cards (Team tab), trial form, review quotes/counters/badge, hero address line, photos/videos, nav/footer, Little Ninjas pages (different template, no section ids).
 - Known cosmetic: course tabs show a stray yellow cell in G1.
+
+## Little Ninjas in the content sheet (21.09.2026, Ruben: "mach weiter mit little ninjas")
+- Tab "Little Ninjas" (54 rows, 44 Both) in "IMPACT Website Content"; 188 elements tagged on the four kids pages. Sections: Hero, Benefits, Reviews (Quote + Quote author, `**bold**`), Age groups (Label/Heading/Text/Link text 1-2), Timetable block (title only, `[-]` = &shy;), FAQ, Sign-up block, Closing, SEO. `#lndata` (times) still comes from the slides.
+- `ct_courses.py`: `KIDS`, `TOKEN_KIDS`, `KIDS_SECTION`; adult pages are scanned with the old `TOKEN` and were not touched. Texts are rewritten only when the MEANING changes (`html.unescape` comparison), so entities like `&rarr;` stay as they were.
+- Apps Script webapp version 40: `CT_COURSE_TABS` + 'Little Ninjas'; `ctCoursesSetup` now creates any missing tab (no more `ctCoursesSeeded` property); `pubStamp` never touches a non-existing column (that created the stray column G; `ctCoursesRead` removes it).
+- Round trip and edit test (quote with bold, soft hyphen title, Winterthur-only FAQ) done with a data copy; pages restore byte-identically.

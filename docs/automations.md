@@ -40,7 +40,7 @@ Sheet --Apps Script ctTeamRead (what=team)--> /api/content?what=team --> workflo
 ```
 Tabs --Apps Script ctCoursesRead (what=courses)--> /api/content?what=courses --> workflow content-sync
    tools/content_from_api.py -> data/courses.json (maps "Section + Field" to the key, e.g. "FAQ / Question 3" -> faq.q3)
-   tools/ct_courses.py build -> replaces the text inside every element that carries data-ct="<key>" on the 30 course pages
+   tools/ct_courses.py build -> replaces the text inside every element that carries data-ct="<key>" on the 34 course pages (incl. Little Ninjas)
 ```
 - The page is its own template: only text inside `data-ct` elements changes, plus `<title>`, meta description and the FAQPage JSON-LD.
 - Location logic: rows `Both` apply to both cities, `Zürich`/`Winterthur` rows only to that city. Repeatable fields (text, bullet, point+detail, question+answer)
@@ -48,6 +48,8 @@ Tabs --Apps Script ctCoursesRead (what=courses)--> /api/content?what=courses -->
 - `python3 tools/ct_courses.py tag` marked the elements once (21.09.2026) and aligned the numbering between the cities; `extract` produced the first fill.
   Both are idempotent and only needed again when new pages or new kinds of elements are added.
 - Safety: a tab with fewer than 30 rows, a missing hero headline or a page that would lose more than 40 % of its fields aborts the build.
+- Little Ninjas pages use another template (no section ids): `TOKEN_KIDS` and `KIDS_SECTION` in `ct_courses.py` name their sections (benefits, beweis, kurse, zeiten, faq).
+- The Apps Script creates every tab of `CT_COURSE_TABS` that is missing and fills it from `data/courses.json` on GitHub.
 - `tools/content_build.py` runs all builders of this sheet (team, courses); the workflow calls only this script.
 
 ## "Publish now" tick box in the content sheets
