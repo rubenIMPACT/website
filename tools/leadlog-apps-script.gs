@@ -1353,12 +1353,113 @@ function blogRead() {
   pubStamp(sh);
   return { ok: true, posts: posts, notes: notes };
 }
+/* ===== Website content sheet: tab "Team" -> team cards, bios and coach cards on the website (21.09.2026, Ruben) =====
+   Google Sheet "IMPACT Website Content". One row = one person. Read by Cloudflare /api/content?what=team and turned into static pages by the
+   GitHub workflow content-sync (tools/content_from_api.py + tools/build_team.py). Layout like the blog sheet: row 1 = publish row, row 2 = headers.
+   Prefix ct = content (NOT the Team KPIs sheet: that one uses teamSs/teamShare/tr*). Course page tabs follow later (Section | Field | Location | Deutsch | English). */
+var CONTENT_ID = '1XLfrTszrkO0RJGPGpASZLfIO4KdeOkySe7GMzQnM7qs';
+var CT_HR = 2;
+var CT_LOCS = ['Both', 'Zürich', 'Winterthur'];
+var CT_TEAM_HEAD = ['Website', 'Order', 'Name', 'Location', 'Homepage', 'Founder', 'Role DE', 'Role EN', 'Highlight DE', 'Highlight EN', 'Photo URL', 'Summary DE', 'Summary EN', 'Bio DE', 'Bio EN', 'Check'];
+var CT_TEAM_NOTES = [
+  'Tick = the person is shown on the website. Remove the tick = the person disappears everywhere (team pages, city pages, about, home, course pages).',
+  'Position in every list, small numbers first. Decimals are fine (3.5 sits between 3 and 4).',
+  'Full name as shown on the website. The first word is the first name on the course pages.',
+  'Both = Zürich and Winterthur pages. Zürich = only Zürich pages. Winterthur = only Winterthur pages. There is no default, pick one.',
+  'Tick = also shown in the trainer block of the two home pages.',
+  'Tick = shown in the "Founders" block of the about page instead of the team block.',
+  'Role line under the name, German pages.',
+  'Role line under the name, English pages.',
+  'Optional one-line highlight, German. Example: "BJJ Black Belt".',
+  'Optional one-line highlight, English.',
+  'Portrait photo. Paste a normal Google Drive link (no public sharing needed, Ruben\'s account must be able to open the file) or any https image link. Portrait format, face in the upper half.',
+  'Optional. Short intro shown on the course pages above the button "Erfahre mehr". Empty = the first paragraph of the bio is used.',
+  'Optional. English short intro for the course pages.',
+  'Biography, German. Empty line = new paragraph. Empty bio = card without overlay.',
+  'Biography, English.',
+  'Filled in by the script: OK = online, otherwise what is still missing.'
+];
+function ctTeamSheet() {
+  var ss = SpreadsheetApp.openById(CONTENT_ID);
+  var sh = ss.getSheetByName('Team') || ss.getSheets()[0];
+  if (String(sh.getRange(CT_HR, 1).getValue()) !== CT_TEAM_HEAD[0]) ctTeamSetup(ss, sh);
+  if (typeof sh.getRange(1, 1).getValue() !== 'boolean') pubRowFormat(sh, CT_TEAM_HEAD.length);
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('ctTeamSeeded') !== '1') {
+    var has = sh.getRange(CT_HR + 1, 3, Math.max(1, sh.getMaxRows() - CT_HR), 1).getValues().some(function (r) { return String(r[0]).trim() !== ''; });
+    if (has || ctTeamSeed(sh) > 0) props.setProperty('ctTeamSeeded', '1');
+  }
+  return sh;
+}
+function ctTeamSetup(ss, sh) {
+  ss.setSpreadsheetLocale('de_CH'); ss.setSpreadsheetTimeZone(TZ);
+  sh.setName('Team');
+  var n = CT_TEAM_HEAD.length, rows = 60, d0 = CT_HR + 1;
+  if (sh.getMaxRows() < rows + CT_HR) sh.insertRowsAfter(sh.getMaxRows(), rows + CT_HR - sh.getMaxRows());
+  if (sh.getMaxRows() > rows + CT_HR) sh.deleteRows(rows + CT_HR + 1, sh.getMaxRows() - rows - CT_HR);
+  if (sh.getMaxColumns() > n) sh.deleteColumns(n + 1, sh.getMaxColumns() - n);
+  if (sh.getMaxColumns() < n) sh.insertColumnsAfter(sh.getMaxColumns(), n - sh.getMaxColumns());
+  pubRowFormat(sh, n);
+  sh.getRange(CT_HR, 1, 1, n).setValues([CT_TEAM_HEAD]).setNotes([CT_TEAM_NOTES]).setFontWeight('bold').setBackground('#0a0908').setFontColor('#e2c117').setVerticalAlignment('middle');
+  sh.setFrozenRows(CT_HR); sh.setFrozenColumns(3);
+  sh.getRange(d0, 1, rows, n).setVerticalAlignment('top').setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP).setNumberFormat('@');
+  [1, 5, 6].forEach(function (c) { sh.getRange(d0, c, rows, 1).setNumberFormat('General').insertCheckboxes(); });
+  sh.getRange(d0, 2, rows, 1).setNumberFormat('0.##');
+  sh.getRange(d0, 4, rows, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(CT_LOCS, true).setAllowInvalid(false).build());
+  sh.getRange(d0, 7, rows, 4).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sh.getRange(d0, n, rows, 1).setFontColor('#888888');
+  [70, 60, 190, 110, 85, 75, 210, 210, 200, 200, 200, 260, 260, 380, 380, 200].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+  sh.setRowHeightsForced(d0, rows, 42);
+}
+// First fill: the 15 people that were already on the website (data/team.json in the public repo, extracted from the pages on 21.09.2026).
+function ctTeamSeed(sh) {
+  var r = UrlFetchApp.fetch('https://raw.githubusercontent.com/rubenIMPACT/website/main/data/team.json', { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return 0;
+  var team = JSON.parse(r.getContentText()).team || [];
+  if (!team.length) return 0;
+  var rows = team.map(function (p) {
+    return [true, p.order, p.name, p.location, !!p.homepage, !!p.founder, p.role_de, p.role_en, p.highlight_de || '', p.highlight_en || '', p.image || '', p.summary_de || '', p.summary_en || '', p.bio_de || '', p.bio_en || '', ''];
+  });
+  sh.getRange(CT_HR + 1, 1, rows.length, CT_TEAM_HEAD.length).setValues(rows);
+  return rows.length;
+}
+function ctTeamRead() {
+  var sh = ctTeamSheet(), last = sh.getLastRow(), team = [], notes = [], R0 = CT_HR + 1;
+  if (last <= CT_HR) return { ok: true, team: [], notes: ['empty'] };
+  var head = sh.getRange(CT_HR, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = {};
+  CT_TEAM_HEAD.forEach(function (h) { col[h] = head.indexOf(h); if (col[h] < 0) throw new Error('Team tab: column "' + h + '" is missing'); });
+  var vals = sh.getRange(R0, 1, last - CT_HR, head.length).getValues(), names = {};
+  var T = function (v, h) { return String(v[col[h]] == null ? '' : v[col[h]]).trim(); };
+  vals.forEach(function (v, i) {
+    var name = T(v, 'Name'), on = v[col.Website] === true;
+    if (!name && !on) { if (T(v, 'Check') !== '') sh.getRange(i + R0, col.Check + 1).setValue(''); return; }
+    var miss = [];
+    if (!name) miss.push('Name');
+    if (CT_LOCS.indexOf(T(v, 'Location')) < 0) miss.push('Location');
+    if (!T(v, 'Role DE')) miss.push('Role DE');
+    if (!T(v, 'Role EN')) miss.push('Role EN');
+    if (T(v, 'Order') === '' || isNaN(Number(v[col.Order]))) miss.push('Order (number)');
+    if (!!T(v, 'Bio DE') !== !!T(v, 'Bio EN')) miss.push(T(v, 'Bio DE') ? 'Bio EN' : 'Bio DE');
+    if (name && names[name]) miss.push('Name appears twice');
+    names[name] = true;
+    var check = miss.length ? 'Missing: ' + miss.join(', ') : (on ? 'OK' : 'OK, not ticked');
+    if (T(v, 'Check') !== check) sh.getRange(i + R0, col.Check + 1).setValue(check);
+    if (!on) return;
+    if (miss.length) { notes.push('row ' + (i + R0) + ': ' + check); return; }
+    team.push({ website: true, order: Number(v[col.Order]), name: name, location: T(v, 'Location'), homepage: v[col.Homepage] === true, founder: v[col.Founder] === true,
+      role_de: T(v, 'Role DE'), role_en: T(v, 'Role EN'), highlight_de: T(v, 'Highlight DE'), highlight_en: T(v, 'Highlight EN'), image: T(v, 'Photo URL'),
+      summary_de: T(v, 'Summary DE'), summary_en: T(v, 'Summary EN'), bio_de: T(v, 'Bio DE'), bio_en: T(v, 'Bio EN') });
+  });
+  pubStamp(sh);
+  return { ok: true, team: team, notes: notes };
+}
 /* ===== "Publish now" tick box in the content sheets (21.09.2026, Ruben) =====
    Row 1 of a content sheet: A1 = tick box, D1 = status, G1 = last read by the website build. An installable onEdit trigger (runs as Ruben,
    so it also works when Waseem ticks the box) starts the GitHub workflow that rebuilds the pages. The GitHub token lives ONLY in the
    Script Properties (key GITHUB_TOKEN, fine-grained token with "Actions: read and write" on rubenIMPACT/website). Never put it into the code. */
 var PUB_REPO = 'rubenIMPACT/website';
 var PUB_TARGETS = {}; PUB_TARGETS[BLOG_ID] = { tab: 'Posts', workflow: 'blog-sync.yml' };
+PUB_TARGETS[CONTENT_ID] = { tab: '', workflow: 'content-sync.yml' }; // tab '' = the tick box works on every tab of that file
 var PUB_HINT = 'Tick the box on the left to publish now. The website is rebuilt and online about 3 minutes later. Without a tick it updates every morning.';
 function pubRowFormat(sh, n) {
   sh.getRange(1, 1, 1, n).clearContent().clearNote().clearDataValidations().setBackground('#e2c117').setFontColor('#0a0908').setFontWeight('bold').setVerticalAlignment('middle').setWrapStrategy(SpreadsheetApp.WrapStrategy.OVERFLOW);
@@ -1374,7 +1475,7 @@ function publishOnEdit(e) {
   try {
     if (!e || !e.range) return;
     var r = e.range, sh = r.getSheet(), t = PUB_TARGETS[e.source.getId()];
-    if (!t || sh.getName() !== t.tab || r.getRow() !== 1 || r.getColumn() !== 1 || r.getValue() !== true) return;
+    if (!t || (t.tab && sh.getName() !== t.tab) || r.getRow() !== 1 || r.getColumn() !== 1 || r.getValue() !== true) return;
     var status = sh.getRange(1, 4), props = PropertiesService.getScriptProperties(), now = new Date();
     r.setValue(false);
     if (now.getTime() - Number(props.getProperty('pubLast:' + t.workflow) || 0) < 120000) { status.setValue('Already started a moment ago. Please wait about 3 minutes.'); return; }
@@ -1399,6 +1500,7 @@ function doGet(e) {
     if (q.what === 'events') return out({ ok: true, events: readEvents() });
     if (q.what === 'plan') return out(spReadDecks());
     if (q.what === 'blog') return out(blogRead());
+    if (q.what === 'team') return out(ctTeamRead());
     if (q.what === 'pubtrigger') return out({ ok: true, trigger: installPublishTriggers() });
     if (q.what === 'spdaily') return out({ ok: true, result: spDaily() });
     if (q.what === 'sptrigger') return out({ ok: true, trigger: installSpTrigger() });
