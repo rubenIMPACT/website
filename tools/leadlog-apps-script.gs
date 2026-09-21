@@ -1549,8 +1549,8 @@ function pubRowFormat(sh, n) {
 }
 function pubStamp(sh) { // "Last read" goes into the last header column, so it never covers the status text in D1
   try {
-    var c = sh.getLastColumn(), old = sh.getRange(1, 7);
-    if (c !== 7 && String(old.getValue()).indexOf('Last read') === 0) old.setValue('');
+    var c = sh.getLastColumn();
+    if (c > 7) { var old = sh.getRange(1, 7); if (String(old.getValue()).indexOf('Last read') === 0) old.setValue(''); } // never touch a column that does not exist (created a stray column G)
     sh.getRange(1, c).setValue('Last read by the website: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm')).setFontWeight('normal');
   } catch (err) {}
 }
