@@ -1,0 +1,20 @@
+name: Inhalte aus dem Content-Sheet
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '10 5 * * *'   # taeglich 07:10 Zuerich (Sommerzeit); Quelle: Google Sheet "IMPACT Website Content" ueber /api/content
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pillow
+      - run: python3 tools/content_from_api.py
+      - run: python3 tools/content_build.py
+      - run: |
+          git config user.name "Ruben Crawford"
+          git config user.email "ruben@impact-martialarts.com"
+          git add -A data assets index.html zurich winterthur ueber-uns en
+          git diff --cached --quiet && echo "Keine Aenderung" || { git commit -m "Inhalte aus dem Content-Sheet nachgezogen ($(date +%d.%m.%Y))"; git pull --rebase; git push; }
