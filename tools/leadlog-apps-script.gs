@@ -1453,6 +1453,84 @@ function ctTeamRead() {
   pubStamp(sh);
   return { ok: true, team: team, notes: notes };
 }
+/* ===== Website content sheet: one tab per discipline -> texts of the course pages (21.09.2026, Ruben) =====
+   Row = Section | Field | Location (Both / Zürich / Winterthur, no default) | Deutsch | English | Check. Read via what=courses, built by tools/ct_courses.py.
+   The tab only carries labels; tools/ct_courses.py maps "Section + Field" to the data-ct key in the pages (one place for that logic). */
+var CT_COURSE_TABS = ['BJJ', 'Muay Thai', 'MMA', 'Boxing', 'Wrestling', 'Fitness Kickboxing', 'Street Defense', 'Personal Training'];
+var CT_COURSE_HEAD = ['Section', 'Field', 'Location', 'Deutsch', 'English', 'Check'];
+var CT_COURSE_NOTES = [
+  'Part of the page, from top to bottom. Keep the spelling: the website finds the place on the page through Section + Field.',
+  'Which text inside that part. Repeating fields can be added or removed: Text 4, Bullet 5, Point 5 + Detail 5, Question 8 + Answer 8. A new one appears after the one with the next smaller number.',
+  'Both = same text in Zürich and Winterthur. Zürich / Winterthur = text only for that location. For different texts make two rows, one per location. A field that has only a Zürich row does not exist on the Winterthur page (and the other way round). There is no default.',
+  'German text. *gold* = accent colour. Line break in the cell (Ctrl+Enter, Mac: Cmd+Enter) = line break on the page. _word_ = underlined (only in the three steps).',
+  'English text, same rules.',
+  'Filled in by the script: OK or what is missing.'
+];
+function ctCoursesSetup(ss) {
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('ctCoursesSeeded') === '1') return;
+  var r = UrlFetchApp.fetch('https://raw.githubusercontent.com/rubenIMPACT/website/main/data/courses.json', { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) throw new Error('courses.json not reachable');
+  var courses = JSON.parse(r.getContentText()).courses || [], n = CT_COURSE_HEAD.length;
+  courses.forEach(function (c) {
+    if (CT_COURSE_TABS.indexOf(c.tab) < 0 || ss.getSheetByName(c.tab)) return;
+    var sh = ss.insertSheet(c.tab, ss.getNumSheets()), rows = c.rows.length + 60, d0 = CT_HR + 1;
+    if (sh.getMaxRows() < rows + CT_HR) sh.insertRowsAfter(sh.getMaxRows(), rows + CT_HR - sh.getMaxRows());
+    if (sh.getMaxRows() > rows + CT_HR) sh.deleteRows(rows + CT_HR + 1, sh.getMaxRows() - rows - CT_HR);
+    if (sh.getMaxColumns() > n) sh.deleteColumns(n + 1, sh.getMaxColumns() - n);
+    pubRowFormat(sh, n);
+    sh.getRange(CT_HR, 1, 1, n).setValues([CT_COURSE_HEAD]).setNotes([CT_COURSE_NOTES]).setFontWeight('bold').setBackground('#0a0908').setFontColor('#e2c117').setVerticalAlignment('middle');
+    sh.setFrozenRows(CT_HR); sh.setFrozenColumns(2);
+    sh.getRange(d0, 1, rows, n).setNumberFormat('@').setVerticalAlignment('top').setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+    sh.getRange(d0, 3, rows, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(CT_LOCS, true).setAllowInvalid(false).build());
+    sh.getRange(d0, n, rows, 1).setFontColor('#888888');
+    [150, 110, 105, 470, 470, 190].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+    var vals = [], bg = [], weight = [], last = null, band = 0;
+    c.rows.forEach(function (x) {
+      if (x.section !== last) { band = 1 - band; }
+      vals.push([x.section, x.field, x.location, x.de || '', x.en || '', '']);
+      var col = band ? '#ffffff' : '#f4f1e6'; bg.push([col, col, col, col, col, col]);
+      weight.push([x.section !== last ? 'bold' : 'normal', 'normal', 'normal', 'normal', 'normal', 'normal']); last = x.section;
+    });
+    sh.getRange(d0, 1, vals.length, n).setValues(vals).setBackgrounds(bg).setFontWeights(weight);
+  });
+  props.setProperty('ctCoursesSeeded', '1');
+}
+function ctCoursesRead() {
+  var ss = SpreadsheetApp.openById(CONTENT_ID), out = [], notes = [], R0 = CT_HR + 1;
+  ctCoursesSetup(ss);
+  CT_COURSE_TABS.forEach(function (tab) {
+    var sh = ss.getSheetByName(tab);
+    if (!sh) { notes.push('tab missing: ' + tab); return; }
+    if (typeof sh.getRange(1, 1).getValue() !== 'boolean') pubRowFormat(sh, CT_COURSE_HEAD.length);
+    var head = sh.getRange(CT_HR, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = {};
+    CT_COURSE_HEAD.forEach(function (h) { col[h] = head.indexOf(h); if (col[h] < 0) throw new Error('Tab ' + tab + ': column "' + h + '" is missing'); });
+    var last = sh.getLastRow(); if (last <= CT_HR) { notes.push('tab empty: ' + tab); return; }
+    var vals = sh.getRange(R0, 1, last - CT_HR, head.length).getValues(), rows = [], checks = [], changed = false, seen = {};
+    var T = function (v, h) { return String(v[col[h]] == null ? '' : v[col[h]]).replace(/\r/g, ''); };
+    vals.forEach(function (v) { var k = T(v, 'Section').trim().toLowerCase() + '|' + T(v, 'Field').trim().toLowerCase(); if (k !== '|') (seen[k] = seen[k] || []).push(T(v, 'Location').trim()); });
+    vals.forEach(function (v, i) {
+      var sec = T(v, 'Section').trim(), field = T(v, 'Field').trim(), loc = T(v, 'Location').trim(), de = T(v, 'Deutsch').trim(), en = T(v, 'English').trim(), check = '';
+      if (sec || field || de || en) {
+        var miss = [];
+        if (!sec) miss.push('Section'); if (!field) miss.push('Field');
+        if (CT_LOCS.indexOf(loc) < 0) miss.push('Location');
+        if (!de) miss.push('Deutsch'); if (!en) miss.push('English');
+        var locs = seen[sec.toLowerCase() + '|' + field.toLowerCase()] || [];
+        var conflict = (locs.indexOf('Both') >= 0 && locs.length > 1) || locs.filter(function (l) { return l === loc; }).length > 1;
+        check = conflict ? 'Conflict: this field has several rows for the same location' : (miss.length ? 'Missing: ' + miss.join(', ') : 'OK');
+        if (sec && field && CT_LOCS.indexOf(loc) >= 0 && (de || en)) rows.push({ section: sec, field: field, location: loc, de: de, en: en });
+        if (check !== 'OK') notes.push(tab + ' row ' + (i + R0) + ': ' + check);
+      }
+      if (String(v[col.Check] || '') !== check) changed = true;
+      checks.push([check]);
+    });
+    if (changed) sh.getRange(R0, col.Check + 1, checks.length, 1).setValues(checks);
+    pubStamp(sh);
+    out.push({ tab: tab, rows: rows });
+  });
+  return { ok: true, courses: out, notes: notes };
+}
 /* ===== "Publish now" tick box in the content sheets (21.09.2026, Ruben) =====
    Row 1 of a content sheet: A1 = tick box, D1 = status, G1 = last read by the website build. An installable onEdit trigger (runs as Ruben,
    so it also works when Waseem ticks the box) starts the GitHub workflow that rebuilds the pages. The GitHub token lives ONLY in the
@@ -1470,7 +1548,13 @@ function pubRowFormat(sh, n) {
   sh.getRange(1, 7).setFontWeight('normal');
   sh.setRowHeight(1, 34);
 }
-function pubStamp(sh) { try { sh.getRange(1, 7).setValue('Last read by the website: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm')); } catch (err) {} }
+function pubStamp(sh) { // "Last read" goes into the last header column, so it never covers the status text in D1
+  try {
+    var c = sh.getLastColumn(), old = sh.getRange(1, 7);
+    if (c !== 7 && String(old.getValue()).indexOf('Last read') === 0) old.setValue('');
+    sh.getRange(1, c).setValue('Last read by the website: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm')).setFontWeight('normal');
+  } catch (err) {}
+}
 function publishOnEdit(e) {
   try {
     if (!e || !e.range) return;
@@ -1501,6 +1585,7 @@ function doGet(e) {
     if (q.what === 'plan') return out(spReadDecks());
     if (q.what === 'blog') return out(blogRead());
     if (q.what === 'team') return out(ctTeamRead());
+    if (q.what === 'courses') return out(ctCoursesRead());
     if (q.what === 'pubtrigger') return out({ ok: true, trigger: installPublishTriggers() });
     if (q.what === 'spdaily') return out({ ok: true, result: spDaily() });
     if (q.what === 'sptrigger') return out({ ok: true, trigger: installSpTrigger() });

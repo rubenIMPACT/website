@@ -1,7 +1,7 @@
-// Inhalte aus dem Google Sheet "IMPACT Website Content" als JSON, gelesen vom Apps Script. Heute: ?what=team (Tab "Team").
+// Inhalte aus dem Google Sheet "IMPACT Website Content" als JSON, gelesen vom Apps Script: ?what=team (Tab "Team"), ?what=courses (ein Tab je Sportart).
 // Genutzt vom GitHub-Workflow content-sync (taeglich + Haekchen "Publish now" im Sheet) - GitHub braucht weder Token noch Script-URL.
 // Cache 10 Min je Tab; ?refresh=1 erzwingt Neuabruf. Es kommen nur Zeilen mit Haken "Website" zurueck.
-const ALLOWED = ["team"];
+const ALLOWED = ["team", "courses"];
 export async function onRequestGet(context) {
   const { env, request } = context; const url = new URL(request.url);
   const what = url.searchParams.get("what") || "team";

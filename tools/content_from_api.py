@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Fetches the team from the Google Sheet "IMPACT Website Content" (tab "Team") via https://www.impact-martialarts.com/api/content
-and writes data/team.json. Photos given as Google Drive or https links are downloaded once to assets/team/<name>.jpg (max. 1200 px wide).
+"""Fetches the Google Sheet "IMPACT Website Content" via https://www.impact-martialarts.com/api/content:
+tab "Team" -> data/team.json, the discipline tabs -> data/courses.json (texts of the course pages). Photos given as Google Drive or https links are downloaded once to assets/team/<name>.jpg (max. 1200 px wide).
 Aborts without changing anything if the sheet cannot be read or returns fewer than 5 people."""
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +17,31 @@ def slug(name):
     return re.sub(r'[^a-z0-9]+', '-', s).strip('-')[:60]
 
 
+def courses():
+    import ct_courses as C
+    raw, _ = B.get(SITE + '/api/content?what=courses&refresh=1')
+    js = json.loads(raw)
+    if not js.get('ok') or not isinstance(js.get('courses'), list):
+        sys.exit('FEHLER: Sportarten-Tabs nicht lesbar: %s' % str(js)[:200])
+    for n in js.get('notes') or []:
+        print('Hinweis aus dem Sheet:', n)
+    tabs = {c['tab']: c for c in js['courses']}; out = []
+    for slug, tab in C.DISCIPLINES:
+        if tab not in tabs or len(tabs[tab]['rows']) < 30:
+            sys.exit('FEHLER: Tab "%s" fehlt oder hat weniger als 30 Zeilen - Abbruch, nichts veraendert.' % tab)
+        rows = []
+        for r in tabs[tab]['rows']:
+            key = C.key_from_labels(r['section'], r['field'])
+            if not key:
+                print('Hinweis: %s: Zeile "%s / %s" nicht erkannt, wird uebersprungen.' % (tab, r['section'], r['field'])); continue
+            rows.append(dict(key=key, location=r['location'], de=r['de'], en=r['en'], section=r['section'], field=r['field']))
+        out.append(dict(slug=slug, tab=tab, rows=rows))
+    json.dump({'ok': True, 'courses': out}, open(os.path.join(ROOT, 'data', 'courses.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    print('data/courses.json: %d Tabs, %d Zeilen' % (len(out), sum(len(c['rows']) for c in out)))
+
+
 def main():
+    courses()
     raw, _ = B.get(SITE + '/api/content?what=team&refresh=1')
     js = json.loads(raw)
     if not js.get('ok') or not isinstance(js.get('team'), list) or len(js['team']) < 5:

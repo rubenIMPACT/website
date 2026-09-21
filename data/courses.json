@@ -1,0 +1,4173 @@
+{
+ "ok": true,
+ "courses": [
+  {
+   "slug": "bjj",
+   "tab": "BJJ",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "BJJ Zürich – Brazilian Jiu-Jitsu | IMPACT Martial Arts",
+     "en": "BJJ Zurich – Brazilian Jiu-Jitsu | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "BJJ Winterthur – Brazilian Jiu-Jitsu | IMPACT Martial Arts",
+     "en": "BJJ Winterthur – Brazilian Jiu-Jitsu | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Brazilian Jiu-Jitsu in Zürich: Gi und No-Gi mit IBJJF-Black-Belt-Coaching, Technik statt Kraft, einsteigerfreundlich. Jetzt gratis BJJ-Probetraining.",
+     "en": "Brazilian Jiu-Jitsu in Zurich: gi and no-gi with IBJJF black belt coaching, technique over strength, beginner friendly. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "Brazilian Jiu-Jitsu in Winterthur: Gi und No-Gi mit IBJJF-Black-Belt-Coaching, Technik statt Kraft, einsteigerfreundlich. Jetzt gratis BJJ-Probetraining.",
+     "en": "Brazilian Jiu-Jitsu in Winterthur: gi and no-gi with IBJJF black belt coaching, technique over strength, beginner friendly. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "BJJ mit *IMPACT.*",
+     "en": "BJJ with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Zürich",
+     "de": "Brazilian Jiu-Jitsu in Zürich. Technik statt Kraft – ab deinem ersten Training. Keine Vorkenntnisse nötig.",
+     "en": "Brazilian Jiu-Jitsu in Zurich. Technique over strength – from your very first session. No experience needed.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Winterthur",
+     "de": "Brazilian Jiu-Jitsu in Winterthur. Technik statt Kraft – ab deinem ersten Training. Keine Vorkenntnisse nötig.",
+     "en": "Brazilian Jiu-Jitsu in Winterthur. Technique over strength – from your very first session. No experience needed.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Both",
+     "de": "KEIN EGO",
+     "en": "NO EGO",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Both",
+     "de": "TECHNIK STATT KRAFT",
+     "en": "TECHNIQUE OVER STRENGTH",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Both",
+     "de": "EINSTEIGERFREUNDLICH",
+     "en": "BEGINNER-FRIENDLY",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Both",
+     "de": "BLACK BELT COACHING",
+     "en": "BLACK BELT COACHING",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Both",
+     "de": "WAS IST BJJ?",
+     "en": "WHAT IS BJJ?",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Both",
+     "de": "Brazilian Jiu-Jitsu ist der effizienteste Weg, jemanden zu kontrollieren, ohne ihn zu verletzen. Kein Schlagen, kein Treten. Hebel, Position und Timing schlagen Kraft, deshalb funktioniert BJJ auch gegen Grössere und Stärkere.",
+     "en": "Brazilian Jiu-Jitsu is the most efficient way to control someone without hurting them. No punching, no kicking. Leverage, position and timing beat strength, which is why BJJ works against bigger and stronger people.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Both",
+     "de": "Trainiert wird im Gi, dem Kimono, und im No-Gi ohne. Beides hat eigene Klassen. Geführt wird das Programm von João, Schwarzgurt zweiten Grades und IBJJF Black Belt European Champion. Wer fleissig und ausdauernd dabeibleibt, wird von ihm graduiert.",
+     "en": "We train in the Gi, the kimono, and No-Gi without it. Both have their own classes. The programme is led by João, second-degree black belt and IBJJF Black Belt European Champion. Whoever stays consistent and puts in the work gets graded by him.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "sportart.text3",
+     "location": "Both",
+     "de": "Auf der Matte hilft dir jeder weiter, vom ersten Tag an. Wer antreten will, trainiert im Wettkampfteam mit. Das braucht Commitment.",
+     "en": "On the mat everyone helps you along, from day one. If you want to compete, you train with the competition team. That takes commitment.",
+     "section": "About the sport",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Both",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Both",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Both",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Both",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Both",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Both",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Both",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Both",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Both",
+     "de": "Komm vorbei und roll mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and roll with us. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.caption",
+     "location": "Zürich",
+     "de": "IMPACT WINTERTHUR",
+     "en": "IMPACT WINTERTHUR",
+     "section": "Sign-up block",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Both",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Both",
+     "de": "Nicht härter.\n*Klüger.*",
+     "en": "Not harder.\n*Smarter.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich · Auf der Matte",
+     "en": "IMPACT Zurich · On the mats",
+     "section": "Why IMPACT",
+     "field": "Caption"
+    },
+    {
+     "key": "warum.caption",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur · Auf der Matte",
+     "en": "IMPACT Winterthur · On the mats",
+     "section": "Why IMPACT",
+     "field": "Caption"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Both",
+     "de": "Bei uns gewinnt nicht, wer am härtesten ist – sondern wer am meisten lernt.",
+     "en": "Here it's not the toughest who wins – it's the one who learns the most.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Both",
+     "de": "2. Degree Black Belt",
+     "en": "2. Degree Black Belt",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Both",
+     "de": "Coaching, das dich wirklich begleitet",
+     "en": "Coaching that actually guides you",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Both",
+     "de": "Kein Ego",
+     "en": "Kein Ego",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Both",
+     "de": "Eine Community, die dich trägt",
+     "en": "A community that has your back",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Both",
+     "de": "Struktur",
+     "en": "Struktur",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Both",
+     "de": "Einsteigerfreundlich, egal wie fit",
+     "en": "Beginner friendly, whatever your fitness",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "warum.point4",
+     "location": "Both",
+     "de": "Mehr",
+     "en": "Mehr",
+     "section": "Why IMPACT",
+     "field": "Point 4"
+    },
+    {
+     "key": "warum.detail4",
+     "location": "Both",
+     "de": "Zugang zu MMA, Thaiboxen und mehr",
+     "en": "Access to MMA, Muay Thai and more",
+     "section": "Why IMPACT",
+     "field": "Detail 4"
+    },
+    {
+     "key": "coach.side",
+     "location": "Both",
+     "de": "Nova União · IBJJF Black Belt European Champion",
+     "en": "Nova União · IBJJF Black Belt European Champion",
+     "section": "Head coach block",
+     "field": "Side text"
+    },
+    {
+     "key": "coach.caption",
+     "location": "Both",
+     "de": "Head Coach BJJ & MMA",
+     "en": "Head Coach BJJ & MMA",
+     "section": "Head coach block",
+     "field": "Caption"
+    },
+    {
+     "key": "coach.text1",
+     "location": "Both",
+     "de": "Schwarzgurt 2. Grad, IBJJF Black Belt European Champion, geprägt vom legendären Team Nova União. Seit 2014 als Coach aktiv. Er bringt dich vom ersten Tag an weiter – in deinem Tempo.",
+     "en": "Second-degree black belt, IBJJF Black Belt European Champion, shaped by the legendary Team Nova União. Coaching since 2014. He moves you forward from day one – at your pace.",
+     "section": "Head coach block",
+     "field": "Text 1"
+    },
+    {
+     "key": "gi.h1",
+     "location": "Both",
+     "de": "Mit *Gi*",
+     "en": "Mit *Gi*",
+     "section": "Extra block",
+     "field": "Heading 1"
+    },
+    {
+     "key": "gi.bullet1",
+     "location": "Both",
+     "de": "Traditionell und technisch, mit Griffen am Stoff",
+     "en": "Traditional and technical, with grips on the fabric",
+     "section": "Extra block",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "gi.bullet2",
+     "location": "Both",
+     "de": "Mit Gürtel-System",
+     "en": "Belt system",
+     "section": "Extra block",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "gi.bullet3",
+     "location": "Both",
+     "de": "Strukturiert, fokussiert, tief",
+     "en": "Structured, focused, deep",
+     "section": "Extra block",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "gi.h2",
+     "location": "Both",
+     "de": "Ohne Gi *NoGi*",
+     "en": "Without the gi *NoGi*",
+     "section": "Extra block",
+     "field": "Heading 2"
+    },
+    {
+     "key": "gi.bullet4",
+     "location": "Both",
+     "de": "Dynamisch und körpernah",
+     "en": "Dynamic and close-quarters",
+     "section": "Extra block",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "gi.bullet5",
+     "location": "Both",
+     "de": "Ohne schwere Kleidung – pure Kontrolle",
+     "en": "No heavy clothing – pure control",
+     "section": "Extra block",
+     "field": "Bullet 5"
+    },
+    {
+     "key": "gi.bullet6",
+     "location": "Both",
+     "de": "Beliebt bei Allroundern und MMA-Fans",
+     "en": "Popular with all-rounders and MMA fans",
+     "section": "Extra block",
+     "field": "Bullet 6"
+    },
+    {
+     "key": "gi.text1",
+     "location": "Both",
+     "de": "Du musst dich nicht sofort entscheiden. Probier beides aus und finde deinen Stil.",
+     "en": "You don't have to decide right away. Try both and find your style.",
+     "section": "Extra block",
+     "field": "Text 1"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Both",
+     "de": "Die Community · IMPACT",
+     "en": "The community · IMPACT",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "app.kicker",
+     "location": "Both",
+     "de": "IMPACT APP",
+     "en": "IMPACT APP",
+     "section": "IMPACT App",
+     "field": "Kicker"
+    },
+    {
+     "key": "app.heading",
+     "location": "Both",
+     "de": "Lern weiter,\n*auch zu Hause.*",
+     "en": "Keep learning,\n*at home too.*",
+     "section": "IMPACT App",
+     "field": "Title"
+    },
+    {
+     "key": "app.text1",
+     "location": "Both",
+     "de": "In der IMPACT-App siehst du die Themen der kommenden Woche, schaust dir die Technik vor der Stunde an und vertiefst sie mit unserer Online Training Library, wo immer du gerade bist.",
+     "en": "In the IMPACT app you see next week’s topics, watch the technique before class and go deeper with our online training library, wherever you are.",
+     "section": "IMPACT App",
+     "field": "Text 1"
+    },
+    {
+     "key": "app.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "IMPACT App",
+     "field": "Button"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Both",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Wie läuft eine Lektion ab?",
+     "en": "How does a class work?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Eine Lektion dauert 60 Minuten: aufwärmen, Technik mit dem Partner, dann Rollen, also freies Üben mit Widerstand. Basics-Klassen sind für den Einstieg, All-Levels-Klassen für alle, die schon trainieren.",
+     "en": "A class lasts 60 minutes: warm-up, technique with a partner, then rolling, which is free practice with resistance. Basics classes are for getting started, all-levels classes for everyone who already trains.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Zürich",
+     "de": "Was ist die Open Mat?",
+     "en": "What is the open mat?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Zürich",
+     "de": "Freies Training ohne Unterricht, offen für alle Level, auch für Anfänger.",
+     "en": "Free training without instruction, open to all levels, beginners included.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Melde dich einfach über das Formular für dein Probetraining an. Du kannst kostenlos kommen, um uns und den Unterricht kennenzulernen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up for your trial class via the form. You can come in for free to get to know us and the classes – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Ich bin nicht fit genug. Ist das ein Problem?",
+     "en": "I'm not fit enough. Is that a problem?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Both",
+     "de": "Nein. Jede Übung lässt sich anpassen und du bestimmst dein Tempo. Die meisten hier haben genau so angefangen wie du.",
+     "en": "No. Every drill can be scaled and you set your own pace. Most people here started exactly where you are.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Both",
+     "de": "Blamiere ich mich als Anfänger beim Rollen?",
+     "en": "Will I embarrass myself rolling as a beginner?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Both",
+     "de": "Nein. Alle auf der Matte waren mal Weissgurte. Bei uns gibt es keinen Platz für Ego – Fehler machen gehört zum Lernen dazu.",
+     "en": "No. Everyone on the mats was a white belt once. There is no room for ego here – making mistakes is part of learning.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "faq.q6",
+     "location": "Both",
+     "de": "Ist das Verletzungsrisiko hoch?",
+     "en": "Is the risk of injury high?",
+     "section": "FAQ",
+     "field": "Question 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Both",
+     "de": "BJJ funktioniert ohne Schläge. Wir legen grössten Wert darauf, uns nicht gegenseitig zu verletzen – kontrolliertes, technisches Training steht im Zentrum.",
+     "en": "BJJ works without strikes. We take great care not to hurt each other – controlled, technical training is at the core.",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "faq.q7",
+     "location": "Both",
+     "de": "Brauche ich eine eigene Ausrüstung?",
+     "en": "Do I need my own gear?",
+     "section": "FAQ",
+     "field": "Question 7"
+    },
+    {
+     "key": "faq.a7",
+     "location": "Both",
+     "de": "Nein. Für dein Probetraining ist alles da. Sportkleidung und Wasser reichen.",
+     "en": "No. Everything you need for your trial is here. Sportswear and water are enough.",
+     "section": "FAQ",
+     "field": "Answer 7"
+    },
+    {
+     "key": "faq.q8",
+     "location": "Both",
+     "de": "Kann ich nach dem Training duschen?",
+     "en": "Can I shower after training?",
+     "section": "FAQ",
+     "field": "Question 8"
+    },
+    {
+     "key": "faq.a8",
+     "location": "Both",
+     "de": "Ja, wir haben Duschmöglichkeiten im Studio. So kannst du direkt zur Arbeit oder frisch und energiegeladen in deinen Tag.",
+     "en": "Yes, the studio has showers – head straight to work or into your day feeling fresh and energised.",
+     "section": "FAQ",
+     "field": "Answer 8"
+    },
+    {
+     "key": "faq.q9",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 9"
+    },
+    {
+     "key": "faq.a9",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 9"
+    },
+    {
+     "key": "faq.a9",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 9"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Auf die *Matte.*",
+     "en": "Onto the *mats.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  },
+  {
+   "slug": "muay-thai",
+   "tab": "Muay Thai",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "Muay Thai Zürich – Thaiboxen für alle Levels | IMPACT Martial Arts",
+     "en": "Muay Thai Zurich – Thai Boxing for All Levels | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "Muay Thai Winterthur – Thaiboxen für alle Levels | IMPACT Martial Arts",
+     "en": "Muay Thai Winterthur – Thai Boxing for All Levels | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Muay Thai in Zürich: Thaiboxen mit Weltmeister-Coach, saubere Technik von Grund auf, einsteigerfreundliche Klassen. Jetzt gratis Probetraining sichern.",
+     "en": "Muay Thai in Zurich with world-champion coaching: technique, conditioning and respect for every level. Free trial class, gear provided.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "Muay Thai in Winterthur: Thaiboxen mit Weltmeister-Coach, saubere Technik von Grund auf, einsteigerfreundliche Klassen. Jetzt gratis Probetraining sichern.",
+     "en": "Muay Thai in Winterthur with world-champion coaching: technique, conditioning and respect for every level. Free trial class, gear provided.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "Muay Thai mit *IMPACT.*",
+     "en": "Muay Thai with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Zürich",
+     "de": "Muay Thai in Zürich. Die Kunst der acht Gliedmassen – Technik, Rhythmus, Respekt. Keine Vorkenntnisse nötig.",
+     "en": "Muay Thai in Zurich. The art of eight limbs – technique, rhythm, respect. No experience needed.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Winterthur",
+     "de": "Muay Thai in Winterthur. Die Kunst der acht Gliedmassen – Technik, Rhythmus, Respekt. Keine Vorkenntnisse nötig.",
+     "en": "Muay Thai in Winterthur. The art of eight limbs – technique, rhythm, respect. No experience needed.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Both",
+     "de": "TECHNIK & RESPEKT",
+     "en": "TECHNIQUE & RESPECT",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Both",
+     "de": "EINSTEIGERFREUNDLICH",
+     "en": "BEGINNER-FRIENDLY",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Both",
+     "de": "WETTKAMPFTEAM",
+     "en": "COMPETITION TEAM",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Both",
+     "de": "UNTERSTÜTZENDES UMFELD",
+     "en": "SUPPORTIVE ENVIRONMENT",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Both",
+     "de": "WAS IST MUAY THAI?",
+     "en": "WHAT IS MUAY THAI?",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Both",
+     "de": "Muay Thai / Thaiboxen ist eine der wirkungsvollsten Schlagkünste überhaupt. Fäuste, Ellbogen, Knie und Schienbeine, dazu der Clinch. Acht Waffen statt zwei, auf Distanz und direkt am Körper.",
+     "en": "Muay Thai, or Thai boxing, is one of the most effective striking arts there is. Fists, elbows, knees and shins, plus the clinch. Eight weapons instead of two, at distance and right up close.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Both",
+     "de": "Beigebracht wird es dir von Sergei, professioneller Kämpfer aus der Ukraine mit über 24 Jahren Erfahrung und mehreren Weltmeistertiteln. Er baut die Technik von Grund auf, egal wo du heute stehst.",
+     "en": "You learn it from Sergei, a professional fighter from Ukraine with over 24 years of experience and several world titles. He builds your technique from the ground up, wherever you start.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "sportart.text3",
+     "location": "Both",
+     "de": "Sparring gehört dazu, locker und technisch. Es geht nicht ums Gewinnen, sondern darum, dass du besser wirst, und darum, dass du dich in der Gruppe wohlfühlst. Wer in den Wettkampf will, trainiert im Wettkampfteam mit. Das braucht Commitment.",
+     "en": "Sparring is part of it, light and technical. It is not about winning, it is about getting better, and about feeling good in the group. If you want to compete, you train with the competition team. That takes commitment.",
+     "section": "About the sport",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.kicker",
+     "location": "Both",
+     "de": "MEMBERS",
+     "en": "MEMBERS",
+     "section": "Reviews",
+     "field": "Kicker"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Both",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Both",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Both",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Both",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Both",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Both",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Both",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Both",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Both",
+     "de": "Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and train along. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich",
+     "en": "IMPACT Zürich",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur",
+     "en": "IMPACT Winterthur",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Both",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Both",
+     "de": "Lernen vom\n*Weltmeister.*",
+     "en": "Learn from a\n*world champion.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Both",
+     "de": "Sergei hat über 300 Kämpfe hinter sich und bringt dir dieselbe Technik bei, mit der er sie gewonnen hat. Vom ersten Tag an, in deinem Tempo.",
+     "en": "Sergei has more than 300 fights behind him and teaches you the same technique he won them with. From day one, at your own pace.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Both",
+     "de": "Weltklasse",
+     "en": "World class",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Both",
+     "de": "Coaching von Sergei – 24 Jahre im Ring",
+     "en": "Coaching by Sergei – 24 years in the ring",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Both",
+     "de": "Kein Ego",
+     "en": "No ego",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Both",
+     "de": "Eine Community, die dich trägt",
+     "en": "A community that has your back",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Both",
+     "de": "Struktur",
+     "en": "Structure",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Both",
+     "de": "Klar aufgebaute Trainings, jedes Level",
+     "en": "Clearly structured sessions for every level",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "warum.point4",
+     "location": "Both",
+     "de": "Selbstvertrauen",
+     "en": "Confidence",
+     "section": "Why IMPACT",
+     "field": "Point 4"
+    },
+    {
+     "key": "warum.detail4",
+     "location": "Both",
+     "de": "durch neue Fähigkeiten",
+     "en": "through new skills",
+     "section": "Why IMPACT",
+     "field": "Detail 4"
+    },
+    {
+     "key": "gi.kicker",
+     "location": "Both",
+     "de": "DIE KUNST DER ACHT GLIEDMASSEN",
+     "en": "THE ART OF EIGHT LIMBS",
+     "section": "Extra block",
+     "field": "Kicker"
+    },
+    {
+     "key": "gi.heading",
+     "location": "Both",
+     "de": "Muay *Thai.*",
+     "en": "Muay *Thai.*",
+     "section": "Extra block",
+     "field": "Title"
+    },
+    {
+     "key": "gi.lead",
+     "location": "Both",
+     "de": "Fäuste, Ellbogen, Knie, Schienbeine – Muay Thai nutzt den ganzen Körper. Kraftvoll und direkt, aber auch rhythmisch und präzise.",
+     "en": "Fists, elbows, knees, shins – Muay Thai uses the whole body. Powerful and direct, yet rhythmic and precise.",
+     "section": "Extra block",
+     "field": "Lead"
+    },
+    {
+     "key": "gi.h1",
+     "location": "Both",
+     "de": "Fäuste",
+     "en": "Fists",
+     "section": "Extra block",
+     "field": "Heading 1"
+    },
+    {
+     "key": "gi.text1",
+     "location": "Both",
+     "de": "Gerade, Haken, Aufwärtshaken. Saubere Schlagtechnik in Kombinationen – mit Deckung, Timing und Übersicht.",
+     "en": "Straights, hooks, uppercuts. Clean punching technique in combinations – with guard, timing and awareness.",
+     "section": "Extra block",
+     "field": "Text 1"
+    },
+    {
+     "key": "gi.h2",
+     "location": "Both",
+     "de": "Ellbogen",
+     "en": "Elbows",
+     "section": "Extra block",
+     "field": "Heading 2"
+    },
+    {
+     "key": "gi.text2",
+     "location": "Both",
+     "de": "Die Waffe der Nahdistanz. Kurz, präzise, kontrolliert – im Training immer mit Respekt und Schutz.",
+     "en": "The close-range weapon. Short, precise, controlled – always trained with respect and protection.",
+     "section": "Extra block",
+     "field": "Text 2"
+    },
+    {
+     "key": "gi.h3",
+     "location": "Both",
+     "de": "Knie",
+     "en": "Knees",
+     "section": "Extra block",
+     "field": "Heading 3"
+    },
+    {
+     "key": "gi.text3",
+     "location": "Both",
+     "de": "Kraft aus der Hüfte. Knietechniken und Clinch-Arbeit für Dominanz in der kurzen Distanz.",
+     "en": "Power from the hips. Knee strikes and clinch work for control at close range.",
+     "section": "Extra block",
+     "field": "Text 3"
+    },
+    {
+     "key": "gi.h4",
+     "location": "Both",
+     "de": "Kicks",
+     "en": "Kicks",
+     "section": "Extra block",
+     "field": "Heading 4"
+    },
+    {
+     "key": "gi.text4",
+     "location": "Both",
+     "de": "Schienbein statt Spann. Roundhouse, Teep und Fussarbeit – Reichweite, Beweglichkeit, Präzision.",
+     "en": "Shin, not instep. Roundhouse, teep and footwork – range, mobility, precision.",
+     "section": "Extra block",
+     "field": "Text 4"
+    },
+    {
+     "key": "gi.text5",
+     "location": "Both",
+     "de": "Du brauchst keine Vorerfahrung. Handschuhe leihst du bei uns – bring nur Sportkleidung und Wasser.",
+     "en": "No experience needed. We'll lend you gloves – just bring sportswear and water.",
+     "section": "Extra block",
+     "field": "Text 5"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Both",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Wie läuft eine Lektion ab?",
+     "en": "How does a class work?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Eine Lektion dauert 60 Minuten: aufwärmen, Technik mit dem Partner, Pratzenarbeit, dann Runden. Basics-Klassen sind für den Einstieg, All-Levels-Klassen für alle, die schon trainieren.",
+     "en": "A class lasts 60 minutes: warm-up, technique with a partner, pad work, then rounds. Basics classes are for getting started, all-levels classes for everyone who already trains.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Both",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Both",
+     "de": "Melde dich einfach über das Formular für dein Probetraining an. Du kannst kostenlos kommen, um uns und den Unterricht kennenzulernen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up for your trial class via the form. You can come in for free to get to know us and the classes – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Ist Muay Thai zu hart für mich?",
+     "en": "Is Muay Thai too tough for me?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Nein. Jede Übung lässt sich an dein Level anpassen und du bestimmst dein Tempo. Die Lektionen sind fordernd, aber für alle machbar, die sich bewegen wollen.",
+     "en": "No. Every drill can be adapted to your level and you set your own pace. The sessions are demanding, but doable for anyone who wants to move.",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Muss ich sparren?",
+     "en": "Do I have to spar?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Both",
+     "de": "Ein bisschen Sparring gehört bei uns dazu. Es läuft locker und technisch, mit klaren Regeln, und der Kopf wird nicht hart getroffen. Es geht darum, dass du besser wirst, nicht darum zu gewinnen.",
+     "en": "A bit of sparring is part of training with us. It stays light and technical, with clear rules, and there are no hard shots to the head. The point is to get better, not to win.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Both",
+     "de": "Brauche ich eigene Handschuhe?",
+     "en": "Do I need my own gloves?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Both",
+     "de": "Nein. Für dein Probetraining stellen wir dir Boxhandschuhe kostenlos zur Verfügung. Sportkleidung und Wasser reichen.",
+     "en": "No. We provide boxing gloves for your trial class free of charge. Sportswear and water are all you need.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "faq.q6",
+     "location": "Both",
+     "de": "Kann ich nach dem Training duschen?",
+     "en": "Can I shower after training?",
+     "section": "FAQ",
+     "field": "Question 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Both",
+     "de": "Ja, wir haben Duschmöglichkeiten im Studio. So kannst du direkt zur Arbeit oder frisch und energiegeladen in deinen Tag.",
+     "en": "Yes, the studio has showers – head straight to work or into your day feeling fresh and energised.",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "faq.q7",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 7"
+    },
+    {
+     "key": "faq.a7",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 7"
+    },
+    {
+     "key": "faq.a7",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 7"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Runde *eins.*",
+     "en": "Round *one.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  },
+  {
+   "slug": "mma",
+   "tab": "MMA",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "MMA Zürich – dein MMA Gym | IMPACT Martial Arts",
+     "en": "MMA Zurich – Your MMA Gym | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "MMA Winterthur – dein MMA Gym | IMPACT Martial Arts",
+     "en": "MMA Winterthur – Your MMA Gym | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "MMA in Zürich trainieren: Striking, Wrestling und BJJ in einem Gym, Coaches mit Profi-Erfahrung, Klassen für Einsteiger und Fortgeschrittene. Gratis Probetraining.",
+     "en": "Train MMA in Zurich: striking, wrestling and BJJ in one gym, coaches with pro experience, classes for beginners and advanced. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "MMA in Winterthur trainieren: Striking, Wrestling und BJJ in einem Gym, Coaches mit Profi-Erfahrung, Klassen für Einsteiger und Fortgeschrittene. Gratis Probetraining.",
+     "en": "Train MMA in Winterthur: striking, wrestling and BJJ in one gym, coaches with pro experience, classes for beginners and advanced. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "MMA mit *IMPACT.*",
+     "en": "MMA with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Both",
+     "de": "Lern MMA – mit Technik, mit Kontrolle. In sicherer Umgebung.",
+     "en": "Learn MMA – with technique and control. In a safe environment.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Both",
+     "de": "STAND-UP & BODEN",
+     "en": "STAND-UP & GROUND",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Both",
+     "de": "FLIESSENDER ÜBERGANG",
+     "en": "SEAMLESS TRANSITIONS",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Both",
+     "de": "EINSTEIGERFREUNDLICH",
+     "en": "BEGINNER-FRIENDLY",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Both",
+     "de": "UNTERSTÜTZENDES UMFELD",
+     "en": "SUPPORTIVE ENVIRONMENT",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Both",
+     "de": "WAS IST MMA?",
+     "en": "WHAT IS MMA?",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Both",
+     "de": "MMA ist die vollständigste Form des Zweikampfs: Schlagen und Treten im Stand, Takedowns aus dem Ringen, Kontrolle am Boden aus dem Brazilian Jiu-Jitsu. Du musst nicht in allen dreien perfekt sein. Du lernst, sie zu verbinden und die Schwächen des Gegners gezielt auszunutzen.",
+     "en": "MMA is the most complete form of one-on-one combat: striking and kicking on the feet, takedowns from wrestling, control on the ground from Brazilian Jiu-Jitsu. You do not have to be perfect in all three. You learn to connect them and to use your opponent’s weaknesses.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Both",
+     "de": "Unser MMA-Programm geht auf Ruben zurück, ehemaliger MMA-Profi bei Bellator und Nummer eins in Deutschland. Er steht selbst mit auf der Matte.",
+     "en": "Our MMA programme goes back to Ruben, former Bellator pro and number one in Germany. He is on the mat himself.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "sportart.text3",
+     "location": "Both",
+     "de": "Lockeres Sparring gehört dazu. Es geht nicht ums Gewinnen, sondern darum, dass du besser wirst, und darum, dass du dich in der Gruppe wohlfühlst. Ein Wettkampfteam ist im Aufbau. Wenn du dabei sein willst, ist jetzt der richtige Moment.",
+     "en": "Light sparring is part of it. It is not about winning, it is about getting better, and about feeling good in the group. A competition team is taking shape. If you want to be part of it, now is the moment.",
+     "section": "About the sport",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.kicker",
+     "location": "Both",
+     "de": "MEMBERS",
+     "en": "MEMBERS",
+     "section": "Reviews",
+     "field": "Kicker"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Both",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Both",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Both",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Both",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Both",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Both",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Both",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Both",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Both",
+     "de": "Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and train along. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich",
+     "en": "IMPACT Zurich",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur",
+     "en": "IMPACT Winterthur",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Both",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Both",
+     "de": "Alles unter\n*einem Dach.*",
+     "en": "All under\n*one roof.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Both",
+     "de": "Striking, Ringen und Bodenkampf in einem Gym, von Coaches, die selbst gekämpft haben. Du musst nicht drei Vereine besuchen, um MMA zu lernen.",
+     "en": "Striking, wrestling and ground work in one gym, from coaches who have fought themselves. You do not need three clubs to learn MMA.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Both",
+     "de": "Top Coaches",
+     "en": "Top Coaches",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Both",
+     "de": "Coaches mit MMA-Profi-Erfahrung",
+     "en": "Coaches with pro MMA experience",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Both",
+     "de": "Struktur",
+     "en": "Struktur",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Both",
+     "de": "Klare Strukturen im Training",
+     "en": "Clear structure in every session",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Both",
+     "de": "Komplett",
+     "en": "Komplett",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Both",
+     "de": "Zugang zu allen relevanten Disziplinen",
+     "en": "Access to all the relevant disciplines",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "warum.point4",
+     "location": "Both",
+     "de": "Community",
+     "en": "Community",
+     "section": "Why IMPACT",
+     "field": "Point 4"
+    },
+    {
+     "key": "warum.detail4",
+     "location": "Both",
+     "de": "Eine Community, die dich auf Augenhöhe unterstützt",
+     "en": "A community that supports you as an equal",
+     "section": "Why IMPACT",
+     "field": "Detail 4"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Both",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Ist MMA schwer zu lernen?",
+     "en": "Is MMA hard to learn?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Die MMA-Lektionen sind etwas fortgeschrittener, aber für alle geeignet, die sportlich sind. Der Inhalt kann von jedem erlernt werden.",
+     "en": "The MMA classes are a little more advanced, but suitable for anyone reasonably athletic. Everyone can learn the content.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Both",
+     "de": "Muss ich sparren?",
+     "en": "Do I have to spar?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Both",
+     "de": "Ein bisschen Sparring gehört bei uns dazu. Es läuft locker und technisch, mit klaren Regeln, und der Kopf wird nicht hart getroffen. Es geht darum, dass du besser wirst, nicht darum zu gewinnen.",
+     "en": "A bit of sparring is part of training with us. It stays light and technical, with clear rules, and there are no hard shots to the head. The point is to get better, not to win.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Passe ich dazu?",
+     "en": "Will I fit in?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen, die jeden willkommen heisst. Auch du passt gut zu uns!",
+     "en": "We're proud of a great community of very different people that welcomes everyone. You'll fit right in!",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Wie läuft eine Lektion ab?",
+     "en": "How does a class work?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Both",
+     "de": "Eine Lektion dauert 60 Minuten: aufwärmen, Technik mit dem Partner, dann Anwendung. Basics-Klassen sind für den Einstieg, All-Levels-Klassen für alle, die schon trainieren.",
+     "en": "A class lasts 60 minutes: warm-up, technique with a partner, then application. Basics classes are for getting started, all-levels classes for everyone who already trains.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Both",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Both",
+     "de": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up via the form. Your first session is free – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "faq.q6",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Runde *eins.*",
+     "en": "Round *one.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  },
+  {
+   "slug": "boxen",
+   "tab": "Boxing",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "Boxen Zürich – Boxing Gym & Training | IMPACT Martial Arts",
+     "en": "Boxing Zurich – Boxing Gym & Training | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "Boxen Winterthur – Boxing Gym & Training | IMPACT Martial Arts",
+     "en": "Boxing Winterthur – Boxing Gym & Training | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Boxen lernen in Zürich: Technik, Kondition und Sparring mit erfahrenen Coaches, für Einsteiger und Fortgeschrittene. Jetzt gratis Probetraining.",
+     "en": "Learn boxing in Zurich: technique, conditioning and sparring with experienced coaches, for beginners and advanced. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "Boxen lernen in Winterthur: Technik, Kondition und Sparring mit erfahrenen Coaches, für Einsteiger und Fortgeschrittene. Jetzt gratis Probetraining.",
+     "en": "Learn boxing in Winterthur: technique, conditioning and sparring with experienced coaches, for beginners and advanced. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "Boxen mit *IMPACT.*",
+     "en": "Boxing with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Both",
+     "de": "Boxen lernen – mit Power, Technik und Struktur.",
+     "en": "Learn to box – with power, technique and structure.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Both",
+     "de": "TIMING SCHLÄGT KRAFT",
+     "en": "TIMING BEATS POWER",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Both",
+     "de": "SAUBERE TECHNIK",
+     "en": "CLEAN TECHNIQUE",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Both",
+     "de": "EINSTEIGERFREUNDLICH",
+     "en": "BEGINNER-FRIENDLY",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Both",
+     "de": "SPARRING MIT KONTROLLE",
+     "en": "CONTROLLED SPARRING",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Both",
+     "de": "WAS IST BOXEN?",
+     "en": "WHAT IS BOXING?",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Both",
+     "de": "Modernes Boxen stammt aus England und galt dort als Sport der Gentlemen. Zwei Menschen messen sich nach klaren Regeln, mit Respekt voreinander und nichts als Technik dazwischen.",
+     "en": "Modern boxing comes from England, where it was known as the gentleman’s sport. Two people measure themselves by clear rules, with respect for each other and nothing but technique in between.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Both",
+     "de": "Genau so trainieren wir. Schläge, Beinarbeit, Deckung und Distanz, sauber aufgebaut von Coaches, die selbst gekämpft haben. Wer boxen lernt, arbeitet an Technik, an Ausdauer und daran, unter Druck ruhig zu bleiben.",
+     "en": "That is exactly how we train. Punches, footwork, guard and distance, built up cleanly by coaches who have fought themselves. Learning to box means working on technique, on stamina and on staying calm under pressure.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "sportart.text3",
+     "location": "Both",
+     "de": "Sparring gehört dazu, locker und technisch. Es geht nicht ums Gewinnen, sondern darum, dass du besser wirst.",
+     "en": "Sparring is part of it, light and technical. It is not about winning, it is about getting better.",
+     "section": "About the sport",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.kicker",
+     "location": "Both",
+     "de": "MEMBERS",
+     "en": "MEMBERS",
+     "section": "Reviews",
+     "field": "Kicker"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Both",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Both",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Both",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Both",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Both",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Both",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Both",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Both",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Both",
+     "de": "Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and train along. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich",
+     "en": "IMPACT Zurich",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur",
+     "en": "IMPACT Winterthur",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Both",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Both",
+     "de": "Ring\n*frei.*",
+     "en": "Into the\n*ring.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.text2",
+     "location": "Winterthur",
+     "de": "Technik, Beinarbeit, Sparring mit Kontrolle. Boxen wie im Club, mitten im Technopark Winterthur.",
+     "en": "Technique, footwork, sparring with control. Boxing like in a real club, right in the Technopark Winterthur.",
+     "section": "Why IMPACT",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Zürich",
+     "de": "Technik, Beinarbeit, Sparring mit Kontrolle. Boxen wie im Club, drei Gehminuten vom Zürich HB.",
+     "en": "Technique, footwork, sparring with control. Boxing like in a real club, three minutes from Zurich main station.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Both",
+     "de": "Erfahrung",
+     "en": "Erfahrung",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Both",
+     "de": "Top Coaches mit echter Kampferfahrung",
+     "en": "Top coaches with real fight experience",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Both",
+     "de": "Struktur",
+     "en": "Struktur",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Both",
+     "de": "Klar strukturierter Unterricht für jedes Level",
+     "en": "Clearly structured classes for every level",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Both",
+     "de": "Kein Ego",
+     "en": "Kein Ego",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Both",
+     "de": "Eine respektvolle Trainingskultur",
+     "en": "Eine respektvolle Trainingskultur",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "warum.point4",
+     "location": "Both",
+     "de": "Fitness",
+     "en": "Fitness",
+     "section": "Why IMPACT",
+     "field": "Point 4"
+    },
+    {
+     "key": "warum.detail4",
+     "location": "Both",
+     "de": "Spürbar bessere Koordination und starke Ausdauer",
+     "en": "Noticeably better coordination and serious endurance",
+     "section": "Why IMPACT",
+     "field": "Detail 4"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Both",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Ist Boxen schwer zu lernen?",
+     "en": "Is boxing hard to learn?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Die Boxen-Lektionen sind etwas fortgeschrittener, aber für alle geeignet, die sportlich sind. Der Inhalt kann von jedem erlernt werden.",
+     "en": "The boxing classes are a little more advanced, but suitable for anyone reasonably athletic. Everyone can learn the content.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Both",
+     "de": "Muss ich sparren?",
+     "en": "Do I have to spar?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Both",
+     "de": "Ein bisschen Sparring gehört bei uns dazu. Es läuft locker und technisch, mit klaren Regeln, und der Kopf wird nicht hart getroffen. Es geht darum, dass du besser wirst, nicht darum zu gewinnen.",
+     "en": "A bit of sparring is part of training with us. It stays light and technical, with clear rules, and there are no hard shots to the head. The point is to get better, not to win.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Passe ich dazu?",
+     "en": "Will I fit in?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen, die jeden willkommen heisst. Auch du passt gut zu uns!",
+     "en": "We're proud of a great community of very different people that welcomes everyone. You'll fit right in!",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Wie läuft eine Lektion ab?",
+     "en": "How does a class work?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Both",
+     "de": "Eine Lektion dauert 60 Minuten: aufwärmen, Technik mit dem Partner und an den Pratzen, dann Runden. Basics-Klassen sind für den Einstieg, All-Levels-Klassen für alle, die schon boxen.",
+     "en": "A class lasts 60 minutes: warm-up, technique with a partner and on the pads, then rounds. Basics classes are for getting started, all-levels classes for everyone who already boxes.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Both",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Both",
+     "de": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up via the form. Your first session is free – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "faq.q6",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Runde *eins.*",
+     "en": "Round *one.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  },
+  {
+   "slug": "ringen",
+   "tab": "Wrestling",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "Ringen Zürich – Wrestling Training | IMPACT Martial Arts",
+     "en": "Wrestling Zurich – Wrestling Training | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "Ringen Winterthur – Wrestling Training | IMPACT Martial Arts",
+     "en": "Wrestling Winterthur – Wrestling Training | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Ringen und Wrestling in Zürich: Takedowns, Kraft und Körperkontrolle mit Bundesliga-Ringer Laszlo Simo. Für MMA-Basis oder als eigener Sport. Gratis Probetraining.",
+     "en": "Wrestling in Zurich: takedowns, strength and body control with Bundesliga wrestler Laszlo Simo. As an MMA base or a sport of its own. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "Ringen und Wrestling in Winterthur: Takedowns, Kraft und Körperkontrolle mit Bundesliga-Ringer Laszlo Simo. Für MMA-Basis oder als eigener Sport. Gratis Probetraining.",
+     "en": "Wrestling in Winterthur: takedowns, strength and body control with Bundesliga wrestler Laszlo Simo. As an MMA base or a sport of its own. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "Ringen mit *IMPACT.*",
+     "en": "Wrestling with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Both",
+     "de": "Ringen lernen – kraftvoll, technisch, mit absoluter Kontrolle.",
+     "en": "Learn to wrestle – powerful, technical, in complete control.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Both",
+     "de": "TAKEDOWNS & KONTROLLE",
+     "en": "TAKEDOWNS & CONTROL",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Both",
+     "de": "EXPLOSIVE KRAFT",
+     "en": "EXPLOSIVE POWER",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Both",
+     "de": "EINSTEIGERFREUNDLICH",
+     "en": "BEGINNER-FRIENDLY",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Both",
+     "de": "BUNDESLIGA-COACH",
+     "en": "BUNDESLIGA COACH",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Both",
+     "de": "WAS DICH ERWARTET",
+     "en": "WHAT TO EXPECT",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Both",
+     "de": "Ringen ist der älteste Zweikampf der Welt. Schon bei den antiken Olympischen Spielen ging es um die Frage, wer der Stärkere ist, und 1896 war Ringen wieder dabei, als die modernen Spiele begannen.",
+     "en": "Wrestling is the oldest combat sport in the world. The ancient Olympic Games already asked who was the stronger one, and in 1896 wrestling was back when the modern Games began.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Both",
+     "de": "Es geht um die bessere Position: Takedowns, den anderen zu Boden bringen und dort kontrollieren. Das ist die Grundlage, die im MMA oft den Unterschied macht, und eines der besten Kraft- und Ausdauertrainings überhaupt.",
+     "en": "It is about the better position: takedowns, putting your opponent on the ground and controlling them there. It is the base that often decides an MMA fight, and one of the best strength and conditioning workouts there is.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "sportart.text3",
+     "location": "Both",
+     "de": "Bei uns unterrichtet Laszlo, zwölf Jahre deutsche Bundesliga, mehrfacher Meister. Vorkenntnisse brauchst du keine.",
+     "en": "Your coach here is Laszlo, twelve years in the German Bundesliga and a multiple champion. You need no experience at all.",
+     "section": "About the sport",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.kicker",
+     "location": "Both",
+     "de": "MEMBERS",
+     "en": "MEMBERS",
+     "section": "Reviews",
+     "field": "Kicker"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Both",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Both",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Both",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Both",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Both",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Both",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Both",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Both",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Both",
+     "de": "Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and train along. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich",
+     "en": "IMPACT Zurich",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur",
+     "en": "IMPACT Winterthur",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Both",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Both",
+     "de": "Zwölf Jahre\n*Bundesliga.*",
+     "en": "Twelve years in the\n*Bundesliga.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Both",
+     "de": "Laszlo hat zwölf Jahre in der deutschen Bundesliga gerungen und bringt dir bei, was dort funktioniert. Vorkenntnisse brauchst du keine.",
+     "en": "Laszlo wrestled twelve years in the German Bundesliga and teaches you what works there. You need no experience at all.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Both",
+     "de": "Power",
+     "en": "Power",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Both",
+     "de": "Maximalkraft, Körperspannung und funktionale Power",
+     "en": "Maximum strength, body tension and functional power",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Both",
+     "de": "Kontrolle",
+     "en": "Kontrolle",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Both",
+     "de": "Kontrolle über andere und über dich selbst",
+     "en": "Control over others – and over yourself",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Both",
+     "de": "Ruhe",
+     "en": "Ruhe",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Both",
+     "de": "Unerschütterliches Körpergefühl, Ruhe unter Druck",
+     "en": "Unshakeable body awareness, calm under pressure",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Both",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Ist Ringen schwer zu lernen?",
+     "en": "Is wrestling hard to learn?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Die Ringen-Lektionen sind etwas fortgeschrittener, aber für alle geeignet, die sportlich sind. Der Inhalt kann von jedem erlernt werden.",
+     "en": "The wrestling classes are a little more advanced, but suitable for anyone reasonably athletic. Everyone can learn the content.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Both",
+     "de": "Wie hart ist das Training?",
+     "en": "How tough is the training?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Both",
+     "de": "Fordernd, aber kontrolliert – es gibt klare Regeln, und wir legen grössten Wert darauf, uns nicht gegenseitig zu verletzen.",
+     "en": "Demanding but controlled – there are clear rules, and we take great care not to hurt each other.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Passe ich dazu?",
+     "en": "Will I fit in?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen, die jeden willkommen heisst. Auch du passt gut zu uns!",
+     "en": "We're proud of a great community of very different people that welcomes everyone. You'll fit right in!",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Wie läuft eine Lektion ab?",
+     "en": "How does a class work?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Both",
+     "de": "Eine Lektion dauert 60 Minuten: aufwärmen, Technik mit dem Partner, dann Anwendung mit Widerstand. Basics-Klassen sind für den Einstieg, All-Levels-Klassen für alle, die schon ringen.",
+     "en": "A class lasts 60 minutes: warm-up, technique with a partner, then application with resistance. Basics classes are for getting started, all-levels classes for everyone who already wrestles.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Both",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Both",
+     "de": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up via the form. Your first session is free – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "faq.q6",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Runde *eins.*",
+     "en": "Round *one.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  },
+  {
+   "slug": "fitness-kickboxen",
+   "tab": "Fitness Kickboxing",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "Kickboxen Zürich – Fitness Kickboxing | IMPACT Martial Arts",
+     "en": "Kickboxing Zurich – Fitness Kickboxing | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "Kickboxen Winterthur – Fitness Kickboxing | IMPACT Martial Arts",
+     "en": "Kickboxing Winterthur – Fitness Kickboxing | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Kickboxen in Zürich: schweisstreibendes Fitness-Kickboxing mit echter Technik, ohne Sparring-Zwang, für jedes Level. Gratis Probetraining sichern.",
+     "en": "Kickboxing in Zurich: sweat-heavy fitness kickboxing with real technique, no obligation to spar, for every level. Claim your free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "Kickboxen in Winterthur: schweisstreibendes Fitness-Kickboxing mit echter Technik, ohne Sparring-Zwang, für jedes Level. Gratis Probetraining sichern.",
+     "en": "Kickboxing in Winterthur: sweat-heavy fitness kickboxing with real technique, no obligation to spar, for every level. Claim your free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "Fitness Kickboxen mit *IMPACT.*",
+     "en": "Fitness Kickboxing with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Both",
+     "de": "Power. Technik. Spass. Dein neues Lieblings-Workout.",
+     "en": "Power. Technique. Fun. Your new favourite workout.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Both",
+     "de": "KEIN KONTAKT",
+     "en": "NO CONTACT",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Both",
+     "de": "SPASS",
+     "en": "SUPER FUN",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Both",
+     "de": "KRAFT & AUSDAUER",
+     "en": "STRENGTH & ENDURANCE",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Both",
+     "de": "HANDSCHUHE INKLUSIVE",
+     "en": "GLOVES INCLUDED",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Both",
+     "de": "WAS IST FITNESS KICKBOXEN?",
+     "en": "WHAT IS FITNESS KICKBOXING?",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Both",
+     "de": "Fitness Kickboxen ist Kickboxen, ohne getroffen zu werden. Du lernst echte Schlag- und Tritttechnik auf Pratzen und Sandsäcke. Kein Sparring, kein Wettkampf, kein Vorwissen nötig.",
+     "en": "Fitness kickboxing is kickboxing without getting hit. You learn real punching and kicking technique on pads and bags. No sparring, no competition, no experience needed.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Both",
+     "de": "Die Klassen sind gemischt, alle Level trainieren zusammen, und du steigst jederzeit ein. Über 60 Prozent der Teilnehmenden sind Frauen. Der Ton ist locker, und niemand schaut, wie gut du bist.",
+     "en": "The classes are mixed, all levels train together, and you can join any time. More than 60 percent of the people in them are women. The tone is relaxed, and nobody is watching how good you are.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "beweis.kicker",
+     "location": "Both",
+     "de": "MEMBERS",
+     "en": "MEMBERS",
+     "section": "Reviews",
+     "field": "Kicker"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Both",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Both",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Both",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Both",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Both",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Both",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Both",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Both",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Both",
+     "de": "Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and train along. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich",
+     "en": "IMPACT Zurich",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur",
+     "en": "IMPACT Winterthur",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Both",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Both",
+     "de": "Kickboxen macht\n*dich stark.*",
+     "en": "Kickboxing makes\n*you strong.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Both",
+     "de": "Echte Kickbox-Technik auf Pratzen und Sandsäcken, kein Gegner, kein Wettkampf. Über 60 Prozent der Teilnehmenden sind Frauen, und niemand schaut, wie gut du bist.",
+     "en": "Real kickboxing technique on pads and bags, no opponent, no competition. More than 60 percent of the people in the class are women, and nobody is watching how good you are.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Both",
+     "de": "Technik",
+     "en": "Technik",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Both",
+     "de": "Kickbox-Technik für jedes Level, direkt und verständlich",
+     "en": "Kickboxing technique for every level, direct and easy to follow",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Both",
+     "de": "Struktur",
+     "en": "Struktur",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Both",
+     "de": "Klar strukturierte Workouts mit Fokus auf Fortschritt",
+     "en": "Clearly structured workouts focused on progress",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Both",
+     "de": "Respekt",
+     "en": "Respekt",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Both",
+     "de": "Partnertraining ohne Druck, mit Respekt und Spass",
+     "en": "Partner drills without pressure – with respect and fun",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "warum.point4",
+     "location": "Both",
+     "de": "Energie",
+     "en": "Energie",
+     "section": "Why IMPACT",
+     "field": "Point 4"
+    },
+    {
+     "key": "warum.detail4",
+     "location": "Both",
+     "de": "Ein starkes Herz, ein fitter Körper, ein klarer Kopf",
+     "en": "A strong heart, a fit body, a clear head",
+     "section": "Why IMPACT",
+     "field": "Detail 4"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Both",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Ist es schwer zu lernen?",
+     "en": "Is it hard to learn?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Die Unterrichtsstunden sind für jeden geeignet, und der Inhalt kann von jedem erlernt werden.",
+     "en": "The classes are suitable for everyone, and everyone can learn the content.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Both",
+     "de": "Muss ich kämpfen?",
+     "en": "Do I have to fight?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Both",
+     "de": "Nein. Die Fitness-Kickbox-Lektionen konzentrieren sich auf deine Fitness und nicht aufs Kämpfen. Wir machen kein Sparring und treffen nur die Pratzen.",
+     "en": "No. Fitness kickboxing classes are about your fitness, not fighting. There's no sparring – you only hit the pads.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Passe ich dazu?",
+     "en": "Will I fit in?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Wir sind stolz auf eine grossartige Gemeinschaft sehr unterschiedlicher Menschen. Jeder passt hier rein.",
+     "en": "We're proud of a great community of very different people. Everyone fits in here.",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Wie läuft eine Lektion ab?",
+     "en": "How does a class work?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Both",
+     "de": "Eine Lektion dauert 60 Minuten und ist von vorne bis hinten in Bewegung: aufwärmen, Technik, Runden an den Pratzen, Kraftteil.",
+     "en": "A class lasts 60 minutes and keeps moving from start to finish: warm-up, technique, rounds on the pads, strength work.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Both",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Both",
+     "de": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up via the form. Your first session is free – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "faq.q6",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "faq.a6",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 6"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Runde *eins.*",
+     "en": "Round *one.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  },
+  {
+   "slug": "street-defense",
+   "tab": "Street Defense",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "Selbstverteidigung Zürich – Street Defense Training | IMPACT Martial Arts",
+     "en": "Self Defense Zurich – Street Defense Training | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Selbstverteidigung in Zürich: realistisches Street-Defense-Training mit Wurzeln im Krav Maga, zertifizierte Trainer, jedes Level. Gratis Probetraining.",
+     "en": "Self defense in Zurich: realistic street defense training with roots in Krav Maga, certified instructors, every level. Free trial class.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Zürich",
+     "de": "Street Defense mit *IMPACT.*",
+     "en": "Street Defense with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Zürich",
+     "de": "Lerne zu kämpfen für echte Situationen auf der Strasse – direkt, effektiv, basierend auf modernem MMA-Training.",
+     "en": "Learn to fight for real situations on the street – direct, effective, based on modern MMA training.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Zürich",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Zürich",
+     "de": "FÜR DEN ERNSTFALL",
+     "en": "FOR REAL SITUATIONS",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Zürich",
+     "de": "EINFACH & WIRKSAM",
+     "en": "SIMPLE & EFFECTIVE",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Zürich",
+     "de": "KEIN VORWISSEN NÖTIG",
+     "en": "NO EXPERIENCE NEEDED",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Zürich",
+     "de": "RUHE UNTER DRUCK",
+     "en": "CALM UNDER PRESSURE",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Zürich",
+     "de": "WAS IST STREET DEFENSE?",
+     "en": "WHAT IS STREET DEFENSE?",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Zürich",
+     "de": "Street Defense ist Selbstverteidigung für echte Situationen, nicht für den Ring. Wenige, einfache Techniken, die auch unter Stress funktionieren, und die Fähigkeit, eine Situation früh zu erkennen und zu entschärfen.",
+     "en": "Street Defense is self-defence for real situations, not for the ring. A few simple techniques that still work under stress, and the ability to spot a situation early and defuse it.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Zürich",
+     "de": "Trainiert wird in Szenarien statt nach Wettkampfregeln: enge Distanz, mehrere Personen, überraschter Start. Unterrichtet von Sam, Chief Instructor Self Defense und Mitgründer von IMPACT.",
+     "en": "We train in scenarios instead of competition rules: close distance, several people, a surprise start. Taught by Sam, Chief Instructor Self Defense and co-founder of IMPACT.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "sportart.text3",
+     "location": "Zürich",
+     "de": "Vorkenntnisse brauchst du keine, und niemand wird ins kalte Wasser geworfen.",
+     "en": "You need no experience, and nobody gets thrown in at the deep end.",
+     "section": "About the sport",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.kicker",
+     "location": "Zürich",
+     "de": "MEMBERS",
+     "en": "MEMBERS",
+     "section": "Reviews",
+     "field": "Kicker"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Zürich",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Zürich",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Zürich",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Zürich",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Zürich",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Zürich",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Zürich",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Zürich",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Zürich",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Zürich",
+     "de": "Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and train along. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich",
+     "en": "IMPACT Zurich",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Zürich",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Zürich",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Zürich",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Zürich",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Zürich",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Zürich",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Zürich",
+     "de": "Wenn es\n*ernst wird.*",
+     "en": "When it\n*gets real.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Zürich",
+     "de": "Wenige Techniken, die unter Stress noch funktionieren, plus die Fähigkeit, eine Situation früh zu erkennen. Kein Wettkampf, keine Showtechnik.",
+     "en": "A few techniques that still work under stress, plus the ability to spot a situation early. No competition, no show moves.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Zürich",
+     "de": "Erfahrung",
+     "en": "Erfahrung",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Zürich",
+     "de": "Zertifizierte Trainer mit langjähriger Erfahrung",
+     "en": "Certified instructors with years of experience",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Zürich",
+     "de": "Struktur",
+     "en": "Struktur",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Zürich",
+     "de": "Klar strukturierte Einheiten mit positiver Energie",
+     "en": "Clearly structured sessions with positive energy",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Zürich",
+     "de": "Gemeinsam",
+     "en": "Gemeinsam",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Zürich",
+     "de": "Eine Gruppe, die sich ohne Druck und Urteil entwickelt",
+     "en": "A group that grows without pressure or judgement",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "warum.point4",
+     "location": "Zürich",
+     "de": "Klarheit",
+     "en": "Klarheit",
+     "section": "Why IMPACT",
+     "field": "Point 4"
+    },
+    {
+     "key": "warum.detail4",
+     "location": "Zürich",
+     "de": "Stressresistenter, klarer im Kopf, entschlossener",
+     "en": "More stress-resistant, clearer-headed, more decisive",
+     "section": "Why IMPACT",
+     "field": "Detail 4"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Zürich",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Zürich",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Zürich",
+     "de": "Passe ich dazu?",
+     "en": "Will I fit in?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Zürich",
+     "de": "Die Stunden sind für jede/n geeignet, der Sport treiben kann. Der Inhalt kann von allen erlernt werden.",
+     "en": "The classes are suitable for anyone able to do sport. Everyone can learn the content.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Zürich",
+     "de": "Wie hart ist das Training?",
+     "en": "How tough is the training?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Zürich",
+     "de": "Fordernd, aber in kleinen Schritten und absolut sicher – so profitierst du am meisten davon.",
+     "en": "Challenging, but in small steps and completely safe – that way you get the most out of it.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Zürich",
+     "de": "Wie läuft eine Lektion ab?",
+     "en": "How does a class work?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Zürich",
+     "de": "Eine Lektion dauert 60 Minuten: aufwärmen, Technik mit dem Partner, dann Szenarien.",
+     "en": "A class lasts 60 minutes: warm-up, technique with a partner, then scenarios.",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Zürich",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Zürich",
+     "de": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up via the form. Your first session is free – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.q5",
+     "location": "Zürich",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 5"
+    },
+    {
+     "key": "faq.a5",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 5"
+    },
+    {
+     "key": "final.heading",
+     "location": "Zürich",
+     "de": "Runde *eins.*",
+     "en": "Round *one.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Zürich",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  },
+  {
+   "slug": "personal-training",
+   "tab": "Personal Training",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Zürich",
+     "de": "Personal Training Zürich – Kampfsport 1:1 | IMPACT Martial Arts",
+     "en": "Personal Training Zurich – Martial Arts 1-on-1 | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.title",
+     "location": "Winterthur",
+     "de": "Personal Training Winterthur – Kampfsport 1:1 | IMPACT Martial Arts",
+     "en": "Personal Training Winterthur – Martial Arts 1-on-1 | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Zürich",
+     "de": "Personal Training in Zürich: 1:1-Coaching in Boxen, Muay Thai, MMA, BJJ oder Fitness, massgeschneidert auf deine Ziele. Gratis Probestunde.",
+     "en": "Personal training in Zurich: 1-on-1 coaching in boxing, Muay Thai, MMA, BJJ or fitness, tailored to your goals. Free trial session.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "seo.description",
+     "location": "Winterthur",
+     "de": "Personal Training in Winterthur: 1:1-Coaching in Boxen, Muay Thai, MMA, BJJ oder Fitness, massgeschneidert auf deine Ziele. Gratis Probestunde.",
+     "en": "Personal training in Winterthur: 1-on-1 coaching in boxing, Muay Thai, MMA, BJJ or fitness, tailored to your goals. Free trial session.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "Personal Training mit *IMPACT.*",
+     "en": "Personal Training with *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.sub",
+     "location": "Both",
+     "de": "1:1 Training für deinen Weg – intensiv, persönlich, effektiv.",
+     "en": "1-on-1 training for your journey – intense, personal, effective.",
+     "section": "Hero",
+     "field": "Subline"
+    },
+    {
+     "key": "hero.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Hero",
+     "field": "Button"
+    },
+    {
+     "key": "banner.bullet1",
+     "location": "Both",
+     "de": "1 ZU 1",
+     "en": "ONE ON ONE",
+     "section": "Banner",
+     "field": "Bullet 1"
+    },
+    {
+     "key": "banner.bullet2",
+     "location": "Both",
+     "de": "DEIN ZIEL, DEIN TEMPO",
+     "en": "YOUR GOAL, YOUR PACE",
+     "section": "Banner",
+     "field": "Bullet 2"
+    },
+    {
+     "key": "banner.bullet3",
+     "location": "Both",
+     "de": "JEDE SPORTART",
+     "en": "ANY DISCIPLINE",
+     "section": "Banner",
+     "field": "Bullet 3"
+    },
+    {
+     "key": "banner.bullet4",
+     "location": "Both",
+     "de": "TERMIN NACH ABSPRACHE",
+     "en": "BY ARRANGEMENT",
+     "section": "Banner",
+     "field": "Bullet 4"
+    },
+    {
+     "key": "sportart.kicker",
+     "location": "Both",
+     "de": "WAS DICH ERWARTET",
+     "en": "WHAT TO EXPECT",
+     "section": "About the sport",
+     "field": "Kicker"
+    },
+    {
+     "key": "sportart.text1",
+     "location": "Both",
+     "de": "Im Personal Training trainierst du allein mit einem Coach. Kein Gruppentempo, keine Rücksicht auf andere Level. Der Coach schaut nur auf dich und korrigiert jede Wiederholung.",
+     "en": "In personal training you train alone with a coach. No group pace, no compromise on level. The coach only watches you and corrects every repetition.",
+     "section": "About the sport",
+     "field": "Text 1"
+    },
+    {
+     "key": "sportart.text2",
+     "location": "Both",
+     "de": "Möglich ist das in allen Sportarten, die wir unterrichten: Boxen, Muay Thai, MMA, BJJ, Ringen oder reines Fitnesstraining. Auch als Ergänzung zu den Gruppenklassen, wenn du an einer bestimmten Sache arbeiten willst.",
+     "en": "This works in every discipline we teach: boxing, Muay Thai, MMA, BJJ, wrestling or pure fitness training. It also works alongside the group classes when you want to work on one specific thing.",
+     "section": "About the sport",
+     "field": "Text 2"
+    },
+    {
+     "key": "sportart.text3",
+     "location": "Both",
+     "de": "Termine vereinbarst du individuell mit dem Coach.",
+     "en": "You arrange your sessions individually with the coach.",
+     "section": "About the sport",
+     "field": "Text 3"
+    },
+    {
+     "key": "beweis.kicker",
+     "location": "Both",
+     "de": "MEMBERS",
+     "en": "MEMBERS",
+     "section": "Reviews",
+     "field": "Kicker"
+    },
+    {
+     "key": "beweis.heading",
+     "location": "Both",
+     "de": "Reviews*.*",
+     "en": "Reviews*.*",
+     "section": "Reviews",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.kicker",
+     "location": "Both",
+     "de": "DEIN START",
+     "en": "GETTING STARTED",
+     "section": "How the trial works",
+     "field": "Kicker"
+    },
+    {
+     "key": "ablauf.heading",
+     "location": "Both",
+     "de": "So einfach geht's *los.*",
+     "en": "Getting started is *easy.*",
+     "section": "How the trial works",
+     "field": "Title"
+    },
+    {
+     "key": "ablauf.lead",
+     "location": "Both",
+     "de": "Dein erstes Training ist gratis. Davor finden wir im Gespräch heraus, ob IMPACT und du zusammenpassen.",
+     "en": "Your first session is free. Before that, we'll have a quick chat to see whether IMPACT is the right fit for you.",
+     "section": "How the trial works",
+     "field": "Lead"
+    },
+    {
+     "key": "ablauf.h1",
+     "location": "Both",
+     "de": "_Anfrage_ senden",
+     "en": "_Send your_ request",
+     "section": "How the trial works",
+     "field": "Heading 1"
+    },
+    {
+     "key": "ablauf.text1",
+     "location": "Both",
+     "de": "Füll das kurze Formular aus – dauert keine 60 Sekunden.",
+     "en": "Fill in the short form – it takes less than 60 seconds.",
+     "section": "How the trial works",
+     "field": "Text 1"
+    },
+    {
+     "key": "ablauf.h2",
+     "location": "Both",
+     "de": "Wir rufen dich an",
+     "en": "We give you a call",
+     "section": "How the trial works",
+     "field": "Heading 2"
+    },
+    {
+     "key": "ablauf.text2",
+     "location": "Both",
+     "de": "Wir lernen uns kurz kennen: Was suchst du, was bieten wir – und passt das zusammen? Wenn ja, finden wir deine Klasse und deinen Termin.",
+     "en": "A quick get-to-know: what are you looking for, what do we offer – and does it fit? If yes, we'll find your class and set a date.",
+     "section": "How the trial works",
+     "field": "Text 2"
+    },
+    {
+     "key": "ablauf.h3",
+     "location": "Both",
+     "de": "Dein erstes Training",
+     "en": "Your first session",
+     "section": "How the trial works",
+     "field": "Heading 3"
+    },
+    {
+     "key": "ablauf.text3",
+     "location": "Both",
+     "de": "Komm vorbei und trainier mit. Leihausrüstung ist da – du brauchst nur Sportkleidung.",
+     "en": "Come in and train along. Loaner gear is ready – all you need is sportswear.",
+     "section": "How the trial works",
+     "field": "Text 3"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Zürich",
+     "de": "IMPACT Zürich",
+     "en": "IMPACT Zurich",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "photos.caption",
+     "location": "Winterthur",
+     "de": "IMPACT Winterthur",
+     "en": "IMPACT Winterthur",
+     "section": "Photo captions",
+     "field": "Caption"
+    },
+    {
+     "key": "anmelden.kicker",
+     "location": "Both",
+     "de": "TERMINVEREINBARUNG",
+     "en": "BOOK YOUR SESSION",
+     "section": "Sign-up block",
+     "field": "Kicker"
+    },
+    {
+     "key": "anmelden.heading1",
+     "location": "Both",
+     "de": "Sichere dir dein *gratis* Probetraining",
+     "en": "Claim your *free* trial class",
+     "section": "Sign-up block",
+     "field": "Title 1"
+    },
+    {
+     "key": "anmelden.text1",
+     "location": "Both",
+     "de": "Füll das Formular aus – wir melden uns telefonisch und finden gemeinsam deinen Einstieg. Probetraining gratis, Leihausrüstung inklusive.",
+     "en": "Fill in the form and we'll give you a call to plan your first session together. The trial class is free, loaner gear included.",
+     "section": "Sign-up block",
+     "field": "Text 1"
+    },
+    {
+     "key": "anmelden.heading2",
+     "location": "Both",
+     "de": "Anfrage erhalten.",
+     "en": "Request received.",
+     "section": "Sign-up block",
+     "field": "Title 2"
+    },
+    {
+     "key": "anmelden.text2",
+     "location": "Both",
+     "de": "Wir rufen dich an und finden gemeinsam deinen Einstieg. Bis gleich auf der Matte.",
+     "en": "We'll give you a call and plan your first session together. See you on the mats.",
+     "section": "Sign-up block",
+     "field": "Text 2"
+    },
+    {
+     "key": "warum.kicker",
+     "location": "Both",
+     "de": "WARUM IMPACT",
+     "en": "WHY IMPACT",
+     "section": "Why IMPACT",
+     "field": "Kicker"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Both",
+     "de": "Nur du und\n*dein Coach.*",
+     "en": "Just you and\n*your coach.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.text1",
+     "location": "Both",
+     "de": "Kein Gruppentempo, kein Kompromiss. Jede Wiederholung wird korrigiert, jede Stunde ist auf dein Ziel ausgerichtet.",
+     "en": "No group pace, no compromise. Every repetition gets corrected, every session is built around your goal.",
+     "section": "Why IMPACT",
+     "field": "Text 1"
+    },
+    {
+     "key": "warum.point1",
+     "location": "Both",
+     "de": "Fokus",
+     "en": "Fokus",
+     "section": "Why IMPACT",
+     "field": "Point 1"
+    },
+    {
+     "key": "warum.detail1",
+     "location": "Both",
+     "de": "Ehrliche Arbeit an deinen Zielen, mit Plan und Struktur",
+     "en": "Honest work on your goals, with a plan and structure",
+     "section": "Why IMPACT",
+     "field": "Detail 1"
+    },
+    {
+     "key": "warum.point2",
+     "location": "Both",
+     "de": "Bindung",
+     "en": "Bindung",
+     "section": "Why IMPACT",
+     "field": "Point 2"
+    },
+    {
+     "key": "warum.detail2",
+     "location": "Both",
+     "de": "Ein Trainer, der dich wirklich kennt",
+     "en": "A coach who truly knows you",
+     "section": "Why IMPACT",
+     "field": "Detail 2"
+    },
+    {
+     "key": "warum.point3",
+     "location": "Both",
+     "de": "Expertise",
+     "en": "Expertise",
+     "section": "Why IMPACT",
+     "field": "Point 3"
+    },
+    {
+     "key": "warum.detail3",
+     "location": "Both",
+     "de": "Kampfkunst, Fitness und Coaching, fokussiert auf dich",
+     "en": "Martial arts, fitness and coaching, focused on you",
+     "section": "Why IMPACT",
+     "field": "Detail 3"
+    },
+    {
+     "key": "warum.point4",
+     "location": "Both",
+     "de": "Tempo",
+     "en": "Tempo",
+     "section": "Why IMPACT",
+     "field": "Point 4"
+    },
+    {
+     "key": "warum.detail4",
+     "location": "Both",
+     "de": "Ungeteilte Aufmerksamkeit, direktes Feedback, schnellere Fortschritte",
+     "en": "Ungeteilte Aufmerksamkeit, direktes Feedback, schnellere Fortschritte",
+     "section": "Why IMPACT",
+     "field": "Detail 4"
+    },
+    {
+     "key": "faq.kicker",
+     "location": "Both",
+     "de": "WAS DICH ZURÜCKHÄLT",
+     "en": "WHAT'S HOLDING YOU BACK",
+     "section": "FAQ",
+     "field": "Kicker"
+    },
+    {
+     "key": "faq.heading",
+     "location": "Both",
+     "de": "Keine *Ausreden.*",
+     "en": "No *excuses.*",
+     "section": "FAQ",
+     "field": "Title"
+    },
+    {
+     "key": "faq.q1",
+     "location": "Both",
+     "de": "Ist es schwer zu lernen?",
+     "en": "Is it hard to learn?",
+     "section": "FAQ",
+     "field": "Question 1"
+    },
+    {
+     "key": "faq.a1",
+     "location": "Both",
+     "de": "Die 1:1-Unterrichtsstunden sind für jede/n geeignet, der sportlich fit ist und in sich selbst investieren möchte. Der Inhalt kann von allen erlernt werden.",
+     "en": "The 1-on-1 sessions suit anyone reasonably fit who wants to invest in themselves. Everyone can learn the content.",
+     "section": "FAQ",
+     "field": "Answer 1"
+    },
+    {
+     "key": "faq.q2",
+     "location": "Both",
+     "de": "Wie läuft das Training ab?",
+     "en": "What does a session look like?",
+     "section": "FAQ",
+     "field": "Question 2"
+    },
+    {
+     "key": "faq.a2",
+     "location": "Both",
+     "de": "Die 1:1-Unterrichtsstunden konzentrieren sich darauf, deine Fitness zu verbessern und dich stärker zu machen. Dies beinhaltet Übungen, die dich herausfordern und aus deiner Komfortzone herausholen werden. Alles in kleinen Schritten und absolut sicher.",
+     "en": "The 1-on-1 sessions focus on building your fitness and making you stronger. That includes exercises that will challenge you and pull you out of your comfort zone – all in small steps and completely safe.",
+     "section": "FAQ",
+     "field": "Answer 2"
+    },
+    {
+     "key": "faq.q3",
+     "location": "Both",
+     "de": "Wie melde ich mich an?",
+     "en": "How do I sign up?",
+     "section": "FAQ",
+     "field": "Question 3"
+    },
+    {
+     "key": "faq.a3",
+     "location": "Both",
+     "de": "Melde dich einfach über das Formular an. Du kannst kostenlos kommen, um uns und den Unterricht kennenzulernen – wir rufen dich vorher kurz an.",
+     "en": "Just sign up via the form. You can come in for free to get to know us and the classes – we'll give you a quick call beforehand.",
+     "section": "FAQ",
+     "field": "Answer 3"
+    },
+    {
+     "key": "faq.q4",
+     "location": "Both",
+     "de": "Wo findet das Training statt?",
+     "en": "Where does training take place?",
+     "section": "FAQ",
+     "field": "Question 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Zürich",
+     "de": "An der Walchestrasse 15, 8006 Zürich – nur rund 3 Gehminuten vom Zürich HB entfernt. Du kommst also auch nach der Arbeit oder Schule schnell und unkompliziert zu uns.",
+     "en": "At Walchestrasse 15, 8006 Zürich – only about a 3-minute walk from Zurich main station. Quick and easy to reach after work or school.",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "faq.a4",
+     "location": "Winterthur",
+     "de": "An der Technoparkstrasse 3 in Winterthur, im Technopark-Areal. Gut erreichbar mit ÖV, Velo und Auto (Parkmöglichkeiten im Areal).",
+     "en": "At Technoparkstrasse 3 in Winterthur, in the Technopark area. Easy to reach by public transport, bike or car (parking on site).",
+     "section": "FAQ",
+     "field": "Answer 4"
+    },
+    {
+     "key": "final.heading",
+     "location": "Both",
+     "de": "Runde *eins.*",
+     "en": "Round *one.*",
+     "section": "Closing",
+     "field": "Title"
+    },
+    {
+     "key": "final.button",
+     "location": "Both",
+     "de": "Gratis Probetraining",
+     "en": "Free Trial Class",
+     "section": "Closing",
+     "field": "Button"
+    }
+   ]
+  }
+ ]
+}
