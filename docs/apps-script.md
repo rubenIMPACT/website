@@ -9,7 +9,7 @@ A second, independent project "WhatsApp Automation" belongs to the WhatsApp work
 
 ## How the website talks to it
 - `doPost` : leads (`/api/lead`), training plans (`type:'plan'`), forms (`kind` event / cancellation).
-- `doGet?token=...&what=` : `events`, `image&id=`, `plan`, `blog`, `team`, plus maintenance calls (`pubtrigger`, `setup`, `calsync`, `caltrigger`, `spdaily`, `sptrigger`, `recount`, `migrate`, `setreg`).
+- `doGet?token=...&what=` : `events`, `image&id=`, `plan`, `blog`, `team`, `courses`, plus maintenance calls (`pubtrigger`, `setup`, `calsync`, `caltrigger`, `spdaily`, `sptrigger`, `recount`, `migrate`, `setreg`).
 - The web app URL is stored in Cloudflare as `LEADLOG_URL`. Deploying a new version keeps the URL.
 
 ## Map of the file (search for the banner comments)
@@ -25,7 +25,8 @@ A second, independent project "WhatsApp Automation" belongs to the WhatsApp work
 | 1101 | Google Calendar invitations (`syncCalendar`) | event planner |
 | 1176 | Blog (`blogRead`, `blogSetup`, `blogSeed`) | website `/articles/` |
 | ~1290 | Content sheet, tab Team (`ctTeamRead`, `ctTeamSetup`, `ctTeamSeed`) | website team |
-| ~1400 | "Publish now" tick box (`publishOnEdit`, `installPublishTriggers`, `PUB_TARGETS`) | content sheets |
+| ~1390 | Content sheet, discipline tabs (`ctCoursesRead`, `ctCoursesSetup`) | website course pages |
+| ~1480 | "Publish now" tick box (`publishOnEdit`, `installPublishTriggers`, `PUB_TARGETS`) | content sheets |
 | ~1330 | `doGet` | website |
 | 1300 / 1696 | Ad spend (Google, Meta, TikTok), advertising tab | analytics |
 | 1767 | LTV | analytics |
@@ -45,7 +46,7 @@ Function prefixes tell the owner: `sp*` timetable, `blog*` blog, `plan*`/`readEv
 | `SHEET_ID` | "Sales & Marketing Analytics" (leads log, reports) |
 | `PLAN_ID` | "Event Planner" |
 | `BLOG_ID` | "IMPACT Blog" |
-| `CONTENT_ID` | "IMPACT Website Content" (tab Team; course tabs follow) |
+| `CONTENT_ID` | "IMPACT Website Content" (tab Team + one tab per discipline) |
 | `TEAM_ID` | "Team KPIs" |
 | `WA_SHEET_ID` | "WhatsApp Automation" (mirror of cancellation feedback only) |
 | `FP_ID` | copy of the finance plan |

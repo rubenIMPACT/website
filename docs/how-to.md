@@ -17,6 +17,16 @@ Change the Google Slides deck (ZH: slide 1 only). Nothing else. Next morning all
 At once: GitHub > Actions > "Stundenplan aus den Slides" > Run workflow. New coach code on the slide? Add it to `SP_CODES` in the Apps Script.
 If the slide cannot be read cleanly the workflow stops and nothing changes.
 
+## Change a text on a course page
+Google Sheet "IMPACT Website Content", one tab per discipline (BJJ, Muay Thai, MMA, Boxing, Wrestling, Fitness Kickboxing, Street Defense, Personal Training).
+Rows run from the top of the page to the bottom: Section | Field | Location | Deutsch | English. Change the text, tick "PUBLISH NOW" in A1.
+- Location: `Both` = same text in Zürich and Winterthur. Different texts = two rows (one `Zürich`, one `Winterthur`). A field with only one location row exists only on that page.
+- `*gold*` = accent colour, line break in the cell = line break on the page, `_word_` = underlined (only in the three steps).
+- Add or remove repeating fields by adding/deleting rows: `Text n`, `Bullet n`, `Point n` + `Detail n`, `Question n` + `Answer n`. FAQ changes also update the FAQ data for Google.
+- Column "Check" says `OK`, `Missing: ...` or `Conflict: ...`. Keep the spelling of Section and Field, the website finds the place through them.
+- Not in the sheet: timetable block (comes from the slides), coach cards (Team tab), trial form, review quotes and counters, photos, Little Ninjas pages.
+Never edit these texts in the HTML, the next build overwrites them. A developer adds a completely new kind of element by putting `data-ct="section.field"` on it.
+
 ## Change a text or photo on a normal page
 Find the page folder (URL = folder), edit `index.html`, and do the same in the `/en/` twin. Photos go to `assets/` (absolute paths `/assets/...`,
 JPEG/AVIF, long edge max. ~2000 px). Videos: H.264 yuv420p + AAC, `+faststart`, poster image, `preload="none"` below the fold.

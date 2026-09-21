@@ -37,6 +37,8 @@ Shared blocks are tagged with a marker comment so that scripts can find and repl
 ## Generated parts (do not edit by hand)
 - `<script id="spdata">` on the 4 schedule pages, `<script id="lndata">` on the 4 kids pages, the `#zeiten` block on course pages,
   `const SCHEDULE` in `training-plan/index.html`: written by `tools/build_plan.py`.
+- Team cards, `<script id="trbios">` and the coach cards (`duosec`): written by `tools/build_team.py`. Text inside elements with `data-ct="..."` on the course pages,
+  their `<title>`, meta description and FAQPage JSON-LD: written by `tools/ct_courses.py`. Both come from the sheet "IMPACT Website Content".
 - `articles/*` (title, date, photo, body), the card list in `articles/index.html`, article entries in `sitemap.xml`: written by `tools/build_blog.py`.
 
 ## Tracking

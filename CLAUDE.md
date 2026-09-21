@@ -917,3 +917,12 @@ EDITOR-PASTE nachziehen, dann runKlassenanalyse('2026-08-01','2026-08-31') fuer 
 - Bio overlay inserts paragraphs via textContent (safe). Course/team text is escaped by the builder.
 - TODO with the next script change: `pubStamp` writes "Last read" into G1, which cuts off the status text in the Team tab (narrow columns D-F) - move the stamp to the last column.
 - NEXT: course page tabs (Section | Field | Location | Deutsch | English), all texts and headers editable (Ruben 21.09.), no approval step.
+
+## Course page CMS live (21.09.2026, Ruben: "mach weiter mit den sportarten-tabs", all texts and headers, no approval step)
+- Sheet "IMPACT Website Content": tabs BJJ, Muay Thai, MMA, Boxing, Wrestling, Fitness Kickboxing, Street Defense, Personal Training. Row = Section | Field | Location (Both/Zürich/Winterthur) | Deutsch | English | Check; 515 rows in total, about 85 % "Both". Seeded once from data/courses.json (Script Property `ctCoursesSeeded`). Webapp version 39. `pubStamp` now writes into the last header column.
+- Pages: 1760 elements on the 30 adult course pages carry `data-ct="section.field"` (+ `data-ct-f="rw ul"` flags, `data-ct-ac` accent class). `tools/ct_courses.py` (tag / extract / build) documents the rules in its header. Keys: hero.headline, hero.sub, banner.bulletN, sportart.textN, ablauf.hN/textN, anmelden.heading1/2, warum.pointN + detailN, coach.* (BJJ head coach block), gi.*, app.*, faq.qN/aN, final.*, photos.caption*, seo.title/description.
+- Round trip verified: after tag + extract + build the pages were byte-identical, except the four Muay Thai H1s (word animation now splits "Muay" and "Thai" into two spans; same text). Edit/add/remove tested on MMA with a data copy (FAQ 9 added, FAQ 2 and banner bullet 4 removed, Zürich-only paragraph, accent + line break in a title, JSON-LD follows).
+- Numbering was aligned between the cities (`align()`), e.g. BJJ Zürich has the Open Mat question that Winterthur lacks; equal questions share a number, so gaps in numbering are normal.
+- Workflow content-sync was deleted and recreated on GitHub (PAT has no workflow scope) and now calls `tools/content_build.py` (team + courses). Tick box test from the MMA tab 21.09. 11:59: 28 s, success.
+- NOT in the sheet: #zeiten (slides), duosec coach cards (Team tab), trial form, review quotes/counters/badge, hero address line, photos/videos, nav/footer, Little Ninjas pages (different template, no section ids).
+- Known cosmetic: course tabs show a stray yellow cell in G1.
