@@ -1194,22 +1194,26 @@ function blogSlug(title) {
   [['ä', 'ae'], ['ö', 'oe'], ['ü', 'ue'], ['ß', 'ss'], ['é', 'e'], ['è', 'e'], ['à', 'a'], ['ç', 'c']].forEach(function (p) { s = s.split(p[0]).join(p[1]); });
   return s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80).replace(/-+$/, '');
 }
+// Layout: row 1 = publish row (tick box A1, status D1, last read G1), row 2 = headers, posts from row 3.
+var BLOG_HR = 2;
 function blogSheet() {
   var ss = SpreadsheetApp.openById(BLOG_ID);
-  var sh = ss.getSheets()[0];
-  if (String(sh.getRange(1, 1).getValue()) !== BLOG_HEAD[0]) blogSetup(ss, sh);
-  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  var sh = ss.getSheetByName('Posts') || ss.getSheets()[0];
+  var a1 = String(sh.getRange(1, 1).getValue());
+  if (a1 === BLOG_HEAD[0]) { sh.insertRowBefore(1); pubRowFormat(sh, BLOG_HEAD.length); sh.setFrozenRows(BLOG_HR); } // 21.09.2026: publish row added above the headers
+  else if (String(sh.getRange(BLOG_HR, 1).getValue()) !== BLOG_HEAD[0]) blogSetup(ss, sh);
+  var head = sh.getRange(BLOG_HR, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
   if (head.indexOf('Website URL') < 0 && head.indexOf('Slug') >= 0) { // 18.09.2026 (Ruben): visible link column, Slug becomes a hidden helper
     var sc = head.indexOf('Slug') + 1;
     sh.insertColumnBefore(sc);
-    sh.getRange(1, sc).setValue('Website URL').setNote(BLOG_NOTES[6]);
-    sh.getRange(1, sc + 1).setNote(BLOG_NOTES[7]);
-    sh.getRange(2, sc, sh.getMaxRows() - 1, 1).setNumberFormat('@').setFontColor('#888888').setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    sh.getRange(BLOG_HR, sc).setValue('Website URL').setNote(BLOG_NOTES[6]);
+    sh.getRange(BLOG_HR, sc + 1).setNote(BLOG_NOTES[7]);
+    sh.getRange(BLOG_HR + 1, sc, sh.getMaxRows() - BLOG_HR, 1).setNumberFormat('@').setFontColor('#888888').setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
     sh.setColumnWidth(sc, 320); sh.hideColumns(sc + 1);
   }
   var props = PropertiesService.getScriptProperties(); // first fill exactly once (checkbox cells count as content, so getLastRow is useless here)
   if (props.getProperty('blogSeeded') !== '1') {
-    var titles = sh.getRange(2, 3, Math.max(1, sh.getMaxRows() - 1), 1).getValues().some(function (r) { return String(r[0]).trim() !== ''; });
+    var titles = sh.getRange(BLOG_HR + 1, 3, Math.max(1, sh.getMaxRows() - BLOG_HR), 1).getValues().some(function (r) { return String(r[0]).trim() !== ''; });
     if (titles || blogSeed(sh) > 0) props.setProperty('blogSeeded', '1');
   }
   return sh;
@@ -1217,20 +1221,21 @@ function blogSheet() {
 function blogSetup(ss, sh) {
   ss.setSpreadsheetLocale('de_CH'); ss.setSpreadsheetTimeZone(TZ); // new files start with US settings (lesson 15.09.2026)
   sh.setName('Posts');
-  var n = BLOG_HEAD.length, rows = 200;
-  if (sh.getMaxRows() < rows + 1) sh.insertRowsAfter(sh.getMaxRows(), rows + 1 - sh.getMaxRows());
+  var n = BLOG_HEAD.length, rows = 200, d0 = BLOG_HR + 1;
+  if (sh.getMaxRows() < rows + BLOG_HR) sh.insertRowsAfter(sh.getMaxRows(), rows + BLOG_HR - sh.getMaxRows());
   if (sh.getMaxColumns() > n) sh.deleteColumns(n + 1, sh.getMaxColumns() - n);
-  sh.getRange(1, 1, 1, n).setValues([BLOG_HEAD]).setNotes([BLOG_NOTES]).setFontWeight('bold').setBackground('#0a0908').setFontColor('#e2c117').setVerticalAlignment('middle');
-  sh.setFrozenRows(1); sh.setFrozenColumns(3);
-  sh.getRange(2, 1, rows, 1).insertCheckboxes();
-  sh.getRange(2, 2, rows, 1).setNumberFormat('dd.MM.yyyy');
-  sh.getRange(2, 3, rows, n - 2).setNumberFormat('@');
-  sh.getRange(2, 1, rows, n).setVerticalAlignment('top').setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
-  sh.getRange(2, 3, rows, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  sh.getRange(2, 7, rows, 3).setFontColor('#888888');
+  pubRowFormat(sh, n);
+  sh.getRange(BLOG_HR, 1, 1, n).setValues([BLOG_HEAD]).setNotes([BLOG_NOTES]).setFontWeight('bold').setBackground('#0a0908').setFontColor('#e2c117').setVerticalAlignment('middle');
+  sh.setFrozenRows(BLOG_HR); sh.setFrozenColumns(3);
+  sh.getRange(d0, 1, rows, 1).insertCheckboxes();
+  sh.getRange(d0, 2, rows, 1).setNumberFormat('dd.MM.yyyy');
+  sh.getRange(d0, 3, rows, n - 2).setNumberFormat('@');
+  sh.getRange(d0, 1, rows, n).setVerticalAlignment('top').setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sh.getRange(d0, 3, rows, 2).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sh.getRange(d0, 7, rows, 3).setFontColor('#888888');
   [70, 90, 260, 300, 220, 420, 320, 220, 200].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
   sh.hideColumns(8);
-  sh.setRowHeightsForced(2, rows, 42); // long texts stay compact; the full text is visible in the formula bar
+  sh.setRowHeightsForced(d0, rows, 42); // long texts stay compact; the full text is visible in the formula bar
 }
 // First fill: the six posts that were already on the website (data/blog.json in the public repo).
 function blogSeed(sh) {
@@ -1242,38 +1247,77 @@ function blogSeed(sh) {
     var d = String(p.date).split('-');
     return [true, new Date(Number(d[0]), Number(d[1]) - 1, Number(d[2]), 12), p.title, p.description || '', p.image || '', p.text, p.slug, ''];
   });
-  sh.getRange(2, 1, rows.length, BLOG_HEAD.length).setValues(rows);
+  sh.getRange(BLOG_HR + 1, 1, rows.length, BLOG_HEAD.length).setValues(rows);
   return rows.length;
 }
 function blogRead() {
   var sh = blogSheet(), last = sh.getLastRow(), posts = [], notes = [];
-  if (last < 2) return { ok: true, posts: [], notes: ['empty'] };
-  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = {};
+  if (last <= BLOG_HR) return { ok: true, posts: [], notes: ['empty'] };
+  var head = sh.getRange(BLOG_HR, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = {}, R0 = BLOG_HR + 1;
   BLOG_HEAD.forEach(function (h) { col[h] = head.indexOf(h); if (col[h] < 0) throw new Error('Blog sheet: column "' + h + '" is missing'); });
-  var vals = sh.getRange(2, 1, last - 1, head.length).getValues();
+  var vals = sh.getRange(R0, 1, last - BLOG_HR, head.length).getValues();
   var used = {}; vals.forEach(function (v) { var s = String(v[col.Slug] || '').trim(); if (s) used[s] = true; });
   vals.forEach(function (v, i) {
     var title = String(v[col.Title] || '').trim(), text = String(v[col.Text] || '').trim(), slug = String(v[col.Slug] || '').trim();
     var on = v[col.Website] === true, dv = v[col.Date], date = '';
     if (dv instanceof Date) date = Utilities.formatDate(dv, TZ, 'yyyy-MM-dd');
     else { var m = String(dv || '').trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); if (m) date = m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); }
-    if (!title && !text && !on) { if (String(v[col.Check] || '') !== '') sh.getRange(i + 2, col.Check + 1).setValue(''); if (String(v[col['Website URL']] || '') !== '') sh.getRange(i + 2, col['Website URL'] + 1).setValue(''); return; }
+    if (!title && !text && !on) { if (String(v[col.Check] || '') !== '') sh.getRange(i + R0, col.Check + 1).setValue(''); if (String(v[col['Website URL']] || '') !== '') sh.getRange(i + R0, col['Website URL'] + 1).setValue(''); return; }
     if (!slug && title) {
       var base = blogSlug(title) || 'post', k = 1; slug = base;
       while (used[slug]) { k++; slug = base + '-' + k; }
-      used[slug] = true; sh.getRange(i + 2, col.Slug + 1).setValue(slug);
+      used[slug] = true; sh.getRange(i + R0, col.Slug + 1).setValue(slug);
     }
     var miss = []; if (!date) miss.push('Date'); if (!title) miss.push('Title'); if (!text) miss.push('Text');
     if (slug && !/^[a-z0-9-]+$/.test(slug)) miss.push('Slug (only a-z, 0-9 and -)');
     var check = miss.length ? 'Missing: ' + miss.join(', ') : (on ? 'OK' : 'OK, not ticked');
-    if (String(v[col.Check] || '') !== check) sh.getRange(i + 2, col.Check + 1).setValue(check);
+    if (String(v[col.Check] || '') !== check) sh.getRange(i + R0, col.Check + 1).setValue(check);
     var link = (on && !miss.length) ? 'https://www.impact-martialarts.com/articles/' + slug + '/' : '';
-    if (String(v[col['Website URL']] || '') !== link) sh.getRange(i + 2, col['Website URL'] + 1).setValue(link);
+    if (String(v[col['Website URL']] || '') !== link) sh.getRange(i + R0, col['Website URL'] + 1).setValue(link);
     if (!on) return;
-    if (miss.length) { notes.push('row ' + (i + 2) + ': ' + check); return; }
+    if (miss.length) { notes.push('row ' + (i + R0) + ': ' + check); return; }
     posts.push({ slug: slug, date: date, title: title, description: String(v[col.Description] || '').trim(), image: String(v[col['Photo URL']] || '').trim(), text: text });
   });
+  pubStamp(sh);
   return { ok: true, posts: posts, notes: notes };
+}
+/* ===== "Publish now" tick box in the content sheets (21.09.2026, Ruben) =====
+   Row 1 of a content sheet: A1 = tick box, D1 = status, G1 = last read by the website build. An installable onEdit trigger (runs as Ruben,
+   so it also works when Waseem ticks the box) starts the GitHub workflow that rebuilds the pages. The GitHub token lives ONLY in the
+   Script Properties (key GITHUB_TOKEN, fine-grained token with "Actions: read and write" on rubenIMPACT/website). Never put it into the code. */
+var PUB_REPO = 'rubenIMPACT/website';
+var PUB_TARGETS = {}; PUB_TARGETS[BLOG_ID] = { tab: 'Posts', workflow: 'blog-sync.yml' };
+var PUB_HINT = 'Tick the box on the left to publish now. The website is rebuilt and online about 3 minutes later. Without a tick it updates every morning.';
+function pubRowFormat(sh, n) {
+  sh.getRange(1, 1, 1, n).clearContent().clearNote().setBackground('#e2c117').setFontColor('#0a0908').setFontWeight('bold').setVerticalAlignment('middle').setWrapStrategy(SpreadsheetApp.WrapStrategy.OVERFLOW).setNumberFormat('@');
+  sh.getRange(1, 1).insertCheckboxes().setValue(false);
+  sh.getRange(1, 2).setValue('PUBLISH NOW');
+  sh.getRange(1, 4).setValue(PUB_HINT).setFontWeight('normal');
+  sh.getRange(1, 7).setFontWeight('normal');
+  sh.setRowHeight(1, 34);
+}
+function pubStamp(sh) { try { sh.getRange(1, 7).setValue('Last read by the website: ' + Utilities.formatDate(new Date(), TZ, 'dd.MM.yyyy HH:mm')); } catch (err) {} }
+function publishOnEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    var r = e.range, sh = r.getSheet(), t = PUB_TARGETS[e.source.getId()];
+    if (!t || sh.getName() !== t.tab || r.getRow() !== 1 || r.getColumn() !== 1 || r.getValue() !== true) return;
+    var status = sh.getRange(1, 4), props = PropertiesService.getScriptProperties(), now = new Date();
+    r.setValue(false);
+    if (now.getTime() - Number(props.getProperty('pubLast:' + t.workflow) || 0) < 120000) { status.setValue('Already started a moment ago. Please wait about 3 minutes.'); return; }
+    var tok = props.getProperty('GITHUB_TOKEN');
+    if (!tok) { status.setValue('Not connected yet: the GitHub token is missing (Ruben: Apps Script > Project settings > Script properties > GITHUB_TOKEN).'); return; }
+    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + PUB_REPO + '/actions/workflows/' + t.workflow + '/dispatches', { method: 'post', contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, payload: JSON.stringify({ ref: 'main' }), muteHttpExceptions: true });
+    if (res.getResponseCode() === 204) { props.setProperty('pubLast:' + t.workflow, String(now.getTime())); status.setValue('Publishing started ' + Utilities.formatDate(now, TZ, 'dd.MM.yyyy HH:mm') + '. Online in about 3 minutes. ' + PUB_HINT); }
+    else status.setValue('Could not start (GitHub answered ' + res.getResponseCode() + '). Please tell Ruben. ' + PUB_HINT);
+  } catch (err) { try { e.range.getSheet().getRange(1, 4).setValue('Error: ' + String(err).slice(0, 120)); } catch (e2) {} }
+}
+function installPublishTriggers() {
+  var have = {}, made = [];
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'publishOnEdit') have[t.getTriggerSourceId()] = true; });
+  Object.keys(PUB_TARGETS).forEach(function (id) { if (!have[id]) { ScriptApp.newTrigger('publishOnEdit').forSpreadsheet(id).onEdit().create(); made.push(id); } });
+  return made.length ? 'angelegt: ' + made.length : 'vorhanden';
 }
 function doGet(e) {
   var q = (e && e.parameter) || {};
@@ -1282,6 +1326,7 @@ function doGet(e) {
     if (q.what === 'events') return out({ ok: true, events: readEvents() });
     if (q.what === 'plan') return out(spReadDecks());
     if (q.what === 'blog') return out(blogRead());
+    if (q.what === 'pubtrigger') return out({ ok: true, trigger: installPublishTriggers() });
     if (q.what === 'spdaily') return out({ ok: true, result: spDaily() });
     if (q.what === 'sptrigger') return out({ ok: true, trigger: installSpTrigger() });
     if (q.what === 'seed') return out({ ok: true, rows: seedOpenDoors() });
