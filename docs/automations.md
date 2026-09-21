@@ -58,6 +58,7 @@ Form --> /api/lead --> exercise.com: sign in, create client (lifecycle "Lead"); 
 ## Analytics sheets (separate work streams, same Apps Script)
 Hourly trial list and team KPIs, daily month-end report, ad spend (Google Ads script, Meta API, TikTok report mail), LTV, class analysis.
 Server side in `functions/api/klassen.js` (exercise.com report API). Details and definitions are in `CLAUDE.md`.
+Class analysis since 21.09.2026 also splits the time-of-day ranking into weekday / Saturday and adds the "Mitglieder nach Zeitfenster" block (members training only / mostly in off-peak slots, exposed revenue for the planned off-peak membership); parameters "Randzeit bis Uhrzeit" and "Randzeiten-Abo Preis brutto CHF/Monat" live in the sheet tab Einstellungen and are passed to `/api/klassen` phase 3 (`rand_before`, `rand_price`). Method: `tools/klassenanalyse/SKILL.md`.
 No runs between 01:00 and 05:00. Manual runs never between :55 and :12 (hourly job).
 
 ## WhatsApp automation
