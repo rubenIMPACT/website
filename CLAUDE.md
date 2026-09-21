@@ -893,3 +893,17 @@ Verbesserung: Bloecke mit einem setValues schreiben statt je Zeile.
 - Lesson: a cell with number format '@' turns a tick box into the text "false" (validation error). A1 must be 'General' before insertCheckboxes.
 - A menu or drawing button is NOT possible from this standalone script (getUi needs a container-bound script, and menu functions would run as the clicking user without access to the token) - hence the tick box.
 - PLANNED (Ruben 21.09.): sheet CMS for team/staff and ALL course page texts and headers, editable by Waseem, direct publish without approval step. Layout proposal shown to Ruben, not built yet.
+
+KLASSENANALYSE ZEITFENSTER (21.09.2026, Entscheid Ruben, Vorbereitung Randzeiten-Abo): functions/api/klassen.js REVENUE() ordnet jeden
+Check-in eines Mitglieds einem Fenster zu (rand = Werktag Start vor 16:30, prime = Werktag ab 16:30, sa = Samstag/Sonntag) und bildet je
+Mitglied eine Gruppe (nur Randzeit / ueberwiegend >= 70 % / gemischt / nur Prime / nur Samstag / ohne Besuch, Kids-Abos ausgeklammert);
+Ausgabe revenue.bands je Standort mit Abo-Stufen (Basic/Core/Advanced/Pro) und "exposed" (Abo-Netto der Core+ in nur/ueberwiegend
+Randzeit minus Randzeiten-Preis netto, nur positive Differenzen), dazu revenue.slot_users je Standort|Tagtyp|HH:MM (Mitglieder unique,
+davon nur/ueberwiegend Randzeit). Parameter aus dem Tab Einstellungen ("Randzeit bis Uhrzeit" 16:30, "Randzeiten-Abo Preis brutto
+CHF/Monat" 149), runKlassenanalyse gibt sie in Phase 3 als rand_before/rand_price mit. Apps Script: timeBlock() jetzt je Tagtyp
+(Werktag UND Samstag getrennt, mit Mitglieder-Spalten), neuer Block bandBlock() "Mitglieder nach Zeitfenster" je Standort mit Verlauf
+aus dem versteckten Tab ZeitfensterHistorie (updateZeitfensterHistorie, wie RisikoHistorie). Browser-Fallback
+tools/klassenanalyse/fetch_reports.js rechnet identisch (window.__ka_opt). Lesart und Grenzen in tools/klassenanalyse/SKILL.md
+(Kontrollinstrument, keine Entscheidungsgrundlage; Kannibalisierung passiert am Verkaufstisch, nicht bei Bestandskunden). Getestet
+lokal mit synthetischen Check-ins (REVENUE) und einem SpreadsheetApp-Mock (Builder rendert, Verlauf ab 2 Monaten). Apps Script per
+EDITOR-PASTE nachziehen, dann runKlassenanalyse('2026-08-01','2026-08-31') fuer den August-Neuaufbau mit Zeitfenstern.
