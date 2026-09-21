@@ -1202,6 +1202,7 @@ function blogSheet() {
   var a1 = String(sh.getRange(1, 1).getValue());
   if (a1 === BLOG_HEAD[0]) { sh.insertRowBefore(1); pubRowFormat(sh, BLOG_HEAD.length); sh.setFrozenRows(BLOG_HR); } // 21.09.2026: publish row added above the headers
   else if (String(sh.getRange(BLOG_HR, 1).getValue()) !== BLOG_HEAD[0]) blogSetup(ss, sh);
+  if (typeof sh.getRange(1, 1).getValue() !== 'boolean') pubRowFormat(sh, BLOG_HEAD.length); // repairs a broken tick box
   var head = sh.getRange(BLOG_HR, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
   if (head.indexOf('Website URL') < 0 && head.indexOf('Slug') >= 0) { // 18.09.2026 (Ruben): visible link column, Slug becomes a hidden helper
     var sc = head.indexOf('Slug') + 1;
@@ -1289,8 +1290,9 @@ var PUB_REPO = 'rubenIMPACT/website';
 var PUB_TARGETS = {}; PUB_TARGETS[BLOG_ID] = { tab: 'Posts', workflow: 'blog-sync.yml' };
 var PUB_HINT = 'Tick the box on the left to publish now. The website is rebuilt and online about 3 minutes later. Without a tick it updates every morning.';
 function pubRowFormat(sh, n) {
-  sh.getRange(1, 1, 1, n).clearContent().clearNote().setBackground('#e2c117').setFontColor('#0a0908').setFontWeight('bold').setVerticalAlignment('middle').setWrapStrategy(SpreadsheetApp.WrapStrategy.OVERFLOW).setNumberFormat('@');
-  sh.getRange(1, 1).insertCheckboxes().setValue(false);
+  sh.getRange(1, 1, 1, n).clearContent().clearNote().clearDataValidations().setBackground('#e2c117').setFontColor('#0a0908').setFontWeight('bold').setVerticalAlignment('middle').setWrapStrategy(SpreadsheetApp.WrapStrategy.OVERFLOW);
+  sh.getRange(1, 2, 1, n - 1).setNumberFormat('@');
+  sh.getRange(1, 1).setNumberFormat('General').insertCheckboxes().setValue(false); // A1 must NOT be text format, otherwise the tick box shows the word "false" (21.09.2026)
   sh.getRange(1, 2).setValue('PUBLISH NOW');
   sh.getRange(1, 4).setValue(PUB_HINT).setFontWeight('normal');
   sh.getRange(1, 7).setFontWeight('normal');
