@@ -6,18 +6,18 @@ import io, json, os, re, sys, time, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = 'https://www.impact-martialarts.com'
-UA = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'}
+UA = {'User-Agent': 'Mozilla/5.0 (blog-sync)', 'Accept': '*/*'}  # same style as plan-sync; a full Chrome UA from a GitHub runner made the first request hang for 2 minutes (21.09.2026)
 MAX_W = 1600
 
 
-def get(url, tries=3, wait=30):
+def get(url, tries=3, wait=15):
     err = None
     for i in range(tries):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120) as r:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
                 return r.read(), r.headers.get('Content-Type', '')
         except Exception as e:  # noqa
-            err = e
+            err = e; print('Versuch %d fehlgeschlagen (%s): %s' % (i + 1, url.split('?')[0], e), flush=True)
             if i < tries - 1:
                 time.sleep(wait)
     raise err
