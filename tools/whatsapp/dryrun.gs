@@ -1052,3 +1052,46 @@ function waDocWaseem() { // one-off (Ruben 22.09., go): Google Doc "WhatsApp Mes
   var o = body.findText('Origin of the texts'); if (o) o.getElement().getParent().asParagraph().appendText(' 22 Sep 2026 (Ruben, go): W1, W2 and W4 carry Waseem\'s additions (card link and app path in W1, amount and due date in W2, fee sentence in W4), W2 moved to day 7; Waseem\'s proposal columns were merged and removed; e-mail subjects and signature are his.');
   Logger.log('doc Waseem: ' + n + ' cells set, ' + removed + ' proposal cells removed, ' + sig + ' signature lines removed');
 }
+var TEMPLATES = [ // Meta message templates (Ruben 22.09., go): one per message and language, texts = the approved DE/EN texts with {{n}} placeholders; category UTILITY = service to an existing booking / invoice, MARKETING = lead follow-up and review request (Meta's own definition)
+  { id: 'A1', name: 'impact_a1', cat: 'MARKETING', src: 'TEXT', vars: ['name', 'sender', 'studio'] },
+  { id: 'A2', name: 'impact_a2', cat: 'MARKETING', src: 'TEXT', vars: ['name'] },
+  { id: 'A3', name: 'impact_a3', cat: 'MARKETING', src: 'TEXT', vars: ['name'] },
+  { id: 'B1', name: 'impact_b1', cat: 'UTILITY', src: 'TEXT', vars: ['name', 'time', 'class'] },
+  { id: 'C1', name: 'impact_c1', cat: 'UTILITY', src: 'TEXT', vars: ['name'] },
+  { id: 'D1', name: 'impact_d1', cat: 'UTILITY', src: 'TEXT', vars: ['name', 'date'] },
+  { id: 'R1', name: 'impact_r1', cat: 'MARKETING', src: 'TEXT_R', vars: ['name', 'review_link'] },
+  { id: 'W1', name: 'impact_w1', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'card_link'] },
+  { id: 'W2', name: 'impact_w2', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'amount', 'due_date', 'card_link'] },
+  { id: 'W3', name: 'impact_w3', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'amount', 'due_date', 'pay_link', 'card_link'] },
+  { id: 'W4', name: 'impact_w4', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'amount', 'invoices', 'card_link'], fee: false },
+  { id: 'W4', name: 'impact_w4_fee', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'amount', 'invoices', 'card_link'], fee: true },
+  { id: 'W5', name: 'impact_w5', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'amount', 'due_date', 'pay_link'] }
+];
+var TPL_EXAMPLE = { de: { name: 'Lea', sender: 'Abdi', studio: 'Zürich', time: '18:00', 'class': 'MMA', date: '22.09.', review_link: REVIEW_LINK.Zurich, card_link: CARD_LINK, amount: '239.90', due_date: '01.09.', pay_link: 'https://invoice.stripe.com/i/acct_example/live_example', invoices: 'CHF 239.90 (12.08.): https://invoice.stripe.com/i/acct_example/live_example' },
+                   en: { name: 'Lea', sender: 'Abdi', studio: 'Zurich', time: '6:00 PM', 'class': 'MMA', date: '22/09', review_link: REVIEW_LINK.Zurich, card_link: CARD_LINK, amount: '239.90', due_date: '01/09', pay_link: 'https://invoice.stripe.com/i/acct_example/live_example', invoices: 'CHF 239.90 (12/08): https://invoice.stripe.com/i/acct_example/live_example' } };
+function templateBody(spec, lang) { // approved text -> Meta body with {{1}}.. in the order of spec.vars; W4 with or without the fee sentence
+  var src = { TEXT: TEXT, TEXT_E: TEXT_E, TEXT_R: TEXT_R }[spec.src], t = src[spec.id][lang];
+  if (spec.fee !== undefined) t = fill(t, { fee: spec.fee ? W4_FEE[lang] : '' });
+  spec.vars.forEach(function (v, i) { t = t.split('{' + v + '}').join('{{' + (i + 1) + '}}'); });
+  if (/\{\w+\}/.test(t)) throw new Error('unmapped placeholder in ' + spec.name + ' ' + lang + ': ' + t.match(/\{\w+\}/)[0]);
+  return { text: t, example: spec.vars.map(function (v) { return TPL_EXAMPLE[lang][v]; }) };
+}
+function waTemplateStatus() { // one-off / check: every template of the Zurich WABA with its Meta status (log only)
+  var b = cfPost({ action: 'wa_templates', conn: 'zh' }); if (!b || !b.ok) { Logger.log('templates: ' + JSON.stringify(b).slice(0, 400)); return {}; }
+  var out = {}; (b.data.data || []).forEach(function (t) { out[t.name + ':' + t.language] = t.status + (t.rejected_reason && t.rejected_reason !== 'NONE' ? ' (' + t.rejected_reason + ')' : ''); });
+  Logger.log('templates (' + Object.keys(out).length + '): ' + JSON.stringify(out));
+  return out;
+}
+function waSubmitTemplates() { // one-off (Ruben 22.09., go): submit every template in TEMPLATES in de + en that does not exist yet; log Meta's answer per template
+  var have = waTemplateStatus(), n = 0, skip = 0, fail = 0;
+  TEMPLATES.forEach(function (spec) { ['de', 'en'].forEach(function (lang) {
+    if (have[spec.name + ':' + lang]) { skip++; return; }
+    var body = templateBody(spec, lang);
+    var tpl = { name: spec.name, language: lang, category: spec.cat, components: [{ type: 'BODY', text: body.text, example: { body_text: [body.example] } }] };
+    var b = cfPost({ action: 'wa_template_create', conn: 'zh', template: tpl });
+    var ok = b && b.ok && b.data && b.data.id;
+    if (ok) n++; else fail++;
+    Logger.log((ok ? 'OK ' : 'FAIL ') + spec.name + ' ' + lang + ': ' + (ok ? (b.data.status || '') + ' ' + (b.data.category || '') + ' id ' + b.data.id : JSON.stringify(b).slice(0, 300)));
+  }); });
+  Logger.log('templates submitted: ' + n + ', already there: ' + skip + ', failed: ' + fail);
+}

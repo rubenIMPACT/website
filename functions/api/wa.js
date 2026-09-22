@@ -20,6 +20,18 @@
 //   action "locations": Standort-IDs -> Namen (Diagnose).
 //   action "invoice_refresh" {ids: [...]} (max 40): Rechnung aus Stripe neu einlesen -> frischer hosted_invoice_url.
 const API = "https://app.impact-martialarts.com";
+// Dualhook Runtime API (Graph-kompatibel, 22.09.2026): Vorlagen je Verbindung anlegen und abfragen. Der Outbound-Key je Verbindung
+// liegt nur in Cloudflare (WA_KEY_ZH = Abdi Zuerich); Meta-Token oder appsecret_proof werden nie mitgeschickt (macht Dualhook intern).
+//   action "wa_templates" {conn?}: Liste der Vorlagen des WABA (Name, Sprache, Status, Kategorie, Ablehnungsgrund).
+//   action "wa_template_create" {conn?, template: {name, language, category, components}}: eine Vorlage bei Meta einreichen.
+const DH = "https://api.dualhook.com/v25.0";
+const WA_CONN = { zh: { key: "WA_KEY_ZH", waba: "718323397882336", phone: "1033138903208435" } };
+async function dh(env, conn, sub, method, body) {
+  const c = WA_CONN[conn || "zh"]; if (!c) return { error: "unknown_conn" }; if (!env[c.key]) return { error: "no_key", conn: conn || "zh" };
+  const r = await fetch(DH + "/" + c.waba + sub, { method: method || "GET", headers: { Authorization: "Bearer " + env[c.key], "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const t = await r.text(); let d; try { d = JSON.parse(t); } catch { d = { raw: t.slice(0, 500) }; }
+  return { status: r.status, ok: r.ok, data: d };
+}
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
 export async function onRequestPost(context) {
@@ -29,6 +41,8 @@ export async function onRequestPost(context) {
   try { p = await request.json(); } catch { return j({ error: "bad_json" }, 400); }
   if (!env.LEADLOG_TOKEN || p.token !== env.LEADLOG_TOKEN) return j({ error: "unauthorized" }, 401);
   try {
+    if (p.action === "wa_templates") return j(await dh(env, p.conn, "/message_templates?limit=100&fields=name,language,status,category,id,rejected_reason", "GET"));
+    if (p.action === "wa_template_create") return j(await dh(env, p.conn, "/message_templates", "POST", p.template));
     const H = await signIn(env);
     if (!H) return j({ error: "signin_failed" }, 502);
     if (p.action === "failed_payments") return j(await failedPayments(H, Math.min(Math.max(Number(p.days) || 30, 1), 120)));
