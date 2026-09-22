@@ -297,6 +297,10 @@ function readFailedPayments() { // null = not available (no token or endpoint er
     return b.rows || [];
   } catch (e) { Logger.log('wa failed_payments: ' + e); return null; }
 }
+function cfPostRaw(body) { // like cfPost, but returns the parsed answer even when ok is false (the caller reads status / error itself); null only on transport error
+  if (!CF_TOKEN || /^PASTE/.test(CF_TOKEN)) return null;
+  try { body.token = CF_TOKEN; var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true }); return JSON.parse(r.getContentText() || '{}'); } catch (e) { Logger.log('wa ' + body.action + ': ' + e); return null; }
+}
 function cfPost(body) { // one /api/wa call; null = not available (no token, HTTP error, invalid JSON)
   if (!CF_TOKEN || /^PASTE/.test(CF_TOKEN)) return null;
   try {
@@ -1089,11 +1093,11 @@ function waSubmitTemplates() { // one-off (Ruben 22.09., go): submit every templ
     var body = templateBody(spec, lang);
     var tpl = { name: spec.name, language: lang, category: spec.cat, components: [{ type: 'BODY', text: body.text, example: { body_text: [body.example] } }] };
     if (new Date().getTime() - t0 > 280000) { later++; return; } // Apps Script limit is 6 min: stop early, the next run continues (existing templates are skipped)
-    var b = null; for (var attempt = 0; attempt < 6; attempt++) { b = cfPost({ action: 'wa_template_create', conn: 'zh', template: tpl }); if (b) break; Utilities.sleep(20000); } // Dualhook rate limit (429 on 22.09.: roughly 2 templates per minute); cfPost returns null on 429 -> wait 20 s and retry, up to 6 times
+    var b = null; for (var attempt = 0; attempt < 6; attempt++) { b = cfPostRaw({ action: 'wa_template_create', conn: 'zh', template: tpl }); if (b && b.status === 429) Utilities.sleep(20000); else break; } // Dualhook rate limit (429 on 22.09.: roughly 2 templates per minute) -> wait 20 s and retry, up to 6 times; any other answer (400 = Meta rejects the template) fails at once
     Utilities.sleep(15000); // pace between templates
-    var ok = b && b.ok && b.data && b.data.id;
+    var ok = b && b.ok && b.data && b.data.id, err = b && b.data && b.data.error ? b.data.error : null;
     if (ok) n++; else fail++;
-    Logger.log((ok ? 'OK ' : 'FAIL ') + spec.name + ' ' + lang + ': ' + (ok ? (b.data.status || '') + ' ' + (b.data.category || '') + ' id ' + b.data.id : JSON.stringify(b).slice(0, 300)));
+    Logger.log((ok ? 'OK ' : 'FAIL ') + spec.name + ' ' + lang + ': ' + (ok ? (b.data.status || '') + ' ' + (b.data.category || '') + ' id ' + b.data.id : (err ? (err.error_user_title || err.message) + ' / ' + (err.error_user_msg || '') : JSON.stringify(b).slice(0, 300))));
   }); });
   Logger.log('templates submitted: ' + n + ', already there: ' + skip + ', failed: ' + fail + (later ? ', left for the next run: ' + later : ''));
 }
