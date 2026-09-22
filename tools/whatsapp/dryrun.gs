@@ -1083,16 +1083,17 @@ function waTemplateStatus() { // one-off / check: every template of the Zurich W
   return out;
 }
 function waSubmitTemplates() { // one-off (Ruben 22.09., go): submit every template in TEMPLATES in de + en that does not exist yet; log Meta's answer per template
-  var have = waTemplateStatus(), n = 0, skip = 0, fail = 0;
+  var have = waTemplateStatus(), n = 0, skip = 0, fail = 0, later = 0, t0 = new Date().getTime();
   TEMPLATES.forEach(function (spec) { ['de', 'en'].forEach(function (lang) {
     if (have[spec.name + ':' + lang]) { skip++; return; }
     var body = templateBody(spec, lang);
     var tpl = { name: spec.name, language: lang, category: spec.cat, components: [{ type: 'BODY', text: body.text, example: { body_text: [body.example] } }] };
-    var b = null; for (var attempt = 0; attempt < 4; attempt++) { b = cfPost({ action: 'wa_template_create', conn: 'zh', template: tpl }); if (b && b.status === 429) Utilities.sleep(15000 * (attempt + 1)); else break; } // Dualhook rate limit (429 seen on 22.09. after the first template): wait 15 / 30 / 45 s and retry
-    Utilities.sleep(4000); // pace: one template every few seconds
+    if (new Date().getTime() - t0 > 280000) { later++; return; } // Apps Script limit is 6 min: stop early, the next run continues (existing templates are skipped)
+    var b = null; for (var attempt = 0; attempt < 6; attempt++) { b = cfPost({ action: 'wa_template_create', conn: 'zh', template: tpl }); if (b) break; Utilities.sleep(20000); } // Dualhook rate limit (429 on 22.09.: roughly 2 templates per minute); cfPost returns null on 429 -> wait 20 s and retry, up to 6 times
+    Utilities.sleep(15000); // pace between templates
     var ok = b && b.ok && b.data && b.data.id;
     if (ok) n++; else fail++;
     Logger.log((ok ? 'OK ' : 'FAIL ') + spec.name + ' ' + lang + ': ' + (ok ? (b.data.status || '') + ' ' + (b.data.category || '') + ' id ' + b.data.id : JSON.stringify(b).slice(0, 300)));
   }); });
-  Logger.log('templates submitted: ' + n + ', already there: ' + skip + ', failed: ' + fail);
+  Logger.log('templates submitted: ' + n + ', already there: ' + skip + ', failed: ' + fail + (later ? ', left for the next run: ' + later : ''));
 }
