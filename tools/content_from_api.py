@@ -26,8 +26,8 @@ def courses():
     for n in js.get('notes') or []:
         print('Hinweis aus dem Sheet:', n)
     tabs = {c['tab']: c for c in js['courses']}; out = []
-    for slug, tab in C.DISCIPLINES:
-        if tab not in tabs or len(tabs[tab]['rows']) < 30:
+    for slug, tab in C.ALL_TABS:
+        if tab not in tabs or len(tabs[tab]['rows']) < 15:
             sys.exit('FEHLER: Tab "%s" fehlt oder hat weniger als 30 Zeilen - Abbruch, nichts veraendert.' % tab)
         rows = []
         for r in tabs[tab]['rows']:

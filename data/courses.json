@@ -4606,6 +4606,236 @@
      "field": "Button"
     }
    ]
+  },
+  {
+   "slug": "about",
+   "tab": "About us",
+   "rows": [
+    {
+     "key": "seo.title",
+     "location": "Both",
+     "de": "Über uns | IMPACT Martial Arts",
+     "en": "About Us | IMPACT Martial Arts",
+     "section": "SEO (Google)",
+     "field": "Title"
+    },
+    {
+     "key": "seo.description",
+     "location": "Both",
+     "de": "Wir schaffen Räume, die das Leben von Menschen durch Kampfsport verändern. Die Geschichte und die Standards von IMPACT Martial Arts.",
+     "en": "The story and standards behind IMPACT Martial Arts: the best coaches in Switzerland, three schools in one, and the friendliest community in Zurich and Winterthur.",
+     "section": "SEO (Google)",
+     "field": "Description"
+    },
+    {
+     "key": "hero.headline",
+     "location": "Both",
+     "de": "Unser *IMPACT.*",
+     "en": "Our *IMPACT.*",
+     "section": "Hero",
+     "field": "Headline"
+    },
+    {
+     "key": "hero.lead",
+     "location": "Both",
+     "de": "IMPACT Martial Arts steht für radikale Veränderung. Für Wachstum. Für echte Transformation. Mit allem, was wir tun, wollen wir dich stärken: körperlich, mental und emotional. In Zürich und Winterthur. Damit du dein Leben so gestalten kannst, wie du es dir wirklich wünschst.",
+     "en": "IMPACT Martial Arts stands for radical transformation. For growth. For real, lasting change. Everything we do is designed to empower you: physically, mentally and emotionally. In Zurich and Winterthur. So you can shape your life the way you truly want it.",
+     "section": "Hero",
+     "field": "Lead"
+    },
+    {
+     "key": "story.heading",
+     "location": "Both",
+     "de": "The *Story* Behind.",
+     "en": "The *Story* Behind.",
+     "section": "Story",
+     "field": "Title"
+    },
+    {
+     "key": "story.text1",
+     "location": "Both",
+     "de": "Die Wurzeln unserer Community reichen zurück ins Jahr 2021, als **Samuel S. Bauer** mit der ICCS Sports Academy eine Schule gründete, die sich komplett auf moderne Selbstverteidigung konzentrierte. Sein Ziel: Menschen in Zürich ein neues Selbstvertrauen zu geben, besonders in Momenten, in denen sie sich unsicher oder machtlos fühlen.",
+     "en": "Our community's roots go back to 2021, when **Samuel S. Bauer** founded the ICCS Sports Academy, a school fully focused on modern self-defense. His mission: to give people in Zurich a new sense of confidence, especially in moments when they feel unsure or powerless.",
+     "section": "Story",
+     "field": "Text 1"
+    },
+    {
+     "key": "story.text2",
+     "location": "Both",
+     "de": "Dann kam der Sommer 2023 und mit ihm eine Begegnung, die alles veränderte. Sam traf auf **Ruben Crawford**, ehemaliger Profi-MMA-Kämpfer. Zwei völlig unterschiedliche Hintergründe, aber eine gemeinsame Mission: Menschen in einem guten Umfeld Kampfsport beizubringen und stark zu machen.",
+     "en": "Then came summer 2023 and with it a game-changing encounter. Sam met **Ruben Crawford**, a former professional MMA fighter. Two very different backgrounds, but one shared mission: to teach martial arts in a supportive, empowering environment and help people become truly strong.",
+     "section": "Story",
+     "field": "Text 2"
+    },
+    {
+     "key": "story.text3",
+     "location": "Both",
+     "de": "Aus dieser Fusion entstand **IMPACT Martial Arts**. Mehr als ein Gym, mehr als ein Studio. Ein Zuhause für alle, die wachsen wollen. Ein sicherer Ort, um Stärke zu entwickeln. Eine Community, in der niemand alleine kämpft.",
+     "en": "From this fusion, **IMPACT Martial Arts** was born. More than just a gym, more than just a studio. A home for anyone who wants to grow. A safe place to develop strength. A community where no one fights alone.",
+     "section": "Story",
+     "field": "Text 3"
+    },
+    {
+     "key": "story.caption",
+     "location": "Both",
+     "de": "Sam & Ruben, die Founders",
+     "en": "Sam & Ruben, the founders",
+     "section": "Story",
+     "field": "Caption"
+    },
+    {
+     "key": "standards.kicker",
+     "location": "Both",
+     "de": "FÜNF STANDARDS, DIE WIR NICHT VERHANDELN",
+     "en": "FIVE STANDARDS WE NEVER NEGOTIATE",
+     "section": "Standards",
+     "field": "Kicker"
+    },
+    {
+     "key": "standards.heading",
+     "location": "Both",
+     "de": "Darauf kannst du *zählen.*",
+     "en": "You can count *on this.*",
+     "section": "Standards",
+     "field": "Title"
+    },
+    {
+     "key": "standards.h1",
+     "location": "Both",
+     "de": "Die besten Coaches der Schweiz",
+     "en": "The best coaches in Switzerland",
+     "section": "Standards",
+     "field": "Heading 1"
+    },
+    {
+     "key": "standards.text1",
+     "location": "Both",
+     "de": "Welt- und Europameister, IBJJF Schwarzgurte, Bundesliga-Ringer. Sie unterrichten nicht nur Technik, sie entwickeln Menschen. Jeden Tag, in jeder Klasse.",
+     "en": "World and European champions, IBJJF black belts, Bundesliga wrestlers. They don't just teach technique – they develop people. Every day, in every class.",
+     "section": "Standards",
+     "field": "Text 1"
+    },
+    {
+     "key": "standards.h2",
+     "location": "Both",
+     "de": "Drei Schulen in einer",
+     "en": "Three schools in one",
+     "section": "Standards",
+     "field": "Heading 2"
+    },
+    {
+     "key": "standards.text2",
+     "location": "Both",
+     "de": "Striking, BJJ, Wrestling, Fitness. Eine Mitgliedschaft, das komplette Angebot. In dieser Tiefe bekommst du das sonst nirgends.",
+     "en": "Striking, BJJ, wrestling, fitness. One membership, the entire line-up. You won't find this depth anywhere else.",
+     "section": "Standards",
+     "field": "Text 2"
+    },
+    {
+     "key": "standards.h3",
+     "location": "Both",
+     "de": "Die freundlichste Community",
+     "en": "The friendliest community",
+     "section": "Standards",
+     "field": "Heading 3"
+    },
+    {
+     "key": "standards.text3",
+     "location": "Both",
+     "de": "Kein Ego, kein Mobbing, keine Angst. Du spürst es in der Sekunde, in der du reinkommst. Und wir schützen diese Kultur jeden Tag.",
+     "en": "No ego, no bullying, no fear. You feel it the second you walk in – and we protect that culture every day.",
+     "section": "Standards",
+     "field": "Text 3"
+    },
+    {
+     "key": "standards.h4",
+     "location": "Both",
+     "de": "Die sauberste Schule",
+     "en": "The cleanest school",
+     "section": "Standards",
+     "field": "Heading 4"
+    },
+    {
+     "key": "standards.text4",
+     "location": "Both",
+     "de": "Täglich gereinigt, täglich zurückgesetzt. Wie ein Raum aussieht, zeigt, wie darin gearbeitet wird.",
+     "en": "Cleaned daily, reset daily. The way a room looks tells you how people work in it.",
+     "section": "Standards",
+     "field": "Text 4"
+    },
+    {
+     "key": "standards.h5",
+     "location": "Both",
+     "de": "Premium-Standorte, zentral gelegen",
+     "en": "Premium locations, centrally situated",
+     "section": "Standards",
+     "field": "Heading 5"
+    },
+    {
+     "key": "standards.text5",
+     "location": "Both",
+     "de": "Hell, komplett ausgestattet, in wenigen Minuten erreichbar. In Zürich und in Winterthur.",
+     "en": "Bright, fully equipped, minutes away. In Zurich and in Winterthur.",
+     "section": "Standards",
+     "field": "Text 5"
+    },
+    {
+     "key": "team.kicker",
+     "location": "Both",
+     "de": "TEAM",
+     "en": "TEAM",
+     "section": "Team block",
+     "field": "Kicker"
+    },
+    {
+     "key": "team.heading",
+     "location": "Both",
+     "de": "Lern uns *kennen.*",
+     "en": "Get to know *us.*",
+     "section": "Team block",
+     "field": "Title"
+    },
+    {
+     "key": "founders.kicker",
+     "location": "Both",
+     "de": "FOUNDERS",
+     "en": "FOUNDERS",
+     "section": "Founders block",
+     "field": "Kicker"
+    },
+    {
+     "key": "standorte.kicker",
+     "location": "Both",
+     "de": "STANDORTE",
+     "en": "LOCATIONS",
+     "section": "Locations",
+     "field": "Kicker"
+    },
+    {
+     "key": "standorte.heading",
+     "location": "Both",
+     "de": "Besuch uns noch *heute.*",
+     "en": "Visit us *today.*",
+     "section": "Locations",
+     "field": "Title"
+    },
+    {
+     "key": "standorte.h1",
+     "location": "Both",
+     "de": "Zürich",
+     "en": "Zurich",
+     "section": "Locations",
+     "field": "Heading 1"
+    },
+    {
+     "key": "standorte.h2",
+     "location": "Both",
+     "de": "Winterthur",
+     "en": "Winterthur",
+     "section": "Locations",
+     "field": "Heading 2"
+    }
+   ]
   }
  ]
 }

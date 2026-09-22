@@ -28,10 +28,13 @@ DISCIPLINES = [('bjj', 'BJJ'), ('muay-thai', 'Muay Thai'), ('mma', 'MMA'), ('box
                ('fitness-kickboxen', 'Fitness Kickboxing'), ('street-defense', 'Street Defense'), ('personal-training', 'Personal Training'),
                ('little-ninjas', 'Little Ninjas')]
 KIDS = ('little-ninjas',)   # different page template: sections without ids, extra element types (see TOKEN_KIDS)
+GLOBAL = [('about', 'About us', {'de': 'ueber-uns/index.html', 'en': 'en/about/index.html'})]   # pages without a city: Location is always Both
+ALL_TABS = DISCIPLINES + [(slug, tab) for slug, tab, _ in GLOBAL]
 LOCS = {'Zürich': 'zurich', 'Winterthur': 'winterthur'}
 SECTION_LABEL = {'seo': 'SEO (Google)', 'hero': 'Hero', 'banner': 'Banner', 'sportart': 'About the sport', 'beweis': 'Reviews', 'ablauf': 'How the trial works',
                  'photos': 'Photo captions', 'anmelden': 'Sign-up block', 'warum': 'Why IMPACT', 'coach': 'Head coach block', 'gi': 'Extra block',
-                 'app': 'IMPACT App', 'zeiten': 'Timetable block', 'faq': 'FAQ', 'final': 'Closing', 'benefits': 'Benefits', 'kurse': 'Age groups'}
+                 'app': 'IMPACT App', 'zeiten': 'Timetable block', 'faq': 'FAQ', 'final': 'Closing', 'benefits': 'Benefits', 'kurse': 'Age groups',
+                 'story': 'Story', 'standards': 'Standards', 'team': 'Team block', 'founders': 'Founders block', 'locations': 'Locations', 'standorte': 'Locations'}
 FIELD_LABEL = {'title': 'Title', 'description': 'Description', 'headline': 'Headline', 'kicker': 'Kicker', 'heading': 'Title', 'sub': 'Subline', 'lead': 'Lead',
                'text': 'Text', 'bullet': 'Bullet', 'q': 'Question', 'a': 'Answer', 'h': 'Heading', 'detail': 'Detail', 'point': 'Point',
                'button': 'Button', 'caption': 'Caption', 'side': 'Side text', 'quote': 'Quote', 'who': 'Quote author', 'label': 'Label', 'link': 'Link text'}
@@ -46,6 +49,10 @@ def pages():
             for lang, path in (('de', '%s/kurse/%s/index.html' % (folder, slug)), ('en', 'en/%s/classes/%s/index.html' % (folder, EN_SLUG.get(slug, slug)))):
                 if os.path.exists(os.path.join(ROOT, path)):
                     out.append((slug, loc, lang, path))
+    for slug, _, paths in GLOBAL:
+        for lang, path in paths.items():
+            if os.path.exists(os.path.join(ROOT, path)):
+                out.append((slug, 'Both', lang, path))
     return out
 
 
@@ -110,7 +117,8 @@ def to_html(text, flags, ac):
 
 # ---------------------------------------------------------------- finding elements
 MASK = re.compile(r'<script\b.*?</script>|<style\b.*?</style>|<form\b.*?</form>|<section class="duosec".*?</section>|<section class="chapter" id="zeiten">.*?</section>'
-                  r'|<div class="nameblock[^"]*">.*?</div>|<p class="cred">.*?</p>|<div id="testnote".*?</div>|<!--.*?-->', re.S)
+                  r'|<div class="nameblock[^"]*">.*?</div>|<p class="cred">.*?</p>|<div id="testnote".*?</div>|<!--.*?-->'
+                  r'|<div class="trgrid">(?:(?!</section>).)*', re.S)   # team cards come from the Team tab
 TOKEN = re.compile(r'(?P<open><(?:section|header)\b[^>]*>)|(?P<close></(?:section|header)>)|(?P<band><div class="claimband">)|(?P<photo><div class="photo\b)'
                    r'|(?P<leaf><(?P<tag>h1|h2|h3|p|li|summary|small)\b(?P<attrs>[^>]*)>(?P<inner>.*?)</(?P=tag)>)'
                    r'|(?P<dleaf><div\b(?P<dattrs>[^>]*class="(?:idx|cap|vert)\b[^"]*"[^>]*)>(?P<dinner>(?:(?!<div\b).)*?)</div>)'
@@ -123,12 +131,15 @@ TOKEN_KIDS = re.compile(r'(?P<open><(?:section|header)\b[^>]*>)|(?P<close></(?:s
                         r'|(?P<point>\x00)(?P<pattrs>)(?P<pinner>)'
                         r'|(?P<cta><a\b(?P<cattrs>[^>]*class="cta(?: [^"]*)?"[^>]*)>(?P<cinner>.*?)</a>)', re.S)
 KIDS_SECTION = (('class="kidwhy"', 'benefits'), ('kidrev', 'beweis'), ('class="kidsgrid"', 'kurse'), ('id="kidsched"', 'zeiten'), ('kidfaq', 'faq'))
+ABOUT_SECTION = (('abhero', 'hero'), ('storysec', 'story'), ('stdlist', 'standards'), ('id="team"', 'team'), ('founders', 'founders'), ('locsec', 'locations'))
 
 
 def region(s):
     a = s.find('<header class="hero')
     if a < 0:
         a = s.find('<header class="pagehero')
+    if a < 0:
+        a = s.find('<header class="abhero')
     b = s.find('<div class="floatcta"', a) if s.find('<div class="floatcta"', a) > 0 else s.find('<footer')
     b = min(b, s.find('<footer')) if s.find('<footer') > 0 else b
     if a < 0 or b < 0:
@@ -152,7 +163,7 @@ def kind_of(tag, attrs, in_details):
     if tag == 'point': return 'point'
 
 
-def scan(s, kids=False):
+def scan(s, kids=False, about=False):
     """Yields dicts for every editable element in document order (absolute positions in s)."""
     a, b = region(s); reg = s[a:b]
     masked = MASK.sub(lambda m: ' ' * len(m.group(0)), reg)
@@ -161,9 +172,11 @@ def scan(s, kids=False):
         if m.group('open'):
             t = m.group('open'); i = re.search(r'id="([^"]*)"', t); c = re.search(r'class="([^"]*)"', t); cl = c.group(1).split() if c else []
             sec = i.group(1) if i else ('hero' if ('hero' in cl or 'pagehero' in cl) else 'final' if 'final' in cl else (cl[0] if cl else 'x'))
-            if kids and not i and sec not in ('hero', 'final'):
+            if (kids or about) and not i and sec not in ('hero', 'final'):
                 body = masked[m.start():masked.find('</section>', m.start())]
-                sec = next((name for marker, name in KIDS_SECTION if marker in t or marker in body), sec)
+                sec = next((name for marker, name in (KIDS_SECTION if kids else ABOUT_SECTION) if marker in t or marker in body), sec)
+            if about and 'abhero' in cl:
+                sec = 'hero'
             continue
         if m.group('close'):
             sec = None; continue
@@ -233,9 +246,9 @@ def key_from_labels(section, field):
 
 
 # ---------------------------------------------------------------- tag
-def tag_page(path, kids=False):
+def tag_page(path, kids=False, about=False):
     f = os.path.join(ROOT, path); s = open(f, encoding='utf-8').read()
-    els = scan(s, kids); skipped = []; edits = []
+    els = scan(s, kids, about); skipped = []; edits = []
     for e in els:
         pre, mid, suf = split_inner(s[e['start']:e['end']])
         text, flags, ac = to_text(mid)
@@ -334,8 +347,13 @@ def page_texts(path):
 # ---------------------------------------------------------------- extract
 def extract():
     allp = pages(); disc = []
-    for slug, tab in DISCIPLINES:
+    for slug, tab in ALL_TABS:
         texts = {(loc, lang): page_texts(path) for d, loc, lang, path in allp if d == slug}
+        if ('Both', 'de') in texts:   # page without a city: one row per field, location Both
+            rows = [dict(key=k, location='Both', de=texts[('Both', 'de')].get(k) or '', en=texts.get(('Both', 'en'), {}).get(k) or '') for k in texts[('Both', 'de')]]
+            for r in rows:
+                r['section'], r['field'] = label(r['key'])
+            disc.append(dict(slug=slug, tab=tab, rows=rows)); continue
         order = []
         for k in (('Zürich', 'de'), ('Winterthur', 'de'), ('Zürich', 'en'), ('Winterthur', 'en')):
             for key in texts.get(k, {}):
@@ -470,7 +488,7 @@ if __name__ == '__main__':
     if cmd == 'tag':
         total = 0
         for slug, loc, lang, path in pages():
-            n, skipped = tag_page(path, slug in KIDS); total += n
+            n, skipped = tag_page(path, slug in KIDS, slug in {g[0] for g in GLOBAL}); total += n
             for x in skipped:
                 print('nicht editierbar (bleibt wie es ist): %s  %s' % (path, x))
         print('markiert:', total)

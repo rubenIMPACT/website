@@ -1456,12 +1456,12 @@ function ctTeamRead() {
 /* ===== Website content sheet: one tab per discipline -> texts of the course pages (21.09.2026, Ruben) =====
    Row = Section | Field | Location (Both / Zürich / Winterthur, no default) | Deutsch | English | Check. Read via what=courses, built by tools/ct_courses.py.
    The tab only carries labels; tools/ct_courses.py maps "Section + Field" to the data-ct key in the pages (one place for that logic). */
-var CT_COURSE_TABS = ['BJJ', 'Muay Thai', 'MMA', 'Boxing', 'Wrestling', 'Fitness Kickboxing', 'Street Defense', 'Personal Training', 'Little Ninjas'];
+var CT_COURSE_TABS = ['BJJ', 'Muay Thai', 'MMA', 'Boxing', 'Wrestling', 'Fitness Kickboxing', 'Street Defense', 'Personal Training', 'Little Ninjas', 'About us'];
 var CT_COURSE_HEAD = ['Section', 'Field', 'Location', 'Deutsch', 'English', 'Check'];
 var CT_COURSE_NOTES = [
   'Part of the page, from top to bottom. Keep the spelling: the website finds the place on the page through Section + Field.',
   'Which text inside that part. Repeating fields can be added or removed: Text 4, Bullet 5, Point 5 + Detail 5, Question 8 + Answer 8. A new one appears after the one with the next smaller number.',
-  'Both = same text in Zürich and Winterthur. Zürich / Winterthur = text only for that location. For different texts make two rows, one per location. A field that has only a Zürich row does not exist on the Winterthur page (and the other way round). There is no default.',
+  'Both = same text in Zürich and Winterthur. Zürich / Winterthur = text only for that location. For different texts make two rows, one per location. A field that has only a Zürich row does not exist on the Winterthur page (and the other way round). There is no default. Pages without a city (About us) always use Both.',
   'German text. *gold* = accent colour. Line break in the cell (Ctrl+Enter, Mac: Cmd+Enter) = line break on the page. _word_ = underlined (only in the three steps). **bold** works in the Little Ninjas quote. [-] = place where a long word may break on small screens.',
   'English text, same rules.',
   'Filled in by the script: OK or what is missing.'
