@@ -63,8 +63,8 @@ var RULE_R = { N: 7, WIN_D: 45, LOCS: ['Zurich'] }; // Ruben 10.09.2026: Google 
 var LOC_ID = { Zurich: 2508, Winterthur: 2222 }; // exercise.com location ids (same as klassen.js)
 var REVIEW_LINK = { Zurich: 'https://g.page/r/CUfMYkGu7EHJEBM/review', Winterthur: 'https://g.page/r/CSof6-V2zvUTEBM/review' }; // "write a review" links from the Google Business Profile (Ruben 10.09.2026)
 var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
-  R1: { de: 'Hi {name}, schön, dass du so regelmässig da bist. Wenn dir das Training bei uns gefällt, würdest du uns kurz eine Google-Bewertung schreiben? Das hilft uns enorm: {review_link}',
-        en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link}" }
+  R1: { de: 'Hi {name}, schön, dass du so regelmässig da bist. Wenn dir das Training bei uns gefällt, würdest du uns kurz eine Google-Bewertung schreiben? Das hilft uns enorm: {review_link} Danke dir!', // Ruben 22.09.: "Danke dir!" after the link, because Meta rejects templates that end with a variable
+        en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link} Thank you!" }
 };
 var STAGE = { lead: 9398, first: 9692, second: 9861, third: 11307, trialBooked: 9693, pending: 10005, lost: 9970, noshow: 11305, cancelled: 11313, debt: 11034 }; // exercise.com lifecycle stage ids (read 10.09.2026)
 var STAGE_SYNC = { pending: true, contacts: true, lost: false, noshow: true, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Live before the WhatsApp go-live: "Pending Decision" (trial list) and First/Second/Third Contact from the coaches' call ticks; the rest hangs on messages that are not sent yet
