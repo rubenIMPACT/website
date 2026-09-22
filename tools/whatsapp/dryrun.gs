@@ -1073,7 +1073,7 @@ function templateBody(spec, lang) { // approved text -> Meta body with {{1}}.. i
   var src = { TEXT: TEXT, TEXT_E: TEXT_E, TEXT_R: TEXT_R }[spec.src], t = src[spec.id][lang];
   if (spec.fee !== undefined) t = fill(t, { fee: spec.fee ? W4_FEE[lang] : '' });
   spec.vars.forEach(function (v, i) { t = t.split('{' + v + '}').join('{{' + (i + 1) + '}}'); });
-  if (/\{\w+\}/.test(t)) throw new Error('unmapped placeholder in ' + spec.name + ' ' + lang + ': ' + t.match(/\{\w+\}/)[0]);
+  if (/\{[a-z_]+\}/.test(t)) throw new Error('unmapped placeholder in ' + spec.name + ' ' + lang + ': ' + t.match(/\{[a-z_]+\}/)[0]); // letters only: {{1}} is the Meta placeholder, {name} an unmapped one
   return { text: t, example: spec.vars.map(function (v) { return TPL_EXAMPLE[lang][v]; }) };
 }
 function waTemplateStatus() { // one-off / check: every template of the Zurich WABA with its Meta status (log only)
