@@ -1088,7 +1088,8 @@ function waSubmitTemplates() { // one-off (Ruben 22.09., go): submit every templ
     if (have[spec.name + ':' + lang]) { skip++; return; }
     var body = templateBody(spec, lang);
     var tpl = { name: spec.name, language: lang, category: spec.cat, components: [{ type: 'BODY', text: body.text, example: { body_text: [body.example] } }] };
-    var b = cfPost({ action: 'wa_template_create', conn: 'zh', template: tpl });
+    var b = null; for (var attempt = 0; attempt < 4; attempt++) { b = cfPost({ action: 'wa_template_create', conn: 'zh', template: tpl }); if (b && b.status === 429) Utilities.sleep(15000 * (attempt + 1)); else break; } // Dualhook rate limit (429 seen on 22.09. after the first template): wait 15 / 30 / 45 s and retry
+    Utilities.sleep(4000); // pace: one template every few seconds
     var ok = b && b.ok && b.data && b.data.id;
     if (ok) n++; else fail++;
     Logger.log((ok ? 'OK ' : 'FAIL ') + spec.name + ' ' + lang + ': ' + (ok ? (b.data.status || '') + ' ' + (b.data.category || '') + ' id ' + b.data.id : JSON.stringify(b).slice(0, 300)));
