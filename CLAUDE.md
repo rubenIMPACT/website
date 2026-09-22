@@ -932,3 +932,8 @@ EDITOR-PASTE nachziehen, dann runKlassenanalyse('2026-08-01','2026-08-31') fuer 
 - `ct_courses.py`: `KIDS`, `TOKEN_KIDS`, `KIDS_SECTION`; adult pages are scanned with the old `TOKEN` and were not touched. Texts are rewritten only when the MEANING changes (`html.unescape` comparison), so entities like `&rarr;` stay as they were.
 - Apps Script webapp version 40: `CT_COURSE_TABS` + 'Little Ninjas'; `ctCoursesSetup` now creates any missing tab (no more `ctCoursesSeeded` property); `pubStamp` never touches a non-existing column (that created the stray column G; `ctCoursesRead` removes it).
 - Round trip and edit test (quote with bold, soft hyphen title, Winterthur-only FAQ) done with a data copy; pages restore byte-identically.
+
+## AGB: Studentenpreis (22.09.2026, Ruben: "trag es ein, zieh es auf der Website nach")
+- `/agb/` und `/en/terms/`: neuer Unterabschnitt "Studentenpreis:" / "Student Rate:" in Punkt 3 direkt nach "Kündigungen sind ... zu richten." (10 % Rabatt auf BASIC/CORE/ADVANCED/PRO, max. 12 Monate, Nachweis unaufgefordert per Mail, sonst Normalpreis ab naechster Abrechnungsperiode, kein rueckwirkender Rabatt). Wortlaut = Drive-Entwuerfe "General Terms and Conditions (GTC) as of 14/09/2026 | DE/EN" (Ordner 1aRmQrQm6e836xu60KUB3a6PYWpWZ_uwx), dort am 22.09. eingetragen. Little Ninjas und PT-Vertrag unveraendert.
+- Entscheid Ruben + Sam 22.09.: KEINE Preiserhoehungsklausel fuer bestehende Mitglieder bei Verlaengerung; neue Preise nur fuer Neukunden. Studentenrabatt in exercise.com = Rabattcode mit 12 Monaten Laufzeit (nur Erwachsenen-Abos).
+- Offen: Rundmail + Required Assessment (AGB-Update) muessen zwei Neuerungen nennen (Inkassogebuehr + Studentenregel); Titel-Datum "as of 14/09/2026" wird erst mit dem Versanddatum angepasst.
