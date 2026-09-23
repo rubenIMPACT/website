@@ -707,39 +707,42 @@ function templateParams(msg, all) { // template parameters in the order of the T
   var spec = TEMPLATES.filter(function (t) { return t.id === msg; })[0]; if (!spec) return [];
   return spec.vars.map(function (v) { return all[v] === undefined || all[v] === null ? '' : String(all[v]); });
 }
-function outboxSheet(ss) { // tab "WA Outbox": every real send (and every attempt), with Meta's delivery status updated from "WA Events"
+function outboxSheet(ss) { // tab "WA Outbox": every real send (and every attempt), with Meta's delivery status updated from "WA Events". Ruben 23.09.: sales messages (A-D, X, R) live in "Detailed Sales KPIs", payment messages (W) in "WhatsApp Automation"
   var sh = ss.getSheetByName('WA Outbox');
   if (!sh) { sh = ss.insertSheet('WA Outbox'); sh.getRange('A1').setValue('WA Outbox: every WhatsApp message the automation really sent (or tried to send) since the go-live. Status comes from Meta: sent -> delivered -> read, or failed with the reason. Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, OUT_HEAD.length).setValues([OUT_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [95, 55, 45, 70, 110, 180, 120, 70, 130, 260, 220, 80, 260, 10].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); sh.hideColumns(OUT_HEAD.length); }
   return sh;
 }
+function outboxBook(flow) { return flow === 'E' || flow === 'TEST' ? WA_ID : TEAM_ID; } // which spreadsheet holds the outbox for this flow
 function inWindow(now, flow) { return sendAt(now, flow).getTime() <= now.getTime() + 60000; } // inside the send window right now
-function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery status of sent messages from "WA Events"; 2. if SEND.on: send every Dry run row that is due now, enabled, in the window and still valid; returns a note for the status line
-  var ob = outboxSheet(ss), n = ob.getLastRow(), rows = n >= 3 ? ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues() : [], done = {}, byId = {};
-  rows.forEach(function (r, i) { if (r[13]) done[String(r[13])] = true; if (r[10] && !/^(read|failed)/.test(String(r[11]))) byId[String(r[10])] = i; });
+function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery status of sent messages from "WA Events" (both outboxes); 2. if SEND.on: send every Dry run row that is due now, enabled, in the window and still valid; returns a note for the status line
+  var books = {}; [WA_ID, TEAM_ID].forEach(function (id) { var bss = id === WA_ID ? ss : SpreadsheetApp.openById(id), ob = outboxSheet(bss), n = ob.getLastRow(); books[id] = { ob: ob, rows: n >= 3 ? ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues() : [], add: [] }; });
+  var done = {}, byId = {};
+  Object.keys(books).forEach(function (id) { books[id].rows.forEach(function (r, i) { if (r[13]) done[String(r[13])] = true; if (r[10] && !/^(read|failed)/.test(String(r[11]))) byId[String(r[10])] = { id: id, i: i }; }); });
   var ev = eventsSheet(ss), en = ev.getLastRow(), rank = { sent: 1, delivered: 2, read: 3, failed: 4 }, upd = 0;
-  if (en >= 3 && Object.keys(byId).length) { var st = {}; ev.getRange(3, 1, en - 2, EV_HEAD.length).getValues().forEach(function (r) { if (String(r[5]) !== 'status') return; var id = String(r[10] || ''), s = String(r[11] || ''); if (byId[id] === undefined || !rank[s]) return; if (!st[id] || rank[s] > rank[st[id].s]) st[id] = { s: s, x: String(r[12] || '') }; });
-    Object.keys(st).forEach(function (id) { var i = byId[id]; if (String(rows[i][11]) === st[id].s) return; ob.getRange(3 + i, 12, 1, 2).setValues([[st[id].s, st[id].x || rows[i][12]]]); upd++; }); }
+  if (en >= 3 && Object.keys(byId).length) { var st = {}; ev.getRange(3, 1, en - 2, EV_HEAD.length).getValues().forEach(function (r) { if (String(r[5]) !== 'status') return; var mid = String(r[10] || ''), sx = String(r[11] || ''); if (!byId[mid] || !rank[sx]) return; if (!st[mid] || rank[sx] > rank[st[mid].s]) st[mid] = { s: sx, x: String(r[12] || '') }; });
+    Object.keys(st).forEach(function (mid) { var w = byId[mid], bk = books[w.id], row = bk.rows[w.i]; if (String(row[11]) === st[mid].s) return; bk.ob.getRange(3 + w.i, 12, 1, 2).setValues([[st[mid].s, st[mid].x || row[12]]]); upd++; }); }
   if (!SEND.on) return (upd ? ' Outbox: ' + upd + ' status updates.' : '') + ' Sender off.';
-  var dn = dry.getLastRow(), cand = dn >= TR_ROW0 ? dry.getRange(TR_ROW0, 1, dn - TR_ROW0 + 1, HEAD.length + DRY_EXTRA.length).getValues() : [], sentN = 0, failN = 0, held = 0, add = [];
+  var dn = dry.getLastRow(), cand = dn >= TR_ROW0 ? dry.getRange(TR_ROW0, 1, dn - TR_ROW0 + 1, HEAD.length + DRY_EXTRA.length).getValues() : [], sentN = 0, failN = 0, held = 0, total = 0;
   var conn = 'zh', since = new Date(SEND.since + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX'));
   cand.forEach(function (r) {
-    if (add.length >= SEND.max_per_run) return;
+    if (total >= SEND.max_per_run) return;
     var key = String(r[10] || ''), flow = String(r[3]), msg = String(r[4]), loc = String(r[5]); if (!key || done[key] || !SEND.flows[flow] || !SEND.conn[loc]) return;
     var detected = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < since || !due || due > now) return;
     if (!inWindow(now, flow)) return;
+    var add = books[outboxBook(flow)].add; total++;
     if (stillDue[flow] && !stillDue[flow](r)) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'no longer due (booked, replied or closed in the meantime)', key]); return; }
     var phone = normPhone(r[11]), params = []; try { params = JSON.parse(r[12] || '[]'); } catch (e) { params = null; }
     var spec = TEMPLATES.filter(function (t) { return t.id === msg && (msg !== 'W4' || !!t.fee === !!W4_FEE.on); })[0], lang = String(r[7] || 'DE').toLowerCase();
     var problem = !spec ? 'no template for ' + msg : (phone.length < 9 ? 'no usable phone number' : (!params ? 'bad params' : (params.some(function (x) { return /\{\w+\}/.test(String(x)) || String(x) === ''; }) ? 'missing parameter (e.g. class time)' : '')));
     if (problem) { held++; add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), lang.toUpperCase(), spec ? spec.name : '', JSON.stringify(params), '', 'held', problem, key]); return; }
     var b = cfPostRaw({ action: 'wa_send', conn: SEND.conn[loc] || conn, to: phone, template: spec.name, language: lang, params: params });
-    var id = b && b.ok && b.data && b.data.messages && b.data.messages[0] ? String(b.data.messages[0].id) : '';
+    var mid = b && b.ok && b.data && b.data.messages && b.data.messages[0] ? String(b.data.messages[0].id) : '';
     var err = b && b.data && b.data.error ? (b.data.error.error_user_msg || b.data.error.message || '') + ' (' + (b.data.error.code || '') + ')' : (b ? '' : 'no answer from /api/wa');
-    if (id) sentN++; else failN++;
-    add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], phone, lang.toUpperCase(), spec.name, JSON.stringify(params), id, id ? 'sent' : 'failed', id ? '' : err, key]);
+    if (mid) sentN++; else failN++;
+    add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], phone, lang.toUpperCase(), spec.name, JSON.stringify(params), mid, mid ? 'sent' : 'failed', mid ? '' : err, key]);
   });
-  if (add.length) { var r0 = ob.getLastRow() + 1; ob.getRange(r0, 1, add.length, OUT_HEAD.length).setValues(add); ob.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); ob.getRange(r0, 7, add.length, 1).setNumberFormat('@'); }
-  Logger.log('outbox: ' + sentN + ' sent, ' + failN + ' failed, ' + held + ' held, ' + (add.length - sentN - failN - held) + ' skipped, ' + upd + ' status updates');
+  Object.keys(books).forEach(function (id) { var bk = books[id]; if (!bk.add.length) return; var r0 = bk.ob.getLastRow() + 1; bk.ob.getRange(r0, 1, bk.add.length, OUT_HEAD.length).setValues(bk.add); bk.ob.getRange(r0, 1, bk.add.length, 1).setNumberFormat('dd.MM.yyyy'); bk.ob.getRange(r0, 7, bk.add.length, 1).setNumberFormat('@'); });
+  Logger.log('outbox: ' + sentN + ' sent, ' + failN + ' failed, ' + held + ' held, ' + (total - sentN - failN - held) + ' skipped, ' + upd + ' status updates');
   return ' Outbox: ' + sentN + ' sent, ' + failN + ' failed, ' + held + ' held.';
 }
 function waSendTest(to, lang) { // one-off: one real template message (B1 with sample values) to a test number, logged in the Outbox as flow TEST; needs SEND.conn and an approved template
