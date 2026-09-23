@@ -79,12 +79,12 @@ function waDryRunHourly() {
   var trialNames = {};
   ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { trialNames[t.nname] = true; }); });
   var leadLang = {}; leads.forEach(function (l) { if (l.nname && !leadLang[l.nname]) leadLang[l.nname] = l.lang; });
-  function pushRow(flow, msg, loc, name, lang, trigger, key, vars, table) {
+  function pushRow(flow, msg, loc, name, lang, trigger, key, vars, table, phone) { // phone + template params (columns L, M, hidden) since 23.09.: what the sender needs to send this row for real
     if (keys[key]) return; keys[key] = true;
-    var isE = flow === 'E', text = fill((table || TEXT)[msg][lang], Object.assign({ name: firstOf(name), sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}));
-    out.push([dayStart(now), fmtT(now), sendAt(now, flow), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key]);
+    var isE = flow === 'E', all = Object.assign({ name: firstOf(name), sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}), text = fill((table || TEXT)[msg][lang], all);
+    out.push([dayStart(now), fmtT(now), sendAt(now, flow), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key, String(phone || ''), JSON.stringify(templateParams(msg, all))]);
   }
-  function push(flow, msg, loc, name, lang, trigger, key, vars) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT); }
+  function push(flow, msg, loc, name, lang, trigger, key, vars, phone) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT, phone); }
   // Flow A: website lead, no trial booking. Rolling chain (Ruben 10.09.): message 1 = 48 h after the request, message 2 = 48 h after
   // message 1, message 3 = 48 h after message 2, then the chain ends. Each slot is filled by the coach after a call (M1-M3 from the quick
   // replies, seen as webhook echoes of the connected number) or, when the 48 h run out, by the automation (A1-A3). "Due" = the mark fell into the last 24 h (no backlog).
@@ -100,7 +100,7 @@ function waDryRunHourly() {
     var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
     if (st.replied || slot >= RULE.A_MAX) return; // the lead replied: the coach owns the chat, the automation is off
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
-    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {});
+    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
   });
   writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
   migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
@@ -131,7 +131,7 @@ function waDryRunHourly() {
     if (keys[d.key]) return;
     var pick = langPick(dueClients[d.t.uid], leadLang[d.t.nname]); langSrc[pick.src]++;
     if (d.vars.date === '') d.vars.date = deDate(d.t.date, pick.lang);
-    push(d.flow, d.msg, d.loc, d.t.name, pick.lang, d.trig + ' [lang ' + pick.lang + ' from ' + pick.src + ']', d.key, d.vars);
+    push(d.flow, d.msg, d.loc, d.t.name, pick.lang, d.trig + ' [lang ' + pick.lang + ' from ' + pick.src + ']', d.key, d.vars, (dueClients[d.t.uid] || {}).phone);
   });
   if (due.length) Logger.log('trial language sources: ' + JSON.stringify(langSrc));
   // Flow E: failed payments (Waseem). Debtors account = exercise.com's OPEN INVOICES (since 08.09.2026, Ruben's "Punkt 1"):
@@ -167,7 +167,7 @@ function waDryRunHourly() {
       if (st === 'W5') trig = 'W5: W4 sent ' + euD(w4) + ', second invoice ' + (paidE[a.uid] && paidE[a.uid] >= w4 ? 'paid on ' + euD(paidE[a.uid]) : 'gone (no paid date found)') + ', first invoice (' + euD(a.first) + ') still open ' + daysBetween(since, today) + ' days later, ' + money;
       if (skipped.length) trig += ' [' + skipped.join('+') + ' skipped: highest due stage only]';
       if (RANK[st] >= RANK.W3 && !a.debts.every(function (d) { return d.fresh; })) { held.push(st + ' ' + a.uid); return; } // Ruben 10.09.: a message with pay links only goes out when every link was confirmed fresh from Stripe in this run; otherwise it waits for the next hour
-      var pre = 'E:' + st + ':' + a.uid; sent[pre] = today; pushRow('E', st, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E);
+      var pre = 'E:' + st + ':' + a.uid; sent[pre] = today; pushRow('E', st, 'Waseem', a.name, lang, trig, pre + ':' + a.first, vars, TEXT_E, a.phone);
     });
     if (held.length) { payNote += ' Held (pay link not refreshed this run): ' + held.length + '.'; Logger.log('held, pay link not refreshed: ' + held.join(', ')); }
   }
@@ -181,7 +181,7 @@ function waDryRunHourly() {
     dueR.forEach(function (c) {
       var link = REVIEW_LINK[c.loc]; if (!link) { Logger.log('R1 held: no review link for ' + c.loc); return; }
       var cl = revClients[c.uid] || {}, pick = langPick(cl, leadLang[nname(c.name || cl.name)]);
-      pushRow('R', 'R1', c.loc, c.name || cl.name || '', pick.lang, 'R1: ' + RULE_R.N + 'th check-in on ' + euD(c.nth) + ' (first visit ' + euD(c.first) + ', ' + c.count + ' completed check-ins) [lang ' + pick.lang + ' from ' + pick.src + ']', 'R:R1:' + c.uid, { review_link: link }, TEXT_R);
+      pushRow('R', 'R1', c.loc, c.name || cl.name || '', pick.lang, 'R1: ' + RULE_R.N + 'th check-in on ' + euD(c.nth) + ' (first visit ' + euD(c.first) + ', ' + c.count + ' completed check-ins) [lang ' + pick.lang + ' from ' + pick.src + ']', 'R:R1:' + c.uid, { review_link: link }, TEXT_R, cl.phone);
     });
   }
   payNote += revNote;
@@ -200,7 +200,14 @@ function waDryRunHourly() {
     }); });
     if (reN) payNote += ' Stages: ' + reN + ' x re-engage.';
   }
-  if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, HEAD.length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
+  if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, out[0].length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
+  if (sh.getRange(4, HEAD.length + 1).getValue() !== DRY_EXTRA[0]) { sh.getRange(4, HEAD.length + 1, 1, DRY_EXTRA.length).setValues([DRY_EXTRA]).setFontWeight('bold').setBackground('#f3f3f3'); sh.hideColumns(HEAD.length + 1, DRY_EXTRA.length); } // hidden helper columns for the sender
+  var stillDue = { // re-check right before a real send (the row may be hours old: booked / replied / closed in the meantime)
+    A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied); },
+    B: function (r) { var k = String(r[10]).split(':'); return k[3] === today && ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'BOOKED'; }); }); },
+    E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); }
+  };
+  payNote += processOutbox(ss, sh, now, stillDue);
   if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('dd.MM.yyyy');
   sh.getRange('A3').setValue('Last run ' + fmtEuDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', clients with failed payments: ' + (pay ? pay.length : 'n/a') + ', debtors (open invoices): ' + (arr ? arr.length : 'n/a') + '.' + payNote);
@@ -692,6 +699,56 @@ function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } fro
   var m = {}, n = sh.getLastRow(); if (n < TR_ROW0) return m;
   sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var id = k.slice(2).join(':'), when = r[2] instanceof Date ? r[2] : new Date(String(r[2]).replace(' ', 'T') + ':00'); if (isNaN(when.getTime())) when = r[0] instanceof Date ? r[0] : new Date(); (m[id] = m[id] || {})[k[1]] = when; });
   return m;
+}
+var DRY_EXTRA = ['Phone', 'Params']; // Dry run columns L + M (hidden): phone of the recipient and the template parameters as JSON, written since 23.09.2026; older rows cannot be sent
+var SEND = { on: false, flows: { A: false, B: false, C: false, D: false, X: false, E: false, R: false }, conn: { 'Zürich': 'zh' }, since: '2026-09-23', max_per_run: 40 }; // the real sender (23.09.2026): master switch + one switch per flow, only rows detected since "since"; connections: Zürich = Abdi (zh); Winterthur / Waseem follow when their numbers are connected. Everything stays off until Ruben gives the go per flow
+var OUT_HEAD = ['Date', 'Time', 'Flow', 'Message', 'Location', 'Name', 'Phone', 'Language', 'Template', 'Params', 'Message id', 'Status', 'Detail', 'Key'];
+function templateParams(msg, all) { // template parameters in the order of the TEMPLATES spec for this message (W4: same params with or without the fee sentence); unknown message -> []
+  var spec = TEMPLATES.filter(function (t) { return t.id === msg; })[0]; if (!spec) return [];
+  return spec.vars.map(function (v) { return all[v] === undefined || all[v] === null ? '' : String(all[v]); });
+}
+function outboxSheet(ss) { // tab "WA Outbox": every real send (and every attempt), with Meta's delivery status updated from "WA Events"
+  var sh = ss.getSheetByName('WA Outbox');
+  if (!sh) { sh = ss.insertSheet('WA Outbox'); sh.getRange('A1').setValue('WA Outbox: every WhatsApp message the automation really sent (or tried to send) since the go-live. Status comes from Meta: sent -> delivered -> read, or failed with the reason. Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, OUT_HEAD.length).setValues([OUT_HEAD]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [95, 55, 45, 70, 110, 180, 120, 70, 130, 260, 220, 80, 260, 10].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); sh.hideColumns(OUT_HEAD.length); }
+  return sh;
+}
+function inWindow(now, flow) { return sendAt(now, flow).getTime() <= now.getTime() + 60000; } // inside the send window right now
+function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery status of sent messages from "WA Events"; 2. if SEND.on: send every Dry run row that is due now, enabled, in the window and still valid; returns a note for the status line
+  var ob = outboxSheet(ss), n = ob.getLastRow(), rows = n >= 3 ? ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues() : [], done = {}, byId = {};
+  rows.forEach(function (r, i) { if (r[13]) done[String(r[13])] = true; if (r[10] && !/^(read|failed)/.test(String(r[11]))) byId[String(r[10])] = i; });
+  var ev = eventsSheet(ss), en = ev.getLastRow(), rank = { sent: 1, delivered: 2, read: 3, failed: 4 }, upd = 0;
+  if (en >= 3 && Object.keys(byId).length) { var st = {}; ev.getRange(3, 1, en - 2, EV_HEAD.length).getValues().forEach(function (r) { if (String(r[5]) !== 'status') return; var id = String(r[10] || ''), s = String(r[11] || ''); if (byId[id] === undefined || !rank[s]) return; if (!st[id] || rank[s] > rank[st[id].s]) st[id] = { s: s, x: String(r[12] || '') }; });
+    Object.keys(st).forEach(function (id) { var i = byId[id]; if (String(rows[i][11]) === st[id].s) return; ob.getRange(3 + i, 12, 1, 2).setValues([[st[id].s, st[id].x || rows[i][12]]]); upd++; }); }
+  if (!SEND.on) return (upd ? ' Outbox: ' + upd + ' status updates.' : '') + ' Sender off.';
+  var dn = dry.getLastRow(), cand = dn >= TR_ROW0 ? dry.getRange(TR_ROW0, 1, dn - TR_ROW0 + 1, HEAD.length + DRY_EXTRA.length).getValues() : [], sentN = 0, failN = 0, held = 0, add = [];
+  var conn = 'zh', since = new Date(SEND.since + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX'));
+  cand.forEach(function (r) {
+    if (add.length >= SEND.max_per_run) return;
+    var key = String(r[10] || ''), flow = String(r[3]), msg = String(r[4]), loc = String(r[5]); if (!key || done[key] || !SEND.flows[flow] || !SEND.conn[loc]) return;
+    var detected = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < since || !due || due > now) return;
+    if (!inWindow(now, flow)) return;
+    if (stillDue[flow] && !stillDue[flow](r)) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'no longer due (booked, replied or closed in the meantime)', key]); return; }
+    var phone = normPhone(r[11]), params = []; try { params = JSON.parse(r[12] || '[]'); } catch (e) { params = null; }
+    var spec = TEMPLATES.filter(function (t) { return t.id === msg && (msg !== 'W4' || !!t.fee === !!W4_FEE.on); })[0], lang = String(r[7] || 'DE').toLowerCase();
+    var problem = !spec ? 'no template for ' + msg : (phone.length < 9 ? 'no usable phone number' : (!params ? 'bad params' : (params.some(function (x) { return /\{\w+\}/.test(String(x)) || String(x) === ''; }) ? 'missing parameter (e.g. class time)' : '')));
+    if (problem) { held++; add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), lang.toUpperCase(), spec ? spec.name : '', JSON.stringify(params), '', 'held', problem, key]); return; }
+    var b = cfPostRaw({ action: 'wa_send', conn: SEND.conn[loc] || conn, to: phone, template: spec.name, language: lang, params: params });
+    var id = b && b.ok && b.data && b.data.messages && b.data.messages[0] ? String(b.data.messages[0].id) : '';
+    var err = b && b.data && b.data.error ? (b.data.error.error_user_msg || b.data.error.message || '') + ' (' + (b.data.error.code || '') + ')' : (b ? '' : 'no answer from /api/wa');
+    if (id) sentN++; else failN++;
+    add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], phone, lang.toUpperCase(), spec.name, JSON.stringify(params), id, id ? 'sent' : 'failed', id ? '' : err, key]);
+  });
+  if (add.length) { var r0 = ob.getLastRow() + 1; ob.getRange(r0, 1, add.length, OUT_HEAD.length).setValues(add); ob.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); ob.getRange(r0, 7, add.length, 1).setNumberFormat('@'); }
+  Logger.log('outbox: ' + sentN + ' sent, ' + failN + ' failed, ' + held + ' held, ' + (add.length - sentN - failN - held) + ' skipped, ' + upd + ' status updates');
+  return ' Outbox: ' + sentN + ' sent, ' + failN + ' failed, ' + held + ' held.';
+}
+function waSendTest(to, lang) { // one-off: one real template message (B1 with sample values) to a test number, logged in the Outbox as flow TEST; needs SEND.conn and an approved template
+  var l = lang || 'de', spec = TEMPLATES.filter(function (t) { return t.id === 'B1'; })[0], params = spec.vars.map(function (v) { return TPL_EXAMPLE[l][v]; });
+  var b = cfPostRaw({ action: 'wa_send', conn: 'zh', to: normPhone(to), template: spec.name, language: l, params: params });
+  var id = b && b.ok && b.data && b.data.messages && b.data.messages[0] ? String(b.data.messages[0].id) : '';
+  var ob = outboxSheet(SpreadsheetApp.openById(WA_ID)), now = new Date();
+  ob.appendRow([dayStart(now), fmtT(now), 'TEST', 'B1', 'Test', 'Test message', normPhone(to), l.toUpperCase(), spec.name, JSON.stringify(params), id, id ? 'sent' : 'failed', id ? '' : JSON.stringify(b).slice(0, 300), 'TEST:' + now.getTime()]);
+  Logger.log('test send: ' + (id ? 'sent, id ' + id : 'FAILED ' + JSON.stringify(b).slice(0, 400)));
 }
 function existingKeys(sh) {
   var keys = {}, n = sh.getLastRow();

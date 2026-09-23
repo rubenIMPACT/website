@@ -26,6 +26,18 @@ const API = "https://app.impact-martialarts.com";
 //   action "wa_template_create" {conn?, template: {name, language, category, components}}: eine Vorlage bei Meta einreichen.
 const DH = "https://api.dualhook.com/v25.0";
 const WA_CONN = { zh: { key: "WA_KEY_ZH", waba: "718323397882336", phone: "1033138903208435" } };
+//   action "wa_send" {conn?, to, template, language, params: [..]}: eine genehmigte Vorlage an eine Nummer senden
+//   (POST /v25.0/<phone_number_id>/messages, Body-Parameter in der Reihenfolge der Vorlage). Antwort: {status, ok, data:{messages:[{id}]}}.
+async function waSend(env, p) {
+  const c = WA_CONN[p.conn || "zh"]; if (!c) return { error: "unknown_conn" }; if (!env[c.key]) return { error: "no_key", conn: p.conn || "zh" };
+  const to = String(p.to || "").replace(/\D/g, ""), name = String(p.template || ""), lang = String(p.language || "de");
+  if (!to || to.length < 9 || !name) return { error: "bad_params" };
+  const params = (Array.isArray(p.params) ? p.params : []).map((t) => ({ type: "text", text: String(t === undefined || t === null ? "" : t).replace(/[\r\n\t]+/g, " ").slice(0, 1024) }));
+  const body = { messaging_product: "whatsapp", recipient_type: "individual", to, type: "template", template: { name, language: { code: lang }, components: params.length ? [{ type: "body", parameters: params }] : [] } };
+  const r = await fetch(DH + "/" + c.phone + "/messages", { method: "POST", headers: { Authorization: "Bearer " + env[c.key], "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const t = await r.text(); let d; try { d = JSON.parse(t); } catch { d = { raw: t.slice(0, 500) }; }
+  return { status: r.status, ok: r.ok, data: d };
+}
 async function dh(env, conn, sub, method, body) {
   const c = WA_CONN[conn || "zh"]; if (!c) return { error: "unknown_conn" }; if (!env[c.key]) return { error: "no_key", conn: conn || "zh" };
   const r = await fetch(DH + "/" + c.waba + sub, { method: method || "GET", headers: { Authorization: "Bearer " + env[c.key], "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
@@ -43,6 +55,7 @@ export async function onRequestPost(context) {
   try {
     if (p.action === "wa_templates") return j(await dh(env, p.conn, "/message_templates?limit=100&fields=name,language,status,category,id,rejected_reason", "GET"));
     if (p.action === "wa_template_create") return j(await dh(env, p.conn, "/message_templates", "POST", p.template));
+    if (p.action === "wa_send") return j(await waSend(env, p));
     const H = await signIn(env);
     if (!H) return j({ error: "signin_failed" }, 502);
     if (p.action === "failed_payments") return j(await failedPayments(H, Math.min(Math.max(Number(p.days) || 30, 1), 120)));
