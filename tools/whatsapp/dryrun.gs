@@ -82,7 +82,8 @@ function waDryRunHourly() {
   function pushRow(flow, msg, loc, name, lang, trigger, key, vars, table, phone) { // phone + template params (columns L, M, hidden) since 23.09.: what the sender needs to send this row for real
     if (keys[key]) return; keys[key] = true;
     var isE = flow === 'E', all = Object.assign({ name: firstOf(name), sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}), text = fill((table || TEXT)[msg][lang], all);
-    out.push([dayStart(now), fmtT(now), sendAt(now, flow), flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key, String(phone || ''), JSON.stringify(templateParams(msg, all))]);
+    var when = sendAt(now, flow); if (all.send_at instanceof Date && all.send_at.getTime() > when.getTime()) when = all.send_at; // B1 (23.09.): 3 h before the class, never earlier than the window start
+    out.push([dayStart(now), fmtT(now), when, flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key, String(phone || ''), JSON.stringify(templateParams(msg, all))]);
   }
   function push(flow, msg, loc, name, lang, trigger, key, vars, phone) { pushRow(flow, msg, loc, name, lang, trigger, key, vars, TEXT, phone); }
   // Flow A: website lead, no trial booking. Rolling chain (Ruben 10.09.): message 1 = 48 h after the request, message 2 = 48 h after
@@ -115,16 +116,17 @@ function waDryRunHourly() {
   }
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
-  var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [];
+  var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [], heldB = [];
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     trials[loc].forEach(function (t) {
       if (keys['B:B1:' + t.uid + ':' + t.date] && keys['C:C1:' + t.uid + ':' + t.date] && keys['D:D1:' + t.uid + ':' + t.date] && keys['X:X1:' + t.uid + ':' + t.date]) return;
-      if (t.art === 'BOOKED' && t.date === today) due.push({ flow: 'B', msg: 'B1', loc: loc, t: t, trig: 'B1: trial booked today, ' + t.cls + ' (3 h before class; class time not in the list yet)', key: 'B:B1:' + t.uid + ':' + t.date, vars: { 'class': t.cls, time: '{time}' } });
+      if (t.art === 'BOOKED' && t.date === today && !keys['B:B1:' + t.uid + ':' + t.date]) { var bk = bookingOf(loc, t.uid, today); if (bk) due.push({ flow: 'B', msg: 'B1', loc: loc, t: t, trig: 'B1: trial booked today, ' + bk.service + ' at ' + bk.time + ' (reminder 3 h before, from the exercise.com booking)', key: 'B:B1:' + t.uid + ':' + t.date, vars: { 'class': bk.service, time: bk.time, send_at: new Date(bk.start.getTime() - 3 * 3600000) } }); else heldB.push(t.name); } // Ruben 23.09.: class time from the booking in exercise.com (report detailed_visits, status Reserved / Registered); no booking found yet -> no row, the next run tries again
       if (t.art === 'NOSHOW' && t.date === yday) due.push({ flow: 'C', msg: 'C1', loc: loc, t: t, trig: 'C1: no-show on ' + euD(t.date) + ', no new booking', key: 'C:C1:' + t.uid + ':' + t.date, vars: {} });
       if (t.art === 'CANCELLED' && t.date >= addDs(today, -7) && t.date <= addDs(today, 30)) due.push({ flow: 'X', msg: 'X1', loc: loc, t: t, trig: 'X1: trial on ' + euD(t.date) + ' cancelled, no new booking (re-engage cancelled trial)', key: 'X:X1:' + t.uid + ':' + t.date, vars: { date: '' } }); // Flow X (Ruben 10.09.): cancelled trial, once per trial date, next send window
       if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) due.push({ flow: 'D', msg: 'D1', loc: loc, t: t, trig: 'D1: trial on ' + euD(t.date) + ', no contract, stage "' + (t.lifecycle || '-') + '"', key: 'D:D1:' + t.uid + ':' + t.date, vars: { date: '' } });
     });
   });
+  if (heldB.length) Logger.log('B1 waiting for the booking time in exercise.com: ' + heldB.length);
   var dueUids = {}; due.forEach(function (d) { if (!keys[d.key]) dueUids[d.t.uid] = true; });
   var dueClients = fetchClients(Object.keys(dueUids)), langSrc = { tag: 0, text: 0, lead: 0, 'default': 0 };
   due.forEach(function (d) {
@@ -230,6 +232,13 @@ function readLeads() {
   return out;
 }
 
+var BOOK_CACHE = {};
+function bookingOf(loc, uid, date) { // the person's reserved class on that date from exercise.com (report detailed_visits, one call per studio and run): { start: Date, time: 'HH:mm', service }; null = none found or report not ready
+  if (!BOOK_CACHE[loc]) { BOOK_CACHE[loc] = {}; var rows = fetchReport('detailed_visits', date, date, 500, ['User ID', 'Start Time', 'Status', 'Service'], LOC_ID[loc], true) || [];
+    rows.forEach(function (r) { if (!/^(Reserved|Registered|Completed)$/i.test(String(r['Status'] || ''))) return; var m = /(\d{4})\/(\d{2})\/(\d{2}) (\d{1,2}):(\d{2}) (AM|PM)/.exec(String(r['Start Time'] || '')); if (!m) return; var h = Number(m[4]) % 12 + (m[6] === 'PM' ? 12 : 0), hh = (h < 10 ? '0' : '') + h + ':' + m[5]; var d = m[1] + '-' + m[2] + '-' + m[3]; var k = String(r['User ID']) + ':' + d; if (!BOOK_CACHE[loc][k]) BOOK_CACHE[loc][k] = { start: new Date(d + 'T' + hh + ':00' + Utilities.formatDate(new Date(d + 'T12:00:00'), TZ, 'XXX')), time: hh, service: String(r['Service'] || '') }; });
+    Logger.log('bookings ' + loc + ' ' + date + ': ' + Object.keys(BOOK_CACHE[loc]).length + ' reserved visits'); }
+  return BOOK_CACHE[loc][String(uid) + ':' + date] || null;
+}
 function readTrials(loc) { // columns are found by their header names (row 4): the trial tabs got new columns on 11.09. and the fixed offsets read the wrong cells for four days (every row became "OTHER")
   var sh = SpreadsheetApp.openById(TEAM_ID).getSheetByName(TR_SHEETS[loc]), out = [];
   if (!sh || sh.getLastRow() < TR_ROW0) return out;
