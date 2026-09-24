@@ -276,7 +276,7 @@
    "order": 16,
    "name": "Gian Andrea",
    "location": "Both",
-   "homepage": true,
+   "homepage": false,
    "founder": true,
    "role_de": "Property Management, Co-Owner",
    "role_en": "Property Management, Co-Owner",
