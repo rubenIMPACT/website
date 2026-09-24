@@ -1170,3 +1170,40 @@ function waSubmitTemplates() { // one-off (Ruben 22.09., go): submit every templ
   }); });
   Logger.log('templates submitted: ' + n + ', already there: ' + skip + ', failed: ' + fail + (later ? ', left for the next run: ' + later : ''));
 }
+var TRIAL_TAG = { on: true, Zurich: 'Trial Zurich', Winterthur: 'Trial Winterthur', days: 14, max_per_run: 20 }; // Ruben 24.09.2026 (go): the trial tag follows the booking. Every 15 minutes: reserved classes of the next 14 days per studio (exercise.com report detailed_visits), people in a lead stage without the tag get it -> exercise.com sends the welcome e-mail by itself (automation "tag added: Trial ..."). Manual tags by the coaches stay harmless: an existing tag is never set twice, a removed tag is never set again (Tag log)
+function tagLog() { // hidden tab "Tag log" in Detailed Sales KPIs: one line per tag the automation set (or found already set); done = uid:tag handled
+  var ss = SpreadsheetApp.openById(TEAM_ID), sh = ss.getSheetByName('Tag log'), done = {};
+  if (!sh) { sh = ss.insertSheet('Tag log'); sh.getRange('A1').setValue('Tag log: every trial tag the automation set in exercise.com after a class booking (or found already set by the coach). The tag triggers the welcome e-mail in exercise.com. Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'Time', 'UID', 'Name', 'Tag', 'Result', 'Reason']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [95, 55, 80, 180, 130, 110, 320].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
+  if (!sh.isSheetHidden()) sh.hideSheet();
+  var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { if (r[2] && r[4]) done[String(r[2]) + ':' + String(r[4])] = true; });
+  return { sh: sh, done: done };
+}
+function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); light: one report per studio + client lookups in batches of 40
+  if (!TRIAL_TAG.on) return;
+  var now = new Date(), today = fmtD(now), log = tagLog(), add = [], set = 0, already = 0, skipped = 0;
+  ['Zurich', 'Winterthur'].forEach(function (loc) {
+    var tag = TRIAL_TAG[loc], rows = fetchReport('detailed_visits', today, addDs(today, TRIAL_TAG.days), 1000, ['User ID', 'Start Time', 'Status', 'Service'], LOC_ID[loc], true);
+    if (rows === null) { Logger.log('trial tags ' + loc + ': report not ready, next run'); return; }
+    var uids = {}; rows.forEach(function (r) { if (/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) && r['User ID']) uids[String(r['User ID'])] = String(r['Start Time'] || ''); });
+    var todo = Object.keys(uids).filter(function (u) { return !log.done[u + ':' + tag]; });
+    if (!todo.length) return;
+    var cl = fetchClients(todo.slice(0, 120)); // most are members; only lead stages continue
+    todo.forEach(function (u) {
+      if (add.length >= TRIAL_TAG.max_per_run) return;
+      var c = cl[u]; if (!c) return; // not found: try again next run
+      var stage = String(c.lifecycle || ''), tags = String(c.tags || '');
+      if (LEAD_STAGES.indexOf(stage) < 0 || !stage) { skipped++; log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'skipped', 'stage "' + stage + '": not a trial (booking ' + uids[u] + ')']); return; }
+      if (tags.split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(tag.toLowerCase()) >= 0) { already++; log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'already set', 'set by hand before the automation (booking ' + uids[u] + ')']); return; }
+      var b = cfPostRaw({ action: 'add_tag', uid: u, tag: tag }), ok = b && b.ok;
+      if (ok) set++;
+      log.done[u + ':' + tag] = !!ok;
+      add.push([dayStart(now), fmtT(now), u, c.name || '', tag, ok ? (b.unchanged ? 'already set' : 'set') : 'failed', ok ? 'booking ' + uids[u] + ', stage "' + stage + '"' : JSON.stringify(b).slice(0, 200)]);
+    });
+  });
+  if (add.length) { var r0 = log.sh.getLastRow() + 1; log.sh.getRange(r0, 1, add.length, 7).setValues(add); log.sh.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); log.sh.getRange(r0, 3, add.length, 1).setNumberFormat('@'); }
+  Logger.log('trial tags: ' + set + ' set, ' + already + ' already set by hand, ' + skipped + ' not a trial');
+}
+function installTagTrigger() { // once: the 15-minute trigger for waTrialTags (replaces an existing one)
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waTrialTags') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('waTrialTags').timeBased().everyMinutes(15).create();
+}
