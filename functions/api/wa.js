@@ -298,15 +298,18 @@ async function findClient(H, p) {
 async function addTag(H, p) {
   const tag = String(p.tag || "").trim(); if (!tag) return { ok: false, error: "tag_required" };
   const f = await findClient(H, p); if (!f.ok) return f;
-  const r0 = await getJson(H, API + "/api/v4/users/" + f.uid), u0 = r0.json && (r0.json.user || r0.json) || {};
-  const before = Array.isArray(u0.tag_list) ? u0.tag_list.map(String) : String(u0.tag_list || u0.tags || "").split(",").map((x) => x.trim()).filter(Boolean);
-  if (before.map((x) => x.toLowerCase()).indexOf(tag.toLowerCase()) >= 0) return { ok: true, unchanged: true, uid: f.uid, cid: f.cid, tags: before };
-  const want = before.concat([tag]);
-  let st = 0; try { const r = await fetch(API + "/api/v4/users/" + f.uid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ user: { tag_list: want } }) }); st = r.status; await r.text(); } catch (e) { st = -1; }
-  const r1 = await getJson(H, API + "/api/v4/users/" + f.uid), u1 = r1.json && (r1.json.user || r1.json) || {};
-  const after = Array.isArray(u1.tag_list) ? u1.tag_list.map(String) : String(u1.tag_list || u1.tags || "").split(",").map((x) => x.trim()).filter(Boolean);
-  const okNow = after.map((x) => x.toLowerCase()).indexOf(tag.toLowerCase()) >= 0;
-  return { ok: okNow, status: st, uid: f.uid, cid: f.cid, before, tags: after, error: okNow ? undefined : "tag_not_set" };
+  const readTags = async () => { const r = await getJson(H, API + "/api/v2/clients/" + f.cid), c = r.json && (r.json.client || r.json) || {}; const t = Array.isArray(c.tag_list) ? c.tag_list : (Array.isArray(c.tags) ? c.tags : String(c.tag_list || c.tags || "").split(",")); return t.map((x) => String(x && x.name ? x.name : x).trim()).filter(Boolean); };
+  const has = (arr) => arr.map((x) => x.toLowerCase()).indexOf(tag.toLowerCase()) >= 0;
+  const before = await readTags(); if (has(before)) return { ok: true, unchanged: true, uid: f.uid, cid: f.cid, tags: before };
+  const want = before.concat([tag]), tried = [];
+  // The admin UI (24.09.2026, "Manage Tags") sends PUT /api/v2/clients/{cid}; the exact field is not visible, so the likely shapes are tried in turn and the tags are read back after each
+  const variants = [{ client: { tag_list: want } }, { tag_list: want }, { client: { tag_list: want.join(",") } }, { tag_list: want.join(",") }, { client: { tags: want } }, { tags: want }];
+  for (const body of variants) {
+    let st = 0; try { const r = await fetch(API + "/api/v2/clients/" + f.cid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify(body) }); st = r.status; await r.text(); } catch (e) { st = -1; }
+    const after = await readTags(); tried.push(Object.keys(body)[0] + ":" + (typeof (body.client || body).tag_list === "string" ? "csv" : "arr") + "=" + st);
+    if (has(after)) return { ok: true, via: JSON.stringify(body).slice(0, 60), status: st, uid: f.uid, cid: f.cid, before, tags: after, tried };
+  }
+  return { ok: false, error: "tag_not_set", uid: f.uid, cid: f.cid, before, tags: await readTags(), tried };
 }
 async function setLifecycle(H, p) {
   const sid = String(p.stage_id || "").replace(/\D/g, ""); if (!sid) return { ok: false, error: "stage_id_required" };
