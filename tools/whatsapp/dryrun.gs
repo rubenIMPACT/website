@@ -1180,7 +1180,7 @@ function tagLog() { // hidden tab "Tag log" in Detailed Sales KPIs: one line per
 }
 function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); light: one report per studio + client lookups in batches of 40
   if (!TRIAL_TAG.on) return;
-  var now = new Date(), today = fmtD(now), log = tagLog(), add = [], set = 0, already = 0, skipped = 0;
+  var now = new Date(), today = fmtD(now), log = tagLog(), add = [], set = 0, already = 0, skipped = 0, failed = 0;
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     var tag = TRIAL_TAG[loc], rows = fetchReport('detailed_visits', today, addDs(today, TRIAL_TAG.days), 1000, ['User ID', 'Start Time', 'Status', 'Service'], LOC_ID[loc], true);
     if (rows === null) { Logger.log('trial tags ' + loc + ': report not ready, next run'); return; }
@@ -1189,19 +1189,19 @@ function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); li
     if (!todo.length) return;
     var cl = fetchClients(todo.slice(0, 120)); // most are members; only lead stages continue
     todo.forEach(function (u) {
-      if (add.length >= TRIAL_TAG.max_per_run) return;
+      if (set + failed >= TRIAL_TAG.max_per_run) return; // the cap counts real tag changes, not the members that are simply not trials
       var c = cl[u]; if (!c) return; // not found: try again next run
       var stage = String(c.lifecycle || ''), tags = String(c.tags || '');
       if (LEAD_STAGES.indexOf(stage) < 0 || !stage) { skipped++; log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'skipped', 'stage "' + stage + '": not a trial (booking ' + uids[u] + ')']); return; }
       if (tags.split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(tag.toLowerCase()) >= 0) { already++; log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'already set', 'set by hand before the automation (booking ' + uids[u] + ')']); return; }
       var b = cfPostRaw({ action: 'add_tag', uid: u, tag: tag }), ok = b && b.ok;
-      if (ok) set++;
+      if (ok) set++; else failed++;
       log.done[u + ':' + tag] = !!ok;
       add.push([dayStart(now), fmtT(now), u, c.name || '', tag, ok ? (b.unchanged ? 'already set' : 'set') : 'failed', ok ? 'booking ' + uids[u] + ', stage "' + stage + '"' : JSON.stringify(b).slice(0, 200)]);
     });
   });
   if (add.length) { var r0 = log.sh.getLastRow() + 1; log.sh.getRange(r0, 1, add.length, 7).setValues(add); log.sh.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); log.sh.getRange(r0, 3, add.length, 1).setNumberFormat('@'); }
-  Logger.log('trial tags: ' + set + ' set, ' + already + ' already set by hand, ' + skipped + ' not a trial');
+  Logger.log('trial tags: ' + set + ' set, ' + already + ' already set by hand, ' + skipped + ' not a trial' + (failed ? ', ' + failed + ' failed' : ''));
 }
 function installTagTrigger() { // once: the 15-minute trigger for waTrialTags (replaces an existing one)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waTrialTags') ScriptApp.deleteTrigger(t); });
