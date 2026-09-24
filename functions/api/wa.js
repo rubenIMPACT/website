@@ -70,6 +70,7 @@ export async function onRequestPost(context) {
     if (p.action === "lifecycle_stages") return j(await lifecycleStages(H));
     if (p.action === "set_lifecycle") return j(await setLifecycle(H, p));
     if (p.action === "find_client") return j(await findClient(H, p));
+    if (p.action === "add_tag") return j(await addTag(H, p));
     if (p.action === "clients_by_email") return j(await clientsByEmail(H, p.emails));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
@@ -292,6 +293,21 @@ async function findClient(H, p) {
 }
 // Set the lifecycle stage of one client (by uid or e-mail): reads the client first, refuses when the current stage is not in only_from
 // (guard rail: the automation only moves leads, never clients / do-not-contact / debt collection), then PUT /api/v2/clients/{cid}.
+//   action "add_tag" {email|uid, tag}: haengt ein Tag an den Kunden (PUT /api/v4/users/{uid} { user: { tag_list } }, wie der Stufenwechsel),
+//   liest die Tags danach zurueck; ok = das Tag steht wirklich am Kunden. Grundlage fuer "Trial Zurich" / "Trial Winterthur" nach der Buchung (Ruben 24.09.2026).
+async function addTag(H, p) {
+  const tag = String(p.tag || "").trim(); if (!tag) return { ok: false, error: "tag_required" };
+  const f = await findClient(H, p); if (!f.ok) return f;
+  const r0 = await getJson(H, API + "/api/v4/users/" + f.uid), u0 = r0.json && (r0.json.user || r0.json) || {};
+  const before = Array.isArray(u0.tag_list) ? u0.tag_list.map(String) : String(u0.tag_list || u0.tags || "").split(",").map((x) => x.trim()).filter(Boolean);
+  if (before.map((x) => x.toLowerCase()).indexOf(tag.toLowerCase()) >= 0) return { ok: true, unchanged: true, uid: f.uid, cid: f.cid, tags: before };
+  const want = before.concat([tag]);
+  let st = 0; try { const r = await fetch(API + "/api/v4/users/" + f.uid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ user: { tag_list: want } }) }); st = r.status; await r.text(); } catch (e) { st = -1; }
+  const r1 = await getJson(H, API + "/api/v4/users/" + f.uid), u1 = r1.json && (r1.json.user || r1.json) || {};
+  const after = Array.isArray(u1.tag_list) ? u1.tag_list.map(String) : String(u1.tag_list || u1.tags || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const okNow = after.map((x) => x.toLowerCase()).indexOf(tag.toLowerCase()) >= 0;
+  return { ok: okNow, status: st, uid: f.uid, cid: f.cid, before, tags: after, error: okNow ? undefined : "tag_not_set" };
+}
 async function setLifecycle(H, p) {
   const sid = String(p.stage_id || "").replace(/\D/g, ""); if (!sid) return { ok: false, error: "stage_id_required" };
   const f = await findClient(H, p); if (!f.ok) return f;
