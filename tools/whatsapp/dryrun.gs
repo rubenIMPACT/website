@@ -590,7 +590,10 @@ function ensureSheets(ss) {
 var CALL_HEAD = ['Priority', 'Name', 'Phone', 'Language', 'Interest', 'Plan', 'Request', 'Days', 'Coach messages', 'Last coach message', 'Automatic messages', 'Status', 'Automation next', 'Updated', 'Key']; // since 16.09. (Ruben: no sheet, no ticks) a hidden overview for Ruben
 var CALL_NOTE = 'Overview for Ruben, rebuilt every hour. Since 16.09.2026 the team works in exercise.com only (no ticks): every website lead of this studio without a trial booking and not closed in exercise.com (Not Interested, Do Not Contact, Client). "Coach messages" = messages the coach sent to the lead from the WhatsApp Business app before the lead replied (seen through the webhook, only for connected numbers; ticks from before 16.09. still count). Priority 1 (red) = no contact yet, 2 (orange) = one contact, 3 (yellow) = two contacts, 4 (green) = the lead replied (the coach owns the chat), 6 (grey) = three contacts, no reply. "Automation next" = the moment the automation sends the next message by itself (48 h after the last message). Leads leave the list as soon as a trial is booked or the coach sets Not Interested.';
 function normPhone(s) { var d = String(s || '').replace(/\D/g, ''); if (d.slice(0, 2) === '00') d = d.slice(2); if (d.length === 10 && d.charAt(0) === '0') d = '41' + d.slice(1); return d; } // WhatsApp wa_id form: country code + number, digits only; Swiss 07x -> 417x
-function atTime(d, hhmm) { return new Date(Utilities.formatDate(d, TZ, 'yyyy-MM-dd') + 'T' + (/^\d{2}:\d{2}$/.test(String(hhmm)) ? hhmm : '12:00') + ':00' + Utilities.formatDate(d, TZ, 'XXX')); } // date cell + "HH:mm" cell -> Date (Swiss time)
+function atTime(d, hhmm) { // date cell + time cell -> Date (Swiss time). 25.09.: Sheets turns the written "HH:mm" text into a time-of-day value (Date on 30.12.1899), so a Date cell is formatted back to HH:mm; before that every event time fell back to 12:00
+  var t = hhmm instanceof Date ? Utilities.formatDate(hhmm, TZ, 'HH:mm') : String(hhmm || ''); if (!/^\d{2}:\d{2}$/.test(t)) { var mm = t.match(/\b(\d{2}:\d{2}):\d{2}\b/); if (mm) t = mm[1]; } // a stringified time-of-day Date ("Sat Dec 30 1899 09:32:00 GMT+0100") still yields 09:32
+  return new Date(Utilities.formatDate(d, TZ, 'yyyy-MM-dd') + 'T' + (/^\d{2}:\d{2}$/.test(t) ? t : '12:00') + ':00' + Utilities.formatDate(d, TZ, 'XXX'));
+}
 function contactEvents(leads, now) { // Ruben 16.09. (no sheet, no ticks): per lead e-mail { called: [Date] = the coach's own WhatsApp messages to the lead before any reply (tab "WA Events", direction "out-app": M1-M3 from the quick replies or free text), replied: Date = the lead's first message to us, loc }. Ticks from before 16.09. (Call log rows "called" / "reached") still count so this week's chains keep their position
   var state = {}, byPhone = {}, msgN = 0, inN = 0, legacy = 0;
   leads.forEach(function (l) { if (!l.loc || l.test || l.status !== 'ok' || !l.email) return; var p = normPhone(l.phone); if (p.length >= 9) byPhone[p] = l; }); // later leads win (same number, new request)
@@ -599,7 +602,7 @@ function contactEvents(leads, now) { // Ruben 16.09. (no sheet, no ticks): per l
   if (n >= 3) ev.getRange(3, 1, n - 2, EV_HEAD.length).getValues().forEach(function (r) {
     var dir = String(r[5] || ''); if (dir !== 'in' && dir !== 'out-app') return;
     var l = byPhone[normPhone(r[6])]; if (!l || !(r[0] instanceof Date)) return;
-    var d = atTime(r[0], String(r[1] || '')); if (d.getTime() < l.ts.getTime()) return; // older than the request: not this episode
+    var d = atTime(r[0], r[1]); if (d.getTime() < l.ts.getTime()) return; // older than the request: not this episode
     var st = st0(l); if (dir === 'in') { if (!st.replied || d < st.replied) st.replied = d; inN++; } else { st.called.push(d); msgN++; }
   });
   ['Zurich', 'Winterthur'].forEach(function (loc) { callLog(loc).rows.forEach(function (e) { if (e.ev !== 'called' && e.ev !== 'reached') return; var k = e.key; if (!state[k] && !leads.some(function (l) { return l.email === k; })) return; var st = state[k] = state[k] || { called: [], replied: null, loc: loc }; if (e.ev === 'reached') { if (!st.replied || e.d < st.replied) st.replied = e.d; } else st.called.push(e.d); legacy++; }); });
@@ -614,7 +617,7 @@ function callLog(loc) { // hidden tab "Call log ZH" / "Call log WT" in Detailed 
   if (sh.getRange('A1').getValue() !== note) { sh.getRange('A1').setValue(note).setFontColor('#666666'); sh.getRange(2, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#f3f3f3'); }
   if (!sh.isSheetHidden()) sh.hideSheet();
   var rows = [], has = {}, n = sh.getLastRow();
-  if (n >= 3) sh.getRange(3, 1, n - 2, head.length).getValues().forEach(function (r) { var k = String(r[4] || '').toLowerCase().trim(), ev = String(r[5] || ''), d = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : new Date(String(r[0]).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$3-$2-$1') + 'T' + (String(r[1] || '12:00')) + ':00'); if (!k || !ev || isNaN(d.getTime())) return; rows.push({ d: d, key: k, ev: ev, ref: String(r[6] || '') }); has[ev + ':' + k] = true; });
+  if (n >= 3) sh.getRange(3, 1, n - 2, head.length).getValues().forEach(function (r) { var k = String(r[4] || '').toLowerCase().trim(), ev = String(r[5] || ''), d = r[0] instanceof Date ? atTime(r[0], r[1]) : new Date(String(r[0]).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$3-$2-$1') + 'T' + (String(r[1] || '12:00')) + ':00'); if (!k || !ev || isNaN(d.getTime())) return; rows.push({ d: d, key: k, ev: ev, ref: String(r[6] || '') }); has[ev + ':' + k] = true; });
   return { sh: sh, rows: rows, has: has };
 }
 function bookedLostEvents(leads, trials, stages, now) { // per studio: the "booked" / "lost" events (Call log) incl. the ones found in this run, plus the old "reached" ticks; approximation for "Anrufe geführt" (Ruben 16.09.: "Näherung reicht")
@@ -699,7 +702,7 @@ function leadStages(leads) { // e-mail -> lifecycle stage in exercise.com for th
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date }: while Flow A is live from the sales outbox (only messages really sent), before that from the Dry run rows
   var m = {}, n;
-  if (liveA()) { var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); n = ob.getLastRow(); if (n >= 3) ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k = String(r[13] || '').split(':'); if (k[0] !== 'A' || k.length < 3 || !/^(sent|delivered|read)/.test(String(r[11]))) return; (m[k.slice(2).join(':')] = m[k.slice(2).join(':')] || {})[k[1]] = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : new Date(); }); return m; }
+  if (liveA()) { var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); n = ob.getLastRow(); if (n >= 3) ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k = String(r[13] || '').split(':'); if (k[0] !== 'A' || k.length < 3 || !/^(sent|delivered|read)/.test(String(r[11]))) return; (m[k.slice(2).join(':')] = m[k.slice(2).join(':')] || {})[k[1]] = r[0] instanceof Date ? atTime(r[0], r[1]) : new Date(); }); return m; }
   n = sh.getLastRow(); if (n < TR_ROW0) return m;
   sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var id = k.slice(2).join(':'), when = r[2] instanceof Date ? r[2] : new Date(String(r[2]).replace(' ', 'T') + ':00'); if (isNaN(when.getTime())) when = r[0] instanceof Date ? r[0] : new Date(); (m[id] = m[id] || {})[k[1]] = when; });
   return m;
@@ -734,7 +737,7 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
   cand.forEach(function (r) {
     if (total >= SEND.max_per_run) return;
     var key = String(r[10] || ''), flow = String(r[3]), msg = String(r[4]), loc = String(r[5]); if (!key || done[key] || !SEND.flows[flow] || !SEND.conn[loc]) return;
-    var detected = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < sinceOf(flow, now) || !due || due > now) return;
+    var detected = r[0] instanceof Date ? atTime(r[0], r[1]) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < sinceOf(flow, now) || !due || due > now) return;
     if (!inWindow(now, flow)) return;
     var add = books[outboxBook(flow)].add; total++;
     if (stillDue[flow] && !stillDue[flow](r)) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'no longer due (booked, replied or closed in the meantime)', key]); return; }
@@ -762,7 +765,7 @@ function waSendTest(to, lang) { // one-off: one real template message (B1 with s
 }
 function existingKeys(sh) { // keys already in the Dry run; while Flow A is live, its dry-run rows from before the go-live (since_flow.A) do not count, so the lead is detected again on the real chain
   var keys = {}, n = sh.getLastRow(), live = liveA() && SEND.since_flow && SEND.since_flow.A, since = live ? sinceOf('A', new Date()) : null;
-  if (n >= TR_ROW0) sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || ''); if (!k) return; if (live && k.indexOf('A:') === 0 && r[0] instanceof Date && atTime(r[0], String(r[1] || '')) < since) return; keys[k] = true; });
+  if (n >= TR_ROW0) sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || ''); if (!k) return; if (live && k.indexOf('A:') === 0 && r[0] instanceof Date && atTime(r[0], r[1]) < since) return; keys[k] = true; });
   return keys;
 }
 function waCleanup() { // maintenance: drop dry-run rows that the current rules exclude (safe to re-run)
