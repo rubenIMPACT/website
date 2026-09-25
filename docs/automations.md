@@ -79,6 +79,14 @@ Form --> /api/lead --> exercise.com: sign in, create client (lifecycle "Lead"); 
 - Honeypot field, server-side validation. First name "Testlead..." always routes mails to Ruben.
 - Duplicate lookup in exercise.com must use `q[client_search]=<email>`.
 
+## Newsletter sign-up (Mailchimp)
+`assets/track.js` loads `assets/nl.js` when `NL_ON` is true (test anytime with `?nltest=1`). It shows the optional tick box under every trial form
+(`label.nlopt`, hidden in the HTML) and the exit pop-up. `/api/newsletter` (and `lead.js` when the box is ticked) adds the address to Mailchimp with
+double opt-in (status "pending", Mailchimp sends the confirmation mail), tags "Website pop-up" / "Website trial form" and DE / EN; existing contacts keep
+their status. Pop-up rules: never before 30 s on the page, never while a trial form is on screen or after someone started one, never on trial / thank-you /
+booking / cancellation / training-plan pages, never after a trial request (thank-you page sets `imp_lead`), once in 30 days (`imp_nl_seen`), never after a sign-up
+(`imp_nl_done`). Desktop trigger: mouse leaves the window at the top. Phone: fast scroll up (140 px within 300 ms). GA events nl_popup_shown / _close / _signup.
+
 ## Forms without CRM
 `/api/form`: event sign-ups and the cancellation survey. Sheet only, no mail, no CRM.
 

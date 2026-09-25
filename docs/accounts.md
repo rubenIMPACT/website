@@ -14,12 +14,12 @@ No passwords or tokens are written here or anywhere in the repo. This list says 
 | Google Tag Manager `GTM-W6SM24HX`, GA4 `G-HLBP9H0SZK` | Tracking | Container owned by the agency Uconic | Agency contract ends 12/2026: all accounts must be transferred to IMPACT before |
 | Google Search Console | SEO, sitemap | Ruben | |
 | GoDaddy | `.ch` domains, forward to the `.com` site (root only, no paths) | IMPACT | |
-| Mailchimp | Newsletter | IMPACT | Website sign-up form not connected yet |
+| Mailchimp (us14, audience "IMPACT Martial Arts Newsletter") | Newsletter | IMPACT | Essentials 2'500 contacts since 25.09.2026. Website sign-up (pop-up + trial form tick box) via `/api/newsletter`, secret `MAILCHIMP_API_KEY` in Cloudflare |
 | Webflow | Old site, archive only | Ruben | Plan downgrade to free on 12.10.2026; full CMS + media backup in Google Drive "Webflow-Backup-2026-09-01" |
 
 ## Cloudflare environment variables (names only)
 `LEADLOG_URL`, `LEADLOG_TOKEN` (Apps Script web app), `EXERCISE_EMAIL`, `EXERCISE_PASSWORD`, `EXERCISE_ORG_TOKEN` (CRM),
-`IG_TOKEN`, `IG_USER_ID`, `META_ADS_TOKEN` (Meta), `WA_HOOK_KEY`, `WA_EVENTS_URL`, `WA_VERIFY_TOKEN` (WhatsApp automation).
+`IG_TOKEN`, `IG_USER_ID`, `META_ADS_TOKEN` (Meta), `MAILCHIMP_API_KEY` (newsletter, optional `MAILCHIMP_LIST_ID`), `WA_HOOK_KEY`, `WA_EVENTS_URL`, `WA_VERIFY_TOKEN` (WhatsApp automation).
 
 ## If the person who built this is gone
 A successor needs: write access to the GitHub repo, a Cloudflare account invited to the IMPACT account, edit access to the Apps Script project
