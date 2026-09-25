@@ -25,7 +25,7 @@ var TEXT = {
         en: "Hi {name}, Sorry, it took so long. If you're still keen on a trial session: when is the best time to reach you for a quick call?" },
   A3: { de: 'Hi {name}, letzte Nachricht von mir zu deiner Anfrage. Wenn du später mal starten willst, sag mir kurz, wann ein Anruf passt. Alles Gute!',
         en: "Hi {name}, last message from me about your request. If you'd like to start later on, just tell me when a call suits you. All the best!" },
-  B1: { de: 'Hi {name}, kurze Erinnerung. Heute um {time} ist dein {class} Probetraining bei uns. Bis später! 🙂', // Ruben 25.09.: full stop instead of the colon. NOTE: the Meta template impact_b1 (de) still carries the colon; the new text needs a new template version (impact_b1v2) submitted and approved before the sender can use it // B, C, D texts = Google Doc, Ruben's go 10.09.2026
+  B1: { de: 'Hi {name}, kurze Erinnerung: Heute um {time} ist dein {class} Probetraining bei uns. Bis später! 🙂', // B, C, D texts = Google Doc, Ruben's go 10.09.2026
         en: 'Hi {name}, quick reminder: your {class} trial session is today at {time}. See you later! 🙂' },
   C1: { de: 'Hi {name}, schade, dass es gestern mit dem Probetraining nicht geklappt hat. Soll ich dir einen neuen Termin vorschlagen?',
         en: "Hi {name}, sorry you couldn't make it to your trial yesterday. Shall I suggest a new date?" },
