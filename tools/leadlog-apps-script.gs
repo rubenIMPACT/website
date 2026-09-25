@@ -1322,6 +1322,28 @@ function blogSeed(sh) {
   sh.getRange(BLOG_HR + 1, 1, rows.length, BLOG_HEAD.length).setValues(rows);
   return rows.length;
 }
+// One-off import of posts from data/blog-import.json on GitHub (25.09.2026: the 48 Webflow posts that were not migrated). Idempotent: slugs already in the sheet are skipped.
+function blogImport() {
+  var sh = blogSheet(), R0 = BLOG_HR + 1;
+  var head = sh.getRange(BLOG_HR, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = {};
+  BLOG_HEAD.forEach(function (h) { col[h] = head.indexOf(h); if (col[h] < 0) throw new Error('Blog sheet: column "' + h + '" is missing'); });
+  var r = UrlFetchApp.fetch('https://raw.githubusercontent.com/rubenIMPACT/website/main/data/blog-import.json', { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return { error: 'blog-import.json not reachable' };
+  var posts = JSON.parse(r.getContentText()).posts || [], last = sh.getLastRow(), have = {};
+  if (last >= R0) sh.getRange(R0, col.Slug + 1, last - BLOG_HR, 1).getValues().forEach(function (v) { if (String(v[0]).trim()) have[String(v[0]).trim()] = true; });
+  var rows = posts.filter(function (p) { return !have[p.slug]; }).map(function (p) {
+    var d = String(p.date).split('-'), row = []; for (var i = 0; i < head.length; i++) row.push('');
+    row[col.Website] = true; row[col.Date] = new Date(Number(d[0]), Number(d[1]) - 1, Number(d[2]), 12); row[col.Title] = p.title; row[col.Description] = p.description || '';
+    row[col['Photo URL']] = p.image || ''; row[col.Text] = p.text; row[col.Slug] = p.slug; return row;
+  });
+  if (!rows.length) return { ok: true, added: 0 };
+  var start = Math.max(last + 1, R0);
+  if (sh.getMaxRows() < start + rows.length - 1) sh.insertRowsAfter(sh.getMaxRows(), start + rows.length - 1 - sh.getMaxRows());
+  sh.getRange(start, 1, rows.length, head.length).setValues(rows);
+  sh.getRange(start, col.Website + 1, rows.length, 1).insertCheckboxes().setValue(true);
+  sh.getRange(start, col.Date + 1, rows.length, 1).setNumberFormat('dd.MM.yyyy');
+  return { ok: true, added: rows.length };
+}
 function blogRead() {
   var sh = blogSheet(), last = sh.getLastRow(), posts = [], notes = [];
   if (last <= BLOG_HR) return { ok: true, posts: [], notes: ['empty'] };
@@ -1583,6 +1605,7 @@ function doGet(e) {
     if (q.what === 'events') return out({ ok: true, events: readEvents() });
     if (q.what === 'plan') return out(spReadDecks());
     if (q.what === 'blog') return out(blogRead());
+    if (q.what === 'blogimport') return out(blogImport());
     if (q.what === 'team') return out(ctTeamRead());
     if (q.what === 'courses') return out(ctCoursesRead());
     if (q.what === 'pubtrigger') return out({ ok: true, trigger: installPublishTriggers() });

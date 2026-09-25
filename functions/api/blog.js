@@ -4,8 +4,8 @@ export async function onRequestGet(context) {
   const { env, request } = context; const url = new URL(request.url);
   if (!env.LEADLOG_URL || !env.LEADLOG_TOKEN) return new Response(JSON.stringify({ ok: false, error: "config" }), { status: 500, headers: { "Content-Type": "application/json" } });
   // Verwaltung ohne Editor: ?what=pubtrigger legt den onEdit-Trigger fuer das Haekchen "Publish now" in den Inhalts-Sheets an. Kein Cache.
-  if (url.searchParams.get("what") === "pubtrigger") {
-    const r = await fetch(env.LEADLOG_URL + "?token=" + encodeURIComponent(env.LEADLOG_TOKEN) + "&what=pubtrigger", { redirect: "follow", headers: { Accept: "application/json" } });
+  if (["pubtrigger", "blogimport"].includes(url.searchParams.get("what"))) {
+    const r = await fetch(env.LEADLOG_URL + "?token=" + encodeURIComponent(env.LEADLOG_TOKEN) + "&what=" + url.searchParams.get("what"), { redirect: "follow", headers: { Accept: "application/json" } });
     return new Response(await r.text(), { status: r.status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
   }
   const cache = caches.default, key = new Request(new URL("/api/blog", request.url).toString(), { method: "GET" });
