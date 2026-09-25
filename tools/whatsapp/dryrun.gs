@@ -91,7 +91,7 @@ function waDryRunHourly() {
   // replies, seen as webhook echoes of the connected number) or, when the 48 h run out, by the automation (A1-A3). "Due" = the mark fell into the last 24 h (no backlog).
   // Ruben 16.09.: the team works in exercise.com only (no sheet, no ticks): a reply of the lead or the stage Not Interested / Do Not Contact ends the chain.
   var h = 3600000, lastA = lastFlowA(sh), calls = contactEvents(leads, now); // calls = per lead: the coach's own WhatsApp messages before any reply (webhook echoes) and the lead's first reply
-  var openLeads = leads.filter(function (l) { return l.loc && !l.test && l.status === 'ok' && l.email && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && l.ts.getTime() >= now.getTime() - 45 * 24 * h; });
+  var openLeads = leadsToCheck(leads, trials, trialNames, calls, now);
   var stages = leadStages(openLeads); // Ruben 16.09.: the stage the coach sets in exercise.com after the call (Not interested, Do not contact, Client ...) stops the chain and removes the lead from the call list
   var stageOfLead = function (l) { return stages[(l.email || '').toLowerCase().trim()] || ''; };
   leads.forEach(function (l) {
@@ -105,15 +105,7 @@ function waDryRunHourly() {
   });
   writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
   migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
-  if (STAGE_SYNC.contacts) { // Ruben 16.09.: the coach's own messages (M1-M3 from the quick replies, seen as webhook echoes) set First / Second / Third Contact in exercise.com (forward only); nobody sets them by hand any more
-    var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
-    leads.forEach(function (l) {
-      if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l) || LC_SKIP.test(stageOfLead(l))) return;
-      var cs = calls[l.email.toLowerCase()] || { called: [] }, n = cs.called.length; if (!n || cs.replied) return; // after a reply the chat is a conversation, not an attempt
-      var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'message ' + n + ' by ' + SENDER[l.loc] + ' from the WhatsApp app (' + fmtEuDT(cs.called[n - 1]) + ')', step[1]) === 'set') stageN++;
-    });
-    if (stageN) Logger.log('stages from coach messages: ' + stageN + ' set');
-  }
+  syncContactStages(leads, trials, trialNames, stages, calls);
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
   var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [], heldB = [];
@@ -1178,6 +1170,33 @@ function tagLog() { // hidden tab "Tag log" in Detailed Sales KPIs: one line per
   var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { if (r[2] && r[4]) done[String(r[2]) + ':' + String(r[4])] = true; });
   return { sh: sh, done: done };
 }
+function syncContactStages(leads, trials, trialNames, stages, calls) { // Ruben 16.09.: the coach's own messages (M1-M3 from the quick replies, seen as webhook echoes) set First / Second / Third Contact in exercise.com (forward only); nobody sets them by hand any more. Runs hourly (waDryRunHourly) and every 15 minutes (waQuarterHour, Ruben 25.09.); the Stage log makes each id + stage a one-off
+  if (!STAGE_SYNC.contacts) return;
+  var stageOfLead = function (l) { return stages[(l.email || '').toLowerCase().trim()] || ''; };
+  var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
+  leads.forEach(function (l) {
+    if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l) || LC_SKIP.test(stageOfLead(l))) return;
+    var cs = calls[l.email.toLowerCase()] || { called: [] }, n = cs.called.length; if (!n || cs.replied) return; // after a reply the chat is a conversation, not an attempt
+    var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'message ' + n + ' by ' + SENDER[l.loc] + ' from the WhatsApp app (' + fmtEuDT(cs.called[n - 1]) + ')', step[1]) === 'set') stageN++;
+  });
+  if (stageN) Logger.log('stages from coach messages: ' + stageN + ' set');
+}
+function leadsToCheck(leads, trials, trialNames, calls, now) { // leads whose exercise.com stage is read before a message or stage change: requests of the last 45 days plus every older lead the coach has written to (Ruben 25.09.: the coach's message revives the lead, so its stage must be known)
+  var h = 3600000;
+  return leads.filter(function (l) { return l.loc && !l.test && l.status === 'ok' && l.email && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && (l.ts.getTime() >= now.getTime() - 45 * 24 * h || !!(calls[l.email.toLowerCase()] || {}).called && calls[l.email.toLowerCase()].called.length > 0); });
+}
+function waContactStages() { // every 15 minutes (waQuarterHour): First / Second / Third Contact from the coach's messages without waiting for the hourly run; sheets + one client lookup per 40 leads, no reports
+  if (!STAGE_SYNC.contacts) return;
+  var now = new Date(), leads = readLeads(), trials = { Zurich: readTrials('Zurich'), Winterthur: readTrials('Winterthur') }, trialNames = {};
+  ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { trialNames[t.nname] = true; }); });
+  var calls = contactEvents(leads, now), open = leadsToCheck(leads, trials, trialNames, calls, now).filter(function (l) { return (calls[l.email.toLowerCase()] || { called: [] }).called.length > 0; }); // only leads with a coach message can change stage here
+  if (!open.length) { Logger.log('contact stages: no lead with a coach message'); return; }
+  syncContactStages(leads, trials, trialNames, leadStages(open), calls);
+}
+function waQuarterHour() { // the 15-minute trigger (installTagTrigger): trial tags, then contact stages; one failing part never blocks the other
+  try { waTrialTags(); } catch (e) { Logger.log('waTrialTags failed: ' + e); }
+  try { waContactStages(); } catch (e) { Logger.log('waContactStages failed: ' + e); }
+}
 function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); light: one report per studio + client lookups in batches of 40
   if (!TRIAL_TAG.on) return;
   var now = new Date(), today = fmtD(now), log = tagLog(), add = [], set = 0, already = 0, skipped = 0, failed = 0;
@@ -1203,7 +1222,7 @@ function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); li
   if (add.length) { var r0 = log.sh.getLastRow() + 1; log.sh.getRange(r0, 1, add.length, 7).setValues(add); log.sh.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); log.sh.getRange(r0, 3, add.length, 1).setNumberFormat('@'); }
   Logger.log('trial tags: ' + set + ' set, ' + already + ' already set by hand, ' + skipped + ' not a trial' + (failed ? ', ' + failed + ' failed' : ''));
 }
-function installTagTrigger() { // once: the 15-minute trigger for waTrialTags (replaces an existing one)
-  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waTrialTags') ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger('waTrialTags').timeBased().everyMinutes(15).create();
+function installTagTrigger() { // once: the 15-minute trigger for waQuarterHour = trial tags + contact stages (replaces an existing one, also the old waTrialTags trigger)
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waTrialTags' || t.getHandlerFunction() === 'waQuarterHour') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('waQuarterHour').timeBased().everyMinutes(15).create();
 }

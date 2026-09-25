@@ -315,8 +315,9 @@ async function setLifecycle(H, p) {
   const sid = String(p.stage_id || "").replace(/\D/g, ""); if (!sid) return { ok: false, error: "stage_id_required" };
   const f = await findClient(H, p); if (!f.ok) return f;
   const only = Array.isArray(p.only_from) ? p.only_from.map((x) => String(x).toLowerCase()) : null;
+  if (f.lifecycle_stage_id === sid) return { ok: true, unchanged: true, cid: f.cid, lifecycle: f.lifecycle, before: f.lifecycle }; // already there: "unchanged", even when the stage is outside only_from (25.09.: the coach's repeated M1 asked for First Contact on a First Contact lead)
+
   if (only && only.length && only.indexOf(f.lifecycle.toLowerCase()) < 0) return { ok: false, skipped: "stage_protected", cid: f.cid, lifecycle: f.lifecycle };
-  if (f.lifecycle_stage_id === sid) return { ok: true, unchanged: true, cid: f.cid, lifecycle: f.lifecycle, before: f.lifecycle };
   // Verified 10.09.2026 on the test lead: PUT /api/v4/users/{uid} { user: { lifecycle_stage_id } } changes the stage (PUT /api/v2/clients/{cid}
   // answers 200 but changes nothing). The result is read back so "ok" means the stage really changed.
   let st = 0; try { const r = await fetch(API + "/api/v4/users/" + f.uid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ user: { lifecycle_stage_id: sid } }) }); st = r.status; await r.text(); } catch (e) { st = -1; }
