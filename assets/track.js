@@ -1,6 +1,6 @@
 /* Newsletter (25.09.2026): optional tick box under the trial forms + exit pop-up, code in assets/nl.js.
-   NL_ON stays false until MAILCHIMP_API_KEY is set in Cloudflare; ?nltest=1 loads it for a test. */
-(function(){var NL_ON=false;if(NL_ON||/[?&]nltest=1/.test(location.search)){var s=document.createElement('script');s.src='/assets/nl.js?v=1';s.defer=true;document.head.appendChild(s)}})();
+   NL_ON switched on 25.09.2026 (MAILCHIMP_API_KEY set, privacy text live). Set to false to switch everything off. */
+(function(){var NL_ON=true;if(NL_ON||/[?&]nltest=1/.test(location.search)){var s=document.createElement('script');s.src='/assets/nl.js?v=1';s.defer=true;document.head.appendChild(s)}})();
 /* IMPACT Funnel-Messung (09.09.2026): schickt drei Ereignisse in den GTM-dataLayer.
    cta_click        - Klick auf Probetraining-/Anmelde-/WhatsApp-Links (cta_text, cta_href, cta_kind)
    trial_form_start - erste Eingabe im Probetraining-Formular (form_loc, form_dis)
