@@ -702,7 +702,7 @@ function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } fro
   return m;
 }
 var DRY_EXTRA = ['Phone', 'Params']; // Dry run columns L + M (hidden): phone of the recipient and the template parameters as JSON, written since 23.09.2026; older rows cannot be sent
-var SEND = { on: true, flows: { A: false, B: true, C: false, D: false, X: false, E: false, R: false }, conn: { 'Zürich': 'zh' }, since: '2026-09-23', max_per_run: 40 }; // Flow B Zürich LIVE since 25.09.2026 (Ruben: "Go Flow B"); // the real sender (23.09.2026): master switch + one switch per flow, only rows detected since "since"; connections: Zürich = Abdi (zh); Winterthur / Waseem follow when their numbers are connected. Everything stays off until Ruben gives the go per flow
+var SEND = { on: true, flows: { A: false, B: true, C: false, D: false, X: false, E: false, R: false }, conn: { 'Zürich': 'zh', 'Support (Waseem)': 'ws' }, since: '2026-09-23', max_per_run: 40 }; // Flow B Zürich LIVE since 25.09.2026 (Ruben: "Go Flow B"); ws = Waseem's number (connected 25.09.), used by Flow E once SEND.flows.E is on; // the real sender (23.09.2026): master switch + one switch per flow, only rows detected since "since"; connections: Zürich = Abdi (zh); Winterthur / Waseem follow when their numbers are connected. Everything stays off until Ruben gives the go per flow
 var OUT_HEAD = ['Date', 'Time', 'Flow', 'Message', 'Location', 'Name', 'Phone', 'Language', 'Template', 'Params', 'Message id', 'Status', 'Detail', 'Key'];
 function templateParams(msg, all) { // template parameters in the order of the TEMPLATES spec for this message (W4: same params with or without the fee sentence); unknown message -> []
   var spec = TEMPLATES.filter(function (t) { return t.id === msg; })[0]; if (!spec) return [];
@@ -1141,26 +1141,27 @@ function templateBody(spec, lang) { // approved text -> Meta body with {{1}}.. i
   if (/\{[a-z_]+\}/.test(t)) throw new Error('unmapped placeholder in ' + spec.name + ' ' + lang + ': ' + t.match(/\{[a-z_]+\}/)[0]); // letters only: {{1}} is the Meta placeholder, {name} an unmapped one
   return { text: t, example: spec.vars.map(function (v) { return TPL_EXAMPLE[lang][v]; }) };
 }
-function waTemplateStatus() { // one-off / check: every template of the Zurich WABA with its Meta status (log only)
-  var b = cfPost({ action: 'wa_templates', conn: 'zh' }); if (!b || !b.ok) { Logger.log('templates: ' + JSON.stringify(b).slice(0, 400)); return {}; }
+function waTemplateStatus(conn) { // one-off / check: every template of one connection's WABA (zh = Abdi, ws = Waseem) with its Meta status (log only)
+  var b = cfPost({ action: 'wa_templates', conn: conn || 'zh' }); if (!b || !b.ok) { Logger.log('templates: ' + JSON.stringify(b).slice(0, 400)); return {}; }
   var out = {}; (b.data.data || []).forEach(function (t) { out[t.name + ':' + t.language] = t.status + (t.rejected_reason && t.rejected_reason !== 'NONE' ? ' (' + t.rejected_reason + ')' : ''); });
   Logger.log('templates (' + Object.keys(out).length + '): ' + JSON.stringify(out));
   return out;
 }
-function waSubmitTemplates() { // one-off (Ruben 22.09., go): submit every template in TEMPLATES in de + en that does not exist yet; log Meta's answer per template
-  var have = waTemplateStatus(), n = 0, skip = 0, fail = 0, later = 0, t0 = new Date().getTime();
-  TEMPLATES.forEach(function (spec) { ['de', 'en'].forEach(function (lang) {
+function waSubmitTemplates(conn, only) { // one-off (Ruben 22.09., go): submit every template in TEMPLATES in de + en that does not exist yet on this connection's WABA (conn zh = Abdi, ws = Waseem); only = list of message ids to restrict to (e.g. ['W1', ...] for Waseem); log Meta's answer per template
+  conn = conn || 'zh';
+  var have = waTemplateStatus(conn), n = 0, skip = 0, fail = 0, later = 0, t0 = new Date().getTime();
+  TEMPLATES.forEach(function (spec) { if (only && only.indexOf(spec.id) < 0) return; ['de', 'en'].forEach(function (lang) {
     if (have[spec.name + ':' + lang]) { skip++; return; }
     var body = templateBody(spec, lang);
     var tpl = { name: spec.name, language: lang, category: spec.cat, components: [{ type: 'BODY', text: body.text, example: { body_text: [body.example] } }] };
     if (new Date().getTime() - t0 > 280000) { later++; return; } // Apps Script limit is 6 min: stop early, the next run continues (existing templates are skipped)
-    var b = null; for (var attempt = 0; attempt < 6; attempt++) { b = cfPostRaw({ action: 'wa_template_create', conn: 'zh', template: tpl }); if (b && b.status === 429) Utilities.sleep(20000); else break; } // Dualhook rate limit (429 on 22.09.: roughly 2 templates per minute) -> wait 20 s and retry, up to 6 times; any other answer (400 = Meta rejects the template) fails at once
+    var b = null; for (var attempt = 0; attempt < 6; attempt++) { b = cfPostRaw({ action: 'wa_template_create', conn: conn, template: tpl }); if (b && b.status === 429) Utilities.sleep(20000); else break; } // Dualhook rate limit (429 on 22.09.: roughly 2 templates per minute) -> wait 20 s and retry, up to 6 times; any other answer (400 = Meta rejects the template) fails at once
     Utilities.sleep(15000); // pace between templates
     var ok = b && b.ok && b.data && b.data.id, err = b && b.data && b.data.error ? b.data.error : null;
     if (ok) n++; else fail++;
     Logger.log((ok ? 'OK ' : 'FAIL ') + spec.name + ' ' + lang + ': ' + (ok ? (b.data.status || '') + ' ' + (b.data.category || '') + ' id ' + b.data.id : (err ? (err.error_user_title || err.message) + ' / ' + (err.error_user_msg || '') : JSON.stringify(b).slice(0, 300))));
   }); });
-  Logger.log('templates submitted: ' + n + ', already there: ' + skip + ', failed: ' + fail + (later ? ', left for the next run: ' + later : ''));
+  Logger.log('templates submitted (' + conn + '): ' + n + ', already there: ' + skip + ', failed: ' + fail + (later ? ', left for the next run: ' + later : ''));
 }
 var TRIAL_TAG = { on: true, Zurich: 'Trial Zurich', Winterthur: 'Trial Winterthur', days: 14, max_per_run: 20 }; // Ruben 24.09.2026 (go): the trial tag follows the booking. Every 15 minutes: reserved classes of the next 14 days per studio (exercise.com report detailed_visits), people in a lead stage without the tag get it -> exercise.com sends the welcome e-mail by itself (automation "tag added: Trial ..."). Manual tags by the coaches stay harmless: an existing tag is never set twice, a removed tag is never set again (Tag log)
 function tagLog() { // hidden tab "Tag log" in Detailed Sales KPIs: one line per tag the automation set (or found already set); done = uid:tag handled

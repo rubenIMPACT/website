@@ -25,7 +25,7 @@ const API = "https://app.impact-martialarts.com";
 //   action "wa_templates" {conn?}: Liste der Vorlagen des WABA (Name, Sprache, Status, Kategorie, Ablehnungsgrund).
 //   action "wa_template_create" {conn?, template: {name, language, category, components}}: eine Vorlage bei Meta einreichen.
 const DH = "https://api.dualhook.com/v25.0";
-const WA_CONN = { zh: { key: "WA_KEY_ZH", waba: "718323397882336", phone: "1033138903208435" } };
+const WA_CONN = { zh: { key: "WA_KEY_ZH", waba: "718323397882336", phone: "1033138903208435" }, ws: { key: "WA_KEY_WS", waba: "520200911170891", phone: "514509738415062" } }; // ws = Waseem Support (connected 25.09.2026, own WABA: templates must be submitted there too)
 //   action "wa_send" {conn?, to, template, language, params: [..]}: eine genehmigte Vorlage an eine Nummer senden
 //   (POST /v25.0/<phone_number_id>/messages, Body-Parameter in der Reihenfolge der Vorlage). Antwort: {status, ok, data:{messages:[{id}]}}.
 async function waSend(env, p) {
