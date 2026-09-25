@@ -71,8 +71,9 @@ var STAGE_SYNC = { pending: true, contacts: true, lost: false, noshow: true, deb
 var LEAD_STAGES = ['Lead', 'First Contact', 'Second Contact', 'Third Contact', 'Missed the talk', 'Trial Booked', 'Pending Decision', 're-engage no-shows', 're-engage cancelled trial', '']; // the automation only moves clients that are in one of these; Client, Do Not Contact, Debt collection etc. are never touched
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
+var SIM_NOW = null, PREVIEW_ROWS = null; // waPreviewFlows: simulated clock and the rows detected in a preview (never written)
 function waDryRunHourly() {
-  var now = new Date(), today = fmtD(now);
+  var now = SIM_NOW || new Date(), today = fmtD(now), pv = !!SEND.preview; // pv = preview: no sheet writes, no stage changes, nothing sent
   var ss = SpreadsheetApp.openById(WA_ID), sh = ensureSheets(ss);
   var keys = existingKeys(sh), out = [];
   var leads = readLeads(), trials = { Zurich: readTrials('Zurich'), Winterthur: readTrials('Winterthur') };
@@ -104,9 +105,9 @@ function waDryRunHourly() {
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, (calls[l.email.toLowerCase()] || {}).lang || l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
   });
-  writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
-  migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
-  syncContactStages(leads, trials, trialNames, stages, calls);
+  if (!pv) writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
+  if (!pv) migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
+  if (!pv) syncContactStages(leads, trials, trialNames, stages, calls);
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
   var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [], heldB = [];
@@ -182,12 +183,12 @@ function waDryRunHourly() {
   }
   payNote += revNote;
   // Stage sync (Ruben 10.09.): "Pending Decision" on the evening of an attended trial without contract (first run after 20:00), only if the stage was not changed by hand
-  if (STAGE_SYNC.pending && Number(Utilities.formatDate(now, TZ, 'H')) >= 22) { // Ruben 10.09.: after 22:00, sales can still close until 21:30
+  if (!pv && STAGE_SYNC.pending && Number(Utilities.formatDate(now, TZ, 'H')) >= 22) { // Ruben 10.09.: after 22:00, sales can still close until 21:30
     var setN = 0;
     ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(loc, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + euD(t.date) + ', no contract by 22:00') === 'set') setN++; } }); });
     if (setN) payNote += ' Stages: ' + setN + ' x Pending Decision.';
   }
-  if (STAGE_SYNC.noshow) { // Ruben 15.09.: the stage follows the EVENT, not the message: the trainer marks a no-show -> "re-engage no-shows"; a booked trial is cancelled -> "re-engage cancelled trial" (trials of the last 7 days, forward only, once per person and stage)
+  if (!pv && STAGE_SYNC.noshow) { // Ruben 15.09.: the stage follows the EVENT, not the message: the trainer marks a no-show -> "re-engage no-shows"; a booked trial is cancelled -> "re-engage cancelled trial" (trials of the last 7 days, forward only, once per person and stage)
     var reN = 0;
     ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) {
       if (t.date < addDs(today, -7) || t.date > addDs(today, 30) || LC_SKIP.test(t.lifecycle)) return;
@@ -196,7 +197,7 @@ function waDryRunHourly() {
     }); });
     if (reN) payNote += ' Stages: ' + reN + ' x re-engage.';
   }
-  if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, out[0].length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
+  if (pv) PREVIEW_ROWS = out; else if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, out[0].length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
   if (sh.getRange(4, HEAD.length + 1).getValue() !== DRY_EXTRA[0]) { sh.getRange(4, HEAD.length + 1, 1, DRY_EXTRA.length).setValues([DRY_EXTRA]).setFontWeight('bold').setBackground('#f3f3f3'); sh.hideColumns(HEAD.length + 1, DRY_EXTRA.length); } // hidden helper columns for the sender
   var stillDue = { // re-check right before a real send (the row may be hours old: booked / replied / closed in the meantime)
     A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied); },
@@ -211,6 +212,7 @@ function waDryRunHourly() {
   function openPay(uid, cl) { return !!(info[uid] || (arr && arr.some(function (a) { return a.uid === uid && a.open > 0; })) || (cl && /signed but no payment|debt/i.test(String(cl.lifecycle || '')))); } // failed charge, open invoice, or stage Signed but no payment / Debt collection
   function trialStill(uid, date, art) { var rows = []; ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.uid === uid) rows.push(t); }); }); return rows.some(function (t) { return t.date === date && t.art === art; }) && !rows.some(function (t) { return t.date > date && (t.art === 'BOOKED' || t.art === 'TRIAL'); }); }
   payNote += processOutbox(ss, sh, now, stillDue);
+  if (pv) return; // preview ends here: no arrears tab, no status line
   if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('dd.MM.yyyy');
   sh.getRange('A3').setValue('Last run ' + fmtEuDT(now) + ', ' + out.length + ' new rows. Leads read: ' + leads.length + ', trial rows: ' + (trials.Zurich.length + trials.Winterthur.length) + ', clients with failed payments: ' + (pay ? pay.length : 'n/a') + ', debtors (open invoices): ' + (arr ? arr.length : 'n/a') + '.' + payNote);
@@ -749,12 +751,13 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
   if (en >= 3) ev.getRange(3, 1, en - 2, EV_HEAD.length).getValues().forEach(function (r) { if (String(r[5] || '') === 'in' && r[0] instanceof Date) { var pi = normPhone(r[6]), di = atTime(r[0], r[1]); if (pi && (!inAt[pi] || di > inAt[pi])) inAt[pi] = di; return; } if (String(r[5] || '') !== 'out-app' || !(r[0] instanceof Date)) return; var ph = normPhone(r[6]), d = atTime(r[0], r[1]); if (!ph) return; if (!chatAt[ph] || d > chatAt[ph]) chatAt[ph] = d; var k = String(r[2] || '') + '|' + ph; (chatTxt[k] = chatTxt[k] || []).push(String(r[9] || '')); });
   Object.keys(books).forEach(function (id) { books[id].rows.forEach(function (r) { if (!/^(sent|delivered|read)/.test(String(r[11])) || !(r[0] instanceof Date)) return; var ph = normPhone(r[6]), d = atTime(r[0], r[1]); if (ph && (!autoAt[ph] || d > autoAt[ph])) autoAt[ph] = d; }); });
   var dn = dry.getLastRow(), cand = dn >= TR_ROW0 ? dry.getRange(TR_ROW0, 1, dn - TR_ROW0 + 1, HEAD.length + DRY_EXTRA.length).getValues() : [], sentN = 0, failN = 0, held = 0, total = 0;
+  if (SEND.preview && PREVIEW_ROWS) cand = cand.concat(PREVIEW_ROWS); // preview: the rows this simulated run would add
   var conn = 'zh';
   cand.forEach(function (r) {
     if (total >= SEND.max_per_run) return;
     var key = String(r[10] || ''), flow = String(r[3]), msg = String(r[4]), loc = String(r[5]); if (!key || done[key] || !SEND.flows[flow] || !SEND.conn[loc]) return;
-    var detected = r[0] instanceof Date ? atTime(r[0], r[1]) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < sinceOf(flow, now) || !due || due > now) return;
-    if (!inWindow(now, flow)) return;
+    var detected = r[0] instanceof Date ? atTime(r[0], r[1]) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < sinceOf(flow, now) || !due || (!SEND.preview && due > now)) return;
+    if (!SEND.preview && !inWindow(now, flow)) return; // preview: every row of the simulated day, with its planned time
     var ph0 = normPhone(r[11]); if (flow !== 'B' && ph0 && autoAt[ph0] && now.getTime() - autoAt[ph0].getTime() < DAY_GAP_H * 3600000) { if (SEND.preview) Logger.log('PREVIEW-WAIT ' + flow + '/' + msg + ' | ' + r[6] + ' | automatic message already sent on ' + fmtEuDT(autoAt[ph0])); return; } // one automatic message per person and day: wait for the next run
     var add = SEND.preview ? { push: function (x) { Logger.log('PREVIEW-SKIP ' + x[2] + '/' + x[3] + ' | ' + x[4] + ' | ' + x[5] + ' | ' + x[12]); } } : books[outboxBook(flow)].add; total++; // preview: log only, the outbox stays untouched
     if (now.getTime() - detected.getTime() > (SEND.max_age_h || 36) * 3600000) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'expired (detected more than ' + (SEND.max_age_h || 36) + ' h ago)', key]); return; }
@@ -767,7 +770,7 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
     var cl = langOfText((chatTxt[(PNID[SEND.conn[loc]] || '') + '|' + phone] || []).join(' ')); if (cl && cl !== lang) lang = cl; // Ruben 25.09.: never switch language inside one chat, the coach's language wins
     var problem = !spec ? 'no template for ' + msg : (phone.length < 9 ? 'no usable phone number' : (!params ? 'bad params' : (params.some(function (x) { return /\{\w+\}/.test(String(x)) || String(x) === ''; }) ? 'missing parameter (e.g. class time)' : '')));
     if (problem) { held++; add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), lang.toUpperCase(), spec ? spec.name : '', JSON.stringify(params), '', 'held', problem, key]); return; }
-    if (SEND.preview) { Logger.log('PREVIEW-SEND ' + flow + '/' + msg + ' | ' + loc + ' | ' + r[6] + ' | ' + lang.toUpperCase() + ' | ' + JSON.stringify(params)); return; }
+    if (SEND.preview) { Logger.log('PREVIEW-SEND ' + flow + '/' + msg + ' | ' + loc + ' | ' + r[6] + ' | ' + lang.toUpperCase() + ' | due ' + fmtEuDT(due) + ' | ' + JSON.stringify(params) + ' | ' + String(r[8] || '').slice(0, 110)); if (ph0) autoAt[ph0] = due; return; }
     var b = cfPostRaw({ action: 'wa_send', conn: SEND.conn[loc] || conn, to: phone, template: spec.name, language: lang, params: params });
     var mid = b && b.ok && b.data && b.data.messages && b.data.messages[0] ? String(b.data.messages[0].id) : '';
     var err = b && b.data && b.data.error ? (b.data.error.error_user_msg || b.data.error.message || '') + ' (' + (b.data.error.code || '') + ')' : (b ? '' : 'no answer from /api/wa');
@@ -1226,9 +1229,10 @@ function waContactStages() { // every 15 minutes (waQuarterHour): First / Second
   if (!open.length) { Logger.log('contact stages: no lead with a coach message'); return; }
   syncContactStages(leads, trials, trialNames, leadStages(open), calls);
 }
-function waPreviewFlows(list, since) { // one-off: which rows of these flows the sender would send right now, with every guard, logged only (nothing sent, nothing written to the outbox); since = go-live moment to test, e.g. '2026-09-25 00:00'
-  var f0 = JSON.stringify(SEND.flows), s0 = JSON.stringify(SEND.since_flow); Object.keys(SEND.flows).forEach(function (k) { SEND.flows[k] = list.indexOf(k) >= 0; }); list.forEach(function (k) { SEND.since_flow[k] = since; }); SEND.preview = true;
-  try { waDryRunHourly(); } finally { SEND.preview = false; SEND.flows = JSON.parse(f0); SEND.since_flow = JSON.parse(s0); }
+function waPreviewFlows(list, since, simNow) { // one-off: which rows of these flows the sender would send, with every guard, logged only (nothing sent, no sheet or stage written); since = go-live moment for flows that are not live yet, simNow = simulated clock 'yyyy-MM-dd HH:mm' (optional)
+  var f0 = JSON.stringify(SEND.flows), s0 = JSON.stringify(SEND.since_flow); Object.keys(SEND.flows).forEach(function (k) { SEND.flows[k] = list.indexOf(k) >= 0; }); list.forEach(function (k) { if (!SEND.since_flow[k]) SEND.since_flow[k] = since; }); SEND.preview = true; PREVIEW_ROWS = null;
+  if (simNow) SIM_NOW = new Date(simNow.replace(' ', 'T') + ':00' + Utilities.formatDate(new Date(), TZ, 'XXX'));
+  try { waDryRunHourly(); } finally { SEND.preview = false; SIM_NOW = null; PREVIEW_ROWS = null; SEND.flows = JSON.parse(f0); SEND.since_flow = JSON.parse(s0); }
 }
 function waPreviewA() { // one-off: what Flow A would send on the real chain state (outbox), logged only; nothing is written or sent
   A_PREVIEW = true; var on = SEND.on, sf = SEND.since_flow.A; SEND.on = false; SEND.since_flow.A = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'); // as if Flow A went live right now: earlier dry-run rows do not count
