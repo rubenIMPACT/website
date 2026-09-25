@@ -35,6 +35,12 @@ async function makeLid(env, cid) {
   } catch { return ""; }
 }
 
+// exercise.com tags use the existing English names (Ruben 25.09.2026: no duplicate spellings). Only the tags are mapped;
+// "Interested in", the message and the sheet log keep the form value. "Zurich" triggers the same staff automation (Abdi) as "Zürich".
+const TAG_MAP = { "Zürich": "Zurich", "Boxen": "Boxing", "Ringen": "Wrestling", "Thai-Boxen / Muay Thai": "Thai Boxing / Muay Thai",
+  "Fitnessboxen / Kickboxen": "Fitness Boxing/ Kickboxing", "Fitness Kickboxen": "Fitness Boxing/ Kickboxing", "BJJ": "Brazilian Jiu-jitsu / BJJ" };
+const tagOf = (v) => TAG_MAP[v] || v;
+
 // Dublette: bestehenden Client suchen und mit erneuter Anfrage ergaenzen (Stage bleibt)
 async function dupUpdate(env, auth, p, clean) {
   const H = { "Content-Type": "application/json", "Authorization": "Bearer " + env.EXERCISE_ORG_TOKEN, "API-TOKEN": auth };
@@ -80,7 +86,7 @@ async function dupUpdate(env, auth, p, clean) {
     oldTags = Array.isArray(raw) ? raw.map(String) : String(raw || "").split(/,\s*/).filter(Boolean);
   } catch {}
   const note = "ERNEUTE ANFRAGE " + stamp + ": " + [clean(p.discipline), clean(p.location), p.kid_name ? "Kind " + clean(p.kid_name) + (p.kid_age ? " (" + clean(p.kid_age) + ")" : "") : "", p.message ? clean(p.message) : "", "Seite " + clean(p.page)].filter(Boolean).join(" | ");
-  const tags = Array.from(new Set(oldTags.concat([clean(p.discipline), clean(p.location)]).filter(Boolean)));
+  const tags = Array.from(new Set(oldTags.concat([tagOf(clean(p.discipline)), tagOf(clean(p.location))]).filter(Boolean)));
   // Bisheriger Standort: location_id des Users, sonst aus den Tags der Erstanfrage
   let oldLoc = "";
   const lid = String((user && user.location_id) || "");
@@ -141,7 +147,7 @@ export async function onRequestPost(context) {
     // 2) Create client
     const client = { client: {
       email: clean(p.email), first_name: clean(p.firstname), last_name: clean(p.lastname),
-      tag_list: [clean(p.discipline), clean(p.location), "start-lp"].filter(Boolean).join(",\n"),
+      tag_list: [tagOf(clean(p.discipline)), tagOf(clean(p.location)), "start-lp"].filter(Boolean).join(",\n"),
       profile_fields: [
         { id: "phone_number", name: "Phone Number", value: clean(p.phone) },
         { id: "Interested in", name: "Interested in", value: clean(p.discipline) },
