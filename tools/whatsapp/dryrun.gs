@@ -702,7 +702,7 @@ function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } fro
   return m;
 }
 var DRY_EXTRA = ['Phone', 'Params']; // Dry run columns L + M (hidden): phone of the recipient and the template parameters as JSON, written since 23.09.2026; older rows cannot be sent
-var SEND = { on: false, flows: { A: false, B: false, C: false, D: false, X: false, E: false, R: false }, conn: { 'Zürich': 'zh' }, since: '2026-09-23', max_per_run: 40 }; // the real sender (23.09.2026): master switch + one switch per flow, only rows detected since "since"; connections: Zürich = Abdi (zh); Winterthur / Waseem follow when their numbers are connected. Everything stays off until Ruben gives the go per flow
+var SEND = { on: true, flows: { A: false, B: true, C: false, D: false, X: false, E: false, R: false }, conn: { 'Zürich': 'zh' }, since: '2026-09-23', max_per_run: 40 }; // Flow B Zürich LIVE since 25.09.2026 (Ruben: "Go Flow B"); // the real sender (23.09.2026): master switch + one switch per flow, only rows detected since "since"; connections: Zürich = Abdi (zh); Winterthur / Waseem follow when their numbers are connected. Everything stays off until Ruben gives the go per flow
 var OUT_HEAD = ['Date', 'Time', 'Flow', 'Message', 'Location', 'Name', 'Phone', 'Language', 'Template', 'Params', 'Message id', 'Status', 'Detail', 'Key'];
 function templateParams(msg, all) { // template parameters in the order of the TEMPLATES spec for this message (W4: same params with or without the fee sentence); unknown message -> []
   var spec = TEMPLATES.filter(function (t) { return t.id === msg; })[0]; if (!spec) return [];
