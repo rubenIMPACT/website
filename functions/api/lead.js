@@ -1,6 +1,7 @@
 // Lead endpoint: Start-LP form -> exercise.com (logic from UCONIC Make blueprint)
 // Secrets in Cloudflare env: EXERCISE_EMAIL, EXERCISE_PASSWORD, EXERCISE_ORG_TOKEN, LEADLOG_URL, LEADLOG_TOKEN (Google-Sheet-Log)
 // Antwort enthaelt "lid" (signierte Client-ID) -> Danke-Seite -> Trainingsplan-Tool -> /api/plan (CRM-Notiz + Sheet)
+import { subscribe } from "./newsletter.js";
 const LOCATION_IDS = { "Winterthur": "2222", "Zürich": "2508", "Zurich": "2508" };
 const API = "https://app.impact-martialarts.com";
 
@@ -133,6 +134,10 @@ export async function onRequestPost(context) {
     const locId = LOCATION_IDS[(p.location || "").trim()];
     if (!locId || !p.email || !p.firstname) return j({ error: "missing_fields" }, 400);
     const clean = (v) => (v == null ? "" : String(v).slice(0, 500));
+    // Optional newsletter tick box (25.09.2026): runs in the background, never blocks or fails the trial request
+    if (p.newsletter === "1" || p.newsletter === "on" || p.newsletter === true)
+      context.waitUntil(subscribe(env, { email: p.email, source: "trial", lang: /\/en\//.test(String(p.page || "")) ? "en" : "de",
+        firstname: p.firstname, lastname: p.lastname, location: p.location }).catch(() => null));
 
     // 1) Sign in (retry; tolerate non-JSON bodies)
     const signin = await fetchRetry(API + "/api/v4/users/sign_in", {
