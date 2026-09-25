@@ -247,12 +247,12 @@ section.deep{background:#12100b}
 .spgrid .sess{border:1px solid transparent;border-left-width:1px;color:#fff;border-radius:4px}
 .spgrid .sess .n,.spgrid .sess .lv,.spgrid .sess .who{color:#fff}
 .spgrid .sess .lv{opacity:.82}.spgrid .sess .who{opacity:.9}
-.spgrid .slot.d-boxen,.spgrid .slot.d-boxing,.spgrid .slot.d-muay-thai{background:#6d7b84}
-.spgrid .slot.d-bjj,.spgrid .slot.d-ringen,.spgrid .slot.d-wrestling{background:#61a98d}
+.spgrid .slot.d-boxen,.spgrid .slot.d-boxing{background:#66747d}.spgrid .slot.d-muay-thai{background:#7a8a95}
+.spgrid .slot.d-bjj{background:#61a98d}.spgrid .slot.d-ringen,.spgrid .slot.d-wrestling{background:#4f987c}
 .spgrid .slot.d-fitness-kickboxen,.spgrid .slot.d-fitness-kickboxing{background:#893c68}
 .spgrid .slot.d-mma{background:#2874ba}
 .spgrid .slot.d-street-defense{background:#3b5e7f}
-.spgrid .slot.d-little-ninjas{background:#e1ab1f}
+.spgrid .slot.d-little-ninjas{background:#e1ab1f}.spgrid .slot.d-little-ninjas.ninjas-1014{background:#cf951a}
 .spgrid .slot.d-open{background:#d9d9d9}
 .spgrid .slot.d-personal-training{background:#4a463c}
 .spgrid .sess:hover{filter:brightness(1.1);border-color:transparent}
@@ -260,7 +260,7 @@ section.deep{background:#12100b}
 .spgrid .sess.big,.spgrid .sess.big2{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 6px 22px rgba(0,0,0,.45)}
 .spgrid .sess.big2{box-shadow:0 0 0 1px var(--gold),0 6px 22px rgba(0,0,0,.45)}
 .spgrid{position:relative;padding-top:30px}
-.spgrid .daybg{position:absolute;top:-6px;bottom:-8px;background:rgba(255,255,255,.035);border-radius:10px;pointer-events:none;z-index:0}
+.spgrid .daybg{position:absolute;top:-8px;bottom:-10px;background:rgba(255,255,255,.07);border-radius:10px;pointer-events:none;z-index:0}
 .spgrid>*{position:relative;z-index:1}.spgrid .daybg{z-index:0}
 .daytabs{padding-bottom:14px}
 </style>
@@ -421,7 +421,7 @@ var cur=0;
 function per(){var w=window.innerWidth;if(MATS===2)return w>=1000?3:1;return w>=1000?3:2}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
 function card(s){if(!s)return '<span class="slot empty"></span>';
- var dm=String(s.href||'').match(/\/(?:kurse|classes)\/([a-z-]+)/),dc=dm?dm[1]:'open';return '<a class="sess slot d-'+dc+'" href="'+esc(s.href)+'"><span class="n">'+esc(s.n)+'</span><span class="lv">'+esc(s.lv)+'</span><span class="who">'+esc(s.who)+'</span></a>';}
+ var dm=String(s.href||'').match(/\/(?:kurse|classes)\/([a-z-]+)/),dc=dm?dm[1]:'open';var nk=/10/.test(String(s.n||''))&&dc==='little-ninjas'?' ninjas-1014':'';return '<a class="sess slot d-'+dc+nk+'" href="'+esc(s.href)+'"><span class="n">'+esc(s.n)+'</span><span class="lv">'+esc(s.lv)+'</span><span class="who">'+esc(s.who)+'</span></a>';}
 function render(){
   var p=per();cur=Math.max(0,Math.min(cur,days.length-p));
   var vis=days.slice(cur,cur+p);
