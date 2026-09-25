@@ -102,7 +102,7 @@ function waDryRunHourly() {
     var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
     if (st.replied || slot >= RULE.A_MAX) return; // the lead replied: the coach owns the chat, the automation is off
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
-    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
+    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, (calls[l.email.toLowerCase()] || {}).lang || l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
   });
   writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
   migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
@@ -597,16 +597,16 @@ function atTime(d, hhmm) { // date cell + time cell -> Date (Swiss time). 25.09.
 function contactEvents(leads, now) { // Ruben 16.09. (no sheet, no ticks): per lead e-mail { called: [Date] = the coach's own WhatsApp messages to the lead before any reply (tab "WA Events", direction "out-app": M1-M3 from the quick replies or free text), replied: Date = the lead's first message to us, loc }. Ticks from before 16.09. (Call log rows "called" / "reached") still count so this week's chains keep their position
   var state = {}, byPhone = {}, msgN = 0, inN = 0, legacy = 0;
   leads.forEach(function (l) { if (!l.loc || l.test || l.status !== 'ok' || !l.email) return; var p = normPhone(l.phone); if (p.length >= 9) byPhone[p] = l; }); // later leads win (same number, new request)
-  var st0 = function (l) { var k = l.email.toLowerCase(); return state[k] = state[k] || { called: [], replied: null, loc: l.loc }; };
+  var st0 = function (l) { var k = l.email.toLowerCase(); return state[k] = state[k] || { called: [], replied: null, loc: l.loc, texts: [], lang: '' }; };
   var ev = eventsSheet(SpreadsheetApp.openById(WA_ID)), n = ev.getLastRow();
   if (n >= 3) ev.getRange(3, 1, n - 2, EV_HEAD.length).getValues().forEach(function (r) {
     var dir = String(r[5] || ''); if (dir !== 'in' && dir !== 'out-app') return;
     var l = byPhone[normPhone(r[6])]; if (!l || !(r[0] instanceof Date)) return;
     var d = atTime(r[0], r[1]); if (d.getTime() < l.ts.getTime()) return; // older than the request: not this episode
-    var st = st0(l); if (dir === 'in') { if (!st.replied || d < st.replied) st.replied = d; inN++; } else { st.called.push(d); msgN++; }
+    var st = st0(l); if (dir === 'in') { if (!st.replied || d < st.replied) st.replied = d; inN++; } else { st.called.push(d); st.texts.push(String(r[9] || '')); msgN++; }
   });
   ['Zurich', 'Winterthur'].forEach(function (loc) { callLog(loc).rows.forEach(function (e) { if (e.ev !== 'called' && e.ev !== 'reached') return; var k = e.key; if (!state[k] && !leads.some(function (l) { return l.email === k; })) return; var st = state[k] = state[k] || { called: [], replied: null, loc: loc }; if (e.ev === 'reached') { if (!st.replied || e.d < st.replied) st.replied = e.d; } else st.called.push(e.d); legacy++; }); });
-  Object.keys(state).forEach(function (k) { var st = state[k]; st.called.sort(function (a, b) { return a - b; }); if (st.replied) st.called = st.called.filter(function (d) { return d < st.replied; }); });
+  Object.keys(state).forEach(function (k) { var st = state[k]; st.called.sort(function (a, b) { return a - b; }); if (st.replied) st.called = st.called.filter(function (d) { return d < st.replied; }); st.lang = langOfText((st.texts || []).join(' ')); }); // lang: the language the coach wrote in (Ruben 25.09.: the automation never switches language within one chat, e.g. Éric Pirz got English from Abdi)
   Logger.log('contact events: ' + msgN + ' coach messages, ' + inN + ' replies matched to leads' + (legacy ? ', ' + legacy + ' ticks from before 16.09.' : ''));
   return state;
 }
