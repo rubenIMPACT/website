@@ -200,8 +200,13 @@ function waDryRunHourly() {
   var stillDue = { // re-check right before a real send (the row may be hours old: booked / replied / closed in the meantime)
     A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied); },
     B: function (r) { var k = String(r[10]).split(':'); return k[3] === today && ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'BOOKED'; }); }); },
-    E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); }
+    E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); },
+    C: function (r) { var k = String(r[10]).split(':'); return trialStill(k[2], k[3], 'NOSHOW'); }, // still a no-show and no newer booking / trial
+    X: function (r) { var k = String(r[10]).split(':'); return trialStill(k[2], k[3], 'CANCELLED'); },
+    D: function (r) { var k = String(r[10]).split(':'); return ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'TRIAL' && !t.contract && !LC_SKIP.test(t.lifecycle); }); }); }, // no contract signed in the meantime, not closed
+    R: function (r) { var u = String(r[10]).split(':')[2]; return !(arr && arr.some(function (a) { return a.uid === u && a.open > 0; })); } // Ruben 25.09.: no review request to a member with an open invoice
   };
+  function trialStill(uid, date, art) { var rows = []; ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.uid === uid) rows.push(t); }); }); return rows.some(function (t) { return t.date === date && t.art === art; }) && !rows.some(function (t) { return t.date > date && (t.art === 'BOOKED' || t.art === 'TRIAL'); }); }
   payNote += processOutbox(ss, sh, now, stillDue);
   if (arr) { writeArrears(ss, arr, info, sh); retireRetryTab(ss); var es = ss.getSheetByName('E state'); if (es) ss.deleteSheet(es); }
   var su = ss.getSheetByName('Summary'); if (su) su.getRange('A3:A400').setNumberFormat('dd.MM.yyyy');
@@ -707,6 +712,9 @@ function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date }: wh
   sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var id = k.slice(2).join(':'), when = r[2] instanceof Date ? r[2] : new Date(String(r[2]).replace(' ', 'T') + ':00'); if (isNaN(when.getTime())) when = r[0] instanceof Date ? r[0] : new Date(); (m[id] = m[id] || {})[k[1]] = when; });
   return m;
 }
+var QUIET_H = { C: 72, D: 72, X: 72, R: 168 }; // Ruben 25.09.: no follow-up / review request into a running conversation. Any WhatsApp message with this number (the person wrote, or a coach wrote from the app, on any connected number) within these hours = skipped for good; A has its own reply stop, B is a same-day reminder, E belongs to Waseem
+var DAY_GAP_H = 20; // at most one automatic message per person and day across all flows (B exempt: it is the class reminder); a blocked row waits for the next run instead of being dropped
+var PNID = { zh: '1033138903208435', ws: '514509738415062' }; // phone number id per connection (WA Events column C)
 var A_PREVIEW = false; // waPreviewA(): one dry pass of Flow A on the real chain state (outbox), rows are logged, not written
 function sinceOf(flow, now) { var f = SEND.since_flow && SEND.since_flow[flow]; return f ? new Date(f.replace(' ', 'T') + ':00' + Utilities.formatDate(now, TZ, 'XXX')) : new Date(SEND.since + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX')); } // first moment from which detected rows of this flow are sent
 function liveA() { return (SEND.on && SEND.flows.A) || A_PREVIEW; } // Flow A runs on the real outbox (sent messages) instead of the dry-run rows
@@ -732,6 +740,9 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
   if (en >= 3 && Object.keys(byId).length) { var st = {}; ev.getRange(3, 1, en - 2, EV_HEAD.length).getValues().forEach(function (r) { if (String(r[5]) !== 'status') return; var mid = String(r[10] || ''), sx = String(r[11] || ''); if (!byId[mid] || !rank[sx]) return; if (!st[mid] || rank[sx] > rank[st[mid].s]) st[mid] = { s: sx, x: String(r[12] || '') }; });
     Object.keys(st).forEach(function (mid) { var w = byId[mid], bk = books[w.id], row = bk.rows[w.i]; if (String(row[11]) === st[mid].s) return; bk.ob.getRange(3 + w.i, 12, 1, 2).setValues([[st[mid].s, st[mid].x || row[12]]]); upd++; }); }
   if (!SEND.on) return (upd ? ' Outbox: ' + upd + ' status updates.' : '') + ' Sender off.';
+  var chatAt = {}, chatTxt = {}, autoAt = {}; // phone -> last human message (in or coach app); pnid|phone -> coach texts (language); phone -> last automatic send
+  if (en >= 3) ev.getRange(3, 1, en - 2, EV_HEAD.length).getValues().forEach(function (r) { var dir = String(r[5] || ''); if ((dir !== 'in' && dir !== 'out-app') || !(r[0] instanceof Date)) return; var ph = normPhone(r[6]), d = atTime(r[0], r[1]); if (!ph) return; if (!chatAt[ph] || d > chatAt[ph]) chatAt[ph] = d; if (dir === 'out-app') { var k = String(r[2] || '') + '|' + ph; (chatTxt[k] = chatTxt[k] || []).push(String(r[9] || '')); } });
+  Object.keys(books).forEach(function (id) { books[id].rows.forEach(function (r) { if (!/^(sent|delivered|read)/.test(String(r[11])) || !(r[0] instanceof Date)) return; var ph = normPhone(r[6]), d = atTime(r[0], r[1]); if (ph && (!autoAt[ph] || d > autoAt[ph])) autoAt[ph] = d; }); });
   var dn = dry.getLastRow(), cand = dn >= TR_ROW0 ? dry.getRange(TR_ROW0, 1, dn - TR_ROW0 + 1, HEAD.length + DRY_EXTRA.length).getValues() : [], sentN = 0, failN = 0, held = 0, total = 0;
   var conn = 'zh';
   cand.forEach(function (r) {
@@ -739,17 +750,21 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
     var key = String(r[10] || ''), flow = String(r[3]), msg = String(r[4]), loc = String(r[5]); if (!key || done[key] || !SEND.flows[flow] || !SEND.conn[loc]) return;
     var detected = r[0] instanceof Date ? atTime(r[0], r[1]) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < sinceOf(flow, now) || !due || due > now) return;
     if (!inWindow(now, flow)) return;
-    var add = books[outboxBook(flow)].add; total++;
+    var ph0 = normPhone(r[11]); if (flow !== 'B' && ph0 && autoAt[ph0] && now.getTime() - autoAt[ph0].getTime() < DAY_GAP_H * 3600000) { if (SEND.preview) Logger.log('PREVIEW-WAIT ' + flow + '/' + msg + ' | ' + r[6] + ' | automatic message already sent on ' + fmtEuDT(autoAt[ph0])); return; } // one automatic message per person and day: wait for the next run
+    var add = SEND.preview ? { push: function (x) { Logger.log('PREVIEW-SKIP ' + x[2] + '/' + x[3] + ' | ' + x[4] + ' | ' + x[5] + ' | ' + x[12]); } } : books[outboxBook(flow)].add; total++; // preview: log only, the outbox stays untouched
     if (now.getTime() - detected.getTime() > (SEND.max_age_h || 36) * 3600000) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'expired (detected more than ' + (SEND.max_age_h || 36) + ' h ago)', key]); return; }
     if (stillDue[flow] && !stillDue[flow](r)) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'no longer due (booked, replied or closed in the meantime)', key]); return; }
+    if (QUIET_H[flow] && ph0 && chatAt[ph0] && now.getTime() - chatAt[ph0].getTime() < QUIET_H[flow] * 3600000) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'conversation on WhatsApp on ' + fmtEuDT(chatAt[ph0]) + ' (less than ' + QUIET_H[flow] + ' h ago)', key]); return; }
     var phone = normPhone(r[11]), params = []; try { params = JSON.parse(r[12] || '[]'); } catch (e) { params = null; }
     var spec = TEMPLATES.filter(function (t) { return t.id === msg && (msg !== 'W4' || !!t.fee === !!W4_FEE.on); })[0], lang = String(r[7] || 'DE').toLowerCase();
+    var cl = langOfText((chatTxt[(PNID[SEND.conn[loc]] || '') + '|' + phone] || []).join(' ')); if (cl && cl !== lang) lang = cl; // Ruben 25.09.: never switch language inside one chat, the coach's language wins
     var problem = !spec ? 'no template for ' + msg : (phone.length < 9 ? 'no usable phone number' : (!params ? 'bad params' : (params.some(function (x) { return /\{\w+\}/.test(String(x)) || String(x) === ''; }) ? 'missing parameter (e.g. class time)' : '')));
     if (problem) { held++; add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), lang.toUpperCase(), spec ? spec.name : '', JSON.stringify(params), '', 'held', problem, key]); return; }
+    if (SEND.preview) { Logger.log('PREVIEW-SEND ' + flow + '/' + msg + ' | ' + loc + ' | ' + r[6] + ' | ' + lang.toUpperCase() + ' | ' + JSON.stringify(params)); return; }
     var b = cfPostRaw({ action: 'wa_send', conn: SEND.conn[loc] || conn, to: phone, template: spec.name, language: lang, params: params });
     var mid = b && b.ok && b.data && b.data.messages && b.data.messages[0] ? String(b.data.messages[0].id) : '';
     var err = b && b.data && b.data.error ? (b.data.error.error_user_msg || b.data.error.message || '') + ' (' + (b.data.error.code || '') + ')' : (b ? '' : 'no answer from /api/wa');
-    if (mid) sentN++; else failN++;
+    if (mid) { sentN++; autoAt[phone] = now; } else failN++;
     add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], phone, lang.toUpperCase(), spec.name, JSON.stringify(params), mid, mid ? 'sent' : 'failed', mid ? '' : err, key]);
   });
   Object.keys(books).forEach(function (id) { var bk = books[id]; if (!bk.add.length) return; var r0 = bk.ob.getLastRow() + 1; bk.ob.getRange(r0, 1, bk.add.length, OUT_HEAD.length).setValues(bk.add); bk.ob.getRange(r0, 1, bk.add.length, 1).setNumberFormat('dd.MM.yyyy'); bk.ob.getRange(r0, 7, bk.add.length, 1).setNumberFormat('@'); });
@@ -1203,6 +1218,10 @@ function waContactStages() { // every 15 minutes (waQuarterHour): First / Second
   var calls = contactEvents(leads, now), open = leadsToCheck(leads, trials, trialNames, calls, now).filter(function (l) { return (calls[l.email.toLowerCase()] || { called: [] }).called.length > 0; }); // only leads with a coach message can change stage here
   if (!open.length) { Logger.log('contact stages: no lead with a coach message'); return; }
   syncContactStages(leads, trials, trialNames, leadStages(open), calls);
+}
+function waPreviewFlows(list, since) { // one-off: which rows of these flows the sender would send right now, with every guard, logged only (nothing sent, nothing written to the outbox); since = go-live moment to test, e.g. '2026-09-25 00:00'
+  var f0 = JSON.stringify(SEND.flows), s0 = JSON.stringify(SEND.since_flow); Object.keys(SEND.flows).forEach(function (k) { SEND.flows[k] = list.indexOf(k) >= 0; }); list.forEach(function (k) { SEND.since_flow[k] = since; }); SEND.preview = true;
+  try { waDryRunHourly(); } finally { SEND.preview = false; SEND.flows = JSON.parse(f0); SEND.since_flow = JSON.parse(s0); }
 }
 function waPreviewA() { // one-off: what Flow A would send on the real chain state (outbox), logged only; nothing is written or sent
   A_PREVIEW = true; var on = SEND.on, sf = SEND.since_flow.A; SEND.on = false; SEND.since_flow.A = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'); // as if Flow A went live right now: earlier dry-run rows do not count
