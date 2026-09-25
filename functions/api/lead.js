@@ -80,7 +80,7 @@ async function dupUpdate(env, auth, p, clean) {
     oldTags = Array.isArray(raw) ? raw.map(String) : String(raw || "").split(/,\s*/).filter(Boolean);
   } catch {}
   const note = "ERNEUTE ANFRAGE " + stamp + ": " + [clean(p.discipline), clean(p.location), p.kid_name ? "Kind " + clean(p.kid_name) + (p.kid_age ? " (" + clean(p.kid_age) + ")" : "") : "", p.message ? clean(p.message) : "", "Seite " + clean(p.page)].filter(Boolean).join(" | ");
-  const tags = Array.from(new Set(oldTags.concat([clean(p.discipline), clean(p.location), "repeat-lead-" + stamp]).filter(Boolean)));
+  const tags = Array.from(new Set(oldTags.concat([clean(p.discipline), clean(p.location)]).filter(Boolean)));
   // Bisheriger Standort: location_id des Users, sonst aus den Tags der Erstanfrage
   let oldLoc = "";
   const lid = String((user && user.location_id) || "");
