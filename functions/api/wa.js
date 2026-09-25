@@ -64,6 +64,7 @@ export async function onRequestPost(context) {
     if (p.action === "invoices") return j(await fpList(H, "/api/v4/fp/invoices", p));
     if (p.action === "charges") return j(await fpList(H, "/api/v4/fp/charges/", p));
     if (p.action === "clients") return j(await clients(H, p.uids));
+    if (p.action === "clients_stage") return j(await clientsStage(H, p.uids));
     if (p.action === "invoice_refresh") return j(await invoiceRefresh(H, p.ids));
     if (p.action === "client_status") return j(await clientStatus(H, p.uids));
     if (p.action === "locations") return j(await locations(H));
@@ -236,6 +237,22 @@ async function clients(H, uids) {
       tags: Array.isArray(u.tag_list) ? u.tag_list.join(",") : String(u.tag_list || u.tags || "") };
   }
   return { ok: true, count: Object.keys(out).length, keys, clients: out };
+}
+// Name, e-mail, tags (v4 user) + lifecycle stage (v3 client search, the v4 user has no stage) per user id; 18 ids per call = 36 subrequests (25.09.2026: the trial-tag run read an empty stage from v4 and skipped everyone)
+async function clientsStage(H, uids) {
+  const out = {}, list = (Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean).slice(0, 18);
+  for (const uid of list) {
+    const r = await getJson(H, API + "/api/v4/users/" + uid), u = r.json && (r.json.user || r.json);
+    if (r.status !== 200 || !u || typeof u !== "object") { out[uid] = null; continue; }
+    const email = String(u.email || "").toLowerCase().trim(), tags = Array.isArray(u.tag_list) ? u.tag_list.join(",") : String(u.tag_list || u.tags || "");
+    const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
+    if (!email) { out[uid] = { uid, name, email, tags, lifecycle: "", found: false }; continue; }
+    const s = await getJson(H, API + "/api/v3/clients?q%5Bclient_search%5D=" + encodeURIComponent(email) + "&per=25"), js = s.json;
+    let arr = Array.isArray(js) ? js : (js && (js.clients || js.client || js.data)) || []; if (arr && !Array.isArray(arr)) arr = [arr];
+    const hit = arr.find((c) => c && String(c.email || (c.user && c.user.email) || "").toLowerCase() === email) || null;
+    out[uid] = { uid, name, email, tags, lifecycle: hit ? String(hit.lifecycle_stage_name || "") : "", found: !!hit, cid: hit ? String(hit.id) : "" };
+  }
+  return { ok: true, count: Object.keys(out).length, clients: out };
 }
 // Lifecycle / billing status from the client list (v2) for members that are not in the "Failed Payments" client filter:
 // scans the list page by page (max 20 pages = 2000 clients) until every id is found. Read-only.

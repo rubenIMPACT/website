@@ -378,9 +378,9 @@ function fetchLocations() { // location id -> name (invoices carry destination_i
   Logger.log('locations: ' + Object.keys(m).length + ' ' + JSON.stringify(b.info || {}).slice(0, 400));
   return m;
 }
-function fetchReport(key, start, end, per, cols, locId, noWait) { // exercise.com report via /api/wa (cache, then refresh + poll); null = error or, with noWait, 'not ready yet' (refresh triggered, read on the next run)
+function fetchReport(key, start, end, per, cols, locId, noWait, force) { // exercise.com report via /api/wa (cache, then refresh + poll); null = error or, with noWait, 'not ready yet' (refresh triggered, read on the next run)
   if (!CF_TOKEN || /^PASTE/.test(CF_TOKEN)) return null;
-  var refresh = false; // attempt 0 uses exercise.com's cached report (fast when the same window was generated earlier today), attempt 1 triggers a fresh one, then poll
+  var refresh = !!force; // attempt 0 uses exercise.com's cached report (force: regenerate right away) (fast when the same window was generated earlier today), attempt 1 triggers a fresh one, then poll
   for (var i = 0; i < 8; i++) {
     try {
       var r = UrlFetchApp.fetch(CF_URL, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ token: CF_TOKEN, action: 'report', key: key, start: start, end: end, per: per, refresh: refresh, rows: true, cols: cols, location_id: locId || undefined }), muteHttpExceptions: true });
@@ -1206,12 +1206,12 @@ function waSubmitTemplates(conn, only) { // one-off (Ruben 22.09., go): submit e
   }); });
   Logger.log('templates submitted (' + conn + '): ' + n + ', already there: ' + skip + ', failed: ' + fail + (later ? ', left for the next run: ' + later : ''));
 }
-var TRIAL_TAG = { on: true, Zurich: 'Trial Zurich', Winterthur: 'Trial Winterthur', days: 14, max_per_run: 20 }; // Ruben 24.09.2026 (go): the trial tag follows the booking. Every 15 minutes: reserved classes of the next 14 days per studio (exercise.com report detailed_visits), people in a lead stage without the tag get it -> exercise.com sends the welcome e-mail by itself (automation "tag added: Trial ..."). Manual tags by the coaches stay harmless: an existing tag is never set twice, a removed tag is never set again (Tag log)
+var TRIAL_TAG = { on: true, tags: 'hold', lookups: 90, Zurich: 'Trial Zurich', Winterthur: 'Trial Winterthur', days: 14, max_per_run: 20 }; // tags: 'live' = set tags, 'hold' = only read the bookings (future-booking rule), no stage lookups, no tags (25.09.2026: repaired, waits for Ruben's go on the list); lookups = stage lookups per studio and run. Before: // Ruben 24.09.2026 (go): the trial tag follows the booking. Every 15 minutes: reserved classes of the next 14 days per studio (exercise.com report detailed_visits), people in a lead stage without the tag get it -> exercise.com sends the welcome e-mail by itself (automation "tag added: Trial ..."). Manual tags by the coaches stay harmless: an existing tag is never set twice, a removed tag is never set again (Tag log)
 function tagLog() { // hidden tab "Tag log" in Detailed Sales KPIs: one line per tag the automation set (or found already set); done = uid:tag handled
   var ss = SpreadsheetApp.openById(TEAM_ID), sh = ss.getSheetByName('Tag log'), done = {};
   if (!sh) { sh = ss.insertSheet('Tag log'); sh.getRange('A1').setValue('Tag log: every trial tag the automation set in exercise.com after a class booking (or found already set by the coach). The tag triggers the welcome e-mail in exercise.com. Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'Time', 'UID', 'Name', 'Tag', 'Result', 'Reason']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); [95, 55, 80, 180, 130, 110, 320].forEach(function (w, i) { sh.setColumnWidth(1 + i, w); }); }
   if (!sh.isSheetHidden()) sh.hideSheet();
-  var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { if (r[2] && r[4]) done[String(r[2]) + ':' + String(r[4])] = true; });
+  var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { if (!r[2] || !r[4]) return; if (String(r[5]) === 'skipped' && /^stage ""/.test(String(r[6]))) return; done[String(r[2]) + ':' + String(r[4])] = true; }); // 25.09.: rows skipped with an empty stage (broken lookup 24./25.09.) are checked again
   return { sh: sh, done: done };
 }
 function syncContactStages(leads, trials, trialNames, stages, calls, lastA, now, dry) { // Ruben 25.09.: automatic lead messages that really went out count as contacts too (A1 = First, A2 = Second, A3 = Third, mixed with the coach's own messages); failed ones do not. // Ruben 16.09.: the coach's own messages (M1-M3 from the quick replies, seen as webhook echoes) set First / Second / Third Contact in exercise.com (forward only); nobody sets them by hand any more. Runs hourly (waDryRunHourly) and every 15 minutes (waQuarterHour, Ruben 25.09.); the Stage log makes each id + stage a one-off
@@ -1273,31 +1273,39 @@ function hasFutureBooking(uid) { // true = the person already has the next class
   if (!FUT_CACHE) { FUT_CACHE = {}; ['Zurich', 'Winterthur'].forEach(function (loc) { try { var v = JSON.parse(PropertiesService.getScriptProperties().getProperty('futBook_' + loc) || 'null'); if (v && Date.now() - v.at < 2 * 3600000) v.u.forEach(function (u) { FUT_CACHE[u] = 1; }); else Logger.log('future bookings ' + loc + ': no fresh data'); } catch (e) {} }); }
   return !!FUT_CACHE[String(uid || '').replace(/\D/g, '')];
 }
-function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); light: one report per studio + client lookups in batches of 40
+function waTrialTags(dry) { // own trigger every 15 minutes (installTagTrigger): ONE bookings report for both studios, split by the Location column (25.09.: per-studio calls got Zurich's cached report for Winterthur); stage from the client search. dry = preview: logs who would get a tag, writes nothing
   if (!TRIAL_TAG.on) return;
-  var now = new Date(), today = fmtD(now), log = tagLog(), add = [], set = 0, already = 0, skipped = 0, failed = 0;
+  var now = new Date(), today = fmtD(now), log = tagLog(), add = [], set = 0, already = 0, skipped = 0, failed = 0, would = [];
+  var cols = ['User ID', 'Start Time', 'Status', 'Service', 'Location'], rows = fetchReport('detailed_visits', today, addDs(today, TRIAL_TAG.days), 3000, cols, undefined, false);
+  var locOf = function (r) { var x = String(r['Location'] || ''); return /winterthur/i.test(x) ? 'Winterthur' : (/z[uü]rich/i.test(x) ? 'Zurich' : ''); };
+  if (rows && !(rows.some(function (r) { return locOf(r) === 'Zurich'; }) && rows.some(function (r) { return locOf(r) === 'Winterthur'; }))) { Logger.log('trial tags: cached report has one studio only, regenerating'); rows = fetchReport('detailed_visits', today, addDs(today, TRIAL_TAG.days), 3000, cols, undefined, false, true); }
+  if (rows === null) { Logger.log('trial tags: report not ready, next run'); return; }
+  var by = { Zurich: [], Winterthur: [] }; rows.forEach(function (r) { var l = locOf(r); if (l) by[l].push(r); });
+  if (!by.Zurich.length || !by.Winterthur.length) { Logger.log('trial tags: report still has one studio only (ZH ' + by.Zurich.length + ', WT ' + by.Winterthur.length + '), nothing done'); return; }
+  var tr = { Zurich: readTrials('Zurich'), Winterthur: readTrials('Winterthur') }, attended = {}; ['Zurich', 'Winterthur'].forEach(function (loc) { tr[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.uid) attended[String(t.uid)] = t.date; }); });
   ['Zurich', 'Winterthur'].forEach(function (loc) {
-    var tag = TRIAL_TAG[loc], rows = fetchReport('detailed_visits', today, addDs(today, TRIAL_TAG.days), 1000, ['User ID', 'Start Time', 'Status', 'Service'], LOC_ID[loc], true);
-    if (rows === null) { Logger.log('trial tags ' + loc + ': report not ready, next run'); return; }
-    var uids = {}; rows.forEach(function (r) { if (/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) && r['User ID']) uids[String(r['User ID'])] = String(r['Start Time'] || ''); });
-    storeFutureBookings(loc, rows, now); // Ruben 25.09.: who already booked the next session (no follow-up, stage stays)
-    var todo = Object.keys(uids).filter(function (u) { return !log.done[u + ':' + tag]; });
-    if (!todo.length) return;
-    var cl = fetchClients(todo.slice(0, 120)); // most are members; only lead stages continue
+    var tag = TRIAL_TAG[loc], lr = by[loc];
+    storeFutureBookings(loc, lr, now); // Ruben 25.09.: who already booked the next session (no follow-up, stage stays)
+    if (TRIAL_TAG.tags !== 'live' && !dry) return; // hold: bookings only
+    var uids = {}; lr.forEach(function (r) { if (/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) && r['User ID']) { var u = String(r['User ID']); if (!uids[u]) uids[u] = String(r['Start Time'] || '') + ' ' + String(r['Service'] || ''); } });
+    var todo = Object.keys(uids).filter(function (u) { return !log.done[u + ':' + tag]; }).slice(0, dry ? 400 : TRIAL_TAG.lookups);
+    var cl = {}; for (var i = 0; i < todo.length; i += 18) { var b = cfPost({ action: 'clients_stage', uids: todo.slice(i, i + 18) }); if (b && b.clients) Object.keys(b.clients).forEach(function (u) { cl[u] = b.clients[u]; }); }
     todo.forEach(function (u) {
-      if (set + failed >= TRIAL_TAG.max_per_run) return; // the cap counts real tag changes, not the members that are simply not trials
-      var c = cl[u]; if (!c) return; // not found: try again next run
-      var stage = String(c.lifecycle || ''), tags = String(c.tags || '');
-      if (LEAD_STAGES.indexOf(stage) < 0 || !stage) { skipped++; log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'skipped', 'stage "' + stage + '": not a trial (booking ' + uids[u] + ')']); return; }
-      if (tags.split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(tag.toLowerCase()) >= 0) { already++; log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'already set', 'set by hand before the automation (booking ' + uids[u] + ')']); return; }
-      var b = cfPostRaw({ action: 'add_tag', uid: u, tag: tag }), ok = b && b.ok;
+      var c = cl[u]; if (!c || !c.found) return; // not found (or lookup failed): try again next run, nothing is marked
+      var stage = String(c.lifecycle || ''), tags = String(c.tags || ''), has = tags.split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(tag.toLowerCase()) >= 0;
+      if (LEAD_STAGES.indexOf(stage) < 0 || !stage) { skipped++; if (!dry) { log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'skipped', 'stage "' + stage + '": not a trial (booking ' + uids[u] + ')']); } return; }
+      if (has) { already++; if (!dry) { log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'already set', 'set by hand before the automation (booking ' + uids[u] + ')']); } return; }
+      if (dry) { would.push(loc + ' | ' + (c.name || u) + ' | stage ' + stage + ' | ' + uids[u] + (attended[u] ? ' | ALREADY HAD A TRIAL on ' + attended[u] : '')); return; }
+      if (set + failed >= TRIAL_TAG.max_per_run) return; // the cap counts real tag changes
+      var t = cfPostRaw({ action: 'add_tag', uid: u, tag: tag }), ok = t && t.ok;
       if (ok) set++; else failed++;
       log.done[u + ':' + tag] = !!ok;
-      add.push([dayStart(now), fmtT(now), u, c.name || '', tag, ok ? (b.unchanged ? 'already set' : 'set') : 'failed', ok ? 'booking ' + uids[u] + ', stage "' + stage + '"' : JSON.stringify(b).slice(0, 200)]);
+      add.push([dayStart(now), fmtT(now), u, c.name || '', tag, ok ? (t.unchanged ? 'already set' : 'set') : 'failed', ok ? 'booking ' + uids[u] + ', stage "' + stage + '"' : JSON.stringify(t).slice(0, 200)]);
     });
   });
+  if (dry) { Logger.log('WOULD TAG ' + would.length + '\n' + would.join('\n')); Logger.log('trial tags (preview): ' + already + ' already tagged, ' + skipped + ' not in a lead stage'); return; }
   if (add.length) { var r0 = log.sh.getLastRow() + 1; log.sh.getRange(r0, 1, add.length, 7).setValues(add); log.sh.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); log.sh.getRange(r0, 3, add.length, 1).setNumberFormat('@'); }
-  Logger.log('trial tags: ' + set + ' set, ' + already + ' already set by hand, ' + skipped + ' not a trial' + (failed ? ', ' + failed + ' failed' : ''));
+  Logger.log('trial tags: ' + set + ' set, ' + already + ' already set by hand, ' + skipped + ' not a trial' + (failed ? ', ' + failed + ' failed' : '') + ' (tags ' + TRIAL_TAG.tags + ')');
 }
 function installTagTrigger() { // once: the 15-minute trigger for waQuarterHour = trial tags + contact stages (replaces an existing one, also the old waTrialTags trigger)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waTrialTags' || t.getHandlerFunction() === 'waQuarterHour') ScriptApp.deleteTrigger(t); });
