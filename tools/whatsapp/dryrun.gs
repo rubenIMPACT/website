@@ -107,10 +107,10 @@ function waDryRunHourly() {
   });
   if (!pv) writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
   if (!pv) migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
-  if (!pv) syncContactStages(leads, trials, trialNames, stages, calls);
+  syncContactStages(leads, trials, trialNames, stages, calls, lastA, now, pv); // preview: only logged
   if (STAGE_SYNC.lost) { // Ruben 25.09.: Not Interested (Lost) LOST.days after the third contact (automatic or the coach's own), no reply, no booking; forward only from Lead / First / Second / Third Contact. In a preview only logged
     var lc = lostCandidates(leads, trials, trialNames, stages, lastA, calls, now), lostN = 0, waitN = 0;
-    lc.forEach(function (c) { if (c.due > now) { waitN++; if (pv) Logger.log('LOST later ' + fmtEuDT(c.due) + ' | ' + c.l.name + ' | third contact ' + fmtEuDT(c.lastAt) + ' | stage "' + c.stage + '"'); return; } if (pv) { Logger.log('LOST now | ' + c.l.name + ' | third contact ' + fmtEuDT(c.lastAt) + ' | stage "' + c.stage + '"'); return; } if (setStage(c.l.loc, c.l.email, c.l.name, STAGE.lost, STAGE_NAME.lost, 'no reply and no booking ' + LOST.days + ' days after the third contact (' + fmtEuDT(c.lastAt) + ')', ['Lead', 'First Contact', 'Second Contact', 'Third Contact', '']) === 'set') lostN++; });
+    lc.forEach(function (c) { if (c.due > now) { waitN++; if (pv) Logger.log('LOST later ' + fmtEuDT(c.due) + ' | ' + c.l.name + ' | third contact ' + fmtEuDT(c.lastAt) + ' | stage "' + c.stage + '"'); return; } if (pv) { Logger.log('LOST now | ' + c.l.name + ' | third contact ' + fmtEuDT(c.lastAt) + ' | stage "' + c.stage + '"'); return; } if (setStage(c.l.loc, c.l.email, c.l.name, STAGE.lost, STAGE_NAME.lost, 'no reply and no booking ' + LOST.days + ' days after the third contact (' + fmtEuDT(c.lastAt) + ')', ['Third Contact']) === 'set') lostN++; });
     Logger.log('lost stage: ' + lostN + ' set, ' + waitN + ' waiting');
   }
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
@@ -1213,14 +1213,15 @@ function tagLog() { // hidden tab "Tag log" in Detailed Sales KPIs: one line per
   var n = sh.getLastRow(); if (n >= 3) sh.getRange(3, 1, n - 2, 7).getValues().forEach(function (r) { if (r[2] && r[4]) done[String(r[2]) + ':' + String(r[4])] = true; });
   return { sh: sh, done: done };
 }
-function syncContactStages(leads, trials, trialNames, stages, calls) { // Ruben 16.09.: the coach's own messages (M1-M3 from the quick replies, seen as webhook echoes) set First / Second / Third Contact in exercise.com (forward only); nobody sets them by hand any more. Runs hourly (waDryRunHourly) and every 15 minutes (waQuarterHour, Ruben 25.09.); the Stage log makes each id + stage a one-off
+function syncContactStages(leads, trials, trialNames, stages, calls, lastA, now, dry) { // Ruben 25.09.: automatic lead messages that really went out count as contacts too (A1 = First, A2 = Second, A3 = Third, mixed with the coach's own messages); failed ones do not. // Ruben 16.09.: the coach's own messages (M1-M3 from the quick replies, seen as webhook echoes) set First / Second / Third Contact in exercise.com (forward only); nobody sets them by hand any more. Runs hourly (waDryRunHourly) and every 15 minutes (waQuarterHour, Ruben 25.09.); the Stage log makes each id + stage a one-off
   if (!STAGE_SYNC.contacts) return;
   var stageOfLead = function (l) { return stages[(l.email || '').toLowerCase().trim()] || ''; };
   var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l) || LC_SKIP.test(stageOfLead(l))) return;
-    var cs = calls[l.email.toLowerCase()] || { called: [] }, n = cs.called.length; if (!n || cs.replied) return; // after a reply the chat is a conversation, not an attempt
-    var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'message ' + n + ' by ' + SENDER[l.loc] + ' from the WhatsApp app (' + fmtEuDT(cs.called[n - 1]) + ')', step[1]) === 'set') stageN++;
+    var s = leadState(l, lastA || {}, calls, now || new Date()), n = s.slot; if (!n || s.replied) return; // after a reply the chat is a conversation, not an attempt
+    var step = ladder[Math.min(n, 3) - 1]; if (dry) { if (step[1].indexOf(stageOfLead(l)) >= 0) Logger.log('STAGE ' + l.name + ' | ' + (stageOfLead(l) || '-') + ' -> ' + STAGE_NAME[step[0]] + ' | ' + s.calls + ' coach, ' + s.done.length + ' automatic'); return; }
+    if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'contact ' + n + ' (' + s.calls + ' by ' + SENDER[l.loc] + ' from the WhatsApp app, ' + s.done.length + ' automatic), last ' + fmtEuDT(s.lastAt), step[1]) === 'set') stageN++;
   });
   if (stageN) Logger.log('stages from coach messages: ' + stageN + ' set');
 }
@@ -1231,7 +1232,7 @@ function lostCandidates(leads, trials, trialNames, stages, lastA, calls, now) { 
   var out = [];
   Object.keys(byMail).forEach(function (k) { var l = byMail[k];
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return;
-    var st = (stages || {})[k] || ''; if (LC_SKIP.test(st) || ['Lead', 'First Contact', 'Second Contact', 'Third Contact', ''].indexOf(st) < 0) return;
+    var st = (stages || {})[k] || ''; if (st !== 'Third Contact') return; // Ruben 25.09.: automatic Lost only from Third Contact, never from Lead / First / Second
     var s = leadState(l, lastA, calls, now); if (s.replied || s.slot < RULE.A_MAX || !s.lastAt || s.lastAt < from) return;
     out.push({ l: l, lastAt: s.lastAt, due: new Date(s.lastAt.getTime() + LOST.days * 86400000), stage: st });
   });
@@ -1245,9 +1246,9 @@ function waContactStages() { // every 15 minutes (waQuarterHour): First / Second
   if (!STAGE_SYNC.contacts) return;
   var now = new Date(), leads = readLeads(), trials = { Zurich: readTrials('Zurich'), Winterthur: readTrials('Winterthur') }, trialNames = {};
   ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { trialNames[t.nname] = true; }); });
-  var calls = contactEvents(leads, now), open = leadsToCheck(leads, trials, trialNames, calls, now).filter(function (l) { return (calls[l.email.toLowerCase()] || { called: [] }).called.length > 0; }); // only leads with a coach message can change stage here
+  var calls = contactEvents(leads, now), lastA = lastFlowA(SpreadsheetApp.openById(WA_ID).getSheetByName('Dry run')), open = leadsToCheck(leads, trials, trialNames, calls, now).filter(function (l) { return leadState(l, lastA, calls, now).slot > 0; }); // only leads with a coach message can change stage here
   if (!open.length) { Logger.log('contact stages: no lead with a coach message'); return; }
-  syncContactStages(leads, trials, trialNames, leadStages(open), calls);
+  syncContactStages(leads, trials, trialNames, leadStages(open), calls, lastA, now);
 }
 function waPreviewFlows(list, since, simNow) { // one-off: which rows of these flows the sender would send, with every guard, logged only (nothing sent, no sheet or stage written); since = go-live moment for flows that are not live yet, simNow = simulated clock 'yyyy-MM-dd HH:mm' (optional)
   var f0 = JSON.stringify(SEND.flows), s0 = JSON.stringify(SEND.since_flow); Object.keys(SEND.flows).forEach(function (k) { SEND.flows[k] = list.indexOf(k) >= 0; }); list.forEach(function (k) { if (!SEND.since_flow[k]) SEND.since_flow[k] = since; }); SEND.preview = true; PREVIEW_ROWS = null;
