@@ -122,7 +122,8 @@ function waDryRunHourly() {
       if (t.art === 'BOOKED' && t.date === today && !keys['B:B1:' + t.uid + ':' + t.date]) { var bk = bookingOf(loc, t.uid, today); if (bk) due.push({ flow: 'B', msg: 'B1', loc: loc, t: t, trig: 'B1: trial booked today, ' + bk.service + ' at ' + bk.time + ' (reminder 3 h before, from the exercise.com booking)', key: 'B:B1:' + t.uid + ':' + t.date, vars: { 'class': bk.service, time: bk.time, send_at: new Date(bk.start.getTime() - 3 * 3600000) } }); else heldB.push(t.name); } // Ruben 23.09.: class time from the booking in exercise.com (report detailed_visits, status Reserved / Registered); no booking found yet -> no row, the next run tries again
       if (t.art === 'NOSHOW' && t.date === yday) due.push({ flow: 'C', msg: 'C1', loc: loc, t: t, trig: 'C1: no-show on ' + euD(t.date) + ', no new booking', key: 'C:C1:' + t.uid + ':' + t.date, vars: {} });
       if (t.art === 'CANCELLED' && t.date >= addDs(today, -7) && t.date <= addDs(today, 30)) due.push({ flow: 'X', msg: 'X1', loc: loc, t: t, trig: 'X1: trial on ' + euD(t.date) + ' cancelled, no new booking (re-engage cancelled trial)', key: 'X:X1:' + t.uid + ':' + t.date, vars: { date: '' } }); // Flow X (Ruben 10.09.): cancelled trial, once per trial date, next send window
-      if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) due.push({ flow: 'D', msg: 'D1', loc: loc, t: t, trig: 'D1: trial on ' + euD(t.date) + ', no contract, stage "' + (t.lifecycle || '-') + '"', key: 'D:D1:' + t.uid + ':' + t.date, vars: { date: '' } });
+      if (t.art === 'TRIAL' && t.date === d3 && !t.contract && hasFutureBooking(t.uid)) Logger.log('D1 not queued: next class already booked (' + t.name + ')');
+      else if (t.art === 'TRIAL' && t.date === d3 && !t.contract && !LC_SKIP.test(t.lifecycle)) due.push({ flow: 'D', msg: 'D1', loc: loc, t: t, trig: 'D1: trial on ' + euD(t.date) + ', no contract, stage "' + (t.lifecycle || '-') + '"', key: 'D:D1:' + t.uid + ':' + t.date, vars: { date: '' } });
     });
   });
   if (heldB.length) Logger.log('B1 waiting for the booking time in exercise.com: ' + heldB.length);
@@ -190,7 +191,7 @@ function waDryRunHourly() {
   // Stage sync (Ruben 10.09.): "Pending Decision" on the evening of an attended trial without contract (first run after 20:00), only if the stage was not changed by hand
   if (!pv && STAGE_SYNC.pending && Number(Utilities.formatDate(now, TZ, 'H')) >= 22) { // Ruben 10.09.: after 22:00, sales can still close until 21:30
     var setN = 0;
-    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle)) { if (setStage(loc, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + euD(t.date) + ', no contract by 22:00') === 'set') setN++; } }); });
+    ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.art === 'TRIAL' && t.date === today && !t.contract && !LC_SKIP.test(t.lifecycle) && !hasFutureBooking(t.uid)) { if (setStage(loc, t.uid, t.name, STAGE.pending, 'Pending Decision', 'trial attended ' + euD(t.date) + ', no contract by 22:00') === 'set') setN++; } }); });
     if (setN) payNote += ' Stages: ' + setN + ' x Pending Decision.';
   }
   if (!pv && STAGE_SYNC.noshow) { // Ruben 15.09.: the stage follows the EVENT, not the message: the trainer marks a no-show -> "re-engage no-shows"; a booked trial is cancelled -> "re-engage cancelled trial" (trials of the last 7 days, forward only, once per person and stage)
@@ -210,7 +211,7 @@ function waDryRunHourly() {
     E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); },
     C: function (r) { var k = String(r[10]).split(':'); return k[3] === yday && trialStill(k[2], k[3], 'NOSHOW'); }, // still a no-show, no newer booking / trial, and the text says "gestern": only on the day after the no-show
     X: function (r) { var k = String(r[10]).split(':'); return trialStill(k[2], k[3], 'CANCELLED'); },
-    D: function (r) { var k = String(r[10]).split(':'); return ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'TRIAL' && !t.contract && !LC_SKIP.test(t.lifecycle); }); }); }, // no contract signed in the meantime, not closed
+    D: function (r) { var k = String(r[10]).split(':'); return !hasFutureBooking(k[2]) && ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'TRIAL' && !t.contract && !LC_SKIP.test(t.lifecycle); }); }); }, // no contract signed in the meantime, not closed
     trialStart: function (uid, date) { var t = null; ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (x) { if (x.uid === uid && x.date === date) t = x; }); }); var hm = t && /(\d{1,2}):(\d{2})/.exec(t.cls || ''), d0 = new Date(date + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX')); return hm ? atTime(d0, ('0' + hm[1]).slice(-2) + ':' + hm[2]) : d0; }, // start of the class (from the trial list), else midnight of that day
     R: function (r) { var u = String(r[10]).split(':')[2]; return arr !== null && !openPay(u); } // Ruben 25.09.: no review request to a member with an open payment (payment data missing = no send)
   };
@@ -1263,6 +1264,15 @@ function waQuarterHour() { // the 15-minute trigger (installTagTrigger): trial t
   try { waTrialTags(); } catch (e) { Logger.log('waTrialTags failed: ' + e); }
   try { waContactStages(); } catch (e) { Logger.log('waContactStages failed: ' + e); }
 }
+function storeFutureBookings(loc, rows, now) { // user ids with a reserved / registered class that starts after now (next 14 days), per studio in Script Properties, refreshed every 15 minutes by waTrialTags
+  var set = {}; rows.forEach(function (r) { if (!/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) || !r['User ID']) return; var m = /(\d{4})\/(\d{2})\/(\d{2}) (\d{1,2}):(\d{2}) (AM|PM)/.exec(String(r['Start Time'] || '')); if (!m) return; var hh = Number(m[4]) % 12 + (m[6] === 'PM' ? 12 : 0), d = new Date(m[1] + '-' + m[2] + '-' + m[3] + 'T' + ('0' + hh).slice(-2) + ':' + m[5] + ':00' + Utilities.formatDate(now, TZ, 'XXX')); if (d > now) set[String(r['User ID']).replace(/\D/g, '')] = 1; });
+  PropertiesService.getScriptProperties().setProperty('futBook_' + loc, JSON.stringify({ at: now.getTime(), u: Object.keys(set) }));
+}
+var FUT_CACHE = null;
+function hasFutureBooking(uid) { // true = the person already has the next class booked (data at most 2 hours old); unknown data = false (old behaviour)
+  if (!FUT_CACHE) { FUT_CACHE = {}; ['Zurich', 'Winterthur'].forEach(function (loc) { try { var v = JSON.parse(PropertiesService.getScriptProperties().getProperty('futBook_' + loc) || 'null'); if (v && Date.now() - v.at < 2 * 3600000) v.u.forEach(function (u) { FUT_CACHE[u] = 1; }); else Logger.log('future bookings ' + loc + ': no fresh data'); } catch (e) {} }); }
+  return !!FUT_CACHE[String(uid || '').replace(/\D/g, '')];
+}
 function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); light: one report per studio + client lookups in batches of 40
   if (!TRIAL_TAG.on) return;
   var now = new Date(), today = fmtD(now), log = tagLog(), add = [], set = 0, already = 0, skipped = 0, failed = 0;
@@ -1270,6 +1280,7 @@ function waTrialTags() { // own trigger every 15 minutes (installTagTrigger); li
     var tag = TRIAL_TAG[loc], rows = fetchReport('detailed_visits', today, addDs(today, TRIAL_TAG.days), 1000, ['User ID', 'Start Time', 'Status', 'Service'], LOC_ID[loc], true);
     if (rows === null) { Logger.log('trial tags ' + loc + ': report not ready, next run'); return; }
     var uids = {}; rows.forEach(function (r) { if (/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) && r['User ID']) uids[String(r['User ID'])] = String(r['Start Time'] || ''); });
+    storeFutureBookings(loc, rows, now); // Ruben 25.09.: who already booked the next session (no follow-up, stage stays)
     var todo = Object.keys(uids).filter(function (u) { return !log.done[u + ':' + tag]; });
     if (!todo.length) return;
     var cl = fetchClients(todo.slice(0, 120)); // most are members; only lead stages continue
