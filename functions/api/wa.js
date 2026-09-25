@@ -238,9 +238,9 @@ async function clients(H, uids) {
   }
   return { ok: true, count: Object.keys(out).length, keys, clients: out };
 }
-// Name, e-mail, tags (v4 user) + lifecycle stage (v3 client search, the v4 user has no stage) per user id; 18 ids per call = 36 subrequests (25.09.2026: the trial-tag run read an empty stage from v4 and skipped everyone)
+// Name, e-mail (v4 user) + lifecycle stage (v3 client search, the v4 user has no stage) + tags (v2 client record) per user id; 12 ids per call = 36 subrequests (25.09.2026: the trial-tag run read an empty stage from v4 and skipped everyone)
 async function clientsStage(H, uids) {
-  const out = {}, list = (Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean).slice(0, 18);
+  const out = {}, list = (Array.isArray(uids) ? uids : []).map((u) => String(u).replace(/\D/g, "")).filter(Boolean).slice(0, 12);
   for (const uid of list) {
     const r = await getJson(H, API + "/api/v4/users/" + uid), u = r.json && (r.json.user || r.json);
     if (r.status !== 200 || !u || typeof u !== "object") { out[uid] = null; continue; }
@@ -250,7 +250,9 @@ async function clientsStage(H, uids) {
     const s = await getJson(H, API + "/api/v3/clients?q%5Bclient_search%5D=" + encodeURIComponent(email) + "&per=25"), js = s.json;
     let arr = Array.isArray(js) ? js : (js && (js.clients || js.client || js.data)) || []; if (arr && !Array.isArray(arr)) arr = [arr];
     const hit = arr.find((c) => c && String(c.email || (c.user && c.user.email) || "").toLowerCase() === email) || null;
-    out[uid] = { uid, name, email, tags, lifecycle: hit ? String(hit.lifecycle_stage_name || "") : "", found: !!hit, cid: hit ? String(hit.id) : "" };
+    let ctags = tags;
+    if (hit && hit.id) { const c2 = await getJson(H, API + "/api/v2/clients/" + hit.id), c = c2.json && (c2.json.client || c2.json) || {}; const t = Array.isArray(c.tag_list) ? c.tag_list : (Array.isArray(c.tags) ? c.tags : String(c.tag_list || c.tags || "").split(",")); ctags = t.map((x) => String(x).trim()).filter(Boolean).join(","); } // tags live on the client record (v2), the v4 user has none (25.09.)
+    out[uid] = { uid, name, email, tags: ctags, lifecycle: hit ? String(hit.lifecycle_stage_name || "") : "", found: !!hit, cid: hit ? String(hit.id) : "" };
   }
   return { ok: true, count: Object.keys(out).length, clients: out };
 }

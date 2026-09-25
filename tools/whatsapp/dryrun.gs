@@ -1289,13 +1289,13 @@ function waTrialTags(dry) { // own trigger every 15 minutes (installTagTrigger):
     if (TRIAL_TAG.tags !== 'live' && !dry) return; // hold: bookings only
     var uids = {}; lr.forEach(function (r) { if (/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) && r['User ID']) { var u = String(r['User ID']); if (!uids[u]) uids[u] = String(r['Start Time'] || '') + ' ' + String(r['Service'] || ''); } });
     var todo = Object.keys(uids).filter(function (u) { return !log.done[u + ':' + tag]; }).slice(0, dry ? 400 : TRIAL_TAG.lookups);
-    var cl = {}; for (var i = 0; i < todo.length; i += 18) { var b = cfPost({ action: 'clients_stage', uids: todo.slice(i, i + 18) }); if (b && b.clients) Object.keys(b.clients).forEach(function (u) { cl[u] = b.clients[u]; }); }
+    var cl = {}; for (var i = 0; i < todo.length; i += 12) { var b = cfPost({ action: 'clients_stage', uids: todo.slice(i, i + 12) }); if (b && b.clients) Object.keys(b.clients).forEach(function (u) { cl[u] = b.clients[u]; }); }
     todo.forEach(function (u) {
       var c = cl[u]; if (!c || !c.found) return; // not found (or lookup failed): try again next run, nothing is marked
       var stage = String(c.lifecycle || ''), tags = String(c.tags || ''), has = tags.split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(tag.toLowerCase()) >= 0;
       if (LEAD_STAGES.indexOf(stage) < 0 || !stage) { skipped++; if (!dry) { log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'skipped', 'stage "' + stage + '": not a trial (booking ' + uids[u] + ')']); } return; }
       if (has) { already++; if (!dry) { log.done[u + ':' + tag] = true; add.push([dayStart(now), fmtT(now), u, c.name || '', tag, 'already set', 'set by hand before the automation (booking ' + uids[u] + ')']); } return; }
-      if (dry) { would.push(loc + ' | ' + (c.name || u) + ' | stage ' + stage + ' | ' + uids[u] + (attended[u] ? ' | ALREADY HAD A TRIAL on ' + attended[u] : '')); return; }
+      if (dry) { would.push(loc + ' | ' + (c.name || u) + ' | stage ' + stage + ' | ' + uids[u] + ' | tags: ' + (tags || '-') + (attended[u] ? ' | ALREADY HAD A TRIAL on ' + attended[u] : '')); return; }
       if (set + failed >= TRIAL_TAG.max_per_run) return; // the cap counts real tag changes
       var t = cfPostRaw({ action: 'add_tag', uid: u, tag: tag }), ok = t && t.ok;
       if (ok) set++; else failed++;
