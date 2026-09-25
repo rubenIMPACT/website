@@ -201,7 +201,7 @@ function waDryRunHourly() {
     A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied); },
     B: function (r) { var k = String(r[10]).split(':'); return k[3] === today && ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'BOOKED'; }); }); },
     E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); },
-    C: function (r) { var k = String(r[10]).split(':'); return trialStill(k[2], k[3], 'NOSHOW'); }, // still a no-show and no newer booking / trial
+    C: function (r) { var k = String(r[10]).split(':'); return k[3] === yday && trialStill(k[2], k[3], 'NOSHOW'); }, // still a no-show, no newer booking / trial, and the text says "gestern": only on the day after the no-show
     X: function (r) { var k = String(r[10]).split(':'); return trialStill(k[2], k[3], 'CANCELLED'); },
     D: function (r) { var k = String(r[10]).split(':'); return ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'TRIAL' && !t.contract && !LC_SKIP.test(t.lifecycle); }); }); }, // no contract signed in the meantime, not closed
     R: function (r) { var u = String(r[10]).split(':')[2]; return !(arr && arr.some(function (a) { return a.uid === u && a.open > 0; })); } // Ruben 25.09.: no review request to a member with an open invoice
