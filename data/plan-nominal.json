@@ -72,9 +72,25 @@
     null,
     [
      "Little Ninjas 6-9",
-     "",
+     "Wrestling",
      "LAS"
     ]
+   ],
+   "10:50": [
+    null,
+    [
+     "Wrestling",
+     "Competition",
+     "LAS"
+    ]
+   ],
+   "07:00": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "QUE"
+    ],
+    null
    ]
   },
   "Di": {
@@ -110,7 +126,7 @@
     ],
     [
      "Little Ninjas 10-14",
-     "",
+     "BJJ",
      "JOA"
     ]
    ],
@@ -120,7 +136,11 @@
      "",
      "NAS"
     ],
-    null
+    [
+     "Little Ninjas 6-9",
+     "BJJ",
+     "JOA"
+    ]
    ],
    "18:50": [
     [
@@ -151,8 +171,8 @@
      "LAS"
     ],
     [
-     "Muay Thai",
-     "All Levels",
+     "Striking",
+     "Competition",
      "SER"
     ]
    ],
@@ -200,7 +220,7 @@
     ],
     [
      "Little Ninjas 10-14",
-     "",
+     "Wrestling",
      "LAS"
     ]
    ],
@@ -208,12 +228,36 @@
     null,
     [
      "Little Ninjas 6-9",
-     "",
+     "Wrestling",
      "LAS"
     ]
+   ],
+   "07:00": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "QUE"
+    ],
+    null
+   ],
+   "09:40": [
+    [
+     "Boxing",
+     "Basics",
+     "QUE"
+    ],
+    null
    ]
   },
   "Do": {
+   "08:10": [
+    [
+     "Fitness Kickboxing",
+     "",
+     "NTE"
+    ],
+    null
+   ],
    "20:00": [
     [
      "Fitness Kickboxing",
@@ -228,14 +272,14 @@
    ],
    "17:40": [
     [
-     "Boxing",
-     "All Levels",
-     "NTE"
-    ],
-    [
      "Fitness Kickboxing",
      "",
      "NAS"
+    ],
+    [
+     "Boxing",
+     "All Levels",
+     "NTE"
     ]
    ],
    "12:00": [
@@ -268,15 +312,11 @@
      "Basics",
      "NTE"
     ],
-    null
-   ],
-   "08:10": [
     [
-     "Boxing",
-     "Basics",
-     "NTE"
-    ],
-    null
+     "Little Ninjas 10-14",
+     "Wrestling",
+     "LAS"
+    ]
    ],
    "07:00": [
     [
@@ -292,6 +332,14 @@
      "BJJ",
      "Competition",
      "JOA"
+    ]
+   ],
+   "15:40": [
+    null,
+    [
+     "Little Ninjas 6-9",
+     "Wrestling",
+     "LAS"
     ]
    ]
   },
@@ -350,7 +398,11 @@
      "All Levels",
      "LAS"
     ],
-    null
+    [
+     "BJJ",
+     "Competition",
+     "JOA"
+    ]
    ],
    "10:50": [
     [
@@ -418,7 +470,7 @@
    "16:30": [
     [
      "Little Ninjas 10-14",
-     "",
+     "BJJ",
      "JOA"
     ]
    ]
@@ -462,7 +514,7 @@
    "15:40": [
     [
      "Little Ninjas 6-9",
-     "",
+     "Wrestling",
      "LAS"
     ]
    ],
@@ -470,6 +522,13 @@
     [
      "Wrestling",
      "Competition",
+     "LAS"
+    ]
+   ],
+   "09:40": [
+    [
+     "Fitness Kickboxing",
+     "",
      "LAS"
     ]
    ]
@@ -499,7 +558,7 @@
    "16:30": [
     [
      "Little Ninjas 10-14",
-     "",
+     "BJJ",
      "JOA"
     ]
    ],
@@ -580,7 +639,7 @@
    "15:40": [
     [
      "Little Ninjas 6-9",
-     "",
+     "Wrestling",
      "LAS"
     ]
    ],
