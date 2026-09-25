@@ -67,7 +67,7 @@ var TEXT_R = { // Google Doc, Ruben's go 10.09.2026
         en: "Hi {name}, great to see you training so regularly. If you're enjoying it, would you leave us a quick Google review? It helps us a lot: {review_link} Thank you!" }
 };
 var STAGE = { lead: 9398, first: 9692, second: 9861, third: 11307, trialBooked: 9693, pending: 10005, lost: 9970, noshow: 11305, cancelled: 11313, debt: 11034 }; // exercise.com lifecycle stage ids (read 10.09.2026)
-var STAGE_SYNC = { pending: true, contacts: true, lost: false, noshow: true, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Live before the WhatsApp go-live: "Pending Decision" (trial list) and First/Second/Third Contact from the coaches' call ticks; the rest hangs on messages that are not sent yet
+var STAGE_SYNC = { pending: true, contacts: true, lost: true, noshow: true, debt: false }; // Ruben 10.09.: the stages in exercise.com follow the events. Live before the WhatsApp go-live: "Pending Decision" (trial list) and First/Second/Third Contact from the coaches' call ticks; the rest hangs on messages that are not sent yet
 var LEAD_STAGES = ['Lead', 'First Contact', 'Second Contact', 'Third Contact', 'Missed the talk', 'Trial Booked', 'Pending Decision', 're-engage no-shows', 're-engage cancelled trial', '']; // the automation only moves clients that are in one of these; Client, Do Not Contact, Debt collection etc. are never touched
 var HEAD = ['Date', 'Detected', 'Would send', 'Flow', 'Message', 'Location', 'Name', 'Language', 'Trigger', 'Text', 'Key'];
 
@@ -108,6 +108,11 @@ function waDryRunHourly() {
   if (!pv) writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
   if (!pv) migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
   if (!pv) syncContactStages(leads, trials, trialNames, stages, calls);
+  if (STAGE_SYNC.lost) { // Ruben 25.09.: Not Interested (Lost) LOST.days after the third contact (automatic or the coach's own), no reply, no booking; forward only from Lead / First / Second / Third Contact. In a preview only logged
+    var lc = lostCandidates(leads, trials, trialNames, stages, lastA, calls, now), lostN = 0, waitN = 0;
+    lc.forEach(function (c) { if (c.due > now) { waitN++; if (pv) Logger.log('LOST later ' + fmtEuDT(c.due) + ' | ' + c.l.name + ' | third contact ' + fmtEuDT(c.lastAt) + ' | stage "' + c.stage + '"'); return; } if (pv) { Logger.log('LOST now | ' + c.l.name + ' | third contact ' + fmtEuDT(c.lastAt) + ' | stage "' + c.stage + '"'); return; } if (setStage(c.l.loc, c.l.email, c.l.name, STAGE.lost, STAGE_NAME.lost, 'no reply and no booking ' + LOST.days + ' days after the third contact (' + fmtEuDT(c.lastAt) + ')', ['Lead', 'First Contact', 'Second Contact', 'Third Contact', '']) === 'set') lostN++; });
+    Logger.log('lost stage: ' + lostN + ' set, ' + waitN + ' waiting');
+  }
   // Flows B, C, D from the trial lists. Language (Ruben 09.09.): 1. tag EN / DE in exercise.com (optional, set by hand), 2. the language
   // of the request text the person wrote (exercise.com profile field "Message"), 3. the website page / form text of the lead, 4. German.
   var yday = addDs(today, -RULE.C_D), d3 = addDs(today, -RULE.D_D), due = [], heldB = [];
@@ -1218,6 +1223,19 @@ function syncContactStages(leads, trials, trialNames, stages, calls) { // Ruben 
     var step = ladder[Math.min(n, 3) - 1]; if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'message ' + n + ' by ' + SENDER[l.loc] + ' from the WhatsApp app (' + fmtEuDT(cs.called[n - 1]) + ')', step[1]) === 'set') stageN++;
   });
   if (stageN) Logger.log('stages from coach messages: ' + stageN + ' set');
+}
+var LOST = { days: 7, from: '2026-09-22 00:00', locs: ['Zurich'] }; // Ruben 25.09.: 7 days; only chains whose third contact is after 22.09. (first day with real WhatsApp data, no wave from the old call-list ticks); Zürich only while Winterthur has no connected number
+function lostCandidates(leads, trials, trialNames, stages, lastA, calls, now) { // leads with three contacts, no reply, no booking, still in a lead stage; due = third contact + LOST.days
+  var from = new Date(LOST.from.replace(' ', 'T') + ':00' + Utilities.formatDate(now, TZ, 'XXX')), byMail = {};
+  leads.forEach(function (l) { if (!l.loc || l.test || l.status !== 'ok' || !l.email || LOST.locs.indexOf(l.loc) < 0) return; var k = l.email.toLowerCase().trim(); if (!byMail[k] || l.ts > byMail[k].ts) byMail[k] = l; }); // one row per person: the latest request
+  var out = [];
+  Object.keys(byMail).forEach(function (k) { var l = byMail[k];
+    if (trialNames[l.nname] || hasTrialLoose(trials, l)) return;
+    var st = (stages || {})[k] || ''; if (LC_SKIP.test(st) || ['Lead', 'First Contact', 'Second Contact', 'Third Contact', ''].indexOf(st) < 0) return;
+    var s = leadState(l, lastA, calls, now); if (s.replied || s.slot < RULE.A_MAX || !s.lastAt || s.lastAt < from) return;
+    out.push({ l: l, lastAt: s.lastAt, due: new Date(s.lastAt.getTime() + LOST.days * 86400000), stage: st });
+  });
+  return out;
 }
 function leadsToCheck(leads, trials, trialNames, calls, now) { // leads whose exercise.com stage is read before a message or stage change: requests of the last 45 days plus every older lead the coach has written to (Ruben 25.09.: the coach's message revives the lead, so its stage must be known)
   var h = 3600000;
