@@ -1308,6 +1308,41 @@ function waTrialTags(dry) { // own trigger every 15 minutes (installTagTrigger):
   if (add.length) { var r0 = log.sh.getLastRow() + 1; log.sh.getRange(r0, 1, add.length, 7).setValues(add); log.sh.getRange(r0, 1, add.length, 1).setNumberFormat('dd.MM.yyyy'); log.sh.getRange(r0, 3, add.length, 1).setNumberFormat('@'); }
   Logger.log('trial tags: ' + set + ' set, ' + already + ' already set by hand, ' + skipped + ' not a trial' + (failed ? ', ' + failed + ' failed' : '') + ' (tags ' + TRIAL_TAG.tags + ')');
 }
+var UNDELIV = { on: false, to: { 'Zürich': 'abdi@impact-martialarts.com' }, from: '2026-09-25', weekdays: [1, 2, 3, 4, 5], hour: 12 }; // Ruben 25.09.: daily mail to the studio manager with the automatic WhatsApp messages Meta could not deliver; Mon-Fri at 12:00, each mail covers every day since the last mail (Monday = Friday + Saturday). on = false until Ruben OKs the text
+var UNDELIV_LABEL = { A1: 'erste Nachfass-Nachricht (Lead)', A2: 'zweite Nachfass-Nachricht (Lead)', A3: 'dritte Nachfass-Nachricht (Lead)', B1: 'Erinnerung Probetraining', C1: 'No-Show-Nachricht', D1: 'Nachfrage nach dem Probetraining', R1: 'Bitte um Google-Bewertung' };
+function undeliverableRows(fromD, toD) { // failed automatic messages per studio between two dates (yyyy-MM-dd, inclusive), from the sales outbox
+  var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)), n = ob.getLastRow(), out = {}; if (n < 3) return out;
+  ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) {
+    if (!(r[0] instanceof Date) || !/^failed/.test(String(r[11]))) return; var d = fmtD(r[0]); if (d < fromD || d > toD) return;
+    var k = String(r[13] || '').split(':'), email = /@/.test(k[2] || '') ? k[2] : '';
+    (out[String(r[4])] = out[String(r[4])] || []).push({ d: d, name: capName(String(r[5] || '')), phone: String(r[6] || ''), msg: String(r[3] || ''), email: email, why: /131026/.test(String(r[12])) ? 'nicht zustellbar' : 'fehlgeschlagen' });
+  });
+  return out;
+}
+function undeliverableMail(loc, rows, fromD, toD) { // subject + html + plain text of the mail for one studio
+  var esc = function (x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var span = fromD === toD ? euD(fromD) : euD(fromD) + ' bis ' + euD(toD);
+  var subject = 'WhatsApp nicht zugestellt (' + span + '): ' + rows.length + (rows.length === 1 ? ' Person' : ' Personen');
+  var lines = rows.map(function (x) { return x.name + ', ' + (x.phone ? '+' + x.phone : 'keine Nummer') + (x.email ? ', ' + x.email : '') + ', ' + (UNDELIV_LABEL[x.msg] || x.msg) + ', ' + euD(x.d); });
+  var intro = 'Hey ' + (loc === 'Zürich' ? 'Abdi' : 'Bogdan') + ', diese automatischen WhatsApp-Nachrichten konnten nicht zugestellt werden (' + span + '). Bitte ruf die Leute an oder schreib ihnen eine Mail.';
+  var html = '<p>' + esc(intro) + '</p><p>' + lines.map(esc).join('<br>') + '</p><p>Danke dir!</p>';
+  return { subject: subject, html: html, text: intro + '\n\n' + lines.join('\n') + '\n\nDanke dir!' };
+}
+function waUndeliverableMail(preview) { // daily trigger 12:00 (installUndeliverableTrigger); preview = log the mail, send nothing, remember nothing
+  var now = new Date(), dow = Number(Utilities.formatDate(now, TZ, 'u')); if (!preview && UNDELIV.weekdays.indexOf(dow) < 0) return;
+  var props = PropertiesService.getScriptProperties(), last = props.getProperty('undelivLast'), fromD = last ? addDs(last, 1) : UNDELIV.from, toD = preview ? fmtD(now) : addDs(fmtD(now), -1); // preview includes today
+  if (fromD > toD) return;
+  var by = undeliverableRows(fromD, toD), sent = 0;
+  Object.keys(UNDELIV.to).forEach(function (loc) { var rows = by[loc] || []; if (!rows.length) return; var m = undeliverableMail(loc, rows, fromD, toD);
+    if (preview || !UNDELIV.on) { Logger.log('UNDELIV ' + (preview ? 'PREVIEW' : 'OFF') + ' to ' + UNDELIV.to[loc] + '\nSubject: ' + m.subject + '\n' + m.text); return; }
+    GmailApp.sendEmail(UNDELIV.to[loc], m.subject, m.text, { htmlBody: m.html, name: 'IMPACT WhatsApp' }); sent++; });
+  if (!preview && UNDELIV.on) props.setProperty('undelivLast', toD);
+  Logger.log('undeliverable mail: ' + sent + ' sent, ' + fromD + ' to ' + toD);
+}
+function installUndeliverableTrigger() { // once: daily 12:00 (the weekday rule sits in the function)
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waUndeliverableMail') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('waUndeliverableMail').timeBased().everyDays(1).atHour(UNDELIV.hour).nearMinute(0).inTimezone(TZ).create();
+}
 function installTagTrigger() { // once: the 15-minute trigger for waQuarterHour = trial tags + contact stages (replaces an existing one, also the old waTrialTags trigger)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waTrialTags' || t.getHandlerFunction() === 'waQuarterHour') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waQuarterHour').timeBased().everyMinutes(15).create();
