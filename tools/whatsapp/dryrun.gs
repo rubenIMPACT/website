@@ -81,6 +81,7 @@ function waDryRunHourly() {
   var leadLang = {}; leads.forEach(function (l) { if (l.nname && !leadLang[l.nname]) leadLang[l.nname] = l.lang; });
   function pushRow(flow, msg, loc, name, lang, trigger, key, vars, table, phone) { // phone + template params (columns L, M, hidden) since 23.09.: what the sender needs to send this row for real
     if (keys[key]) return; keys[key] = true;
+    if (A_PREVIEW) { if (flow === 'A') Logger.log('PREVIEW ' + msg + ' | ' + loc + ' | ' + name + ' | ' + lang.toUpperCase() + ' | ' + trigger + ' | ' + String(phone || '').replace(/^(...).*(..)$/, '$1***$2')); return; }
     var isE = flow === 'E', all = Object.assign({ name: firstOf(name), sender: isE ? 'Waseem' : SENDER[loc], studio: isE ? '' : STUDIO[lang][loc] }, vars || {}), text = fill((table || TEXT)[msg][lang], all);
     var when = sendAt(now, flow); if (all.send_at instanceof Date && all.send_at.getTime() > when.getTime()) when = all.send_at; // B1 (23.09.): 3 h before the class, never earlier than the window start
     out.push([dayStart(now), fmtT(now), when, flow, msg, isE ? 'Support (Waseem)' : (loc === 'Zurich' ? 'Zürich' : 'Winterthur'), name, lang.toUpperCase(), trigger, text, key, String(phone || ''), JSON.stringify(templateParams(msg, all))]);
@@ -696,13 +697,18 @@ function leadStages(leads) { // e-mail -> lifecycle stage in exercise.com for th
   Logger.log('lead stages: ' + emails.length + ' asked, ' + found + ' found in exercise.com, ' + emails.filter(function (e) { return LC_SKIP.test(out[e] || ''); }).length + ' closed (LC_SKIP)');
   return out;
 }
-function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date } from the Dry run rows (later: the real outbox)
-  var m = {}, n = sh.getLastRow(); if (n < TR_ROW0) return m;
+function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date }: while Flow A is live from the sales outbox (only messages really sent), before that from the Dry run rows
+  var m = {}, n;
+  if (liveA()) { var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); n = ob.getLastRow(); if (n >= 3) ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k = String(r[13] || '').split(':'); if (k[0] !== 'A' || k.length < 3 || !/^(sent|delivered|read)/.test(String(r[11]))) return; (m[k.slice(2).join(':')] = m[k.slice(2).join(':')] || {})[k[1]] = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : new Date(); }); return m; }
+  n = sh.getLastRow(); if (n < TR_ROW0) return m;
   sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var id = k.slice(2).join(':'), when = r[2] instanceof Date ? r[2] : new Date(String(r[2]).replace(' ', 'T') + ':00'); if (isNaN(when.getTime())) when = r[0] instanceof Date ? r[0] : new Date(); (m[id] = m[id] || {})[k[1]] = when; });
   return m;
 }
+var A_PREVIEW = false; // waPreviewA(): one dry pass of Flow A on the real chain state (outbox), rows are logged, not written
+function sinceOf(flow, now) { var f = SEND.since_flow && SEND.since_flow[flow]; return f ? new Date(f.replace(' ', 'T') + ':00' + Utilities.formatDate(now, TZ, 'XXX')) : new Date(SEND.since + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX')); } // first moment from which detected rows of this flow are sent
+function liveA() { return (SEND.on && SEND.flows.A) || A_PREVIEW; } // Flow A runs on the real outbox (sent messages) instead of the dry-run rows
 var DRY_EXTRA = ['Phone', 'Params']; // Dry run columns L + M (hidden): phone of the recipient and the template parameters as JSON, written since 23.09.2026; older rows cannot be sent
-var SEND = { on: true, flows: { A: false, B: true, C: false, D: false, X: false, E: false, R: false }, conn: { 'Zürich': 'zh', 'Support (Waseem)': 'ws' }, since: '2026-09-23', max_per_run: 40 }; // Flow B Zürich LIVE since 25.09.2026 (Ruben: "Go Flow B"); ws = Waseem's number (connected 25.09.), used by Flow E once SEND.flows.E is on; // the real sender (23.09.2026): master switch + one switch per flow, only rows detected since "since"; connections: Zürich = Abdi (zh); Winterthur / Waseem follow when their numbers are connected. Everything stays off until Ruben gives the go per flow
+var SEND = { on: true, flows: { A: false, B: true, C: false, D: false, X: false, E: false, R: false }, conn: { 'Zürich': 'zh', 'Support (Waseem)': 'ws' }, since: '2026-09-23', since_flow: {}, max_per_run: 40 }; // since_flow: per flow the local date-time ('2026-09-26 10:00') from which rows count as real; rows detected before are dry-run history (set when a flow goes live, so no backlog is sent). Flow B Zürich LIVE since 25.09.2026 (Ruben: "Go Flow B"); ws = Waseem's number (connected 25.09.), used by Flow E once SEND.flows.E is on; // the real sender (23.09.2026): master switch + one switch per flow, only rows detected since "since"; connections: Zürich = Abdi (zh); Winterthur / Waseem follow when their numbers are connected. Everything stays off until Ruben gives the go per flow
 var OUT_HEAD = ['Date', 'Time', 'Flow', 'Message', 'Location', 'Name', 'Phone', 'Language', 'Template', 'Params', 'Message id', 'Status', 'Detail', 'Key'];
 function templateParams(msg, all) { // template parameters in the order of the TEMPLATES spec for this message (W4: same params with or without the fee sentence); unknown message -> []
   var spec = TEMPLATES.filter(function (t) { return t.id === msg; })[0]; if (!spec) return [];
@@ -724,11 +730,11 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
     Object.keys(st).forEach(function (mid) { var w = byId[mid], bk = books[w.id], row = bk.rows[w.i]; if (String(row[11]) === st[mid].s) return; bk.ob.getRange(3 + w.i, 12, 1, 2).setValues([[st[mid].s, st[mid].x || row[12]]]); upd++; }); }
   if (!SEND.on) return (upd ? ' Outbox: ' + upd + ' status updates.' : '') + ' Sender off.';
   var dn = dry.getLastRow(), cand = dn >= TR_ROW0 ? dry.getRange(TR_ROW0, 1, dn - TR_ROW0 + 1, HEAD.length + DRY_EXTRA.length).getValues() : [], sentN = 0, failN = 0, held = 0, total = 0;
-  var conn = 'zh', since = new Date(SEND.since + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX'));
+  var conn = 'zh';
   cand.forEach(function (r) {
     if (total >= SEND.max_per_run) return;
     var key = String(r[10] || ''), flow = String(r[3]), msg = String(r[4]), loc = String(r[5]); if (!key || done[key] || !SEND.flows[flow] || !SEND.conn[loc]) return;
-    var detected = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < since || !due || due > now) return;
+    var detected = r[0] instanceof Date ? atTime(r[0], String(r[1] || '')) : null, due = r[2] instanceof Date ? r[2] : null; if (!detected || detected < sinceOf(flow, now) || !due || due > now) return;
     if (!inWindow(now, flow)) return;
     var add = books[outboxBook(flow)].add; total++;
     if (stillDue[flow] && !stillDue[flow](r)) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'no longer due (booked, replied or closed in the meantime)', key]); return; }
@@ -754,9 +760,9 @@ function waSendTest(to, lang) { // one-off: one real template message (B1 with s
   ob.appendRow([dayStart(now), fmtT(now), 'TEST', 'B1', 'Test', 'Test message', normPhone(to), l.toUpperCase(), spec.name, JSON.stringify(params), id, id ? 'sent' : 'failed', id ? '' : JSON.stringify(b).slice(0, 300), 'TEST:' + now.getTime()]);
   Logger.log('test send: ' + (id ? 'sent, id ' + id : 'FAILED ' + JSON.stringify(b).slice(0, 400)));
 }
-function existingKeys(sh) {
-  var keys = {}, n = sh.getLastRow();
-  if (n >= TR_ROW0) sh.getRange(TR_ROW0, HEAD.length, n - TR_ROW0 + 1, 1).getValues().forEach(function (r) { if (r[0]) keys[String(r[0])] = true; });
+function existingKeys(sh) { // keys already in the Dry run; while Flow A is live, its dry-run rows from before the go-live (since_flow.A) do not count, so the lead is detected again on the real chain
+  var keys = {}, n = sh.getLastRow(), live = liveA() && SEND.since_flow && SEND.since_flow.A, since = live ? sinceOf('A', new Date()) : null;
+  if (n >= TR_ROW0) sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || ''); if (!k) return; if (live && k.indexOf('A:') === 0 && r[0] instanceof Date && atTime(r[0], String(r[1] || '')) < since) return; keys[k] = true; });
   return keys;
 }
 function waCleanup() { // maintenance: drop dry-run rows that the current rules exclude (safe to re-run)
@@ -1193,6 +1199,10 @@ function waContactStages() { // every 15 minutes (waQuarterHour): First / Second
   var calls = contactEvents(leads, now), open = leadsToCheck(leads, trials, trialNames, calls, now).filter(function (l) { return (calls[l.email.toLowerCase()] || { called: [] }).called.length > 0; }); // only leads with a coach message can change stage here
   if (!open.length) { Logger.log('contact stages: no lead with a coach message'); return; }
   syncContactStages(leads, trials, trialNames, leadStages(open), calls);
+}
+function waPreviewA() { // one-off: what Flow A would send on the real chain state (outbox), logged only; nothing is written or sent
+  A_PREVIEW = true; var on = SEND.on, sf = SEND.since_flow.A; SEND.on = false; SEND.since_flow.A = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'); // as if Flow A went live right now: earlier dry-run rows do not count
+  try { waDryRunHourly(); } finally { A_PREVIEW = false; SEND.on = on; SEND.since_flow.A = sf; }
 }
 function waQuarterHour() { // the 15-minute trigger (installTagTrigger): trial tags, then contact stages; one failing part never blocks the other
   try { waTrialTags(); } catch (e) { Logger.log('waTrialTags failed: ' + e); }
