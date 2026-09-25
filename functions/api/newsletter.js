@@ -68,6 +68,16 @@ export async function onRequestPost(context) {
   return j({ ok: true, status: res.status });
 }
 
-export async function onRequestGet({ env }) {
-  return j({ configured: !!env.MAILCHIMP_API_KEY });
+// GET: is the key set? ?check=1 also asks Mailchimp for the audience (read only, no contact is touched)
+export async function onRequestGet({ env, request }) {
+  const key = env.MAILCHIMP_API_KEY || "", out = { configured: !!key };
+  if (key && new URL(request.url).searchParams.get("check") === "1") {
+    const dc = (key.split("-")[1] || "").trim();
+    try {
+      const r = await fetch("https://" + dc + ".api.mailchimp.com/3.0/lists?count=10&fields=lists.id,lists.name,lists.stats.member_count", { headers: { "Authorization": "Basic " + btoa("impact:" + key) } });
+      out.mailchimp = r.status;
+      if (r.ok) out.lists = ((await r.json()).lists || []).map((l) => ({ name: l.name, members: l.stats && l.stats.member_count }));
+    } catch (e) { out.mailchimp = "error"; }
+  }
+  return j(out);
 }
