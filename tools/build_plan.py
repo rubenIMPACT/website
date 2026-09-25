@@ -38,7 +38,7 @@ def build_lndata(loc,en):
     for wd in DAYS:
         for t in sorted(P[loc][wd]):
             for c in P[loc][wd][t]:
-                if c and c[0].startswith('Little Ninjas'): out.append({'wd':wd,'t':t,'n':disp(c[0],en),'lv':'%d Min'%mins(c[0]),'who':who(c[2])})
+                if c and c[0].startswith('Little Ninjas'): out.append({'wd':wd,'t':t,'n':disp(c[0],en),'lv':(c[1]+' · ' if c[1] else '')+'%d Min'%mins(c[0]),'who':who(c[2])})
     return json.dumps(out,ensure_ascii=False,separators=(', ',': '))
 def build_tool():
     T={'Boxing':'boxing','Wrestling':'wrestling','Muay Thai':'muaythai','MMA':'mma','Fitness Kickboxing':'fitnesskickboxing','BJJ':'bjj','BJJ (Gi)':'bjj','BJJ (No-Gi)':'bjj','Street Defense':'streetdefense','Striking':'striking'}

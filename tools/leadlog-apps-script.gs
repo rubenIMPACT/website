@@ -3598,6 +3598,7 @@ function spDeckGrid(cfg) {
     for (var i = 0; i < SP_CLASSES.length; i++) { if (n.indexOf(SP_CLASSES[i]) === 0) { cls = SP_CLASSES[i]; break; } }
     if (!cls) return;
     var rest = n.slice(cls.length).trim(), lv = /^(Basics|All Levels|Competition)/.exec(rest);
+    if (!lv && cls.indexOf('Little Ninjas') === 0) lv = /^\((BJJ|Wrestling|Boxing|Muay Thai|MMA|Striking)\)$/.exec(rest); // 25.09.2026 (Ruben): kids classes carry the topic in brackets, shown like a level
     if (rest && !lv) warn.push('Unbekannter Zusatz bei "' + s.txt + '"');
     cards.push({ name: cls, lv: lv ? lv[1] : '', x: s.x, y: s.y, w: s.w, h: s.h, cx: cx, cy: cy, codes: [] });
   });
