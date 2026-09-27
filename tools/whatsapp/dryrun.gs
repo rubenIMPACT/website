@@ -25,8 +25,8 @@ var TEXT = {
         en: "Hi {name}, Sorry, it took so long. If you're still keen on a trial session: when is the best time to reach you for a quick call?" },
   A3: { de: 'Hi {name}, letzte Nachricht von mir zu deiner Anfrage. Wenn du später mal starten willst, sag mir kurz, wann ein Anruf passt. Alles Gute!',
         en: "Hi {name}, last message from me about your request. If you'd like to start later on, just tell me when a call suits you. All the best!" },
-  B1: { de: 'Hi {name}, kurze Erinnerung: Heute um {time} ist dein {class} Probetraining bei uns. Bis später! 🙂', // B, C, D texts = Google Doc, Ruben's go 10.09.2026
-        en: 'Hi {name}, quick reminder: your {class} trial session is today at {time}. See you later! 🙂' },
+  B1: { de: 'Hi {name}, kurze Erinnerung: Heute um {time} ist dein {class} Probetraining bei uns an der {address}. Hier findest du uns: {maps_link} Bis später! 🙂', // Ruben 27.09.: address + Google Maps link ("go ohne Ort"); B, C, D texts = Google Doc, Ruben's go 10.09.2026
+        en: "Hi {name}, quick reminder: your {class} trial session is today at {time} at {address}. Here's how to find us: {maps_link} See you later! 🙂" },
   C1: { de: 'Hi {name}, schade, dass es gestern mit dem Probetraining nicht geklappt hat. Soll ich dir einen neuen Termin vorschlagen?',
         en: "Hi {name}, sorry you couldn't make it to your trial yesterday. Shall I suggest a new date?" },
   D1: { de: 'Hi {name}, wie hat dir das Probetraining am {date} gefallen? Gibt es etwas, das für dich noch offen ist?',
@@ -50,6 +50,7 @@ var TEXT_E = {
   W4: { de: 'Hey {name}, leider sind inzwischen mehrere Zahlungen offen, insgesamt CHF {amount}. Wenn wir innerhalb von 7 Tagen keinen Zahlungseingang bzw. keine Rückmeldung erhalten, müssen wir den offenen Betrag an unser Inkasso-/Mahnverfahren weitergeben.{fee} Du kannst die Rechnungen direkt hier bezahlen: {invoices} Bitte hinterlege danach auch deine aktuelle Karte: {card_link} Melde dich kurz, wenn du eine Lösung brauchst, damit wir das vermeiden können.',
         en: "Hi {name}, unfortunately several payments are still overdue, CHF {amount} in total. If we don't receive a payment or a reply from you within 7 days, we'll need to move forward with our debt collection process.{fee} You can pay the invoices directly here: {invoices} Afterwards, please also save your current card: {card_link} Get in touch if you need a solution, so we can avoid further steps." }
 };
+var STUDIO_ADDR = { Zurich: { address: 'Walchestrasse 15, 8006', maps_link: 'https://maps.app.goo.gl/1ow5T1yypnd7zvXM6' }, Winterthur: { address: 'Technoparkstrasse 3, 8406', maps_link: 'https://maps.app.goo.gl/4WLKoHRziA7jtjWp9' } }; // Ruben 27.09.: without the town; links = the studios' Google profiles (checked: Walchestrasse near HB, Technopark Winterthur)
 var TEXT_M = { // manual texts (Abdi / Bogdan after an unanswered call, quick replies); not sent by the automation, kept here for the call list and the chat-state detection (Google Doc, Ruben 10.09.2026)
   M1: { de: 'Hi {name}, hier ist {sender} von IMPACT {studio}. Ich habe gerade versucht, dich anzurufen, wegen deiner Anfrage für ein Probetraining. Wann passt dir ein kurzer Anruf?',
         en: 'Hi {name}, this is {sender} from IMPACT {studio}. I just tried to call you about your request for a trial session. When would a quick call suit you?' },
@@ -119,7 +120,7 @@ function waDryRunHourly() {
   ['Zurich', 'Winterthur'].forEach(function (loc) {
     trials[loc].forEach(function (t) {
       if (keys['B:B1:' + t.uid + ':' + t.date] && keys['C:C1:' + t.uid + ':' + t.date] && keys['D:D1:' + t.uid + ':' + t.date] && keys['X:X1:' + t.uid + ':' + t.date]) return;
-      if (t.art === 'BOOKED' && t.date === today && !keys['B:B1:' + t.uid + ':' + t.date]) { var bk = bookingOf(loc, t.uid, today); if (bk) due.push({ flow: 'B', msg: 'B1', loc: loc, t: t, trig: 'B1: trial booked today, ' + bk.service + ' at ' + bk.time + ' (reminder 3 h before, from the exercise.com booking)', key: 'B:B1:' + t.uid + ':' + t.date, vars: { 'class': bk.service, time: bk.time, send_at: new Date(bk.start.getTime() - 3 * 3600000) } }); else heldB.push(t.name); } // Ruben 23.09.: class time from the booking in exercise.com (report detailed_visits, status Reserved / Registered); no booking found yet -> no row, the next run tries again
+      if (t.art === 'BOOKED' && t.date === today && !keys['B:B1:' + t.uid + ':' + t.date]) { var bk = bookingOf(loc, t.uid, today); if (bk) due.push({ flow: 'B', msg: 'B1', loc: loc, t: t, trig: 'B1: trial booked today, ' + bk.service + ' at ' + bk.time + ' (reminder 3 h before, from the exercise.com booking)', key: 'B:B1:' + t.uid + ':' + t.date, vars: { 'class': bk.service, time: bk.time, address: STUDIO_ADDR[loc].address, maps_link: STUDIO_ADDR[loc].maps_link, send_at: new Date(bk.start.getTime() - 3 * 3600000) } }); else heldB.push(t.name); } // Ruben 23.09.: class time from the booking in exercise.com (report detailed_visits, status Reserved / Registered); no booking found yet -> no row, the next run tries again
       if (t.art === 'NOSHOW' && t.date === yday) due.push({ flow: 'C', msg: 'C1', loc: loc, t: t, trig: 'C1: no-show on ' + euD(t.date) + ', no new booking', key: 'C:C1:' + t.uid + ':' + t.date, vars: {} });
       if (t.art === 'CANCELLED' && t.date >= addDs(today, -7) && t.date <= addDs(today, 30)) due.push({ flow: 'X', msg: 'X1', loc: loc, t: t, trig: 'X1: trial on ' + euD(t.date) + ' cancelled, no new booking (re-engage cancelled trial)', key: 'X:X1:' + t.uid + ':' + t.date, vars: { date: '' } }); // Flow X (Ruben 10.09.): cancelled trial, once per trial date, next send window
       if (t.art === 'TRIAL' && t.date === d3 && !t.contract && hasFutureBooking(t.uid)) Logger.log('D1 not queued: next class already booked (' + t.name + ')');
@@ -759,7 +760,7 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
   Object.keys(books).forEach(function (id) { books[id].rows.forEach(function (r) { if (!/^(sent|delivered|read)/.test(String(r[11])) || !(r[0] instanceof Date)) return; var ph = normPhone(r[6]), d = atTime(r[0], r[1]); if (ph && (!autoAt[ph] || d > autoAt[ph])) autoAt[ph] = d; }); });
   var dn = dry.getLastRow(), cand = dn >= TR_ROW0 ? dry.getRange(TR_ROW0, 1, dn - TR_ROW0 + 1, HEAD.length + DRY_EXTRA.length).getValues() : [], sentN = 0, failN = 0, held = 0, total = 0;
   if (SEND.preview && PREVIEW_ROWS) cand = cand.concat(PREVIEW_ROWS); // preview: the rows this simulated run would add
-  var conn = 'zh';
+  var conn = 'zh', have = {}; // have = template statuses per connection (read once per run when a template has an older fallback)
   cand.forEach(function (r) {
     if (total >= SEND.max_per_run) return;
     var key = String(r[10] || ''), flow = String(r[3]), msg = String(r[4]), loc = String(r[5]); if (!key || done[key] || !SEND.flows[flow] || !SEND.conn[loc]) return;
@@ -776,14 +777,18 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
     var spec = TEMPLATES.filter(function (t) { return t.id === msg && (msg !== 'W4' || !!t.fee === !!W4_FEE.on); })[0], lang = String(r[7] || 'DE').toLowerCase();
     var cl = langOfText((chatTxt[(PNID[SEND.conn[loc]] || '') + '|' + phone] || []).join(' ')); if (cl && cl !== lang) lang = cl; // Ruben 25.09.: never switch language inside one chat, the coach's language wins
     if (spec && params && spec.vars[0] === 'name' && params.length) params[0] = capName(params[0]); // also for rows detected before 25.09. 19:20
+    var tname = spec ? spec.name : '';
+    if (spec && spec.old && params) { var cn = SEND.conn[loc] || conn; if (!have[cn]) have[cn] = waTemplateStatus(cn); var sa = STUDIO_ADDR[loc === 'Winterthur' ? 'Winterthur' : 'Zurich'];
+      if (/^APPROVED/.test(have[cn][spec.name + ':' + lang] || '')) { if (params.length < spec.vars.length) params = params.concat([sa.address, sa.maps_link]).slice(0, spec.vars.length); } // rows detected before 27.09. carry 3 params
+      else { tname = spec.old.name; params = params.slice(0, spec.old.vars.length); } } // new version not approved yet: old reminder without address
     var problem = !spec ? 'no template for ' + msg : (phone.length < 9 ? 'no usable phone number' : (!params ? 'bad params' : (params.some(function (x) { return /\{\w+\}/.test(String(x)) || String(x) === ''; }) ? 'missing parameter (e.g. class time)' : '')));
     if (problem) { held++; add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), lang.toUpperCase(), spec ? spec.name : '', JSON.stringify(params), '', 'held', problem, key]); return; }
     if (SEND.preview) { Logger.log('PREVIEW-SEND ' + flow + '/' + msg + ' | ' + loc + ' | ' + r[6] + ' | ' + lang.toUpperCase() + ' | due ' + fmtEuDT(due) + ' | ' + JSON.stringify(params) + ' | ' + String(r[8] || '').slice(0, 110)); if (ph0) autoAt[ph0] = due; return; }
-    var b = cfPostRaw({ action: 'wa_send', conn: SEND.conn[loc] || conn, to: phone, template: spec.name, language: lang, params: params });
+    var b = cfPostRaw({ action: 'wa_send', conn: SEND.conn[loc] || conn, to: phone, template: tname, language: lang, params: params });
     var mid = b && b.ok && b.data && b.data.messages && b.data.messages[0] ? String(b.data.messages[0].id) : '';
     var err = b && b.data && b.data.error ? (b.data.error.error_user_msg || b.data.error.message || '') + ' (' + (b.data.error.code || '') + ')' : (b ? '' : 'no answer from /api/wa');
     if (mid) { sentN++; autoAt[phone] = now; } else failN++;
-    add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], phone, lang.toUpperCase(), spec.name, JSON.stringify(params), mid, mid ? 'sent' : 'failed', mid ? '' : err, key]);
+    add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], phone, lang.toUpperCase(), tname, JSON.stringify(params), mid, mid ? 'sent' : 'failed', mid ? '' : err, key]);
   });
   Object.keys(books).forEach(function (id) { var bk = books[id]; if (!bk.add.length) return; var r0 = bk.ob.getLastRow() + 1; bk.ob.getRange(r0, 1, bk.add.length, OUT_HEAD.length).setValues(bk.add); bk.ob.getRange(r0, 1, bk.add.length, 1).setNumberFormat('dd.MM.yyyy'); bk.ob.getRange(r0, 7, bk.add.length, 1).setNumberFormat('@'); });
   Logger.log('outbox: ' + sentN + ' sent, ' + failN + ' failed, ' + held + ' held, ' + (total - sentN - failN - held) + ' skipped, ' + upd + ' status updates');
@@ -1164,7 +1169,7 @@ var TEMPLATES = [ // Meta message templates (Ruben 22.09., go): one per message 
   { id: 'A1', name: 'impact_a1', cat: 'MARKETING', src: 'TEXT', vars: ['name', 'sender', 'studio'] },
   { id: 'A2', name: 'impact_a2', cat: 'MARKETING', src: 'TEXT', vars: ['name'] },
   { id: 'A3', name: 'impact_a3', cat: 'MARKETING', src: 'TEXT', vars: ['name'] },
-  { id: 'B1', name: 'impact_b1', cat: 'UTILITY', src: 'TEXT', vars: ['name', 'time', 'class'] },
+  { id: 'B1', name: 'impact_b1a', cat: 'UTILITY', src: 'TEXT', vars: ['name', 'time', 'class', 'address', 'maps_link'], old: { name: 'impact_b1', vars: ['name', 'time', 'class'] } }, // 27.09.: new version with address + maps link; the sender uses the old one until Meta approved the new one
   { id: 'C1', name: 'impact_c1', cat: 'UTILITY', src: 'TEXT', vars: ['name'] },
   { id: 'D1', name: 'impact_d1', cat: 'UTILITY', src: 'TEXT', vars: ['name', 'date'] },
   { id: 'R1', name: 'impact_r1', cat: 'MARKETING', src: 'TEXT_R', vars: ['name', 'review_link'] },
@@ -1175,8 +1180,8 @@ var TEMPLATES = [ // Meta message templates (Ruben 22.09., go): one per message 
   { id: 'W4', name: 'impact_w4_fee', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'amount', 'invoices', 'card_link'], fee: true },
   { id: 'W5', name: 'impact_w5', cat: 'UTILITY', src: 'TEXT_E', vars: ['name', 'amount', 'due_date', 'pay_link'] }
 ];
-var TPL_EXAMPLE = { de: { name: 'Lea', sender: 'Abdi', studio: 'Zürich', time: '18:00', 'class': 'MMA', date: '22.09.', review_link: REVIEW_LINK.Zurich, card_link: CARD_LINK, amount: '239.90', due_date: '01.09.', pay_link: 'https://invoice.stripe.com/i/acct_example/live_example', invoices: 'CHF 239.90 (12.08.): https://invoice.stripe.com/i/acct_example/live_example' },
-                   en: { name: 'Lea', sender: 'Abdi', studio: 'Zurich', time: '6:00 PM', 'class': 'MMA', date: '22/09', review_link: REVIEW_LINK.Zurich, card_link: CARD_LINK, amount: '239.90', due_date: '01/09', pay_link: 'https://invoice.stripe.com/i/acct_example/live_example', invoices: 'CHF 239.90 (12/08): https://invoice.stripe.com/i/acct_example/live_example' } };
+var TPL_EXAMPLE = { de: { name: 'Lea', sender: 'Abdi', studio: 'Zürich', time: '18:00', 'class': 'MMA', address: 'Walchestrasse 15, 8006', maps_link: 'https://maps.app.goo.gl/1ow5T1yypnd7zvXM6', date: '22.09.', review_link: REVIEW_LINK.Zurich, card_link: CARD_LINK, amount: '239.90', due_date: '01.09.', pay_link: 'https://invoice.stripe.com/i/acct_example/live_example', invoices: 'CHF 239.90 (12.08.): https://invoice.stripe.com/i/acct_example/live_example' },
+                   en: { name: 'Lea', sender: 'Abdi', studio: 'Zurich', time: '6:00 PM', 'class': 'MMA', address: 'Walchestrasse 15, 8006', maps_link: 'https://maps.app.goo.gl/1ow5T1yypnd7zvXM6', date: '22/09', review_link: REVIEW_LINK.Zurich, card_link: CARD_LINK, amount: '239.90', due_date: '01/09', pay_link: 'https://invoice.stripe.com/i/acct_example/live_example', invoices: 'CHF 239.90 (12/08): https://invoice.stripe.com/i/acct_example/live_example' } };
 function templateBody(spec, lang) { // approved text -> Meta body with {{1}}.. in the order of spec.vars; W4 with or without the fee sentence
   var src = { TEXT: TEXT, TEXT_E: TEXT_E, TEXT_R: TEXT_R }[spec.src], t = src[spec.id][lang];
   if (spec.fee !== undefined) t = fill(t, { fee: spec.fee ? W4_FEE[lang] : '' });
@@ -1189,6 +1194,13 @@ function waTemplateStatus(conn) { // one-off / check: every template of one conn
   var out = {}; (b.data.data || []).forEach(function (t) { out[t.name + ':' + t.language] = t.status + (t.rejected_reason && t.rejected_reason !== 'NONE' ? ' (' + t.rejected_reason + ')' : ''); });
   Logger.log('templates (' + Object.keys(out).length + '): ' + JSON.stringify(out));
   return out;
+}
+function waDocB1Address() { // one-off 27.09. (Ruben: go ohne Ort): B1 texts in the Google Doc "WhatsApp Messages IMPACT" + the two placeholders
+  var body = DocumentApp.openById('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY').getBody();
+  var a = body.replaceText('Probetraining bei uns\\. Bis später', 'Probetraining bei uns an der {address}. Hier findest du uns: {maps_link} Bis später');
+  var b = body.replaceText('trial session is today at \\{time\\}\\. See you later', "trial session is today at {time} at {address}. Here's how to find us: {maps_link} See you later");
+  var c = body.replaceText('\\{date\\} trial date,', '{date} trial date, {address} studio address (Zürich: Walchestrasse 15, 8006; Winterthur: Technoparkstrasse 3, 8406), {maps_link} Google Maps link of the studio,');
+  Logger.log('doc B1: de ' + !!a + ', en ' + !!b + ', placeholders ' + !!c);
 }
 function waSubmitTemplates(conn, only) { // one-off (Ruben 22.09., go): submit every template in TEMPLATES in de + en that does not exist yet on this connection's WABA (conn zh = Abdi, ws = Waseem); only = list of message ids to restrict to (e.g. ['W1', ...] for Waseem); log Meta's answer per template
   conn = conn || 'zh';
