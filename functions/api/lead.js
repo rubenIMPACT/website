@@ -1,5 +1,6 @@
 // Lead endpoint: Start-LP form -> exercise.com (logic from UCONIC Make blueprint)
-// Secrets in Cloudflare env: EXERCISE_EMAIL, EXERCISE_PASSWORD, EXERCISE_ORG_TOKEN, LEADLOG_URL, LEADLOG_TOKEN (Google-Sheet-Log)
+// Secrets in Cloudflare env: EXERCISE_EMAIL, EXERCISE_PASSWORD, EXERCISE_ORG_TOKEN, LEADLOG_URL, LEADLOG_TOKEN (Google-Sheet-Log),
+// optional META_CAPI_TOKEN (Meta Conversions API, see metaLeadEvent)
 // Antwort enthaelt "lid" (signierte Client-ID) -> Danke-Seite -> Trainingsplan-Tool -> /api/plan (CRM-Notiz + Sheet)
 import { subscribe } from "./newsletter.js";
 const LOCATION_IDS = { "Winterthur": "2222", "Zürich": "2508", "Zurich": "2508" };
@@ -34,6 +35,69 @@ async function makeLid(env, cid) {
     const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("lead:" + cid));
     return cid + "." + Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
   } catch { return ""; }
+}
+
+// Meta Conversions API (27.09.2026, Ruben): every successful trial request is also reported to Meta from here,
+// so ad blockers and iPhone privacy settings cannot swallow it. Runs in the background, never blocks the form.
+// Active only when the secret META_CAPI_TOKEN exists (Ruben creates it in Meta Events Manager).
+// event_id comes from the page and is also used by the page's own fbq('track','Lead'), so Meta counts the two as one.
+// Optional: META_PIXEL_ID (default below), META_CAPI_TEST_CODE (events then only appear under "Test events").
+const META_PIXEL_ID = "372030385687058";
+async function sha256(v) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v));
+  return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function metaPhone(v) {
+  let d = String(v || "").replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  else if (d.startsWith("0")) d = "41" + d.slice(1);
+  else if (d.length === 9) d = "41" + d;
+  return d;
+}
+export async function metaLeadEvent(p, request, now) {
+  const s = (v, n) => (v == null ? "" : String(v).trim().slice(0, n || 200));
+  const ud = {};
+  const email = s(p.email).toLowerCase();
+  if (email) ud.em = [await sha256(email)];
+  const phone = metaPhone(p.phone);
+  if (phone.length >= 8) ud.ph = [await sha256(phone)];
+  if (s(p.firstname)) ud.fn = [await sha256(s(p.firstname).toLowerCase())];
+  if (s(p.lastname)) ud.ln = [await sha256(s(p.lastname).toLowerCase())];
+  ud.country = [await sha256("ch")];
+  const ip = request.headers.get("CF-Connecting-IP");
+  if (ip) ud.client_ip_address = ip;
+  const ua = request.headers.get("User-Agent");
+  if (ua) ud.client_user_agent = ua;
+  if (/^fb\.\d\.\d+\.[\w-]+$/.test(s(p.fbp))) ud.fbp = s(p.fbp);
+  const fbclid = s(p.fbclid, 500);
+  if (fbclid) {
+    const ts = Number(p.fbclid_ts) > 1.5e12 ? Math.floor(Number(p.fbclid_ts)) : now;
+    ud.fbc = "fb.1." + ts + "." + fbclid;
+  }
+  const ev = {
+    event_name: "Lead",
+    event_time: Math.floor(now / 1000),
+    action_source: "website",
+    event_source_url: s(p.page, 500),
+    user_data: ud,
+    custom_data: { lead_location: s(p.location, 40), lead_discipline: s(p.discipline, 80) },
+  };
+  const eid = s(p.event_id, 80);
+  if (/^[\w.-]{8,80}$/.test(eid)) ev.event_id = eid;
+  return ev;
+}
+async function sendMetaLead(env, request, p) {
+  if (!env.META_CAPI_TOKEN) return null;
+  const body = { data: [await metaLeadEvent(p, request, Date.now())], access_token: env.META_CAPI_TOKEN };
+  if (env.META_CAPI_TEST_CODE) body.test_event_code = env.META_CAPI_TEST_CODE;
+  const r = await fetch("https://graph.facebook.com/v23.0/" + (env.META_PIXEL_ID || META_PIXEL_ID) + "/events", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  if (!r.ok) console.log("meta capi " + r.status + " " + (await r.text()).slice(0, 200));
+  return r.status;
+}
+function reportLead(context, env, p) {
+  try { context.waitUntil(sendMetaLead(env, context.request, p).catch((e) => console.log("meta capi exc " + e))); } catch { /* ausserhalb Pages-Kontext */ }
 }
 
 // exercise.com tags use the existing English names (Ruben 25.09.2026: no duplicate spellings). Only the tags are mapped;
@@ -181,6 +245,7 @@ export async function onRequestPost(context) {
     if (add.ok) {
       let cid = null; try { const aj = await add.json(); const c = aj && (aj.client || aj.data || aj); cid = c && (c.id || c.client_id) ? String(c.id || c.client_id) : null; } catch {}
       logLead(context, env, "ok", p, "Neu im CRM" + (cid ? " (Client " + cid + ")" : ""), false);
+      reportLead(context, env, p);
       return j({ ok: true, lid: await makeLid(env, cid) });
     }
     // Dublette (E-Mail existiert): bestehenden Client ergaenzen, UX bleibt "erhalten"
@@ -191,6 +256,7 @@ export async function onRequestPost(context) {
       // Jede erneute Anfrage -> Mail an den Studio Manager des Standorts (Routing im Apps-Script)
       logLead(context, env, du.done ? "dublette_ergaenzt" : "dublette_NICHT_ergaenzt", p, du.detail + (!du.done && addMsg ? " exercise.com meldet: " + addMsg : ""), true,
         { locchange: du.locchange || "", tech: "add " + add.status + " " + addTxt + " -> " + (du.tech || "") });
+      reportLead(context, env, p);
       return j({ ok: true, dup: true, updated: du.done, up: add.status, lid: await makeLid(env, du.cid) });
     }
     let addErr = ""; try { addErr = (await add.text()).slice(0, 120); } catch {}
