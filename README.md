@@ -49,7 +49,7 @@ GitHub Actions (daily): plan-sync  = timetable from the Google Slides decks -> p
 | `data/` | `plan-nominal.json` (timetable), `blog.json` (posts), `team.json` (team), `courses.json` (course page texts), `coach-lineups.json` (coaches per course page), `events.json` (emergency fallback). Written by the workflows |
 | `functions/api/` | Cloudflare Functions (server code). `functions/_middleware.js` = all redirects from old URLs |
 | `tools/` | Active scripts (see below). `tools/archive/` = one-off migration scripts, never run again |
-| `.github/workflows/` | `plan-sync.yml`, `blog-sync.yml`, `content-sync.yml` (daily + tick box), `mirror-assets.yml` (one-off from the Webflow migration) |
+| `.github/workflows/` | `plan-sync.yml`, `blog-sync.yml`, `content-sync.yml` (daily + tick box), `newsletter-sync.yml` (weekly, new customers to Mailchimp), `mirror-assets.yml` (one-off from the Webflow migration) |
 | `docs/` | Handbook: `how-to.md`, `website.md`, `automations.md`, `apps-script.md`, `accounts.md` |
 | `_redirects`, `_routes.json`, `robots.txt`, `sitemap.xml`, `404.html` | Cloudflare Pages / SEO basics |
 

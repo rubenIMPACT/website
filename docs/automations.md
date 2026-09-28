@@ -87,6 +87,13 @@ their status. Pop-up rules: never before 30 s on the page, never while a trial f
 booking / cancellation / training-plan pages, never after a trial request (thank-you page sets `imp_lead`), once in 30 days (`imp_nl_seen`), never after a sign-up
 (`imp_nl_done`). Desktop trigger: mouse leaves the window at the top. Phone: fast scroll up (140 px within 300 ms). GA events nl_popup_shown / _close / _signup.
 
+## New customers into Mailchimp (weekly)
+Workflow `newsletter-sync.yml` (Monday 05:30 UTC + "Run workflow") POSTs `/api/newsletter-sync`. It reads all exercise.com clients, keeps customers
+(running subscription, or stage Client / Inactive Client / Dependant client / Personal Training Client / Debt collection / Bexio), skips staff,
+"Do Not Contact" and @exercise.com placeholders, and adds those whose address is not yet in Mailchimp in ANY state (archived included) as
+"subscribed" with fields Group / Location and the tag "exercise.com sync". Never adds leads who did not buy. Aborts without writing if the Mailchimp
+list cannot be read completely or if more than 200 would be added. GET (or `?dry=1`) only counts. One real run per 12 hours at most.
+
 ## Forms without CRM
 `/api/form`: event sign-ups and the cancellation survey. Sheet only, no mail, no CRM.
 
