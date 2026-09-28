@@ -768,7 +768,8 @@ function processOutbox(ss, dry, now, stillDue) { // 1. update the delivery statu
     if (!SEND.preview && !inWindow(now, flow)) return; // preview: every row of the simulated day, with its planned time
     var ph0 = normPhone(r[11]); if (flow !== 'B' && ph0 && autoAt[ph0] && now.getTime() - autoAt[ph0].getTime() < DAY_GAP_H * 3600000) { if (SEND.preview) Logger.log('PREVIEW-WAIT ' + flow + '/' + msg + ' | ' + r[6] + ' | automatic message already sent on ' + fmtEuDT(autoAt[ph0])); return; } // one automatic message per person and day: wait for the next run
     var add = SEND.preview ? { push: function (x) { Logger.log('PREVIEW-SKIP ' + x[2] + '/' + x[3] + ' | ' + x[4] + ' | ' + x[5] + ' | ' + x[12]); } } : books[outboxBook(flow)].add; total++; // preview: log only, the outbox stays untouched
-    if (now.getTime() - detected.getTime() > (SEND.max_age_h || 36) * 3600000) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'expired (detected more than ' + (SEND.max_age_h || 36) + ' h ago)', key]); return; }
+    var ageRef = due && due > detected ? due : detected; // 28.09.: count the age from the planned send time, not the detection, else rows detected on Saturday evening expired before Monday's window (3 A1 lost)
+    if (now.getTime() - ageRef.getTime() > (SEND.max_age_h || 36) * 3600000) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'expired (detected more than ' + (SEND.max_age_h || 36) + ' h ago)', key]); return; }
     if (stillDue[flow] && !stillDue[flow](r)) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'no longer due (booked, replied or closed in the meantime)', key]); return; }
     var qFrom = QUIET_H[flow] ? new Date(now.getTime() - QUIET_H[flow] * 3600000) : (QUIET_DAY[flow] && /^\d{4}-\d{2}-\d{2}$/.test(key.split(':')[3] || '') ? new Date(key.split(':')[3] + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX')) : null);
     if (PERSON_BLOCK[flow] && ph0 && inAt[ph0]) { var kk = key.split(':'), tFrom = stillDue.trialStart ? stillDue.trialStart(kk[2], kk[3]) : null; if (tFrom && inAt[ph0] >= tFrom) { add.push([dayStart(now), fmtT(now), flow, msg, loc, r[6], String(r[11] || ''), String(r[7] || ''), '', '', '', 'skipped', 'the person wrote on WhatsApp on ' + fmtEuDT(inAt[ph0]) + ' (after the trial)', key]); return; } }
@@ -1341,6 +1342,7 @@ function undeliverableMail(loc, rows, fromD, toD) { // subject + html + plain te
   return { subject: subject, html: html, text: intro + '\n\n' + lines.join('\n') + '\n\nDanke dir!' };
 }
 function waUndeliverableMail(preview) { // daily trigger 12:00 (installUndeliverableTrigger); preview = log the mail, send nothing, remember nothing
+  preview = preview === true; // 28.09.: the time trigger passes its event object as first argument, which made every trigger run a silent preview (Monday's mail never went out)
   var now = new Date(), dow = Number(Utilities.formatDate(now, TZ, 'u')); if (!preview && UNDELIV.weekdays.indexOf(dow) < 0) return;
   var props = PropertiesService.getScriptProperties(), last = props.getProperty('undelivLast'), fromD = last ? addDs(last, 1) : UNDELIV.from, toD = preview ? fmtD(now) : addDs(fmtD(now), -1); // preview includes today
   if (fromD > toD) return;
