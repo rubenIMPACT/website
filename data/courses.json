@@ -973,9 +973,17 @@
     },
     {
      "key": "warum.heading",
-     "location": "Both",
+     "location": "Winterthur",
      "de": "Lernen vom\n*Weltmeister.*",
      "en": "Learn from a\n*world champion.*",
+     "section": "Why IMPACT",
+     "field": "Title"
+    },
+    {
+     "key": "warum.heading",
+     "location": "Zürich",
+     "de": "Lernen von *Profis.*",
+     "en": "Learn from *the pros.*",
      "section": "Why IMPACT",
      "field": "Title"
     },
