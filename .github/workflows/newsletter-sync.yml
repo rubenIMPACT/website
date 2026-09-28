@@ -1,0 +1,15 @@
+name: Newsletter - neue Kunden nach Mailchimp
+# Weekly: new IMPACT customers (members + ex-members) from exercise.com into Mailchimp. Logic and safety rules: functions/api/newsletter-sync.js
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 5 * * 1'   # Monday 07:30 Zurich (summer time)
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Transfer new customers
+        run: |
+          out=$(curl -s --max-time 170 -X POST https://www.impact-martialarts.com/api/newsletter-sync -w '\nHTTP %{http_code}')
+          echo "$out"
+          echo "$out" | tail -1 | grep -q 'HTTP 200'
