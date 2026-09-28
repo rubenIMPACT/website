@@ -1164,9 +1164,21 @@ function driveImage(id) {
     var f = DriveApp.getFileById(String(id).replace(/[^\w-]/g, ''));
     var blob = f.getBlob(); var mime = blob.getContentType() || '';
     if (mime.indexOf('image/') !== 0) return { error: 'not-image' };
-    if (blob.getBytes().length > 6 * 1024 * 1024) return { error: 'too-large' };
+    if (blob.getBytes().length > 6 * 1024 * 1024) return driveThumb(f.getId()); // camera originals (16 MB+): Drive's own 2000 px version (28.09.2026)
     return { ok: true, mime: mime, b64: Utilities.base64Encode(blob.getBytes()) };
   } catch (err) { return { error: String(err) }; }
+}
+function driveThumb(id) { // Drive thumbnail, longest side 2000 px (Drive REST API with the script's own Drive scope)
+  var H = { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true };
+  var meta = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) + '?fields=thumbnailLink&supportsAllDrives=true', H);
+  if (meta.getResponseCode() !== 200) return { error: 'thumb-meta-' + meta.getResponseCode() };
+  var link = String(JSON.parse(meta.getContentText()).thumbnailLink || '');
+  if (!link) return { error: 'no-thumbnail' };
+  var r = UrlFetchApp.fetch(link.replace(/=s\d+(-[a-z0-9-]+)?$/i, '') + '=s2000', H);
+  if (r.getResponseCode() !== 200) return { error: 'thumb-' + r.getResponseCode() };
+  var b = r.getBlob(), bytes = b.getBytes();
+  if (bytes.length > 6 * 1024 * 1024) return { error: 'too-large' };
+  return { ok: true, mime: b.getContentType() || 'image/jpeg', b64: Utilities.base64Encode(bytes), thumb: true };
 }
 function authDrive() { return DriveApp.getRootFolder().getName(); } // einmal im Editor ausfuehren, um den Drive-Zugriff zu autorisieren
 /* ===== Google-Kalender: Termin + Einladungen bei Haken "Google event" ===== */
