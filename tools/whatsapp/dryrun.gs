@@ -15,7 +15,7 @@ var CI = { date: 0, name: 1, art: 2, cls: 3, coach: 4, booked: 5, kanal: 6, pers
 var LEAD = { ts: 0, status: 1, first: 2, last: 3, email: 4, phone: 5, loc: 6, interest: 7, message: 11, page: 13, exclude: 19 };
 var SENDER = { Zurich: 'Abdi', Winterthur: 'Bogdan' };
 var STUDIO = { de: { Zurich: 'Zürich', Winterthur: 'Winterthur' }, en: { Zurich: 'Zurich', Winterthur: 'Winterthur' } };
-var RULE = { A1_H: 48, NEXT_H: 48, A_MAX: 3, C_D: 1, D_D: 3, OPEN: 10, CLOSE: 19, B_OPEN: 7 }; // Ruben 10.09.2026 (rolling chain): message 1 48 h after the request, every further one 48 h after the LAST message (manual or automatic), 3 messages at most; reminder 3 h before class
+var RULE = { A1_H: 48, NEXT_H: 96, A_MAX: 3, C_D: 1, D_D: 3, OPEN: 10, CLOSE: 19, B_OPEN: 7 }; // Ruben 10.09.2026 (rolling chain): message 1 48 h after the request, every further one 48 h after the LAST message (manual or automatic), 3 messages at most; reminder 3 h before class
 var LC_SKIP = /not interested|do not contact|lost|non-client|client|signed/i; // lifecycle stages that stop Flow D
 var TEST_MAIL = /^(testlead|test-endpunkt|test2@|paulinelowe12|waseasdasd)/i;
 var TEXT = {
@@ -1195,6 +1195,11 @@ function waTemplateStatus(conn) { // one-off / check: every template of one conn
   var out = {}; (b.data.data || []).forEach(function (t) { out[t.name + ':' + t.language] = t.status + (t.rejected_reason && t.rejected_reason !== 'NONE' ? ' (' + t.rejected_reason + ')' : ''); });
   Logger.log('templates (' + Object.keys(out).length + '): ' + JSON.stringify(out));
   return out;
+}
+function waDocChainTiming() { // one-off 28.09. (Ruben, Abdi's feedback): A2 and A3 4 days after the previous contact (day 6 / day 10) instead of 48 h
+  var body = DocumentApp.openById('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY').getBody(), n = 0;
+  [['48 h after position 1 \\(A1 or M1\\)', '4 days after position 1 (A1 or M1)'], ['48 h after position 2 \\(A2 or M2\\)', '4 days after position 2 (A2 or M2)'], ['Every further position comes 48 hours after the LAST message or call', 'Every further position comes 4 days after the LAST message or call'], ['restarts the 48-hour clock', 'restarts the 4-day clock']].forEach(function (x) { if (body.replaceText(x[0], x[1])) n++; });
+  Logger.log('doc chain timing: ' + n + ' of 4 replaced');
 }
 function waDocB1Address() { // one-off 27.09. (Ruben: go ohne Ort): B1 texts in the Google Doc "WhatsApp Messages IMPACT" + the two placeholders
   var body = DocumentApp.openById('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY').getBody();
