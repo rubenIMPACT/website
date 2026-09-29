@@ -65,6 +65,7 @@ export async function onRequestPost(context) {
     if (p.action === "charges") return j(await fpList(H, "/api/v4/fp/charges/", p));
     if (p.action === "clients") return j(await clients(H, p.uids));
     if (p.action === "clients_stage") return j(await clientsStage(H, p.uids));
+    if (p.action === "clients_in_stages") return j(await clientsInStages(H, p));
     if (p.action === "invoice_refresh") return j(await invoiceRefresh(H, p.ids));
     if (p.action === "client_status") return j(await clientStatus(H, p.uids));
     if (p.action === "locations") return j(await locations(H));
@@ -255,6 +256,17 @@ async function clientsStage(H, uids) {
     out[uid] = { uid, name, email, tags: ctags, lifecycle: hit ? String(hit.lifecycle_stage_name || "") : "", found: !!hit, cid: hit ? String(hit.id) : "" };
   }
   return { ok: true, count: Object.keys(out).length, clients: out };
+}
+// Read-only: clients of the v2 list whose lifecycle stage is one of p.stages, pages p.from..p.to (100 per page, max 12 pages per call). 29.09.2026: old First/Second/Third Contacts before the WhatsApp automation
+async function clientsInStages(H, p) {
+  const want = new Set((Array.isArray(p.stages) ? p.stages : []).map((x) => String(x).toLowerCase())), from = Math.max(1, Number(p.from) || 1), to = Math.min(from + 11, Number(p.to) || from), out = []; let last = 0, total = 0;
+  for (let page = from; page <= to; page++) {
+    const r = await getJson(H, API + "/api/v2/clients/?page=" + page + "&per=100"), b = r.json, arr = b && (Array.isArray(b.client) ? b.client : (Array.isArray(b.clients) ? b.clients : []));
+    if (r.status !== 200 || !arr || !arr.length) { last = page; break; }
+    total += arr.length;
+    arr.forEach((c) => { const st = String(c.lifecycle_stage_name || ""); if (!want.has(st.toLowerCase())) return; out.push({ uid: String(c.user_id || ""), cid: String(c.id || ""), email: String(c.email || "").toLowerCase(), name: [c.first_name, c.last_name].filter(Boolean).join(" ").trim(), stage: st, location_id: String(c.location_id || ""), created: String(c.created_at || ""), updated: String(c.updated_at || "") }); });
+  }
+  return { ok: true, from, to, end: last, scanned: total, clients: out };
 }
 // Lifecycle / billing status from the client list (v2) for members that are not in the "Failed Payments" client filter:
 // scans the list page by page (max 20 pages = 2000 clients) until every id is found. Read-only.
