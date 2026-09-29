@@ -527,17 +527,17 @@ function rollingHitlist(ss, typ, n) {
   return { rows: rows, months: keep };
 }
 
-function hitlistBlock(sh, r, title, list) {
+function hitlistBlock(sh, r, title, list, single) { // single = Standort-Hitlist: nur eine Index-Spalte (Ruben 29.09.2026)
   sh.getRange(r, 1).setValue(title).setFontWeight('bold').setFontSize(12); r++;
   // Reihenfolge und Rang nach Umsatz (Entscheid Ruben 03.09.2026). Spalten F und L sind im Tab ausgeblendet, deshalb dort Leerspalten.
-  var hh = ['Rang', 'Disziplin', 'Umsatz CHF/Monat', 'Umsatzanteil', 'Umsatz je Termin', '', 'Index Zürich', 'Index Winterthur', 'Index Mittel', 'Auslastung', 'Besuche', '', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', 'Unique Users'];
+  var hh = single ? ['Rang', 'Disziplin', 'Umsatz CHF/Monat', 'Umsatzanteil', 'Umsatz je Termin', '', '', '', 'Index', 'Auslastung', 'Besuche', '', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', 'Unique Users'] : ['Rang', 'Disziplin', 'Umsatz CHF/Monat', 'Umsatzanteil', 'Umsatz je Termin', '', 'Index Zürich', 'Index Winterthur', 'Index Mittel', 'Auslastung', 'Besuche', '', 'Termine', 'Termine mit Vergleich', 'Ø pro Klasse', 'Unique Users'];
   var hdr = r;
   sh.getRange(r, 1, 1, hh.length).setValues([hh]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
   var vals = list.map(function (h, i) {
     var z = h.Zurich, w = h.Winterthur;
     var ix = function (o) { return !o ? '' : (o.index == null ? 'n/a' : o.index); };
     var rpe = (h.revenue != null && h.events) ? h.revenue / h.events : '';
-    return [i + 1, h.name, h.revenue == null ? '' : h.revenue, h.revenue_share == null ? '' : h.revenue_share, rpe, '', ix(z), ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, '', h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0];
+    return [i + 1, h.name, h.revenue == null ? '' : h.revenue, h.revenue_share == null ? '' : h.revenue_share, rpe, '', single ? '' : ix(z), single ? '' : ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, '', h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0];
   });
   if (vals.length) {
     sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
@@ -555,7 +555,7 @@ function hitlistBlock(sh, r, title, list) {
       .setOption('colors', ['#e2c210']).setOption('hAxis', { format: 'percent', minValue: 0 }).setOption('width', 520).setOption('height', Math.min(80 + 22 * vals.length, 540)).build());
   }
   r += vals.length;
-  sh.getRange(r, 1).setValue('Rang nach Umsatzanteil. Umsatz je Termin = Umsatz / Termine. n/a = unter der Mindestschwelle am Standort (Ø < 3 Personen pro Klasse oder < 4 Termine im Monat); Index Mittel dann nur aus dem anderen Standort.').setFontColor('#666666').setFontStyle('italic');
+  sh.getRange(r, 1).setValue(single ? 'Rang nach Umsatzanteil am Standort. Umsatz je Termin = Umsatz / Termine. n/a = unter der Mindestschwelle (Ø < 3 Personen pro Klasse oder < 4 Termine im Monat). Umsatz je Standort steht erst in Analysen ab 29.09.2026, ältere Monate zeigen hier leere Umsatzspalten.' : 'Rang nach Umsatzanteil. Umsatz je Termin = Umsatz / Termine. n/a = unter der Mindestschwelle am Standort (Ø < 3 Personen pro Klasse oder < 4 Termine im Monat); Index Mittel dann nur aus dem anderen Standort.').setFontColor('#666666').setFontStyle('italic');
   return Math.max(r + 2, hdr + Math.ceil((80 + 22 * vals.length) / 21) + 2);
 }
 
@@ -726,6 +726,13 @@ function buildKlassenanalyse(ss, data, fileName) {
   //      Competition und Kids drin, Open Mat und Self Defense for Women raus; erst je Standort, dann Mittel)
   var hr = Math.max(vrow + keys.length + 2, 20);
   hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (Slot-Index: Ø pro Klasse geteilt durch Ø der Uhrzeit, gewichtet mit Terminen; 1.00 = wie der Slot im Schnitt)', data.hitlist || []);
+  // Dieselbe Hitlist je Standort (Ruben 29.09.2026): Umsatz, Anteil und Index nur aus den Klassen des Standorts
+  ['Zurich', 'Winterthur'].forEach(function (lc) {
+    var tot = ((data.summary || {})[lc] || {}).revenue || 0, lcDE = lc === 'Zurich' ? 'Zürich' : 'Winterthur';
+    var lst = (data.hitlist || []).filter(function (h) { return h[lc]; }).map(function (h) { var g = h[lc], rv = g.revenue == null ? null : g.revenue; return { name: h.name, revenue: rv, revenue_share: rv != null && tot ? rv / tot : null, index: g.index, util: g.util, attended: g.attended, events: g.events, with_neighbor: g.with_neighbor, uniq: g.uniq || 0 }; })
+      .sort(function (a, b) { return ((b.revenue || 0) - (a.revenue || 0)) || (b.attended - a.attended); });
+    if (lst.length) hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten ' + lcDE + ' ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (Slot-Index wie oben, nur ' + lcDE + ')', lst, true);
+  });
   var roll = rollingHitlist(ss, 'Disziplin', 3);
   if (roll.months.length > 1) {
     sh.getRange(hr, 1).setValue('Hitlist rollierend, letzte ' + roll.months.length + ' Monate (' + roll.months.join(', ') + ')').setFontWeight('bold').setFontSize(12); hr++;

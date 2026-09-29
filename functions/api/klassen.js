@@ -260,7 +260,7 @@ function applyRevenue(rows, rv) {
 const KEEP_ROW = ["location", "segment", "service", "days", "start", "daytype", "events", "attended", "capacity", "uniq", "rec_visits", "staff", "revenue", "revenue_per_event"];
 function slimHit(h) {
   const o = {}; for (const k of ["name", "index", "util", "attended", "events", "capacity", "with_neighbor", "uniq", "revenue", "revenue_share", "revenue_per_event"]) o[k] = h[k] === undefined ? null : h[k];
-  for (const loc of ["Zurich", "Winterthur"]) { const g = h[loc]; o[loc] = g ? { index: g.index, util: g.util, attended: g.attended, events: g.events, with_neighbor: g.with_neighbor } : null; }
+  for (const loc of ["Zurich", "Winterthur"]) { const g = h[loc]; o[loc] = g ? { index: g.index, util: g.util, attended: g.attended, events: g.events, with_neighbor: g.with_neighbor, uniq: g.uniq, revenue: g.revenue } : null; } // uniq/revenue je Standort fuer die Standort-Hitlisten (Ruben 29.09.2026)
   return o;
 }
 function compute(data) {
