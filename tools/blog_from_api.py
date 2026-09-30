@@ -2,7 +2,7 @@
 """Fetches the blog posts from the Google Sheet "IMPACT Blog" (via https://www.impact-martialarts.com/api/blog) and writes
 data/blog.json. Photos (Google Drive link or any https link in the sheet) are downloaded once to assets/blog/<slug>.jpg, so the
 pages stay static and fast. Aborts without changing anything if the sheet cannot be read or returns no posts."""
-import io, json, os, re, sys, time, urllib.request
+import hashlib, io, json, os, re, sys, time, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = 'https://www.impact-martialarts.com'
@@ -34,6 +34,33 @@ def to_jpeg(raw):
         im = im.resize((MAX_W, round(im.height * MAX_W / im.width)), Image.LANCZOS)
     out = io.BytesIO(); im.save(out, 'JPEG', quality=84, optimize=True, progressive=True)
     return out.getvalue()
+
+
+def fetch_photo(src, local):
+    """Downloads one photo (Google Drive link via /api/event-image, or any https link) to ROOT+local as JPEG. Raises on failure."""
+    m = re.search(r'(?:/d/|[?&]id=)([-\w]{20,})', src) if 'google.com' in src else None
+    url = SITE + '/api/event-image?id=' + m.group(1) if m else src
+    raw_img, ctype = get(url, tries=4, wait=20)  # the image service answers 502 now and then on a cold start (30.09.2026)
+    if not (ctype.startswith('image/') or raw_img[:3] == b'\xff\xd8\xff' or raw_img[:8] == b'\x89PNG\r\n\x1a\n'):
+        raise ValueError('kein Bild (%s)' % ctype)
+    os.makedirs(os.path.dirname(ROOT + local), exist_ok=True)
+    open(ROOT + local, 'wb').write(to_jpeg(raw_img)); print('Bild geladen:', local)
+
+
+def text_photos(slug, text, prev):
+    """Photo lines "![caption](link)" in the text -> {link: /assets/blog/<slug>-<hash>.jpg}. Links that cannot be loaded are left out."""
+    out, before = {}, prev.get('images') or {}
+    for src in re.findall(r'^!\[[^\]]*\]\((https?://[^\s)]+)\)\s*$', text or '', flags=re.M):
+        if src in out:
+            continue
+        local = '/assets/blog/%s-%s.jpg' % (slug[:50], hashlib.sha1(src.encode()).hexdigest()[:8])
+        if before.get(src) == local and os.path.exists(ROOT + local):
+            out[src] = local; continue
+        try:
+            fetch_photo(src, local); out[src] = local
+        except Exception as e:
+            print('WARNUNG: Foto im Text von %s nicht ladbar (%s) - wird weggelassen.' % (slug, e))
+    return out
 
 
 def main():
@@ -70,8 +97,12 @@ def main():
                     print('WARNUNG: Bild fuer %s nicht ladbar (%s) - Post erscheint ohne bzw. mit bisherigem Foto.' % (p['slug'], e))
                     local = prev.get('image_local') or ''
                     src = prev.get('image') or src if local else src
-        posts.append({'slug': p['slug'], 'date': p['date'], 'title': p['title'], 'description': p.get('description', ''),
-                      'image': src, 'image_local': local, 'text': p['text']})
+        post = {'slug': p['slug'], 'date': p['date'], 'title': p['title'], 'description': p.get('description', ''),
+                'image': src, 'image_local': local, 'text': p['text']}
+        photos = text_photos(p['slug'], p['text'], prev)
+        if photos:
+            post['images'] = photos
+        posts.append(post)
     json.dump({'ok': True, 'posts': posts}, open(os.path.join(ROOT, 'data', 'blog.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('data/blog.json: %d Posts' % len(posts))
 

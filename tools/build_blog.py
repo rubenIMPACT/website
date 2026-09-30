@@ -12,7 +12,9 @@ Idempotent: running it twice changes nothing.
 Text format of the sheet column "Text":
   blank line = new paragraph, single line break = line break,
   "# Heading" = subheading, "- item" = bullet list,
-  **bold**, *italic*, [link text](https://...), bare https:// links become clickable.
+  **bold**, *italic*, [link text](https://...), bare https:// links become clickable,
+  "![caption](photo link)" on its own line = photo in the text; two photo lines in a row = two photos side by side
+  (the photo is downloaded by tools/blog_from_api.py; a photo that cannot be loaded is left out).
 """
 import html, json, os, re, shutil, sys, datetime
 
@@ -48,7 +50,31 @@ def emph(s):
     return s
 
 
-def text_to_html(text):
+IMG_LINE = re.compile(r'^!\[([^\]]*)\]\((https?://[^\s)]+)\)\s*$')
+ARTFIG_CSS = ('<style>/*artfig*/.artbody .artfig{margin:30px 0 34px;display:grid;gap:10px}'
+              '.artbody .artfig img{width:100%;display:block;object-fit:cover}'
+              '.artbody .artfig.n2{grid-template-columns:1fr 1fr}.artbody .artfig.n2 img{aspect-ratio:3/2;height:100%}'
+              '.artbody .artfig figcaption{grid-column:1/-1;color:#8a867b;font-size:13px;letter-spacing:.5px;margin-top:2px}'
+              '@media(min-width:900px){.artbody .artfig.n2{width:min(980px,calc(100vw - 2*var(--mx)))}}'
+              '@media(max-width:600px){.artbody .artfig.n2{grid-template-columns:1fr}}</style>')
+
+
+def figure(items, images, title):
+    """items = [(caption, url)] of consecutive photo lines -> <figure>. Photos without a downloaded copy are skipped."""
+    imgs = [(c, images[u]) for c, u in items if images.get(u)]
+    if not imgs:
+        return ''
+    caps = []
+    for c, _ in imgs:
+        if c.strip() and c.strip() not in caps:
+            caps.append(c.strip())
+    tags = ''.join('<img src="%s" alt="%s" loading="lazy">' % (esc(src), esc(c.strip() or title)) for c, src in imgs)
+    cap = '<figcaption>%s</figcaption>' % ' · '.join(esc(c) for c in caps) if caps else ''
+    return '<figure class="artfig n%d">%s%s</figure>' % (min(len(imgs), 2), tags, cap)
+
+
+def text_to_html(text, images=None, title=''):
+    images = images or {}
     text = (text or '').replace('\r\n', '\n').replace('\r', '\n').strip()
     blocks = re.split(r'\n\s*\n', text) if text else []
     out = []
@@ -65,7 +91,13 @@ def text_to_html(text):
                 del para[:]
         while i < len(lines):
             l = lines[i]
-            if re.match(r'^#{1,3}\s+', l):
+            if IMG_LINE.match(l):
+                flush(); items = []
+                while i < len(lines) and IMG_LINE.match(lines[i]):
+                    m = IMG_LINE.match(lines[i]); items.append((m.group(1), m.group(2))); i += 1
+                for k in range(0, len(items), 2):
+                    out.append(figure(items[k:k + 2], images, title))
+            elif re.match(r'^#{1,3}\s+', l):
                 flush(); out.append('<h3>' + inline(re.sub(r'^#{1,3}\s+', '', l)) + '</h3>'); i += 1
             elif re.match(r'^[-•]\s+', l):
                 flush(); items = []
@@ -124,7 +156,9 @@ def render_page(tpl, post, path):
     s = sub1(r'<div class="artdate rev">.*?</div>', '<div class="artdate rev">%s</div>' % long_date(post['_date']), s, 'artdate', path)
     photo = '<div class="artphoto rev"><img src="%s" alt="%s"></div>' % (esc(img), esc(title)) if img else '<div class="artphoto rev" hidden></div>'
     s = sub1(r'<div class="artphoto rev"[^>]*>(?:<img [^>]*>)?</div>', photo, s, 'artphoto', path)
-    s = sub1(r'<article class="artbody">.*?</article>', '<article class="artbody">%s</article>' % text_to_html(post['text']), s, 'artbody', path)
+    s = sub1(r'<article class="artbody">.*?</article>', '<article class="artbody">%s</article>' % text_to_html(post['text'], post.get('images'), title), s, 'artbody', path)
+    if '/*artfig*/' not in s:
+        s = sub1(r'</head>', ARTFIG_CSS + '</head>', s, '</head>', path)
     return s
 
 
