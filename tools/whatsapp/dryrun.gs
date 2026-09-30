@@ -1196,6 +1196,21 @@ function waTemplateStatus(conn) { // one-off / check: every template of one conn
   Logger.log('templates (' + Object.keys(out).length + '): ' + JSON.stringify(out));
   return out;
 }
+var STAGE_PREAUTO = { id: 13873, name: 'pre-automation contacted leads' }; // Ruben 29./30.09.: First / Second / Third Contacts from before the WhatsApp automation (their stage meant something else), moved once; the automation never touches this stage
+function waMoveOldContacts() { // one-off 30.09., resumable (time budget, Stage log makes each person a one-off): every client in First / Second / Third Contact whose contact was NOT made by the new chain since 22.09. and without a website request since 22.09.
+  var t0 = Date.now(), cut = new Date('2026-09-22T00:00:00+02:00'), st = ['First Contact', 'Second Contact', 'Third Contact'], all = [], from = 1;
+  for (var k = 0; k < 8; k++) { var b = cfPost({ action: 'clients_in_stages', stages: st, from: from, to: from + 11 }); if (!b) { Logger.log('list failed at page ' + from + ', stop'); return; } all = all.concat(b.clients || []); if (b.end) break; from += 12; }
+  var touched = {}; ['Stage log ZH', 'Stage log WT'].forEach(function (nm) { var sh = SpreadsheetApp.openById(TEAM_ID).getSheetByName(nm); if (!sh || sh.getLastRow() < 3) return; sh.getRange(3, 1, sh.getLastRow() - 2, 7).getValues().forEach(function (r) { var m2 = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(String(r[0])), d = r[0] instanceof Date ? r[0] : (m2 ? new Date(m2[3] + '-' + m2[2] + '-' + m2[1] + 'T12:00:00') : null); if (!d || d < cut || !/Contact/.test(String(r[4]))) return; touched[String(r[1]).toLowerCase().trim()] = 1; }); });
+  var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); if (ob.getLastRow() >= 3) ob.getRange(3, 1, ob.getLastRow() - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k2 = String(r[13]).split(':'); if (k2[0] === 'A' && k2[2]) touched[k2[2].toLowerCase()] = 1; });
+  var leads = readLeads(), recent = {}, lloc = {}; leads.forEach(function (l) { if (!l.email) return; lloc[l.email] = l.loc; if (l.ts >= cut) recent[l.email] = 1; });
+  var old = all.filter(function (c) { return !(touched[c.email] || touched[c.uid] || recent[c.email]); }), moved = 0, skipped = 0, failed = 0, left = 0;
+  old.forEach(function (c) {
+    if (Date.now() - t0 > 270000) { left++; return; }
+    var loc = lloc[c.email] === 'Winterthur' ? 'Winterthur' : 'Zurich', res = setStage(loc, c.email || c.uid, c.name, STAGE_PREAUTO.id, STAGE_PREAUTO.name, 'old ' + c.stage + ' from before the WhatsApp automation (Ruben 30.09.)', ['First Contact', 'Second Contact', 'Third Contact']);
+    if (res === 'set') moved++; else if (res === 'already' || /^(unchanged|skipped)/.test(res)) skipped++; else failed++;
+  });
+  Logger.log('old contacts: ' + old.length + ' found, ' + moved + ' moved, ' + skipped + ' already done / protected, ' + failed + ' failed, ' + left + ' left for the next run');
+}
 function waDocChainTiming() { // one-off 28.09. (Ruben, Abdi's feedback): A2 and A3 4 days after the previous contact (day 6 / day 10) instead of 48 h
   var body = DocumentApp.openById('1EwWEOWUgU1YpO9Ee18DpJTuxuIqcQAmglqPVm65K0VY').getBody(), n = 0;
   [['48 h after position 1 \\(A1 or M1\\)', '4 days after position 1 (A1 or M1)'], ['48 h after position 2 \\(A2 or M2\\)', '4 days after position 2 (A2 or M2)'], ['Every further position comes 48 hours after the LAST message or call', 'Every further position comes 4 days after the LAST message or call'], ['restarts the 48-hour clock', 'restarts the 4-day clock']].forEach(function (x) { if (body.replaceText(x[0], x[1])) n++; });
