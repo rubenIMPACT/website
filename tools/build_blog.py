@@ -81,7 +81,7 @@ ARTCARD_HEAD = ('<link href="https://fonts.googleapis.com/css2?family=Anton&fami
                 '.artcard{max-width:720px;margin:0 auto;background:#faf8f4;color:#2a2a2a;--tx:52px}'
                 '.artcard .artphoto{margin:0;max-width:none;border-top:6px solid #c6b659;border-bottom:6px solid #c6b659}'
                 '.artcard .artphoto[hidden]{display:none}'
-                '.artcard .artphoto img{max-height:620px;object-position:center 35%}'
+                '.artcard .artphoto img{max-height:620px;object-position:center 15%}'
                 '.arthead{padding:44px var(--tx) 4px}'
                 '.arthead .artdate{margin:0 0 10px;padding:0;color:#c6b659;font-size:11px;font-weight:700;letter-spacing:3.5px;text-transform:uppercase}'
                 '.arthead h1{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:clamp(30px,4.4vw,40px);line-height:1.15;'
