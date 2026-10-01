@@ -17,7 +17,7 @@ Text format of the sheet column "Text":
   "![caption](photo link)" works too; two photo lines in a row = two photos side by side
   (the photo is downloaded by tools/blog_from_api.py; a photo that cannot be loaded is left out).
 """
-import html, json, os, re, shutil, sys, datetime
+import hashlib, html, json, os, re, shutil, sys, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART = os.path.join(ROOT, 'articles')
@@ -107,11 +107,11 @@ ARTCARD_HEAD = ('<link href="https://fonts.googleapis.com/css2?family=Anton&fami
                 '.artcta a{display:inline-block;background:#000;color:#fff;font-size:16px;padding:16px 34px;text-decoration:none}'
                 '.artcta a:hover{background:#c6b659;color:#000}'
                 '@media(min-width:900px){.artpage{background:#faf8f4;padding:122px 0 0}'
-                '.artcard{max-width:none;--tx:max(var(--mx),calc((100% - 1320px)/2))}'
+                '.artcard{max-width:none;--tx:var(--mx)}'
                 '.artcard .artphoto img,.artcard .artbody .artfig img{max-height:78vh;object-fit:cover}'
-                '.arthead{padding-top:60px}.arthead .artdate{font-size:12px}.arthead h1{font-size:clamp(40px,4.6vw,66px)}'
-                '.artcard .artbody p{font-size:20px;line-height:1.75}.artcard .artbody li{font-size:20px}'
-                '.artcard .artbody h2,.artcard .artbody h3{font-size:clamp(32px,3.2vw,46px);margin-top:56px}'
+                '.arthead{padding-top:60px}.arthead .artdate{font-size:12px}.arthead h1{font-size:clamp(40px,4.4vw,84px)}'
+                '.artcard .artbody p{font-size:clamp(20px,1.2vw,25px);line-height:1.75}.artcard .artbody li{font-size:clamp(20px,1.2vw,25px)}'
+                '.artcard .artbody h2,.artcard .artbody h3{font-size:clamp(32px,2.8vw,54px);margin-top:56px}'
                 '.artcard .artbody .artfig{margin-top:60px}.artcard .artbody .artfig+h2,.artcard .artbody .artfig+h3{margin-top:52px}'
                 '.artcta{padding:40px var(--tx) 90px}.artcta strong{font-size:30px}}'
                 '@media(max-width:700px){.artpage{padding:90px 0 40px}.artcard{--tx:22px}.arthead{padding-top:30px}'
@@ -255,6 +255,8 @@ def render_page(tpl, post, path):
     s = sub1(r'<meta name="description" content="[^"]*">', '<meta name="description" content="%s">' % esc(desc), s, 'description', path)
     s = sub1(r'<h1 class="rev">.*?</h1>', '<h1 class="rev">%s</h1>' % title_html(title), s, 'h1', path)
     s = sub1(r'<div class="artdate rev">.*?</div>', '<div class="artdate rev">%s</div>' % long_date(post['_date']), s, 'artdate', path)
+    if img and post.get('image'):  # version tag: a new photo under the same file name must not come from the browser cache
+        img += '?v=' + hashlib.sha1(post['image'].encode()).hexdigest()[:8]
     photo = '<div class="artphoto rev"><img src="%s" alt="%s"></div>' % (esc(img), esc(title)) if img else '<div class="artphoto rev" hidden></div>'
     s = sub1(r'<div class="artphoto rev"[^>]*>(?:<img [^>]*>)?</div>', photo, s, 'artphoto', path)
     s = sub1(r'<article class="artbody">.*?</article>', '<article class="artbody">%s</article>' % text_to_html(post['text'], post.get('images'), title), s, 'artbody', path)
