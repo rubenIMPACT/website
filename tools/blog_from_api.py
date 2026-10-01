@@ -48,9 +48,11 @@ def fetch_photo(src, local):
 
 
 def text_photos(slug, text, prev):
-    """Photo lines "![caption](link)" in the text -> {link: /assets/blog/<slug>-<hash>.jpg}. Links that cannot be loaded are left out."""
+    """Photo lines (a photo link alone on a line, or "![caption](link)") in the text -> {link: /assets/blog/<slug>-<hash>.jpg}. Links that cannot be loaded are left out."""
     out, before = {}, prev.get('images') or {}
-    for src in re.findall(r'^!\[[^\]]*\]\((https?://[^\s)]+)\)\s*$', text or '', flags=re.M):
+    found = re.findall(r'^\s*(?:!\[[^\]]*\]\((https?://[^\s)]+)\)|(https?://drive\.google\.com/file/d/[-\w]+\S*|https?://\S+\.(?:jpe?g|png|webp)(?:\?\S*)?))\s*$',
+                       text or '', flags=re.M | re.I)
+    for src in (a or b for a, b in found):
         if src in out:
             continue
         local = '/assets/blog/%s-%s.jpg' % (slug[:50], hashlib.sha1(src.encode()).hexdigest()[:8])

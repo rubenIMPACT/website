@@ -5,6 +5,10 @@ Short recipes for the most common jobs. "Push" always means: checks from the REA
 ## Publish a blog post
 Open the Google Sheet "IMPACT Blog" > new row: Date, Title, Description, Photo URL (normal Drive link), Text, then tick "Website".
 Column "Check" must say `OK`. Online next morning, or at once: tick the box "PUBLISH NOW" in cell A1 (the status next to it confirms the start, online ~3 minutes later).
+More photos inside the text: paste a photo link (normal Drive link, or a link ending in .jpg/.png) alone on its own line where the photo
+should appear, with an empty line above and below. As many as you like; two photo links directly below each other = two photos side by side.
+Text format: empty line = new paragraph, `# ` at the start of a line = heading, `**bold**`. The page looks like the newsletter
+(photo with gold lines, two-tone title: the part after ":" is gold, free-trial box at the end in the language of the post).
 Take a post offline: remove the tick. Never edit title/date/photo/body of an article in the HTML, the next build overwrites it.
 
 ## Add or change an event

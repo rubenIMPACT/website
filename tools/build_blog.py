@@ -13,7 +13,8 @@ Text format of the sheet column "Text":
   blank line = new paragraph, single line break = line break,
   "# Heading" = subheading, "- item" = bullet list,
   **bold**, *italic*, [link text](https://...), bare https:// links become clickable,
-  "![caption](photo link)" on its own line = photo in the text; two photo lines in a row = two photos side by side
+  a photo link (Google Drive file link or a link ending in .jpg/.png/.webp) alone on its own line = photo in the text,
+  "![caption](photo link)" works too; two photo lines in a row = two photos side by side
   (the photo is downloaded by tools/blog_from_api.py; a photo that cannot be loaded is left out).
 """
 import html, json, os, re, shutil, sys, datetime
@@ -51,6 +52,16 @@ def emph(s):
 
 
 IMG_LINE = re.compile(r'^!\[([^\]]*)\]\((https?://[^\s)]+)\)\s*$')
+BARE_PHOTO = re.compile(r'^(https?://drive\.google\.com/file/d/[-\w]+\S*|https?://\S+\.(?:jpe?g|png|webp)(?:\?\S*)?)\s*$', re.I)
+
+
+def photo_of(line):
+    # photo line -> (caption, link), else None
+    m = IMG_LINE.match(line)
+    if m:
+        return m.group(1), m.group(2)
+    m = BARE_PHOTO.match(line.strip())
+    return ('', m.group(1)) if m else None
 ARTFIG_CSS = ('<style>/*artfig*/.artbody .artfig{margin:30px 0 34px;display:grid;gap:10px}'
               '.artbody .artfig img{width:100%;display:block;object-fit:cover}'
               '.artbody .artfig.n2{grid-template-columns:1fr 1fr}.artbody .artfig.n2 img{aspect-ratio:3/2;height:100%}'
@@ -59,23 +70,25 @@ ARTFIG_CSS = ('<style>/*artfig*/.artbody .artfig{margin:30px 0 34px;display:grid
               '@media(max-width:600px){.artbody .artfig.n2{grid-template-columns:1fr}}</style>')
 
 
-# Article layout in the style of the newsletter (01.10.2026): cream card on a beige page, photo with gold bars on top,
-# date label + two-tone title (part after ":" in gold), Anton headings, Lora text, photos across the full card width.
+# Article layout in the style of the newsletter (01.10.2026): cream card, photo with gold bars on top, date label +
+# two-tone title (part after ":" in gold), Anton headings, Lora text, photos across the full width, free-trial box at the end.
+# Phone/tablet: card on a beige page like the email. Desktop (>= 900 px): the card fills the screen (Ruben 01.10.2026).
 ARTCARD_HEAD = ('<link href="https://fonts.googleapis.com/css2?family=Anton&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">'
                 '<style>/*artcard*/'
                 '.navwrap nav,.navwrap.scrolled nav{background:#000}'
                 '.artpage{background:#f0ece4;padding:150px 0 80px}'
-                '.artcard{max-width:720px;margin:0 auto;background:#faf8f4;color:#2a2a2a}'
+                '.artpage+.final{display:none}'
+                '.artcard{max-width:720px;margin:0 auto;background:#faf8f4;color:#2a2a2a;--tx:52px}'
                 '.artcard .artphoto{margin:0;max-width:none;border-top:6px solid #c6b659;border-bottom:6px solid #c6b659}'
                 '.artcard .artphoto[hidden]{display:none}'
-                '.artcard .artphoto img{max-height:620px}'
-                '.arthead{padding:44px 52px 4px}'
+                '.artcard .artphoto img{max-height:620px;object-position:center 35%}'
+                '.arthead{padding:44px var(--tx) 4px}'
                 '.arthead .artdate{margin:0 0 10px;padding:0;color:#c6b659;font-size:11px;font-weight:700;letter-spacing:3.5px;text-transform:uppercase}'
                 '.arthead h1{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:clamp(30px,4.4vw,40px);line-height:1.15;'
                 'letter-spacing:1px;color:#111;text-transform:uppercase;max-width:none;margin:0}'
                 '.arthead h1 .gold{color:#c6b659}'
-                '.artcard .artbody{max-width:none;padding:22px 0 60px;font-family:Lora,Georgia,serif;font-weight:400}'
-                '.artcard .artbody>p,.artcard .artbody>ul,.artcard .artbody>ol,.artcard .artbody>h2,.artcard .artbody>h3{margin-left:52px;margin-right:52px}'
+                '.artcard .artbody{max-width:none;padding:22px 0 30px;font-family:Lora,Georgia,serif;font-weight:400}'
+                '.artcard .artbody>p,.artcard .artbody>ul,.artcard .artbody>ol,.artcard .artbody>h2,.artcard .artbody>h3{margin-left:var(--tx);margin-right:var(--tx)}'
                 '.artcard .artbody p{color:#2a2a2a;font-size:18.5px;line-height:1.78;margin-top:0;margin-bottom:16px}'
                 '.artcard .artbody li{color:#2a2a2a;font-size:18px;line-height:1.7}'
                 '.artcard .artbody ul,.artcard .artbody ol{padding-left:22px}'
@@ -85,25 +98,56 @@ ARTCARD_HEAD = ('<link href="https://fonts.googleapis.com/css2?family=Anton&fami
                 '.artcard .artbody a{color:#8c7a1e;text-decoration:underline}'
                 '.artcard .artbody .artfig{margin:44px 0 0;gap:4px}'
                 '.artcard .artbody .artfig.n2{width:auto}'
+                '.artcard .artbody .artfig img{object-position:center 35%}'
                 '.artcard .artbody .artfig+h2,.artcard .artbody .artfig+h3{margin-top:40px}'
                 '.artcard .artbody .artfig figcaption{display:none}'
-                '@media(max-width:700px){.artpage{padding:90px 0 40px}.arthead{padding:30px 22px 2px}'
-                '.artcard .artbody>p,.artcard .artbody>ul,.artcard .artbody>ol,.artcard .artbody>h2,.artcard .artbody>h3{margin-left:22px;margin-right:22px}'
+                '.artcta{text-align:center;padding:26px var(--tx) 60px}'
+                '.artcta small{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#000;margin-bottom:10px}'
+                '.artcta strong{display:block;font-weight:800;font-size:24px;line-height:1.15;text-transform:uppercase;color:#111;margin-bottom:24px}'
+                '.artcta a{display:inline-block;background:#000;color:#fff;font-size:16px;padding:16px 34px;text-decoration:none}'
+                '.artcta a:hover{background:#c6b659;color:#000}'
+                '@media(min-width:900px){.artpage{background:#faf8f4;padding:122px 0 0}'
+                '.artcard{max-width:none;--tx:max(var(--mx),calc((100% - 1320px)/2))}'
+                '.artcard .artphoto img,.artcard .artbody .artfig img{max-height:78vh;object-fit:cover}'
+                '.arthead{padding-top:60px}.arthead .artdate{font-size:12px}.arthead h1{font-size:clamp(40px,4.6vw,66px)}'
+                '.artcard .artbody p{font-size:20px;line-height:1.75}.artcard .artbody li{font-size:20px}'
+                '.artcard .artbody h2,.artcard .artbody h3{font-size:clamp(32px,3.2vw,46px);margin-top:56px}'
+                '.artcard .artbody .artfig{margin-top:60px}.artcard .artbody .artfig+h2,.artcard .artbody .artfig+h3{margin-top:52px}'
+                '.artcta{padding:40px var(--tx) 90px}.artcta strong{font-size:30px}}'
+                '@media(max-width:700px){.artpage{padding:90px 0 40px}.artcard{--tx:22px}.arthead{padding-top:30px}'
                 '.artcard .artbody p{font-size:17px;line-height:1.72}}'
                 '</style>')
+ARTCARD_HEAD_RE = re.compile(r'<link href="https://fonts\.googleapis\.com/css2\?family=Anton[^"]*" rel="stylesheet"><style>/\*artcard\*/.*?</style>', re.S)
 OLD_LAYOUT = re.compile(r'<section class="pagehead"><div class="kick rev">[^<]*</div>(<h1 class="rev">.*?</h1>)</section>'
                         r'(<div class="artdate rev">.*?</div>)\s*(<div class="artphoto rev"[^>]*>(?:<img [^>]*>)?</div>)\s*'
                         r'(<article class="artbody">.*?</article>)', re.S)
+# free-trial box at the end of the card, in the language of the post (as in the newsletter)
+CTA = {'en': ('New to IMPACT?', 'Request your<br>free trial session', 'Request a free trial', '/en/trial/'),
+       'de': ('Neu bei IMPACT?', 'Gratis Probetraining<br>anfragen', 'Jetzt anfragen', '/probetraining/')}
+DE_WORDS = set('und der die das ist nicht mit sich auch ein eine einen dem den des du dich dein deine wir uns ich für auf zu im bei wie oder'.split())
+EN_WORDS = set('the and is are you your with to of for it that this not we our can be on in at as or if'.split())
+
+
+def lang_of(text):
+    words = re.findall(r'[a-zäöüß]+', (text or '').lower())
+    return 'de' if sum(w in DE_WORDS for w in words) > sum(w in EN_WORDS for w in words) else 'en'
+
+
+def cta_html(lang):
+    small, big, button, href = CTA[lang]
+    return '<!--artcta--><div class="artcta"><small>%s</small><strong>%s</strong><a href="%s">%s</a></div><!--/artcta-->' % (small, big, href, button)
 
 
 def card_layout(s, path):
-    """Old article page layout -> newsletter-style card (once; afterwards the page keeps the card)."""
+    """Old article page layout -> newsletter-style card (once; afterwards the page keeps the card). The card CSS is
+    replaced on every build, so design changes reach all article pages."""
     if 'class="artcard"' not in s:
         s, n = OLD_LAYOUT.subn(lambda m: '<main class="artpage"><div class="artcard">%s<header class="arthead">%s%s</header>%s</div></main>'
                                % (m.group(3), m.group(2), m.group(1), m.group(4)), s, count=1)
         if n != 1:
             sys.exit('FEHLER: Artikel-Layout nicht erkannt in %s' % path)
-    if '/*artcard*/' not in s:
+    s, n = ARTCARD_HEAD_RE.subn(lambda m: ARTCARD_HEAD, s, count=1)
+    if n == 0:
         s = sub1(r'</head>', ARTCARD_HEAD + '</head>', s, '</head>', path)
     return s
 
@@ -148,10 +192,10 @@ def text_to_html(text, images=None, title=''):
                 del para[:]
         while i < len(lines):
             l = lines[i]
-            if IMG_LINE.match(l):
+            if photo_of(l):
                 flush(); items = []
-                while i < len(lines) and IMG_LINE.match(lines[i]):
-                    m = IMG_LINE.match(lines[i]); items.append((m.group(1), m.group(2))); i += 1
+                while i < len(lines) and photo_of(lines[i]):
+                    items.append(photo_of(lines[i])); i += 1
                 for k in range(0, len(items), 2):
                     out.append(figure(items[k:k + 2], images, title))
             elif re.match(r'^#{1,3}\s+', l):
@@ -214,6 +258,10 @@ def render_page(tpl, post, path):
     photo = '<div class="artphoto rev"><img src="%s" alt="%s"></div>' % (esc(img), esc(title)) if img else '<div class="artphoto rev" hidden></div>'
     s = sub1(r'<div class="artphoto rev"[^>]*>(?:<img [^>]*>)?</div>', photo, s, 'artphoto', path)
     s = sub1(r'<article class="artbody">.*?</article>', '<article class="artbody">%s</article>' % text_to_html(post['text'], post.get('images'), title), s, 'artbody', path)
+    if '<!--artcta-->' in s:
+        s = sub1(r'<!--artcta-->.*?<!--/artcta-->', cta_html(lang_of(post['text'])), s, 'artcta', path)
+    else:
+        s = sub1(r'</article>', '</article>' + cta_html(lang_of(post['text'])), s, '</article>', path)
     if '/*artfig*/' not in s:
         s = sub1(r'</head>', ARTFIG_CSS + '</head>', s, '</head>', path)
     return s
