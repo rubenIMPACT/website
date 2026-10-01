@@ -73,7 +73,7 @@ export async function onRequestPost(context) {
     if (p.action === "set_lifecycle") return j(await setLifecycle(H, p));
     if (p.action === "find_client") return j(await findClient(H, p));
     if (p.action === "add_tag") return j(await addTag(H, p));
-    if (p.action === "clients_by_email") return j(await clientsByEmail(H, p.emails));
+    if (p.action === "clients_by_email") return j(await clientsByEmail(H, p.emails, p.with_tags));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
     return j({ error: "exception", detail: String(e && e.message ? e.message : e).slice(0, 200) }, 502);
@@ -306,9 +306,12 @@ async function lifecycleStages(H) {
 }
 // Lifecycle stage per lead e-mail, max 40 per call (16.09.2026): the website leads have no row in the trial list, so the chain A1-A3
 // and the call lists ask exercise.com for the stage the coach set after the call (Not interested / Do not contact / Client ...).
-async function clientsByEmail(H, emails) {
-  const list = (Array.isArray(emails) ? emails : []).map((e) => String(e || "").toLowerCase().trim()).filter(Boolean).slice(0, 40), out = {};
-  for (const email of list) { const f = await findClient(H, { email }); out[email] = f.ok ? { cid: f.cid, uid: f.uid, name: f.name, lifecycle: f.lifecycle, lifecycle_stage_id: f.lifecycle_stage_id } : null; }
+async function clientsByEmail(H, emails, withTags) { // withTags (01.10.2026, owner tags "Nate" / "Gioele"): also the tags of the client record (v2, one more call per client), tags undefined = read failed
+  const list = (Array.isArray(emails) ? emails : []).map((e) => String(e || "").toLowerCase().trim()).filter(Boolean).slice(0, withTags ? 12 : 40), out = {};
+  for (const email of list) {
+    const f = await findClient(H, { email }); out[email] = f.ok ? { cid: f.cid, uid: f.uid, name: f.name, lifecycle: f.lifecycle, lifecycle_stage_id: f.lifecycle_stage_id } : null;
+    if (withTags && f.ok) { const c2 = await getJson(H, API + "/api/v2/clients/" + f.cid), c = c2.status === 200 && c2.json ? (c2.json.client || c2.json) : null; if (c) { const t = Array.isArray(c.tag_list) ? c.tag_list : (Array.isArray(c.tags) ? c.tags : String(c.tag_list || c.tags || "").split(",")); out[email].tags = t.map((x) => String(x && x.name !== undefined ? x.name : x).trim()).filter(Boolean).join(","); } }
+  }
   return { ok: true, count: list.length, clients: out };
 }
 // Client record (v3: id = client id for /api/v2/clients/{id}, user_id) by e-mail or user id. q[client_search] is the only search exercise.com honours (see lead.js).

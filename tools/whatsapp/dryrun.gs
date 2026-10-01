@@ -104,6 +104,7 @@ function waDryRunHourly() {
     var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
     if (st.replied || slot >= RULE.A_MAX) return; // the lead replied: the coach owns the chat, the automation is off
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
+    if (due <= now.getTime() && due > now.getTime() - 24 * h && takenOverBy(l.email)) { Logger.log('A skipped, ' + l.name + ': tag ' + takenOverBy(l.email) + ' (called by the team, Ruben 01.10.)'); return; }
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, (calls[l.email.toLowerCase()] || {}).lang || l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
   });
   if (!pv) writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
@@ -207,7 +208,7 @@ function waDryRunHourly() {
   if (pv) PREVIEW_ROWS = out; else if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, out[0].length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
   if (sh.getRange(4, HEAD.length + 1).getValue() !== DRY_EXTRA[0]) { sh.getRange(4, HEAD.length + 1, 1, DRY_EXTRA.length).setValues([DRY_EXTRA]).setFontWeight('bold').setBackground('#f3f3f3'); sh.hideColumns(HEAD.length + 1, DRY_EXTRA.length); } // hidden helper columns for the sender
   var stillDue = { // re-check right before a real send (the row may be hours old: booked / replied / closed in the meantime)
-    A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied); },
+    A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied) && !/^(Nate|Gioele)$/.test(takenOverBy(e)); }, // + tag Nate / Gioele (Ruben 01.10.); a failed tag read does not drop the queued message
     B: function (r) { var k = String(r[10]).split(':'); return k[3] === today && ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'BOOKED'; }); }); },
     E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); },
     C: function (r) { var k = String(r[10]).split(':'); return k[3] === yday && trialStill(k[2], k[3], 'NOSHOW'); }, // still a no-show, no newer booking / trial, and the text says "gestern": only on the day after the no-show
@@ -717,6 +718,16 @@ function leadStages(leads) { // e-mail -> lifecycle stage in exercise.com for th
   for (var i = 0; i < emails.length; i += 40) { var b = cfPost({ action: 'clients_by_email', emails: emails.slice(i, i + 40) }); if (!b) continue; Object.keys(b.clients || {}).forEach(function (e) { if (b.clients[e]) { out[e] = String(b.clients[e].lifecycle || ''); found++; } }); }
   Logger.log('lead stages: ' + emails.length + ' asked, ' + found + ' found in exercise.com, ' + emails.filter(function (e) { return LC_SKIP.test(out[e] || ''); }).length + ' closed (LC_SKIP)');
   return out;
+}
+var OWNER_TAGS = ['nate', 'gioele']; // Ruben 01.10.2026: a lead with the tag "Nate" or "Gioele" in exercise.com is called by them, so no lead message (A1-A3) from the studio number; the messages around the trial (B, C, D) keep running
+var OWNER_CACHE = {};
+function takenOverBy(email) { // '' = no owner tag; otherwise the tag (or 'check failed': rather no message than a wrong one, the next hourly run tries again)
+  var e = String(email || '').toLowerCase().trim(); if (!e) return '';
+  if (OWNER_CACHE[e] !== undefined) return OWNER_CACHE[e];
+  var b = cfPost({ action: 'clients_by_email', emails: [e], with_tags: true }), c = b && b.clients ? b.clients[e] : undefined;
+  if (!b || (c && c.tags === undefined)) return (OWNER_CACHE[e] = 'check failed');
+  var tags = String((c && c.tags) || '').split(',').map(function (x) { return x.trim().toLowerCase(); }), hit = OWNER_TAGS.filter(function (t) { return tags.indexOf(t) >= 0; })[0];
+  return (OWNER_CACHE[e] = hit ? hit.charAt(0).toUpperCase() + hit.slice(1) : '');
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date }: while Flow A is live from the sales outbox (only messages really sent), before that from the Dry run rows
   var m = {}, n;
