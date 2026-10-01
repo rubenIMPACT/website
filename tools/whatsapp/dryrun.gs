@@ -1390,6 +1390,44 @@ function installUndeliverableTrigger() { // once: daily 12:00 (the weekday rule 
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waUndeliverableMail') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waUndeliverableMail').timeBased().everyDays(1).atHour(UNDELIV.hour).nearMinute(0).inTimezone(TZ).create();
 }
+// Pre-automation mail (Ruben 01.10.2026: "automatisier den Versand mit Abdis Adresse"): every weekday PREMAIL.per_day e-mails to clients in the stage
+// 'pre-automation contacted leads' (old First / Second / Third Contacts from before the WhatsApp automation, moved 30.09.), from Abdi's address so that
+// replies land with him. Newest website requests first, then the rest (newest account first). Each person once (tab "Pre-automation mail" in Detailed Sales KPIs).
+// Winterthur only after Bogdan's holiday (PREMAIL.locs); no website request = location unknown = Zurich version. on = false until Ruben approved the text.
+var PREMAIL = { on: false, from: 'abdi@impact-martialarts.com', name: 'Abdi | IMPACT Martial Arts', per_day: 10, weekdays: [1, 2, 3, 4, 5], hour: 10, locs: ['Zurich'], stage: 'pre-automation contacted leads' };
+var PREMAIL_TEXT = { // draft 29.09., NOT yet approved by Ruben
+  de: { subject: 'Dein Probetraining bei IMPACT', lines: ['Hi {name},', 'du hattest dich vor einiger Zeit für ein Gratis-Probetraining bei IMPACT Martial Arts interessiert. Leider haben wir es damals nicht geschafft, dich zu erreichen, das tut uns leid.', 'Falls du noch Lust hast, antworte einfach kurz auf diese Mail. Wir melden uns dann bei dir und planen dein Probetraining zusammen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
+  en: { subject: 'Your trial session at IMPACT', lines: ['Hi {name},', "a while ago you were interested in a free trial session at IMPACT Martial Arts. Unfortunately we didn't manage to reach you back then, sorry about that.", "If you're still keen, just reply briefly to this email. We'll get back to you and plan your trial session together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
+};
+function preMailSheet() { // tab "Pre-automation mail" in Detailed Sales KPIs (hidden): one line per e-mail sent
+  var ss = SpreadsheetApp.openById(TEAM_ID), sh = ss.getSheetByName('Pre-automation mail');
+  if (!sh) { sh = ss.insertSheet('Pre-automation mail'); sh.getRange('A1').setValue('E-mails to old contacts (stage "pre-automation contacted leads"), sent from Abdi\'s address by the automation. Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'Time', 'E-mail', 'Name', 'Location', 'Language', 'Result']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); sh.hideSheet(); }
+  return sh;
+}
+function waPreAutoMail(preview) { // daily trigger (installPreMailTrigger); preview = log who would get it and the first mail, send nothing
+  preview = preview === true; var now = new Date(), dow = Number(Utilities.formatDate(now, TZ, 'u'));
+  if (!preview && (!PREMAIL.on || PREMAIL.weekdays.indexOf(dow) < 0)) return;
+  if (!preview && GmailApp.getAliases().indexOf(PREMAIL.from) < 0) { Logger.log('pre-automation mail: ' + PREMAIL.from + ' is not a "Send mail as" address of this account, nothing sent'); return; }
+  var all = [], from = 1; for (var k = 0; k < 10; k++) { var b = null; for (var tr = 0; tr < 3 && !b; tr++) { if (tr) Utilities.sleep(5000); b = cfPost({ action: 'clients_in_stages', stages: [PREMAIL.stage], from: from, to: from + 11 }); } if (!b) { Logger.log('pre-automation mail: client list failed, nothing sent'); return; } all = all.concat(b.clients || []); if (b.end) break; from += 12; }
+  var sh = preMailSheet(), done = {}; if (sh.getLastRow() >= 3) sh.getRange(3, 3, sh.getLastRow() - 2, 1).getValues().forEach(function (r) { done[String(r[0]).toLowerCase().trim()] = 1; });
+  var web = {}; readLeads().forEach(function (l) { if (l.email && !l.test && (!web[l.email] || l.ts > web[l.email].ts)) web[l.email] = l; });
+  var todo = all.filter(function (c) { var e = String(c.email || '').toLowerCase().trim(); c.email = e; c.loc = (web[e] && web[e].loc) || 'Zurich'; return /@/.test(e) && !TEST_MAIL.test(e) && !done[e] && PREMAIL.locs.indexOf(c.loc) >= 0; });
+  todo.sort(function (x, y) { var wx = web[x.email], wy = web[y.email]; if (wx && wy) return wy.ts - wx.ts; if (wx || wy) return wx ? -1 : 1; return Number(y.created || 0) - Number(x.created || 0); });
+  var batch = todo.slice(0, PREMAIL.per_day), sent = 0;
+  batch.forEach(function (c, i) {
+    var lang = (web[c.email] && web[c.email].lang) === 'en' ? 'en' : 'de', t = PREMAIL_TEXT[lang], first = capName(String(c.name || '').trim().split(/\s+/)[0] || '');
+    var lines = t.lines.map(function (x, j) { return j === 0 ? (first ? fill(x, { name: first }) : (lang === 'en' ? 'Hi,' : 'Hi,')) : x; });
+    var html = lines.map(function (x) { return '<p>' + x + '</p>'; }).join(''), text = lines.join('\n\n').replace(/<br>/g, '\n');
+    if (preview) { Logger.log('PREMAIL ' + (i + 1) + ' | ' + c.loc + ' | ' + lang.toUpperCase() + ' | ' + (web[c.email] ? 'website ' + fmtD(web[c.email].ts) : 'no website request') + ' | ' + c.email.replace(/^(..)[^@]*/, '$1***') + (i === 0 ? '\nSubject: ' + t.subject + '\n' + text : '')); return; }
+    var res = 'sent'; try { GmailApp.sendEmail(c.email, t.subject, text, { htmlBody: html, from: PREMAIL.from, name: PREMAIL.name, replyTo: PREMAIL.from }); sent++; } catch (e) { res = 'failed: ' + String(e.message || e).slice(0, 120); }
+    sh.appendRow([Utilities.formatDate(now, TZ, 'dd.MM.yyyy'), Utilities.formatDate(new Date(), TZ, 'HH:mm'), c.email, c.name || '', c.loc, lang, res]);
+  });
+  Logger.log('pre-automation mail: ' + all.length + ' in the stage, ' + todo.length + ' still to mail, ' + (preview ? batch.length + ' in the next batch (preview, nothing sent)' : sent + ' sent today'));
+}
+function installPreMailTrigger() { // once: daily at PREMAIL.hour (the weekday rule and the on switch sit in the function)
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waPreAutoMail') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('waPreAutoMail').timeBased().everyDays(1).atHour(PREMAIL.hour).nearMinute(0).inTimezone(TZ).create();
+}
 function installTagTrigger() { // once: the 15-minute trigger for waQuarterHour = trial tags + contact stages (replaces an existing one, also the old waTrialTags trigger)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waTrialTags' || t.getHandlerFunction() === 'waQuarterHour') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('waQuarterHour').timeBased().everyMinutes(15).create();
