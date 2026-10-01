@@ -1309,6 +1309,7 @@ function waPreviewA() { // one-off: what Flow A would send on the real chain sta
 function waQuarterHour() { // the 15-minute trigger (installTagTrigger): trial tags, then contact stages; one failing part never blocks the other
   try { waTrialTags(); } catch (e) { Logger.log('waTrialTags failed: ' + e); }
   try { waContactStages(); } catch (e) { Logger.log('waContactStages failed: ' + e); }
+  try { waPreAutoReplies(); } catch (e) { Logger.log('waPreAutoReplies failed: ' + e); }
 }
 function storeFutureBookings(loc, rows, now) { // user ids with a reserved / registered class that starts after now (next 14 days), per studio in Script Properties, refreshed every 15 minutes by waTrialTags
   var set = {}; rows.forEach(function (r) { if (!/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) || !r['User ID']) return; var m = /(\d{4})\/(\d{2})\/(\d{2}) (\d{1,2}):(\d{2}) (AM|PM)/.exec(String(r['Start Time'] || '')); if (!m) return; var hh = Number(m[4]) % 12 + (m[6] === 'PM' ? 12 : 0), d = new Date(m[1] + '-' + m[2] + '-' + m[3] + 'T' + ('0' + hh).slice(-2) + ':' + m[5] + ':00' + Utilities.formatDate(now, TZ, 'XXX')); if (d > now) set[String(r['User ID']).replace(/\D/g, '')] = 1; });
@@ -1394,16 +1395,18 @@ function installUndeliverableTrigger() { // once: daily 12:00 (the weekday rule 
 // 'pre-automation contacted leads' (old First / Second / Third Contacts from before the WhatsApp automation, moved 30.09.), from Abdi's address so that
 // replies land with him. Newest website requests first, then the rest (newest account first). Each person once (tab "Pre-automation mail" in Detailed Sales KPIs).
 // Winterthur only after Bogdan's holiday (PREMAIL.locs); no website request = location unknown = Zurich version. on = false until Ruben approved the text.
-var PREMAIL = { on: false, from: 'abdi@impact-martialarts.com', name: 'Abdi | IMPACT Martial Arts', per_day: 10, weekdays: [1, 2, 3, 4, 5], hour: 10, locs: ['Zurich'], stage: 'pre-automation contacted leads' };
-var PREMAIL_TEXT = { // draft 29.09., NOT yet approved by Ruben
-  de: { subject: 'Dein Probetraining bei IMPACT', lines: ['Hi {name},', 'du hattest dich vor einiger Zeit für ein Gratis-Probetraining bei IMPACT Martial Arts interessiert. Leider haben wir es damals nicht geschafft, dich zu erreichen, das tut uns leid.', 'Falls du noch Lust hast, antworte einfach kurz auf diese Mail. Wir melden uns dann bei dir und planen dein Probetraining zusammen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
-  en: { subject: 'Your trial session at IMPACT', lines: ['Hi {name},', "a while ago you were interested in a free trial session at IMPACT Martial Arts. Unfortunately we didn't manage to reach you back then, sorry about that.", "If you're still keen, just reply briefly to this email. We'll get back to you and plan your trial session together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
+var PREMAIL = { on: false, en_ok: false, from: 'abdi@impact-martialarts.com', name: 'Abdi | IMPACT Martial Arts', reply_to: 'ruben+preauto@impact-martialarts.com', per_day: 10, weekdays: [1, 2, 3, 4, 5], hour: 10, locs: ['Zurich'], stage: 'pre-automation contacted leads', lost_days: 10 }; // Ruben 01.10.: German text approved, English waits for his OK (en_ok); replies go to a plus address of Ruben's mailbox so the automation can read them (back to Lead + reply in the Message field); no reply after 10 days = Not Interested (Lost)
+var PREMAIL_TEXT = { // de = Ruben's approved text (01.10.2026); en = translation, NOT yet approved
+  de: { subject: 'Dein Probetraining bei IMPACT', lines: ['Hi {name},', 'du hattest dich vor einiger Zeit für ein Gratis-Probetraining bei IMPACT Martial Arts interessiert. Leider haben wir es damals aufgrund zu grosser Nachfrage nicht geschafft, dich zu erreichen, das tut uns leid.', 'Falls du noch Lust hast, antworte einfach kurz auf diese Mail. Wir melden uns dann bei dir und planen dein Probetraining zusammen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
+  en: { subject: 'Your trial session at IMPACT', lines: ['Hi {name},', "a while ago you were interested in a free trial session at IMPACT Martial Arts. Unfortunately, due to very high demand, we didn't manage to reach you back then, sorry about that.", "If you're still keen, just reply briefly to this email. We'll get back to you and plan your trial session together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
 };
 function preMailSheet() { // tab "Pre-automation mail" in Detailed Sales KPIs (hidden): one line per e-mail sent
   var ss = SpreadsheetApp.openById(TEAM_ID), sh = ss.getSheetByName('Pre-automation mail');
   if (!sh) { sh = ss.insertSheet('Pre-automation mail'); sh.getRange('A1').setValue('E-mails to old contacts (stage "pre-automation contacted leads"), sent from Abdi\'s address by the automation. Read-only.').setFontColor('#666666'); sh.getRange(2, 1, 1, 7).setValues([['Date', 'Time', 'E-mail', 'Name', 'Location', 'Language', 'Result']]).setFontWeight('bold').setBackground('#f3f3f3'); sh.setFrozenRows(2); sh.hideSheet(); }
+  if (sh.getRange(2, 8).getValue() !== 'Reply') sh.getRange(2, 8, 1, 3).setValues([['Reply', 'Reply handled', 'Lost']]).setFontWeight('bold').setBackground('#f3f3f3');
   return sh;
 }
+function preMailDate(v) { if (v instanceof Date) return v; var m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(String(v || '')); return m ? new Date(m[3] + '-' + m[2] + '-' + m[1] + 'T12:00:00') : null; } // Sheets may turn '01.10.2026' into a date
 function waPreAutoMail(preview) { // daily trigger (installPreMailTrigger); preview = log who would get it and the first mail, send nothing
   preview = preview === true; var now = new Date(), dow = Number(Utilities.formatDate(now, TZ, 'u'));
   if (!preview && (!PREMAIL.on || PREMAIL.weekdays.indexOf(dow) < 0)) return;
@@ -1411,18 +1414,47 @@ function waPreAutoMail(preview) { // daily trigger (installPreMailTrigger); prev
   var all = [], from = 1; for (var k = 0; k < 10; k++) { var b = null; for (var tr = 0; tr < 3 && !b; tr++) { if (tr) Utilities.sleep(5000); b = cfPost({ action: 'clients_in_stages', stages: [PREMAIL.stage], from: from, to: from + 11 }); } if (!b) { Logger.log('pre-automation mail: client list failed, nothing sent'); return; } all = all.concat(b.clients || []); if (b.end) break; from += 12; }
   var sh = preMailSheet(), done = {}; if (sh.getLastRow() >= 3) sh.getRange(3, 3, sh.getLastRow() - 2, 1).getValues().forEach(function (r) { done[String(r[0]).toLowerCase().trim()] = 1; });
   var web = {}; readLeads().forEach(function (l) { if (l.email && !l.test && (!web[l.email] || l.ts > web[l.email].ts)) web[l.email] = l; });
-  var todo = all.filter(function (c) { var e = String(c.email || '').toLowerCase().trim(); c.email = e; c.loc = (web[e] && web[e].loc) || 'Zurich'; return /@/.test(e) && !TEST_MAIL.test(e) && !done[e] && PREMAIL.locs.indexOf(c.loc) >= 0; });
+  var todo = all.filter(function (c) { var e = String(c.email || '').toLowerCase().trim(); c.email = e; c.loc = (web[e] && web[e].loc) || 'Zurich'; return /@/.test(e) && !TEST_MAIL.test(e) && !done[e] && PREMAIL.locs.indexOf(c.loc) >= 0 && (PREMAIL.en_ok || !(web[e] && web[e].lang === 'en')); }); // English only after Ruben's OK of the English text
   todo.sort(function (x, y) { var wx = web[x.email], wy = web[y.email]; if (wx && wy) return wy.ts - wx.ts; if (wx || wy) return wx ? -1 : 1; return Number(y.created || 0) - Number(x.created || 0); });
+  if (!preview) preMailLost(sh, now);
   var batch = todo.slice(0, PREMAIL.per_day), sent = 0;
   batch.forEach(function (c, i) {
     var lang = (web[c.email] && web[c.email].lang) === 'en' ? 'en' : 'de', t = PREMAIL_TEXT[lang], first = capName(String(c.name || '').trim().split(/\s+/)[0] || '');
     var lines = t.lines.map(function (x, j) { return j === 0 ? (first ? fill(x, { name: first }) : (lang === 'en' ? 'Hi,' : 'Hi,')) : x; });
     var html = lines.map(function (x) { return '<p>' + x + '</p>'; }).join(''), text = lines.join('\n\n').replace(/<br>/g, '\n');
     if (preview) { Logger.log('PREMAIL ' + (i + 1) + ' | ' + c.loc + ' | ' + lang.toUpperCase() + ' | ' + (web[c.email] ? 'website ' + fmtD(web[c.email].ts) : 'no website request') + ' | ' + c.email.replace(/^(..)[^@]*/, '$1***') + (i === 0 ? '\nSubject: ' + t.subject + '\n' + text : '')); return; }
-    var res = 'sent'; try { GmailApp.sendEmail(c.email, t.subject, text, { htmlBody: html, from: PREMAIL.from, name: PREMAIL.name, replyTo: PREMAIL.from }); sent++; } catch (e) { res = 'failed: ' + String(e.message || e).slice(0, 120); }
+    var res = 'sent'; try { GmailApp.sendEmail(c.email, t.subject, text, { htmlBody: html, from: PREMAIL.from, name: PREMAIL.name, replyTo: PREMAIL.name + ' <' + PREMAIL.reply_to + '>' }); sent++; } catch (e) { res = 'failed: ' + String(e.message || e).slice(0, 120); }
     sh.appendRow([Utilities.formatDate(now, TZ, 'dd.MM.yyyy'), Utilities.formatDate(new Date(), TZ, 'HH:mm'), c.email, c.name || '', c.loc, lang, res]);
   });
   Logger.log('pre-automation mail: ' + all.length + ' in the stage, ' + todo.length + ' still to mail, ' + (preview ? batch.length + ' in the next batch (preview, nothing sent)' : sent + ' sent today'));
+}
+function preMailLost(sh, now) { // every mailed person without a reply after PREMAIL.lost_days: Not Interested (Lost), only while still in the stage 'pre-automation contacted leads' (whoever the callers took over stays)
+  var n = sh.getLastRow(); if (n < 3) return; var v = sh.getRange(3, 1, n - 2, 10).getValues(), lost = 0;
+  v.forEach(function (r, i) {
+    if (r[6] !== 'sent' || r[7] || r[9]) return; var d = preMailDate(r[0]); if (!d || now.getTime() - d.getTime() < PREMAIL.lost_days * 86400000) return;
+    var res = setStage(r[4] === 'Winterthur' ? 'Winterthur' : 'Zurich', String(r[2]), String(r[3]), STAGE.lost, STAGE_NAME.lost, 'no reply ' + PREMAIL.lost_days + ' days after the pre-automation mail of ' + Utilities.formatDate(d, TZ, 'dd.MM.yyyy'), [PREMAIL.stage]);
+    if (/^(set|unchanged|skipped|already)/.test(res)) { sh.getRange(3 + i, 10).setValue(Utilities.formatDate(now, TZ, 'dd.MM.yyyy') + ' ' + res); if (res === 'set') lost++; }
+  });
+  if (lost) Logger.log('pre-automation mail: ' + lost + ' set to Not Interested (Lost) after ' + PREMAIL.lost_days + ' days without reply');
+}
+function waPreAutoReplies() { // every 15 minutes (waQuarterHour): replies to the pre-automation mail (plus address in Ruben's mailbox) -> the reply on top of the Message field in exercise.com + stage back to Lead (also from Lost), so Gioele / Nate call
+  var sh = preMailSheet(), n = sh.getLastRow(); if (n < 3) return;
+  var v = sh.getRange(3, 1, n - 2, 10).getValues(), row = {}; v.forEach(function (r, i) { row[String(r[2]).toLowerCase().trim()] = i; });
+  var threads = GmailApp.search('deliveredto:' + PREMAIL.reply_to + ' newer_than:30d', 0, 50), handled = 0;
+  threads.forEach(function (th) {
+    var msgs = th.getMessages(), to = '';
+    msgs.forEach(function (mm) { if (!to && /abdi@impact-martialarts\.com/i.test(mm.getFrom())) { var t0 = /[\w.+'-]+@[\w.-]+\.\w+/.exec(mm.getTo() || ''); if (t0) to = t0[0].toLowerCase(); } }); // our mail in the thread = the person we wrote to
+    msgs.forEach(function (mm) {
+      var fr = (/[\w.+'-]+@[\w.-]+\.\w+/.exec(mm.getFrom() || '') || [''])[0].toLowerCase(); if (!fr || /@impact-martialarts\.com$|@strikingstudio\.com$/.test(fr)) return;
+      var key = row[to] !== undefined ? to : fr, i = row[key]; if (i === undefined || v[i][7]) return; // unknown sender or already handled (first reply counts)
+      var body = String(mm.getPlainBody() || '').split(/\n\s*(?:On .{0,120}wrote:|Am .{0,120}schrieb.{0,80}:|-{2,}\s*Original|Von:\s|From:\s|Gesendet von|Sent from)/)[0].split('\n').filter(function (l) { return !/^\s*>/.test(l); }).join('\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, 1500);
+      var when = Utilities.formatDate(mm.getDate(), TZ, 'dd.MM.yyyy HH:mm'), note = 'E-MAIL-ANTWORT ' + when + ' (auf die Mail an alte Kontakte):\n' + (body || '(leer)');
+      var b = cfPost({ action: 'add_message', email: key, note: note }), msgRes = b && b.ok ? 'message saved' : 'message failed ' + (b ? b.error || b.status : 'no answer');
+      var stRes = setStage(v[i][4] === 'Winterthur' ? 'Winterthur' : 'Zurich', key, String(v[i][3]), STAGE.lead, STAGE_NAME.lead, 'replied to the pre-automation mail on ' + when, [PREMAIL.stage, STAGE_NAME.lost]);
+      v[i][7] = when; sh.getRange(3 + i, 8, 1, 2).setValues([[when, stRes + ', ' + msgRes]]); handled++;
+    });
+  });
+  if (handled) Logger.log('pre-automation mail: ' + handled + ' replies handled (stage Lead + Message field)');
 }
 function installPreMailTrigger() { // once: daily at PREMAIL.hour (the weekday rule and the on switch sit in the function)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waPreAutoMail') ScriptApp.deleteTrigger(t); });

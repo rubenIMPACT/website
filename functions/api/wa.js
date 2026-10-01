@@ -73,6 +73,7 @@ export async function onRequestPost(context) {
     if (p.action === "set_lifecycle") return j(await setLifecycle(H, p));
     if (p.action === "find_client") return j(await findClient(H, p));
     if (p.action === "add_tag") return j(await addTag(H, p));
+    if (p.action === "add_message") return j(await addMessage(H, p));
     if (p.action === "clients_by_email") return j(await clientsByEmail(H, p.emails, p.with_tags));
     return j({ error: "unknown_action" }, 400);
   } catch (e) {
@@ -306,6 +307,24 @@ async function lifecycleStages(H) {
 }
 // Lifecycle stage per lead e-mail, max 40 per call (16.09.2026): the website leads have no row in the trial list, so the chain A1-A3
 // and the call lists ask exercise.com for the stage the coach set after the call (Not interested / Do not contact / Client ...).
+// action "add_message" {email|uid, note} (Ruben 01.10.2026): puts a note on TOP of the profile field "Message" (the box where the website questionnaire
+// message lands), e.g. the reply of an old contact to the pre-automation mail, so the callers see it. profile_fields is replaced as a whole by
+// exercise.com, so the full list is sent back (same as plan.js). Read back: ok = the note really is in the field.
+async function addMessage(H, p) {
+  const note = String(p.note || "").trim().slice(0, 3000); if (!note) return { ok: false, error: "note_required" };
+  const f = await findClient(H, p); if (!f.ok) return f; if (!f.uid) return { ok: false, error: "no_uid" };
+  const ur = await getJson(H, API + "/api/v4/users/" + f.uid), user = ur.json && (ur.json.user || ur.json);
+  if (ur.status !== 200 || !user || typeof user !== "object") return { ok: false, error: "user_read_failed", status: ur.status };
+  const pf = Array.isArray(user.profile_fields) ? user.profile_fields.filter((x) => x && x.label).map((x) => ({ label: x.label, value: x.value == null ? "" : String(x.value) })) : [];
+  const m = pf.find((x) => x.label === "Message"), old = m ? String(m.value || "").trim() : "";
+  if (old.indexOf(note.slice(0, 60)) >= 0) return { ok: true, unchanged: true, uid: f.uid };
+  const merged = note + (old ? "\n\n" + old : "");
+  if (m) m.value = merged; else pf.push({ label: "Message", value: merged });
+  let st = 0; try { const r = await fetch(API + "/api/v4/users/" + f.uid, { method: "PUT", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ user: { profile_fields: pf } }) }); st = r.status; await r.text(); } catch (e) { return { ok: false, error: "put_failed" }; }
+  const chk = await getJson(H, API + "/api/v4/users/" + f.uid), u2 = chk.json && (chk.json.user || chk.json), m2 = u2 && Array.isArray(u2.profile_fields) ? u2.profile_fields.find((x) => x && x.label === "Message") : null;
+  const okNow = !!(m2 && String(m2.value || "").indexOf(note.slice(0, 60)) >= 0);
+  return { ok: okNow, status: st, uid: f.uid, error: okNow ? undefined : "not_saved" };
+}
 async function clientsByEmail(H, emails, withTags) { // withTags (01.10.2026, owner tags "Nate" / "Gioele"): also the tags of the client record (v2, one more call per client), tags undefined = read failed
   const list = (Array.isArray(emails) ? emails : []).map((e) => String(e || "").toLowerCase().trim()).filter(Boolean).slice(0, withTags ? 12 : 40), out = {};
   for (const email of list) {
