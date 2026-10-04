@@ -2391,7 +2391,9 @@ var MA_NOTES = {
   abo_gross: 'Belastungen mit Abo-Bezug. Der Mehrbetrag der ersten Abo-Belastung (Zürich bucht das Starterpaket mit dem Abo zusammen ab) zählt bei den Einmalkäufen.',
   one_gross: 'Belastungen ohne Abo-Bezug: Starterpakete, Shop, Personal Training, Events.',
   cash_vat: 'Brutto minus brutto geteilt durch 1.081.',
-  cash_net: 'Brutto geteilt durch 1.081. Eine Regel für alles, wie im Finanzplan (Total MWST 8.1 %).',
+  cash_net: 'Brutto geteilt durch 1.081 (MwSt, wie im Finanzplan Total MWST 8.1 %), minus Stripe-Gebühren. Gebühren sind MwSt-frei.',
+  cash_fee: 'Stripe-Gebühren auf die Zahlungen (rund 2 %), je Tag aus dem Charges-Report. Adyen (Magicline-Altverträge, rund CHF 1000 pro Monat) ist ohne Gebührenangabe nicht enthalten.',
+  cash_gross_fee: 'Zahlungen brutto nach Rückerstattungen minus Stripe-Gebühren, inkl. MwSt. Das, was Stripe auszahlt (zeitlich um rund sieben Tage verschoben).',
   cv_abo_gross: 'Abo-Belastungen brutto geteilt durch Kunden mit laufendem Abo, auch die ohne Zahlung im Monat. Vergleichbar mit dem Kundenwert im Finanzplan.',
   cv_abo_net: 'Brutto je Kunde geteilt durch 1.081. Basis des LTV.',
   cash_total: 'Alle Gutschriften auf dem Konto im Monat laut Tab Bank. Geht so in den Finanzplan (Total Sales from Bank).',
@@ -2633,7 +2635,7 @@ function buildMonatsabschlussCore(ss) {
   sh.getRange('A2').setValue('Methodik').setFontColor('#999999');
   sh.getRange('B2').setValue(MA_NOTE).setFontColor('#666666').setWrap(true);
   sh.getRange('B2:N2').merge(); sh.setRowHeight(2, 44);
-  var r = 4, blocks = [], ORG = KANAL_ORDER.filter(function (x) { return WK_PLATFORMS.indexOf(x) < 0; }), agencyCache = {};
+  var r = 4, blocks = [], ORG = KANAL_ORDER.filter(function (x) { return WK_PLATFORMS.indexOf(x) < 0; }), agencyCache = {}, feeDay = null;
   var agencyM = function (kk) { if (!(kk in agencyCache)) agencyCache[kk] = wkAgency(ss, kk, wkM); return agencyCache[kk]; }; // einmal je Monat (wkAgency liest Einstellungen)
   ['Zurich', 'Winterthur', 'Gesamt'].forEach(function (loc) {
     var locDE = loc === 'Zurich' ? 'Zürich' : loc === 'Winterthur' ? 'Winterthur' : 'Gesamt', wrLocs = loc === 'Gesamt' ? ['Zurich', 'Winterthur'] : [loc], rowIdx = {}, det = [], yearRule = {}, rowMeta = {};
@@ -2646,6 +2648,7 @@ function buildMonatsabschlussCore(ss) {
     var mediaOf = function (agg, kk, pn) { var w = agg[kk]; if (!w) return ''; var pick = function (o) { return pn ? (o.plat[pn] || 0) : o.media; }; return Math.round(wrLocs.reduce(function (s, l) { return s + pick(w[l]); }, 0)); };
     var agencyOf = function (kk) { if (kk > curK || kk < '2026-01') return ''; var a = agencyM(kk); return Math.round(wrLocs.reduce(function (s, l) { return s + a[l]; }, 0)); };
     var daySum = function (c, prefix) { return daySumFor(wrLocs, c.k, c.mk, prefix); };
+    if (!feeDay) { feeDay = {}; ltvRows(ss, 'sums').forEach(function (fr) { var fd = dOfCell(fr[1]); if (!/^\d{4}-\d{2}-\d{2}$/.test(fd)) return; var fk = String(fr[2]) + '|' + fd; feeDay[fk] = (feeDay[fk] || 0) + (Number(fr[5]) || 0); }); } // Stripe-Gebuehr je Standort und Tag (Wochenwerte)
     var monthDays = function (kk, prefix) { var s = 0, any = false; for (var i = 1; i <= 31; i++) { var d = kk + '-' + (i < 10 ? '0' + i : i); wrLocs.forEach(function (l) { var v = val[kk + '|' + l + '|' + prefix + d]; if (v !== undefined && v !== '') { any = true; s += num(v); } }); } return any ? s : ''; }; // Summe der Tageswerte eines Monats (laufender Monat, Ruben 17.09.)
     var mediaWeek = function (c, pn) { var s = 0, any = false; for (var i = 0; i < 7; i++) { var d = addDs(c.k, i); if (d.slice(0, 7) !== c.mk) continue; var w = wkD[d]; if (!w) continue; any = true; wrLocs.forEach(function (l) { s += pn ? (w[l].plat[pn] || 0) : w[l].media; }); } return any ? Math.round(s) : ''; };
     var V = function (key) { // Wert einer Kennzahl je Spalte: Woche aus Log, Team-Sheet und Tageswerten, Monat aus exercise.com (Team-Sheet-Monatswerte ab MA_TEAM_FROM)
@@ -2668,6 +2671,7 @@ function buildMonatsabschlussCore(ss) {
           case 'losses': return c.w ? daySum(c, 'cancels_d:') : vOf(kk, 'cancellations'); // Variante A (Ruben 09.09.): nur beendete Abos, Debt collection kein Verlust
           case 'net_growth': var s1 = c.w ? daySum(c, 'starts_d:') : vOf(kk, 'new_customers'), s2 = V('losses')(c); return s1 === '' && s2 === '' ? '' : num(s1) - num(s2);
           case 'subs_total': if (kk < MA_SNAP_FROM) return ''; var st = vOf(kk, key); if (st !== '') return st; var a = vOf(kk, 'active_subs'); return a === '' ? '' : num(a) + num(vOf(kk, 'paused_subs')) + num(vOf(kk, 'scheduled_subs'));
+          case 'cash_fee': if (c.w) { var fs = 0, fa = false; for (var fi = 0; fi < 7; fi++) { var fd = addDs(kk, fi); if (fd.slice(0, 7) !== c.mk) continue; wrLocs.forEach(function (l) { var fv = feeDay[l + '|' + fd]; if (fv !== undefined) { fa = true; fs += fv; } }); } return fa ? Math.round(fs) : ''; } return cashOf[loc][kk] ? Math.round(cashOf[loc][kk].fee) : ''; // Stripe-Gebuehren aus ZahlungenTag (Ruben 04.10.)
           case 'cash_paid': if (c.w) return daySum(c, 'cash_d:'); var ag = vOf(kk, 'abo_gross'), og = vOf(kk, 'one_gross'); if (ag !== '' || og !== '') return num(ag) + num(og); return monthDays(kk, 'cash_d:'); // Woche und laufender Monat aus Tageszahlungen (Ruben 17.09.)
           case 'abo_gross': if (c.w) return daySum(c, 'abo_d:'); var ag2 = vOf(kk, 'abo_gross'); return ag2 !== '' ? ag2 : monthDays(kk, 'abo_d:');
           case 'one_gross': if (c.w) { var cpw = daySum(c, 'cash_d:'); return cpw === '' ? '' : num(cpw) - num(daySum(c, 'abo_d:')); } var og2 = vOf(kk, 'one_gross'); if (og2 !== '') return og2; var cpm = monthDays(kk, 'cash_d:'); return cpm === '' ? '' : num(cpm) - num(monthDays(kk, 'abo_d:'));
@@ -2729,8 +2733,10 @@ function buildMonatsabschlussCore(ss) {
     put('cash_paid', 'Zahlungen der Kunden brutto (inkl. MwSt)', V('cash_paid'), '#,##0', { bold: true, weekly: true });
     put('abo_gross', '   davon Abo', V('abo_gross'), '#,##0', { detail: true, weekly: true });
     put('one_gross', '   davon Einmalkäufe (Starterpakete, Shop, PT)', V('one_gross'), '#,##0', { detail: true, weekly: true });
+    put('cash_fee', 'Zahlungsgebühren (Stripe)', V('cash_fee'), '#,##0', { weekly: true });
+    put('cash_gross_fee', 'Umsatz brutto nach Gebühren', function (c, ci) { var a = cellOf('cash_paid', ci), f = cellOf('cash_fee', ci); return '=IF(' + a + '="","",' + a + '-N(' + f + '))'; }, '#,##0', { bold: true, weekly: true });
     put('cash_vat', 'MwSt darin (8.1 %)', function (c, ci) { var a = cellOf('cash_paid', ci); return '=IF(' + a + '="","",' + a + '-' + a + '/' + VAT + ')'; }, '#,##0', { weekly: true });
-    put('cash_net', 'Umsatz netto', divVat('cash_paid'), '#,##0', { bold: true, weekly: true });
+    put('cash_net', 'Umsatz netto nach Gebühren', function (c, ci) { var a = cellOf('cash_paid', ci), f = cellOf('cash_fee', ci); return '=IF(' + a + '="","",' + a + '/' + VAT + '-N(' + f + '))'; }, '#,##0', { bold: true, weekly: true }); // Umsatz netto vor Gebuehren entfaellt (Ruben 04.10.)
     put('cv_abo_gross', 'Abo-Umsatz brutto je Kunde', ratio('abo_gross', 'cv_active'), '#,##0', { bold: true, weekly: true });
     put('cv_abo_net', 'Abo-Umsatz netto je Kunde', divVat('cv_abo_gross'), '#,##0', { weekly: true });
     put('cash_total', 'Bankeingang gesamt laut Konto', V('cash_total'), '#,##0', B);
@@ -2769,7 +2775,7 @@ function buildMonatsabschlussCore(ss) {
     // Neue Diagramme zuerst (Ruben 17.09.): Umsatz (exercise.com, Bank, Abo, Einzelverkaeufe) und Verkaeufe/Verluste/Nettowachstum je Monat
     var mdSum = function (kk, prefix) { var t = 0, any = false; for (var i = 1; i <= 31; i++) { var dd = kk + '-' + (i < 10 ? '0' + i : i); wrLocs.forEach(function (l) { var v = val[kk + '|' + l + '|' + prefix + dd]; if (v !== undefined && v !== '') { any = true; t += num(v); } }); } return any ? t : ''; };
     var revRow = function (kk) { var ag = g(kk, 'abo_gross'), og = g(kk, 'one_gross'), cash = (ag !== '' || og !== '') ? num(ag) + num(og) : num(mdSum(kk, 'cash_d:')), abo = ag !== '' ? num(ag) : num(mdSum(kk, 'abo_d:')); var bf = ['stripe', 'adyen', 'customers', 'other'].map(function (f) { return bankOf(b.loc, kk, f); }), bank = bf.every(function (x) { return x === ''; }) ? '' : bf.reduce(function (t, x) { return t + num(x); }, 0); return [dt(kk), cash, bank, abo, cash - abo]; }; // Monate ohne Bankdaten bleiben leer = Luecke in der Linie statt 0 (Ruben 18.09.)
-    var rev = tbl([b.locDE + ' Umsatz', 'Zahlungen exercise.com', 'Bankeingang', 'davon Abo', 'davon Einzelverkäufe'], hkeys.map(revRow), '#,##0');
+    var rev = tbl([b.locDE + ' Umsatz', 'Zahlungen exercise.com nach Gebühren', 'Bankeingang', 'davon Abo', 'davon Einzelverkäufe'], hkeys.map(function (kk) { var rr = revRow(kk), co = cashOf[b.loc] && cashOf[b.loc][kk]; rr[1] = rr[1] - (co ? Math.round(co.fee) : 0); return rr; }), '#,##0'); // Linie exercise.com nach Stripe-Gebuehren (Ruben 04.10.)
     var sal = tbl([b.locDE + ' Verkäufe', 'Verkäufe', 'Verluste', 'Nettowachstum'], hkeys.map(function (kk) { var sg = num(g(kk, 'sales_signed')), lo = num(g(kk, 'cancellations')); return [dt(kk), sg, lo, sg - lo]; }));
     var fun = tbl([b.locDE + ' Monat', 'Neue Kontakte', 'Probetrainings', 'Verkäufe', 'Kündigungen'], hkeys.map(function (kk) { var la = g(kk, 'leads_all'), lw = g(kk, 'leads_web'); return [dt(kk), num(la) || num(lw), num(g(kk, 'trial_attended')), num(g(kk, 'new_customers')), num(g(kk, 'cancellations'))]; }));
     var quo = tbl([b.locDE + ' Quoten', 'Show-up-Rate', 'Verkäufe / Probetrainings', 'Verkäufe / Kontakte', 'Kohorten-Conversion'], hkeys.map(function (kk) { var nsv = g(kk, 'noshow_rate'); return [dt(kk), nsv === '' ? 0 : 1 - num(nsv), num(g(kk, 'conv_sales_trial')), num(g(kk, 'conv_sales_lead')), num(g(kk, 'conv_cohort_rate'))]; }), '0%');
