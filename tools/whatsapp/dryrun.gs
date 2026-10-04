@@ -105,7 +105,7 @@ function waDryRunHourly() {
     if (LC_SKIP.test(stageOfLead(l))) return; // closed in exercise.com (Not interested, Do not contact, Lost, Client ...): no automatic message
     var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
     if (st.replied || slot >= RULE.A_MAX) return; // the lead replied: the coach owns the chat, the automation is off
-    if (slot === 0 && l.loc === 'Zurich' && mailA1) { // e-mail mode: the first message goes out by e-mail right after the request (07-21 h, within 24 h), never as WhatsApp
+    if (slot === 0 && l.loc === 'Zurich' && mailA1 && (A1_MAIL.en_ok || ((calls[l.email.toLowerCase()] || {}).lang || l.lang) !== 'en')) { // e-mail mode: the first message goes out by e-mail right after the request (07-21 h, within 24 h), never as WhatsApp
       var hr = Number(Utilities.formatDate(now, TZ, 'H'));
       if (SW.first && !st.sentA.triedA1 && now.getTime() - l.ts.getTime() < 24 * h && hr >= 7 && hr < 21) sendA1Mail(l, (calls[l.email.toLowerCase()] || {}).lang || l.lang, id, now);
       return;
@@ -1469,10 +1469,10 @@ function waPreAutoReplies() { // every 15 minutes (waQuarterHour): replies to th
 }
 // First lead message as e-mail (Ruben 04.10.2026, Abdi's feedback: the WhatsApp A1 with its question caused calls and messages he could not handle yet).
 // Sent right after the request from Abdi's address (07-21 h), Zurich only; WhatsApp starts with message 2 on day 6. on = false until Ruben approved the text.
-var A1_MAIL = { on: false };
-var A1_MAIL_TEXT = { // draft 04.10., NOT yet approved by Ruben
-  de: { subject: 'Deine Anfrage bei IMPACT Martial Arts', lines: ['Hi {name},', 'danke für deine Anfrage für ein Gratis-Probetraining bei IMPACT Martial Arts. Wir haben gerade sehr viele Anfragen und melden uns so bald wie möglich telefonisch bei dir, um dein Probetraining zusammen zu planen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
-  en: { subject: 'Your request at IMPACT Martial Arts', lines: ['Hi {name},', "thanks for your request for a free trial session at IMPACT Martial Arts. We're getting a lot of requests right now and will call you as soon as possible to plan your trial session together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
+var A1_MAIL = { on: true, en_ok: false }; // Ruben 04.10.: German text approved, on; English waits for his OK (until then English leads keep the WhatsApp A1)
+var A1_MAIL_TEXT = { // de approved by Ruben 04.10.2026 (no "Gratis", second "Probetraining" -> "Termin"); en = same edits, NOT yet approved
+  de: { subject: 'Deine Anfrage bei IMPACT Martial Arts', lines: ['Hi {name},', 'danke für deine Anfrage für ein Probetraining bei IMPACT Martial Arts. Wir haben gerade sehr viele Anfragen und melden uns so bald wie möglich telefonisch bei dir, um zusammen einen Termin zu planen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
+  en: { subject: 'Your request at IMPACT Martial Arts', lines: ['Hi {name},', "thanks for your request for a trial session at IMPACT Martial Arts. We're getting a lot of requests right now and will call you as soon as possible to find a time together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
 };
 function sendA1Mail(l, lang, id, now) { // one first-message e-mail; logged in the WA Outbox as A1 with template "e-mail" (status "e-mail sent" does not count as a WhatsApp)
   lang = lang === 'en' ? 'en' : 'de'; var t = A1_MAIL_TEXT[lang], first = capName(String(l.first || l.name || '').trim().split(/\s+/)[0] || '');
