@@ -987,5 +987,5 @@ EDITOR-PASTE nachziehen, dann runKlassenanalyse('2026-08-01','2026-08-31') fuer 
 
 ## Stripe-Gebuehren im Monatsabschluss (Ruben 04.10.2026)
 - Zahlungsblock: Zahlungen brutto, davon Abo/Einmal, Zahlungsgebuehren (Stripe) [cash_fee], Umsatz brutto nach Gebuehren [cash_gross_fee], MwSt darin, Umsatz netto nach Gebuehren [cash_net = brutto/1.081 - Gebuehr]. "Umsatz netto vor Gebuehren" entfaellt (Ruben). Monat: cashMonth().fee; Woche: Tageswerte direkt aus ZahlungenTag (feeDay/cashDay/aboDay in buildMonatsabschlussCore, wkDay) - auch Wochen-Zahlungen/Abo kommen jetzt von dort statt aus cash_d:/abo_d: der MonatsHistorie.
-- Umsatz-Diagramm: Linie "Zahlungen exercise.com nach Gebuehren". LTV/Payback weiterhin VOR Gebuehren (Ruben hat die Frage noch nicht entschieden). Adyen ohne Gebuehrenangabe.
+- Umsatz-Diagramm: Linie "Zahlungen exercise.com nach Gebuehren". LTV und Payback seit 04.10. NACH Gebuehren (Ruben): buildLTV NF = 1/VAT - Gebuehrenquote der letzten 3 vollen Monate (cashMonth), angewendet auf arpu, other, starter, realized; Werbekosten-Payback cvNetM mit Monatsquote aus ctx.cashOf. Adyen ohne Gebuehrenangabe.
 - Abgleich September (Bankauszuege UBS): Stripe ZH 123,600 / WT 59,152; erwartet (Charges 25.08.-23.09. netto) ZH 128,964 / WT 59,079 -> ZH ca. 5,300 unerklaert (Stripe-Payout-Export noetig).
