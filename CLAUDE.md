@@ -984,3 +984,8 @@ EDITOR-PASTE nachziehen, dann runKlassenanalyse('2026-08-01','2026-08-31') fuer 
 ## Klassenanalyse: Hitlist Kampfsportarten je Standort (Ruben 29.09.2026)
 - Nach der gemeinsamen Hitlist zwei Bloecke "Hitlist Kampfsportarten Zürich/Winterthur" via `hitlistBlock(sh, r, title, list, single=true)` (eine Index-Spalte I, G/H leer, gleiche Formate/Farbregel/Diagramm). Liste aus data.hitlist[i][loc] (index, util, attended, events, with_neighbor, uniq, revenue); Umsatzanteil = revenue / data.summary[loc].revenue; Rang nach Umsatz.
 - klassen.js slimHit liefert je Standort zusaetzlich uniq und revenue. Aeltere JSON-Dateien (vor 29.09.) haben das nicht -> Umsatzspalten in den Standort-Bloecken leer, Hinweis steht in der Fussnote. August-JSON am 29.09. neu erzeugt (runKlassenanalyse + importKlassenanalyse(true)).
+
+## Stripe-Gebuehren im Monatsabschluss (Ruben 04.10.2026)
+- Zahlungsblock: Zahlungen brutto, davon Abo/Einmal, Zahlungsgebuehren (Stripe) [cash_fee], Umsatz brutto nach Gebuehren [cash_gross_fee], MwSt darin, Umsatz netto nach Gebuehren [cash_net = brutto/1.081 - Gebuehr]. "Umsatz netto vor Gebuehren" entfaellt (Ruben). Monat: cashMonth().fee; Woche: Tageswerte direkt aus ZahlungenTag (feeDay/cashDay/aboDay in buildMonatsabschlussCore, wkDay) - auch Wochen-Zahlungen/Abo kommen jetzt von dort statt aus cash_d:/abo_d: der MonatsHistorie.
+- Umsatz-Diagramm: Linie "Zahlungen exercise.com nach Gebuehren". LTV/Payback weiterhin VOR Gebuehren (Ruben hat die Frage noch nicht entschieden). Adyen ohne Gebuehrenangabe.
+- Abgleich September (Bankauszuege UBS): Stripe ZH 123,600 / WT 59,152; erwartet (Charges 25.08.-23.09. netto) ZH 128,964 / WT 59,079 -> ZH ca. 5,300 unerklaert (Stripe-Payout-Export noetig).
