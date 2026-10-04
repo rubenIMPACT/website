@@ -1909,7 +1909,7 @@ function buildWerbekostenCore(ss, ctx) {
     var agencyOf = function (kk) { if (kk > curK || kk < '2026-01') return ''; var a = agencyM(kk); return Math.round(wrLocs.reduce(function (t, l) { return t + a[l]; }, 0)); };
     var totalM = function (kk) { var m = mediaM(kk), a = agencyOf(kk); return m === '' && a === '' ? '' : num(m) + num(a); };
     var ltvM = function (kk) { return vOf(kk, 'ltv_forecast'); };
-    var cvNetM = function (kk) { var ag = vOf(kk, 'abo_gross'), cv = vOf(kk, 'cv_active'); return ag === '' || !num(cv) ? '' : num(ag) / num(cv) / VAT; };
+    var cvNetM = function (kk) { var ag = vOf(kk, 'abo_gross'), cv = vOf(kk, 'cv_active'); if (ag === '' || !num(cv)) return ''; var fp = 0, ff = 0; wrLocs.forEach(function (l) { var co = ctx.cashOf[l] && ctx.cashOf[l][kk]; if (co) { fp += co.paid; ff += co.fee; } }); return num(ag) / num(cv) * (1 / VAT - (fp ? ff / fp : 0)); }; // Payback nach Stripe-Gebuehren (Ruben 04.10.)
     var ratio = function (a, b) { return a === '' || b === '' || !num(b) ? '' : num(a) / num(b); };
     var cacAllM = function (kk) { var m = mediaM(kk), sg = salesM(kk); return m === '' || sg === '' || !num(sg) ? '' : (num(m) + num(agencyOf(kk))) / num(sg); };
     var paidM = function (kk) { var t = 0, any = false; WK_PLATFORMS.forEach(function (pn) { var v = skM(kk, pn); if (v !== '') { any = true; t += num(v); } }); return any ? t : ''; };
@@ -2272,17 +2272,20 @@ function buildLTV(ss) {
     var last3 = [lastFull, prevMonth(lastFull), prevMonth(prevMonth(lastFull))], aN = 0, aAbo = 0, aOther = 0, noPay = 0;
     last3.forEach(function (mk) { var act = active(fresh, mk); aN += act.length; act.forEach(function (c) { if (c.pay[mk]) aAbo += c.abo[mk] || 0; else noPay++; aOther += otherOf(c, mk); }); });
     // EINE Methode (Ruben 07.09.2026): Abo-Belastungen brutto geteilt durch alle Kunden mit laufendem Abo (auch ohne Zahlung im Monat), netto = brutto / 1.081
-    var arpuG = aN ? aAbo / aN : 0, arpu = arpuG / VAT, other = aN ? aOther / aN / VAT : 0, life = rf.loss > 0 ? 1 / rf.loss : 0;
-    var stSet = fresh.filter(function (c) { return c.first <= prevMonth(lastFull); }), starter = stSet.length ? stSet.reduce(function (s, c) { return s + starterOf(c); }, 0) / stSet.length / VAT : 0;
+    // Nach Stripe-Gebuehren (Ruben 04.10.2026): Gebuehrenquote der letzten 3 vollen Monate aus ZahlungenTag; netto = brutto / 1.081 - brutto x Quote (Gebuehr MwSt-frei)
+    var fP = 0, fF = 0; (loc === 'Gesamt' ? ['Zurich', 'Winterthur'] : [loc]).forEach(function (l) { var cm = cashMonth(ss, l); last3.forEach(function (mk) { if (cm[mk]) { fP += cm[mk].paid; fF += cm[mk].fee; } }); });
+    var feeRate = fP ? fF / fP : 0, NF = 1 / VAT - feeRate;
+    var arpuG = aN ? aAbo / aN : 0, arpu = arpuG * NF, other = aN ? aOther / aN * NF : 0, life = rf.loss > 0 ? 1 / rf.loss : 0;
+    var stSet = fresh.filter(function (c) { return c.first <= prevMonth(lastFull); }), starter = stSet.length ? stSet.reduce(function (s, c) { return s + starterOf(c); }, 0) / stSet.length * NF : 0;
     var ltv = Math.round(arpu * life + starter + other * life); // Abo x Dauer + Starterpaket + uebrige Einmalkaeufe x Dauer (Ruben 08.09.: eine LTV-Zahl)
     var gone = fresh.filter(function (c) { return c.end && c.end <= lastFull; }), aboOf = function (c) { var s = 0; Object.keys(c.abo).forEach(function (mk) { s += c.abo[mk]; }); return s; };
-    var realized = gone.length ? gone.reduce(function (a, c) { return a + aboOf(c); }, 0) / gone.length / VAT : 0;
+    var realized = gone.length ? gone.reduce(function (a, c) { return a + aboOf(c); }, 0) / gone.length * NF : 0;
     var kv = [
       ['Kunden mit Abo-Zahlungen seit ' + months[0], L.length, '0', 'Konten mit mindestens einer Abo-Belastung ab CHF 5 im Charges-Report.'],
       ['   davon migriert', L.length - fresh.length, '0', 'Konten mit den Tags Migrating / imported / Bexio. Startdatum unbekannt, deshalb nicht in Kohorten und Prognose.'],
       ['   davon Neukunden (Stichprobe für die Prognose)', fresh.length, '0', 'Alle Kunden ohne Migrations-Tag.'],
       ['Abo-Umsatz brutto je Kunde und Monat', Math.round(arpuG), '#,##0', 'Abo-Belastungen der letzten 3 vollen Monate geteilt durch die Neukunden mit laufendem Abo in diesen Monaten, auch die ohne Zahlung im Monat. Jahreszahler zählen im Monat der Zahlung.'],
-      ['Abo-Umsatz netto je Kunde und Monat', Math.round(arpu), '#,##0', 'Brutto geteilt durch 1.081. Basis des LTV.'],
+      ['Abo-Umsatz netto je Kunde und Monat', Math.round(arpu), '#,##0', 'Brutto geteilt durch 1.081, minus Stripe-Gebühren (Quote der letzten 3 vollen Monate: ' + (Math.round(feeRate * 1000) / 10) + ' %). Basis des LTV (Ruben 04.10.2026: LTV und Payback nach Gebühren).'],
       ['   Kunden ohne Abo-Zahlung im Monat (Ø der 3 Monate)', Math.round(noPay / 3), '0', 'Laufendes Abo, aber keine Belastung im Monat: Pause, geplatzte Zahlung oder ausgelaufener Vertrag ohne Kündigungseintrag.'],
       ['   Übrige Einmalkäufe netto je Kunde und Monat', Math.round(other), '#,##0', 'Shop, Events, Personal Training usw. ausserhalb des Startfensters. Zählt im LTV mal Dauer.'],
       ['Starterpaket netto je Neukunde (einmalig)', Math.round(starter), '#,##0', 'Ø über ' + stSet.length + ' Neukunden mit vollem Fenster: Einmalkäufe von einem Monat vor bis einen Monat nach der ersten Abo-Belastung plus Mehrbetrag der ersten Abo-Belastung. Zählt einmal im LTV; im Finanzplan getrennt geführt.'],
@@ -2407,9 +2410,9 @@ var MA_NOTES = {
   cpl: 'Media-Kosten geteilt durch Website-Leads.',
   cac: 'Media-Kosten geteilt durch Verkäufe. Belastbare Zahl.',
   cac_all: 'Media plus Agentur geteilt durch Verkäufe.',
-  ltv: 'Abo-Umsatz netto je Kunde und Monat mal erwartete Dauer, plus Starterpaket, plus übrige Einmalkäufe mal Dauer (Tab LTV). Stand des letzten Laufs.',
+  ltv: 'Abo-Umsatz netto nach Stripe-Gebühren je Kunde und Monat mal erwartete Dauer, plus Starterpaket, plus übrige Einmalkäufe mal Dauer, alles nach Gebühren (Tab LTV). Stand des letzten Laufs.',
   ltv_cac_all: 'Wie viel ein Kunde über seine Dauer an Abo-Umsatz bringt, geteilt durch die Kosten je gewonnenem Kunden.',
-  payback: 'Monate, bis der Abo-Umsatz netto eines Kunden die Kosten je gewonnenem Kunden eingespielt hat.'
+  payback: 'Monate, bis der Abo-Umsatz netto nach Stripe-Gebühren eines Kunden die Kosten je gewonnenem Kunden eingespielt hat.'
 };
 function maCall(body) { body.action = 'monat'; return klassenCall(body); }
 // Monatsschluessel 'yyyy-MM' auch dann, wenn Sheets die Zelle als Datum interpretiert hat
