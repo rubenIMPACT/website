@@ -1494,7 +1494,7 @@ function readSwitches(dry) {
       sh.getRange('B3:B4').setValues([['First message to new leads'], ['WhatsApp follow-ups to leads (2nd and 3rd message)']]);
       sh.getRange('C4').setValue('Day 6 and day 10 after the request. Untick = no follow-ups.');
       sh.getRange('A6').setValue('Untick a box to pause, tick it to resume. The automation reads this tab every hour. Trial reminders, no-show and after-trial messages are not affected.').setFontColor('#666666');
-      sh.setColumnWidth(1, 40); sh.setColumnWidth(2, 340); sh.setColumnWidth(3, 520); }
+      sh.setColumnWidth(1, 40); sh.setColumnWidth(2, 340); sh.setColumnWidth(3, 520); sh.getRange('A1:A8').setWrapStrategy(SpreadsheetApp.WrapStrategy.OVERFLOW); sh.setRowHeights(1, 8, 24); }
     var v = sh.getRange('A3:A4').getValues(); out.first = v[0][0] !== false; out.followups = v[1][0] !== false;
     if (!dry) { sh.getRange('C3').setValue(A1_MAIL.on ? 'Now: e-mail from Abdi right after the request. Untick = no first message; WhatsApp still starts on day 6.' : 'Now: WhatsApp 48 h after the request. Untick = no first message; the chain continues with the 2nd message on day 6.');
       sh.getRange('A8').setValue('Last read by the automation: ' + fmtEuDT(new Date()) + (out.first && out.followups ? '' : '  (paused: ' + [out.first ? '' : 'first message', out.followups ? '' : 'follow-ups'].filter(Boolean).join(', ') + ')')).setFontColor('#666666'); }
