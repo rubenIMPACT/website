@@ -97,13 +97,21 @@ function waDryRunHourly() {
   var openLeads = leadsToCheck(leads, trials, trialNames, calls, now);
   var stages = leadStages(openLeads); // Ruben 16.09.: the stage the coach sets in exercise.com after the call (Not interested, Do not contact, Client ...) stops the chain and removes the lead from the call list
   var stageOfLead = function (l) { return stages[(l.email || '').toLowerCase().trim()] || ''; };
+  var SW = readSwitches(pv);
+  var mailA1 = A1_MAIL.on && !pv && GmailApp.getAliases().indexOf(PREMAIL.from) >= 0; // Ruben 04.10.: first message as e-mail from Abdi; without the verified sender the WhatsApp A1 stays
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok') return;
     if (trialNames[l.nname] || hasTrialLoose(trials, l)) return; // booked, attended, no-show or cancelled: Flow A is over
     if (LC_SKIP.test(stageOfLead(l))) return; // closed in exercise.com (Not interested, Do not contact, Lost, Client ...): no automatic message
     var id = l.email || l.nname, st = leadState(l, lastA, calls, now), slot = st.slot, lastAt = st.lastAt;
     if (st.replied || slot >= RULE.A_MAX) return; // the lead replied: the coach owns the chat, the automation is off
+    if (slot === 0 && l.loc === 'Zurich' && mailA1) { // e-mail mode: the first message goes out by e-mail right after the request (07-21 h, within 24 h), never as WhatsApp
+      var hr = Number(Utilities.formatDate(now, TZ, 'H'));
+      if (SW.first && !st.sentA.triedA1 && now.getTime() - l.ts.getTime() < 24 * h && hr >= 7 && hr < 21) sendA1Mail(l, (calls[l.email.toLowerCase()] || {}).lang || l.lang, id, now);
+      return;
+    }
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
+    if (msg === 'A1' ? !SW.first : !SW.followups) return; // Abdi's switches (tab "Automation switches", Ruben 04.10.)
     if (due <= now.getTime() && due > now.getTime() - 24 * h && takenOverBy(l.email)) { Logger.log('A skipped, ' + l.name + ': tag ' + takenOverBy(l.email) + ' (called by the team, Ruben 01.10.)'); return; }
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, (calls[l.email.toLowerCase()] || {}).lang || l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
   });
@@ -208,7 +216,7 @@ function waDryRunHourly() {
   if (pv) PREVIEW_ROWS = out; else if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, out[0].length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
   if (sh.getRange(4, HEAD.length + 1).getValue() !== DRY_EXTRA[0]) { sh.getRange(4, HEAD.length + 1, 1, DRY_EXTRA.length).setValues([DRY_EXTRA]).setFontWeight('bold').setBackground('#f3f3f3'); sh.hideColumns(HEAD.length + 1, DRY_EXTRA.length); } // hidden helper columns for the sender
   var stillDue = { // re-check right before a real send (the row may be hours old: booked / replied / closed in the meantime)
-    A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied) && !/^(Nate|Gioele)$/.test(takenOverBy(e)); }, // + tag Nate / Gioele (Ruben 01.10.); a failed tag read does not drop the queued message
+    A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied) && !/^(Nate|Gioele)$/.test(takenOverBy(e)) && (String(r[10]).split(':')[1] === 'A1' ? SW.first : SW.followups); }, // + tag Nate / Gioele (Ruben 01.10.); a failed tag read does not drop the queued message; + Abdi's switches (04.10.)
     B: function (r) { var k = String(r[10]).split(':'); return k[3] === today && ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'BOOKED'; }); }); },
     E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); },
     C: function (r) { var k = String(r[10]).split(':'); return k[3] === yday && trialStill(k[2], k[3], 'NOSHOW'); }, // still a no-show, no newer booking / trial, and the text says "gestern": only on the day after the no-show
@@ -655,7 +663,10 @@ function leadState(l, lastA, calls, now) { // slot = contacts so far (automatic 
   var done = ['A1', 'A2', 'A3'].filter(function (m) { return sentA[m]; }), times = done.map(function (m) { return sentA[m]; }).concat(cs.called);
   var lastAt = times.length ? new Date(Math.max.apply(null, times.map(function (d) { return d.getTime(); }))) : null;
   var lastCall = cs.called.length ? new Date(Math.max.apply(null, cs.called.map(function (d) { return d.getTime(); }))) : null;
-  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length, lastCall: lastCall, replied: cs.replied };
+  // Ruben 04.10.: when the first WhatsApp is deliberately not sent (first message by e-mail, or Abdi's switch off), it counts as contact 1 once its window is over, so message 2 still comes on day 6 and the stages / Lost work as before. Not for a failed A1 or one the coach replaced.
+  var virt = l.loc === 'Zurich' && !sentA.A1 && !cs.called.length && (!sentA.triedA1 || sentA.triedA1 === 'mail') && (now || new Date()).getTime() > l.ts.getTime() + (RULE.A1_H + 24) * 3600000;
+  if (virt && !lastAt) lastAt = new Date(l.ts.getTime() + RULE.A1_H * 3600000);
+  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length + (virt ? 1 : 0)), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length, lastCall: lastCall, replied: cs.replied, virtA1: virt };
 }
 function readPlans() { // lead e-mail -> latest training plan link (Leads Log, tab "Trainingsplan": Link col 15, E-Mail col 19)
   var m = {}, sh = SpreadsheetApp.openById(MAIN_ID).getSheetByName('Trainingsplan'); if (!sh || sh.getLastRow() < 2) return m;
@@ -731,7 +742,7 @@ function takenOverBy(email) { // '' = no owner tag; otherwise the tag (or 'check
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date }: while Flow A is live from the sales outbox (only messages really sent), before that from the Dry run rows
   var m = {}, n;
-  if (liveA()) { var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); n = ob.getLastRow(); if (n >= 3) ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k = String(r[13] || '').split(':'); if (k[0] !== 'A' || k.length < 3 || !/^(sent|delivered|read)/.test(String(r[11]))) return; (m[k.slice(2).join(':')] = m[k.slice(2).join(':')] || {})[k[1]] = r[0] instanceof Date ? atTime(r[0], r[1]) : new Date(); }); return m; }
+  if (liveA()) { var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); n = ob.getLastRow(); if (n >= 3) ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k = String(r[13] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var idk = k.slice(2).join(':'); (m[idk] = m[idk] || {})['tried' + k[1]] = String(r[8]) === 'e-mail' ? 'mail' : 'wa'; if (!/^(sent|delivered|read)/.test(String(r[11]))) return; (m[k.slice(2).join(':')] = m[k.slice(2).join(':')] || {})[k[1]] = r[0] instanceof Date ? atTime(r[0], r[1]) : new Date(); }); return m; }
   n = sh.getLastRow(); if (n < TR_ROW0) return m;
   sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var id = k.slice(2).join(':'), when = r[2] instanceof Date ? r[2] : new Date(String(r[2]).replace(' ', 'T') + ':00'); if (isNaN(when.getTime())) when = r[0] instanceof Date ? r[0] : new Date(); (m[id] = m[id] || {})[k[1]] = when; });
   return m;
@@ -1266,7 +1277,7 @@ function syncContactStages(leads, trials, trialNames, stages, calls, lastA, now,
   var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l) || LC_SKIP.test(stageOfLead(l))) return;
-    var s = leadState(l, lastA || {}, calls, now || new Date()), n = s.slot; if (!n || s.replied) return; // after a reply the chat is a conversation, not an attempt
+    var s = leadState(l, lastA || {}, calls, now || new Date()), n = s.slot; if (!n || s.replied || (s.virtA1 && n === 1)) return; // the e-mail / switched-off first message alone does not move the stage (the lead stays in "Lead" for Gioele / Nate) // after a reply the chat is a conversation, not an attempt
     var step = ladder[Math.min(n, 3) - 1]; if (dry) { if (step[1].indexOf(stageOfLead(l)) >= 0) Logger.log('STAGE ' + l.name + ' | ' + (stageOfLead(l) || '-') + ' -> ' + STAGE_NAME[step[0]] + ' | ' + s.calls + ' coach, ' + s.done.length + ' automatic'); return; }
     if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'contact ' + n + ' (' + s.calls + ' by ' + SENDER[l.loc] + ' from the WhatsApp app, ' + s.done.length + ' automatic), last ' + fmtEuDT(s.lastAt), step[1]) === 'set') stageN++;
   });
@@ -1455,6 +1466,40 @@ function waPreAutoReplies() { // every 15 minutes (waQuarterHour): replies to th
     });
   });
   if (handled) Logger.log('pre-automation mail: ' + handled + ' replies handled (stage Lead + Message field)');
+}
+// First lead message as e-mail (Ruben 04.10.2026, Abdi's feedback: the WhatsApp A1 with its question caused calls and messages he could not handle yet).
+// Sent right after the request from Abdi's address (07-21 h), Zurich only; WhatsApp starts with message 2 on day 6. on = false until Ruben approved the text.
+var A1_MAIL = { on: false };
+var A1_MAIL_TEXT = { // draft 04.10., NOT yet approved by Ruben
+  de: { subject: 'Deine Anfrage bei IMPACT Martial Arts', lines: ['Hi {name},', 'danke für deine Anfrage für ein Gratis-Probetraining bei IMPACT Martial Arts. Wir haben gerade sehr viele Anfragen und melden uns so bald wie möglich telefonisch bei dir, um dein Probetraining zusammen zu planen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
+  en: { subject: 'Your request at IMPACT Martial Arts', lines: ['Hi {name},', "thanks for your request for a free trial session at IMPACT Martial Arts. We're getting a lot of requests right now and will call you as soon as possible to plan your trial session together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
+};
+function sendA1Mail(l, lang, id, now) { // one first-message e-mail; logged in the WA Outbox as A1 with template "e-mail" (status "e-mail sent" does not count as a WhatsApp)
+  lang = lang === 'en' ? 'en' : 'de'; var t = A1_MAIL_TEXT[lang], first = capName(String(l.first || l.name || '').trim().split(/\s+/)[0] || '');
+  var lines = t.lines.map(function (x, j) { return j === 0 ? (first ? fill(x, { name: first }) : 'Hi,') : x; }), res = 'e-mail sent';
+  try { GmailApp.sendEmail(l.email, t.subject, lines.join('\n\n').replace(/<br>/g, '\n'), { htmlBody: lines.map(function (x) { return '<p>' + x + '</p>'; }).join(''), from: PREMAIL.from, name: PREMAIL.name }); } catch (e) { res = 'e-mail failed'; Logger.log('A1 e-mail failed for ' + l.name + ': ' + e); }
+  outboxSheet(SpreadsheetApp.openById(TEAM_ID)).appendRow([dayStart(now), fmtT(now), 'A', 'A1', l.loc, l.name, l.phone || '', lang, 'e-mail', l.email, '', res, 'first message as e-mail from ' + PREMAIL.from + ' (Ruben 04.10.)', 'A:A1:' + id]);
+}
+// Abdi's switches (Ruben 04.10.2026: Abdi must be able to pause the lead messages during Ruben's holiday): tab "Automation switches" in the sheet
+// "Sales KPIs ZH" (Abdi has access). Read every hourly run; unreadable = both on.
+var SWITCH = { id: '1bfwIAwAu0vFsgAQ9iW7m5k3oXQzNvmjbBANcSceCsuw', tab: 'Automation switches' };
+function readSwitches(dry) {
+  var out = { first: true, followups: true };
+  try {
+    var ss = SpreadsheetApp.openById(SWITCH.id), sh = ss.getSheetByName(SWITCH.tab);
+    if (!sh) { if (dry) return out; sh = ss.insertSheet(SWITCH.tab);
+      sh.getRange('A1').setValue('Automation switches').setFontWeight('bold').setFontSize(14);
+      sh.getRange('B2:C2').setValues([['Lead messages (Zurich)', 'What it does']]).setFontWeight('bold');
+      sh.getRange('A3:A4').insertCheckboxes().setValues([[true], [true]]);
+      sh.getRange('B3:B4').setValues([['First message to new leads'], ['WhatsApp follow-ups to leads (2nd and 3rd message)']]);
+      sh.getRange('C4').setValue('Day 6 and day 10 after the request. Untick = no follow-ups.');
+      sh.getRange('A6').setValue('Untick a box to pause, tick it to resume. The automation reads this tab every hour. Trial reminders, no-show and after-trial messages are not affected.').setFontColor('#666666');
+      sh.setColumnWidth(1, 40); sh.setColumnWidth(2, 340); sh.setColumnWidth(3, 520); }
+    var v = sh.getRange('A3:A4').getValues(); out.first = v[0][0] !== false; out.followups = v[1][0] !== false;
+    if (!dry) { sh.getRange('C3').setValue(A1_MAIL.on ? 'Now: e-mail from Abdi right after the request. Untick = no first message; WhatsApp still starts on day 6.' : 'Now: WhatsApp 48 h after the request. Untick = no first message; the chain continues with the 2nd message on day 6.');
+      sh.getRange('A8').setValue('Last read by the automation: ' + fmtEuDT(new Date()) + (out.first && out.followups ? '' : '  (paused: ' + [out.first ? '' : 'first message', out.followups ? '' : 'follow-ups'].filter(Boolean).join(', ') + ')')).setFontColor('#666666'); }
+  } catch (e) { Logger.log('switches unreadable, both on: ' + e); }
+  return out;
 }
 function installPreMailTrigger() { // once: daily at PREMAIL.hour (the weekday rule and the on switch sit in the function)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waPreAutoMail') ScriptApp.deleteTrigger(t); });
