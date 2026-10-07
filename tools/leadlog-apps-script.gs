@@ -2875,7 +2875,10 @@ var BANK_SEED = [
   ['2026-07', 'Zurich', 113395.25, 4811.15, 3596.56, 545.70, 'transfers = Stiftung Schloss Regensberg 2382.45, Helwig 775.21, 2 members; other = China Import Service'],
   ['2026-07', 'Winterthur', 49731.89, 0, 0, 0, ''],
   ['2026-08', 'Zurich', 103030.13, 2103.54, 1149.90, 854.90, 'transfers = OKey Stiftung 711.00, 2 members; other = credit without payer name 06.08.'],
-  ['2026-08', 'Winterthur', 42618.04, 0, 0, 0, '']];
+  ['2026-08', 'Winterthur', 42618.04, 0, 0, 0, ''],
+  ['2026-09', 'Zurich', 123600.19, 1021.16, 5954.10, 319.60, 'UBS statement 04.10.2026 (Rp-genau, total 130895.05); transfers = cash deposit 02.09. 2590.35, Christian Frey 2077.90, PSP Group Services 503.60, Magma AG 427.45, Betreibungsamt Winterthur 354.80 (collected debt); other = SVA Zuerich 319.60'],
+  ['2026-09', 'Winterthur', 59152.45, 0, 0, 0, 'UBS statement 04.10.2026, 22 Stripe credits']];
+// Fehlende Monate aus BANK_SEED werden angehaengt, bestehende Zeilen (auch von Hand geaenderte) bleiben unberuehrt (07.10.2026)
 function bankRead(ss) {
   var sh = ss.getSheetByName(BANK_SHEET), w = BANK_HEAD.length;
   var head = sh && sh.getLastRow() ? sh.getRange(1, 1, 1, w).getValues()[0].map(String) : [];
@@ -2889,6 +2892,9 @@ function bankRead(ss) {
     sh.getRange(1, 1).setNote('Credits per month from the bank statement (credits only), one row per month and location. Stripe credits = all "Stripe Payments UK Ltd" entries (exercise.com). Magicline (Adyen) = payouts of the old studio software Magicline via Adyen (members still debited there). Customer transfers = bank transfers from members and foundations (revenue, not in exercise.com). Other = credits that are no revenue (tax refunds, insurance, unnamed). The Monatsabschluss reads this tab.');
     sh.setColumnWidth(7, 420);
   }
+  try { var have = {}; if (sh.getLastRow() >= 2) sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().forEach(function (r) { have[mkOf(r[0]) + '|' + r[1]] = 1; });
+    var add = BANK_SEED.filter(function (r) { return !have[r[0] + '|' + r[1]]; });
+    if (add.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, add.length, 1).setNumberFormat('@'); sh.getRange(r0, 1, add.length, w).setValues(add); sh.getRange(r0, 3, add.length, 4).setNumberFormat('#,##0.00'); Logger.log('Bank: ' + add.length + ' Monatszeilen ergaenzt'); } } catch (eB) { Logger.log('Bank ergaenzen: ' + eB); }
   var out = {}; if (sh.getLastRow() < 2) return out;
   sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().forEach(function (r) {
     var mk = mkOf(r[0]); if (!/^\d{4}-\d{2}$/.test(mk) || !r[1]) return;
