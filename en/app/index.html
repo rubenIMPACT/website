@@ -31,6 +31,11 @@ main{flex:1}
 .vid video{width:100%;height:100%;display:block;object-fit:cover;background:#000}
 .snd{white-space:nowrap;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;align-items:center;gap:10px;background:var(--gold);color:#000;border:0;border-radius:40px;padding:14px 22px;font:800 14px 'Outfit',sans-serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 30px rgba(0,0,0,.5)}
 .snd.on{display:inline-flex}
+.paths{list-style:none;margin-top:22px;display:grid;gap:14px;max-width:460px;counter-reset:p}
+.paths li{position:relative;padding-left:38px;color:var(--grey);font-size:15.5px;line-height:1.5;counter-increment:p}
+.paths li:before{content:'0' counter(p);position:absolute;left:0;top:1px;color:var(--gold);font-weight:800;font-size:13px;letter-spacing:2px}
+.paths b{color:var(--white);font-weight:500}
+.paths .tag{display:inline-block;margin-left:8px;padding:1px 8px;border:1px solid var(--gold);border-radius:20px;color:var(--gold);font-size:11.5px;font-weight:500;letter-spacing:.5px;vertical-align:2px}
 .dl{margin-top:30px;border-top:1px solid var(--hair);padding-top:22px;max-width:460px}
 .dl p{margin-top:0;font-size:15px}
 .btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
@@ -51,6 +56,7 @@ main{flex:1}
 <div class="idx">IMPACT App</div>
 <h1>Here's how to find <span class="accent">our training videos.</span></h1>
 <p>With the IMPACT App, you can watch the techniques for each week and train from home whenever you want. The video shows you where to find them.</p>
+<ol class="paths"><li><b>This week in the gym</b><span class="tag">Overview</span><br>Watch the techniques we're covering in class this week. Prepare before your session, or refresh what you learned afterwards.</li><li><b>Train on your own</b><span class="tag">Home Training</span><br>Browse the full video library and train whatever you want, whenever you want.</li></ol>
 </div>
 <div class="vid"><video id="appvid" controls playsinline preload="auto" poster="/assets/impact-app-poster.jpg" aria-label="Video: how to find the videos in the IMPACT App"><source src="/assets/impact-app.mp4" type="video/mp4"></video><button class="snd" id="snd" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>Play video with sound</button></div>
 <div class="dl">
