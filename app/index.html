@@ -29,7 +29,7 @@ main{flex:1}
 .txt p{color:var(--grey);font-size:17px;margin-top:16px;max-width:460px}
 .vid{position:relative;width:min(100%,400px);margin:0 auto;aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#111;border:1px solid var(--hair)}
 .vid video{width:100%;height:100%;display:block;object-fit:cover;background:#000}
-.snd{position:absolute;left:50%;bottom:76px;transform:translateX(-50%);display:none;align-items:center;gap:10px;background:var(--gold);color:#000;border:0;border-radius:40px;padding:14px 22px;font:800 14px 'Outfit',sans-serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 30px rgba(0,0,0,.5)}
+.snd{white-space:nowrap;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;align-items:center;gap:10px;background:var(--gold);color:#000;border:0;border-radius:40px;padding:14px 22px;font:800 14px 'Outfit',sans-serif;letter-spacing:1px;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 30px rgba(0,0,0,.5)}
 .snd.on{display:inline-flex}
 .dl{margin-top:30px;border-top:1px solid var(--hair);padding-top:22px;max-width:460px}
 .dl p{margin-top:0;font-size:15px}
@@ -52,7 +52,7 @@ main{flex:1}
 <h1>So findest du <span class="accent">die Videos.</span></h1>
 <p>In der IMPACT-App siehst du die Techniken jeder Woche und trainierst auch zu Hause, wann immer du willst. Im Video zeigen wir dir, wo du sie findest.</p>
 </div>
-<div class="vid"><video id="appvid" controls playsinline preload="auto" poster="/assets/impact-app-poster.jpg" aria-label="Video: So findest du die Videos in der IMPACT-App"><source src="/assets/impact-app.mp4" type="video/mp4"></video><button class="snd" id="snd" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>Ton an</button></div>
+<div class="vid"><video id="appvid" controls playsinline preload="auto" poster="/assets/impact-app-poster.jpg" aria-label="Video: So findest du die Videos in der IMPACT-App"><source src="/assets/impact-app.mp4" type="video/mp4"></video><button class="snd" id="snd" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>Video mit Ton abspielen</button></div>
 <div class="dl">
 <p>Falls du die App noch nicht heruntergeladen hast, mach es jetzt.</p>
 <div class="btns"><a href="https://apps.apple.com/ch/app/impact-martial-arts-ag/id6749004696" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.9 1.15 9.15.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.39-.92-2.4-3.67zM14.1 5.85c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.61-2.66 1.37-.58.67-1.09 1.75-.96 2.79 1.02.08 2.05-.52 2.68-1.27z"/></svg>Download für iPhone</a><a href="https://play.google.com/store/apps/details?id=com.impactmartialarts.app.own" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 2.2c-.2.2-.3.6-.3 1v17.6c0 .4.1.8.3 1l9.9-9.8zM14.6 13.1l2.9 2.9-11.6 6.6c-.4.2-.8.3-1.1.2zM17.9 8.3l3.1 1.8c.9.5.9 1.4 0 1.9l-3.1 1.8-3.2-3.2zM4.8 1.2c.3-.1.7 0 1.1.2l11.6 6.6-2.9 2.9z"/></svg>Download für Android</a></div>
@@ -63,12 +63,12 @@ main{flex:1}
 <script>
 (function(){
 var v=document.getElementById('appvid'),b=document.getElementById('snd');
-/* try to start WITH sound; browsers often block that when nobody has tapped the page yet.
-   Then the video runs muted and a big button turns the sound on and starts again from the beginning. */
-function muted(){v.muted=true;v.play().catch(function(){});b.classList.add('on')}
-v.muted=false;var p=v.play();if(p&&p.catch)p.catch(muted);
-b.addEventListener('click',function(){v.muted=false;v.currentTime=0;v.play();b.classList.remove('on')});
-v.addEventListener('volumechange',function(){if(!v.muted)b.classList.remove('on')});
+/* Sound is always on. Browsers block starting a video WITH sound before the visitor has tapped the page;
+   then the video stays on its first frame and a big play button starts it with sound (07.10.2026, Ruben: sound on by default). */
+v.muted=false;v.volume=1;
+var p=v.play();if(p&&p.catch)p.catch(function(){b.classList.add('on')});
+b.addEventListener('click',function(){v.muted=false;v.play();b.classList.remove('on')});
+v.addEventListener('play',function(){b.classList.remove('on')});
 })();
 </script>
 <script defer src="/assets/track.js"></script></body></html>
