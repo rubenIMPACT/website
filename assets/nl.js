@@ -55,7 +55,7 @@
   // Pages without pop-up. The thank-you pages remember that this person sent a trial request.
   var path = location.pathname;
   if (/^\/(probetraining\/danke|en\/trial\/thanks)(\/|$)/.test(path)) set('imp_lead', String(NOW));
-  if (/^\/(en\/)?(probetraining|trial|termin|booking|kuendigung|cancellation|training-plan)(\/|$)/.test(path)) return;
+  if (/^\/(en\/)?(probetraining|trial|termin|booking|kuendigung|cancellation|training-plan|app)(\/|$)/.test(path)) return; // app = member page with the app video (07.10.2026)
   if (get('imp_lead') || get('imp_nl_done')) return;
   var seen = Number(get('imp_nl_seen') || 0);
   if (seen && NOW - seen < 30 * DAY) return;
