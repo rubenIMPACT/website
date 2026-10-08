@@ -1469,8 +1469,8 @@ function waPreAutoReplies() { // every 15 minutes (waQuarterHour): replies to th
 }
 // First lead message as e-mail (Ruben 04.10.2026, Abdi's feedback: the WhatsApp A1 with its question caused calls and messages he could not handle yet).
 // Sent right after the request from Abdi's address (07-21 h), Zurich only; WhatsApp starts with message 2 on day 6. on = false until Ruben approved the text.
-var A1_MAIL = { on: true, en_ok: false }; // Ruben 04.10.: German text approved, on; English waits for his OK (until then English leads keep the WhatsApp A1)
-var A1_MAIL_TEXT = { // de approved by Ruben 04.10.2026 (no "Gratis", second "Probetraining" -> "Termin"); en = same edits, NOT yet approved
+var A1_MAIL = { on: true, en_ok: true }; // Ruben 04.10.: German text approved, on; 08.10.: English approved too
+var A1_MAIL_TEXT = { // de approved by Ruben 04.10.2026 (no "Gratis", second "Probetraining" -> "Termin"); en approved 08.10.
   de: { subject: 'Deine Anfrage bei IMPACT Martial Arts', lines: ['Hi {name},', 'danke für deine Anfrage für ein Probetraining bei IMPACT Martial Arts. Momentan wollen sehr viele Leute bei uns starten. Wir melden uns so bald wie möglich telefonisch bei dir, um zusammen einen Termin zu planen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
   en: { subject: 'Your request at IMPACT Martial Arts', lines: ['Hi {name},', "thanks for your request for a trial session at IMPACT Martial Arts. A lot of people want to start with us right now. We'll call you as soon as possible to find a time together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
 };
