@@ -113,7 +113,7 @@ function waDryRunHourly() {
       return;
     }
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
-    if (msg === 'A1' ? !SW.first : !SW.followups) return; // Abdi's switches (tab "Automation switches", Ruben 04.10.)
+    if (!SW[SW_OF[msg]]) return; // Abdi's switches (tab "Automation switches", Ruben 04.10. / 09.10.: one per message)
     if (due <= now.getTime() && due > now.getTime() - 24 * h && takenOverBy(l.email)) { Logger.log('A skipped, ' + l.name + ': tag ' + takenOverBy(l.email) + ' (called by the team, Ruben 01.10.)'); return; }
     var msgT = msg === 'A2' && st.sentA.triedA1 === 'mail' ? 'A2M' : msg; // Ruben 09.10.: after the e-mail, message 2 introduces the sender (key stays A2)
     if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msgT, l.loc, l.name, (calls[l.email.toLowerCase()] || {}).lang || l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
@@ -219,7 +219,7 @@ function waDryRunHourly() {
   if (pv) PREVIEW_ROWS = out; else if (out.length) { var r0 = sh.getLastRow() + 1; sh.getRange(r0, 1, out.length, out[0].length).setValues(out); sh.getRange(r0, 1, out.length, 1).setNumberFormat('dd.MM.yyyy'); sh.getRange(r0, 3, out.length, 1).setNumberFormat('dd.MM.yyyy HH:mm'); }
   if (sh.getRange(4, HEAD.length + 1).getValue() !== DRY_EXTRA[0]) { sh.getRange(4, HEAD.length + 1, 1, DRY_EXTRA.length).setValues([DRY_EXTRA]).setFontWeight('bold').setBackground('#f3f3f3'); sh.hideColumns(HEAD.length + 1, DRY_EXTRA.length); } // hidden helper columns for the sender
   var stillDue = { // re-check right before a real send (the row may be hours old: booked / replied / closed in the meantime)
-    A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied) && !/^(Nate|Gioele)$/.test(takenOverBy(e)) && (String(r[10]).split(':')[1] === 'A1' ? SW.first : SW.followups); }, // + tag Nate / Gioele (Ruben 01.10.); a failed tag read does not drop the queued message; + Abdi's switches (04.10.)
+    A: function (r) { var e = String(r[10]).split(':')[2], l = leads.filter(function (x) { return x.email === e; })[0]; return !!l && !(trialNames[l.nname] || hasTrialLoose(trials, l)) && !LC_SKIP.test(stageOfLead(l)) && !(calls[e] && calls[e].replied) && !/^(Nate|Gioele)$/.test(takenOverBy(e)) && !!SW[SW_OF[String(r[10]).split(':')[1]]]; }, // + tag Nate / Gioele (Ruben 01.10.); a failed tag read does not drop the queued message; + Abdi's switches (04.10.)
     B: function (r) { var k = String(r[10]).split(':'); return k[3] === today && ['Zurich', 'Winterthur'].some(function (loc) { return trials[loc].some(function (t) { return t.uid === k[2] && t.date === k[3] && t.art === 'BOOKED'; }); }); },
     E: function (r) { var u = String(r[10]).split(':')[2]; return !!arr && arr.some(function (a) { return a.uid === u && a.open > 0; }); },
     C: function (r) { var k = String(r[10]).split(':'); return k[3] === yday && trialStill(k[2], k[3], 'NOSHOW'); }, // still a no-show, no newer booking / trial, and the text says "gestern": only on the day after the no-show
@@ -228,6 +228,7 @@ function waDryRunHourly() {
     trialStart: function (uid, date) { var t = null; ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (x) { if (x.uid === uid && x.date === date) t = x; }); }); var hm = t && /(\d{1,2}):(\d{2})/.exec(t.cls || ''), d0 = new Date(date + 'T00:00:00' + Utilities.formatDate(now, TZ, 'XXX')); return hm ? atTime(d0, ('0' + hm[1]).slice(-2) + ':' + hm[2]) : d0; }, // start of the class (from the trial list), else midnight of that day
     R: function (r) { var u = String(r[10]).split(':')[2]; return arr !== null && !openPay(u); } // Ruben 25.09.: no review request to a member with an open payment (payment data missing = no send)
   };
+  ['B', 'C', 'D', 'R'].forEach(function (f) { var fn = stillDue[f]; stillDue[f] = function (r) { return !!SW[SW_OF[f + '1']] && fn(r); }; }); // Abdi's per-message switches (Ruben 09.10.): a paused message is skipped, not postponed
   function openPay(uid, cl) { return !!(info[uid] || (arr && arr.some(function (a) { return a.uid === uid && a.open > 0; })) || (cl && /signed but no payment|debt/i.test(String(cl.lifecycle || '')))); } // failed charge, open invoice, or stage Signed but no payment / Debt collection
   function trialStill(uid, date, art) { var rows = []; ['Zurich', 'Winterthur'].forEach(function (loc) { trials[loc].forEach(function (t) { if (t.uid === uid) rows.push(t); }); }); return rows.some(function (t) { return t.date === date && t.art === art; }) && !rows.some(function (t) { return t.date > date && (t.art === 'BOOKED' || t.art === 'TRIAL'); }); }
   payNote += processOutbox(ss, sh, now, stillDue);
@@ -1490,22 +1491,39 @@ function sendA1Mail(l, lang, id, now) { // one first-message e-mail; logged in t
 // Abdi's switches (Ruben 04.10.2026: Abdi must be able to pause the lead messages during Ruben's holiday): tab "Automation switches" in the sheet
 // "Sales KPIs ZH" (Abdi has access). Read every hourly run; unreadable = both on.
 var SWITCH = { id: '1bfwIAwAu0vFsgAQ9iW7m5k3oXQzNvmjbBANcSceCsuw', tab: 'Automation switches' };
+var SW_OF = { A1: 'first', A2: 'a2', A2M: 'a2', A3: 'a3', B1: 'b', C1: 'c', D1: 'd', R1: 'r' }; // message -> switch
+var SW_ROWS = [ // Ruben 09.10.2026: one switch per message (rows 3-9 of the tab), column D = Abdi's text change requests (Ruben approves, Claude builds them in)
+  ['first', 'First message to new leads (e-mail)', 'Right after the request, 07-21 h. If the e-mail cannot be sent: WhatsApp after 48 h.'],
+  ['a2', '1st WhatsApp to leads', 'Day 6 after the request, if no trial is booked and the lead has not answered on WhatsApp.'],
+  ['a3', '2nd WhatsApp to leads', '4 days after the previous contact (day 10). No answer 7 days later = Lost.'],
+  ['b', 'Trial reminder', 'On the trial day, 3 h before the class, with address and map link.'],
+  ['c', 'No-show message', 'The day after a missed trial.'],
+  ['d', 'After-trial message', '3 days after the trial, if no contract is signed and no new booking.'],
+  ['r', 'Google review request', 'New members at their 7th visit within 45 days.']
+];
 function readSwitches(dry) {
-  var out = { first: true, followups: true };
+  var out = {}; SW_ROWS.forEach(function (x) { out[x[0]] = true; });
   try {
     var ss = SpreadsheetApp.openById(SWITCH.id), sh = ss.getSheetByName(SWITCH.tab);
-    if (!sh) { if (dry) return out; sh = ss.insertSheet(SWITCH.tab);
-      sh.getRange('A1').setValue('Automation switches').setFontWeight('bold').setFontSize(14);
-      sh.getRange('B2:C2').setValues([['Lead messages (Zurich)', 'What it does']]).setFontWeight('bold');
-      sh.getRange('A3:A4').insertCheckboxes().setValues([[true], [true]]);
-      sh.getRange('B3:B4').setValues([['First message to new leads'], ['WhatsApp follow-ups to leads (2nd and 3rd message)']]);
-      sh.getRange('C4').setValue('Day 6 and day 10 after the request. Untick = no follow-ups.');
-      sh.getRange('A6').setValue('Untick a box to pause, tick it to resume. The automation reads this tab every hour. Trial reminders, no-show and after-trial messages are not affected.').setFontColor('#666666');
-      sh.setColumnWidth(1, 40); sh.setColumnWidth(2, 340); sh.setColumnWidth(3, 520); sh.getRange('A1:A8').setWrapStrategy(SpreadsheetApp.WrapStrategy.OVERFLOW); sh.setRowHeights(1, 8, 24); }
-    var v = sh.getRange('A3:A4').getValues(); out.first = v[0][0] !== false; out.followups = v[1][0] !== false;
-    if (!dry) { sh.getRange('C3').setValue(A1_MAIL.on ? 'Now: e-mail from Abdi right after the request. Untick = no first message; WhatsApp still starts on day 6.' : 'Now: WhatsApp 48 h after the request. Untick = no first message; the chain continues with the 2nd message on day 6.');
-      sh.getRange('A8').setValue('Last read by the automation: ' + fmtEuDT(new Date()) + (out.first && out.followups ? '' : '  (paused: ' + [out.first ? '' : 'first message', out.followups ? '' : 'follow-ups'].filter(Boolean).join(', ') + ')')).setFontColor('#666666'); }
-  } catch (e) { Logger.log('switches unreadable, both on: ' + e); }
+    if (!sh) { if (dry) return out; sh = ss.insertSheet(SWITCH.tab); }
+    if (String(sh.getRange('B2').getValue()) !== 'Message') { // first run, or the old 2-switch layout (04.10.): rebuild, keep the old choices
+      if (dry) return out;
+      var old = sh.getLastRow() >= 4 ? sh.getRange('A3:A4').getValues() : [[true], [true]], oFirst = old[0][0] !== false, oFollow = old[1][0] !== false;
+      sh.clear(); sh.getRange('A1:D20').clearDataValidations();
+      sh.getRange('A1').setValue('Automation switches (Zurich)').setFontWeight('bold').setFontSize(14);
+      sh.getRange('A2:D2').setValues([['On', 'Message', 'When it goes out', 'Change request (text wishes; Ruben approves them)']]).setFontWeight('bold').setBackground('#f3f3f3');
+      sh.getRange(3, 1, SW_ROWS.length, 1).insertCheckboxes().setValues(SW_ROWS.map(function (x) { return [x[0] === 'first' ? oFirst : (x[0] === 'a2' || x[0] === 'a3' ? oFollow : true)]; }));
+      sh.getRange(3, 2, SW_ROWS.length, 2).setValues(SW_ROWS.map(function (x) { return [x[1], x[2]]; })).setWrap(true).setVerticalAlignment('middle');
+      sh.getRange(3, 1, SW_ROWS.length, 1).setHorizontalAlignment('center').setVerticalAlignment('middle');
+      sh.getRange(11, 1).setValue('Untick a box to pause that message, tick it to resume. The automation reads this tab every hour; a paused message is skipped, not sent later.').setFontColor('#666666');
+      sh.getRange('A1:A13').setWrapStrategy(SpreadsheetApp.WrapStrategy.OVERFLOW);
+      sh.setColumnWidth(1, 45); sh.setColumnWidth(2, 260); sh.setColumnWidth(3, 420); sh.setColumnWidth(4, 360); sh.setRowHeights(3, SW_ROWS.length, 34);
+      sh.getRange(3, 4, SW_ROWS.length, 1).setWrap(true).setBackground('#fffbe6');
+    }
+    var v = sh.getRange(3, 1, SW_ROWS.length, 1).getValues(); SW_ROWS.forEach(function (x, i) { out[x[0]] = v[i][0] !== false; });
+    if (!dry) { var off = SW_ROWS.filter(function (x) { return !out[x[0]]; }).map(function (x) { return x[1]; });
+      sh.getRange(13, 1).setValue('Last read by the automation: ' + fmtEuDT(new Date()) + (off.length ? '  (paused: ' + off.join(', ') + ')' : '')).setFontColor('#666666'); }
+  } catch (e) { Logger.log('switches unreadable, all on: ' + e); }
   return out;
 }
 function waA1Replies() { // every 15 minutes (waQuarterHour), Ruben 09.10.2026: replies to the first-message e-mail -> on top of the Message field in exercise.com; the WhatsApp chain goes on as usual
