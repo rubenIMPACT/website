@@ -577,7 +577,8 @@ function updateKlassenHistorieDisziplin(ss, data, mkey) {
   var head = ['Monat', 'Typ', 'Name', 'Standort', 'Index', 'Auslastung', 'Besuche', 'Termine', 'Plätze', 'Termine mit Vergleich', 'Umsatz']; // Umsatz seit 09.10.2026 (rollierende Hitlist mit Umsatz)
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet(); }
   else if (String(sh.getRange(1, head.length).getValue()) !== 'Umsatz') sh.getRange(1, head.length).setValue('Umsatz').setFontWeight('bold');
-  var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return String(r[0]) !== mkey; }) : [];
+  // Monat als Text vergleichen: Sheets macht aus '2026-09' ein Datum, dadurch wurden alte Zeilen nie ersetzt und haeuften sich an (Lehre 09.10.2026)
+  var seen = {}, keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().map(function (r) { r[0] = mkOf(r[0]); return r; }).filter(function (r) { if (!/^\d{4}-\d{2}$/.test(r[0]) || r[0] === mkey) return false; var k = r[0] + '|' + r[1] + '|' + r[2] + '|' + r[3]; if (seen[k]) return false; seen[k] = 1; return true; }) : [];
   [['Disziplin', data.hitlist || []]].forEach(function (pair) { // Level-Liste seit 03.09.2026 nicht mehr (Entscheid Ruben)
     pair[1].forEach(function (h) {
       keep.push([mkey, pair[0], h.name, 'Mittel', h.index == null ? '' : h.index, h.util, h.attended, h.events, h.capacity, h.with_neighbor, h.revenue == null ? '' : h.revenue]);
@@ -586,6 +587,7 @@ function updateKlassenHistorieDisziplin(ss, data, mkey) {
   });
   keep.sort(function (a, b) { return (a[0] + a[1] + a[2]) < (b[0] + b[1] + b[2]) ? -1 : 1; });
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, head.length).clearContent();
+  sh.getRange('A2:A').setNumberFormat('@');
   if (keep.length) sh.getRange(2, 1, keep.length, head.length).setValues(keep);
   sh.getRange('E2:E').setNumberFormat('0.00'); sh.getRange('F2:F').setNumberFormat('0%');
 }
@@ -596,10 +598,11 @@ function updateKlassenHistorieDisziplin(ss, data, mkey) {
 function rollingHitlistFull(ss, typ, n) {
   var sh = ss.getSheetByName(KA_HIST_D); if (!sh || sh.getLastRow() < 2) return { list: [], months: [] };
   var v = sh.getRange(2, 1, sh.getLastRow() - 1, 11).getValues(), months = {};
-  v.forEach(function (r) { if (r[1] === typ && r[3] === 'Mittel') months[String(r[0])] = 1; });
-  var keep = Object.keys(months).sort().slice(-n), agg = {}, nm = keep.length;
+  v.forEach(function (r) { r[0] = mkOf(r[0]); if (r[1] === typ && r[3] === 'Mittel') months[r[0]] = 1; });
+  var keep = Object.keys(months).filter(function (k) { return /^\d{4}-\d{2}$/.test(k); }).sort().slice(-n), agg = {}, nm = keep.length, seen = {};
   v.forEach(function (r) {
-    if (r[1] !== typ || keep.indexOf(String(r[0])) < 0) return;
+    if (r[1] !== typ || keep.indexOf(r[0]) < 0) return;
+    var dk = r[0] + '|' + r[2] + '|' + r[3]; if (seen[dk]) return; seen[dk] = 1;
     var a = agg[r[2]] = agg[r[2]] || { name: r[2], ix: [], ixZ: [], ixW: [], att: 0, ev: 0, cap: 0, nb: 0, rev: 0, hasRev: false };
     if (r[3] === 'Mittel') { if (r[4] !== '') a.ix.push(Number(r[4])); a.att += Number(r[6] || 0); a.ev += Number(r[7] || 0); a.cap += Number(r[8] || 0); a.nb += Number(r[9] || 0); if (r[10] !== '' && r[10] != null) { a.rev += Number(r[10]) || 0; a.hasRev = true; } }
     else if (r[4] !== '' && r[4] != null) (r[3] === 'Zurich' ? a.ixZ : a.ixW).push(Number(r[4]));
@@ -614,10 +617,10 @@ function rollingHitlistFull(ss, typ, n) {
 function rollingHitlist(ss, typ, n) {
   var sh = ss.getSheetByName(KA_HIST_D); if (!sh || sh.getLastRow() < 2) return { rows: [], months: [] };
   var v = sh.getRange(2, 1, sh.getLastRow() - 1, 10).getValues(), months = {};
-  v.forEach(function (r) { if (r[1] === typ && r[3] === 'Mittel') months[String(r[0])] = 1; });
-  var keep = Object.keys(months).sort().slice(-n), agg = {};
+  v.forEach(function (r) { r[0] = mkOf(r[0]); if (r[1] === typ && r[3] === 'Mittel') months[r[0]] = 1; });
+  var keep = Object.keys(months).filter(function (k) { return /^\d{4}-\d{2}$/.test(k); }).sort().slice(-n), agg = {};
   v.forEach(function (r) {
-    if (r[1] !== typ || r[3] !== 'Mittel' || keep.indexOf(String(r[0])) < 0 || r[4] === '') return;
+    if (r[1] !== typ || r[3] !== 'Mittel' || keep.indexOf(r[0]) < 0 || r[4] === '') return;
     var a = agg[r[2]] = agg[r[2]] || { sum: 0, k: 0, att: 0, ev: 0, cap: 0 };
     a.sum += Number(r[4]); a.k++; a.att += Number(r[6] || 0); a.ev += Number(r[7] || 0); a.cap += Number(r[8] || 0);
   });
