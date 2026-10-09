@@ -671,7 +671,7 @@ function leadState(l, lastA, calls, now) { // slot = contacts so far (automatic 
   var mailA1 = !sentA.A1 && sentA.triedA1 === 'mail';
   var virt = !mailA1 && l.loc === 'Zurich' && !sentA.A1 && !cs.called.length && (!sentA.triedA1 || sentA.triedA1 === 'mailfail') && (now || new Date()).getTime() > l.ts.getTime() + (RULE.A1_H + 24) * 3600000;
   if ((virt || mailA1) && !lastAt) lastAt = new Date(l.ts.getTime() + RULE.A1_H * 3600000);
-  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length + (virt || mailA1 ? 1 : 0)), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length, lastCall: lastCall, replied: cs.replied, virtA1: virt || mailA1 };
+  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length + (virt || mailA1 ? 1 : 0)), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length, lastCall: lastCall, replied: cs.replied, virtA1: virt || mailA1, mailA1: mailA1 };
 }
 function readPlans() { // lead e-mail -> latest training plan link (Leads Log, tab "Trainingsplan": Link col 15, E-Mail col 19)
   var m = {}, sh = SpreadsheetApp.openById(MAIN_ID).getSheetByName('Trainingsplan'); if (!sh || sh.getLastRow() < 2) return m;
@@ -1283,7 +1283,7 @@ function syncContactStages(leads, trials, trialNames, stages, calls, lastA, now,
   var stageN = 0, ladder = [['first', ['Lead', '']], ['second', ['Lead', 'First Contact', '']], ['third', ['Lead', 'First Contact', 'Second Contact', '']]];
   leads.forEach(function (l) {
     if (!l.loc || l.test || l.status !== 'ok' || !l.email || trialNames[l.nname] || hasTrialLoose(trials, l) || LC_SKIP.test(stageOfLead(l))) return;
-    var s = leadState(l, lastA || {}, calls, now || new Date()), n = s.slot; if (!n || s.replied || (s.virtA1 && n === 1)) return; // the e-mail / switched-off first message alone does not move the stage (the lead stays in "Lead" for Gioele / Nate) // after a reply the chat is a conversation, not an attempt
+    var s = leadState(l, lastA || {}, calls, now || new Date()), n = s.slot; if (!n || s.replied || (s.virtA1 && n === 1 && !(s.mailA1 && (now || new Date()).getTime() >= l.ts.getTime() + RULE.A1_H * 3600000))) return; // Ruben 09.10.: the e-mail counts as First Contact 48 h after the request (the lead stays 2 days in "Lead" for Gioele / Nate); a switched-off first message alone never moves the stage // the e-mail / switched-off first message alone does not move the stage (the lead stays in "Lead" for Gioele / Nate) // after a reply the chat is a conversation, not an attempt
     var step = ladder[Math.min(n, 3) - 1]; if (dry) { if (step[1].indexOf(stageOfLead(l)) >= 0) Logger.log('STAGE ' + l.name + ' | ' + (stageOfLead(l) || '-') + ' -> ' + STAGE_NAME[step[0]] + ' | ' + s.calls + ' coach, ' + s.done.length + ' automatic'); return; }
     if (setStage(l.loc, l.email, l.name, STAGE[step[0]], STAGE_NAME[step[0]], 'contact ' + n + ' (' + s.calls + ' by ' + SENDER[l.loc] + ' from the WhatsApp app, ' + s.done.length + ' automatic), last ' + fmtEuDT(s.lastAt), step[1]) === 'set') stageN++;
   });
