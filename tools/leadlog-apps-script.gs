@@ -441,6 +441,75 @@ function buildPlanAnalyse(ss) {
 // Spalte "Aktion" bleibt erhalten. Manuell im Editor ausfuehren oder per Zeit-Trigger (Trigger-Menue, stuendlich).
 var KA_FOLDER = 'Klassenanalyse-Import';
 var KA_SHEET = 'Klassenanalyse';
+
+// ---- Trainer-Analyse (Ruben 09.10.2026): Umsatz je Trainer insgesamt und je Klasse, bereinigt um die Qualitaet der Zeitfenster.
+// Klassen mit mehreren Trainern werden zu gleichen Teilen geteilt. Zeitfenster-Erwartung je Klasse = Umsatz je Termin der ANDEREN Klassen
+// zur gleichen Startzeit (Standort, Werktag/Samstag), sonst +-90 Minuten, sonst Standort-Schnitt. Leistungsindex = Umsatz / erwarteter Umsatz.
+var KA_TRAINER_HIST = 'TrainerHistorie';
+function trainerStats(rows) {
+  var cls = rows.filter(function (x) { return x.segment !== 'Gratis' && x.events > 0 && x.staff; });
+  var minOf = function (t) { var m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  var locAvg = {}; cls.forEach(function (x) { var o = locAvg[x.location] = locAvg[x.location] || { r: 0, e: 0 }; o.r += Number(x.revenue) || 0; o.e += x.events; });
+  var la = function (l) { var o = locAvg[l]; return o && o.e ? o.r / o.e : 0; };
+  var bench = function (x) {
+    var mx = minOf(x.start), same = cls.filter(function (y) { return y !== x && y.location === x.location && y.daytype === x.daytype && minOf(y.start) === mx; });
+    if (!same.length) same = cls.filter(function (y) { return y !== x && y.location === x.location && y.daytype === x.daytype && mx != null && Math.abs(minOf(y.start) - mx) <= 90; });
+    var r = 0, e = 0; same.forEach(function (y) { r += Number(y.revenue) || 0; e += y.events; });
+    return e ? r / e : la(x.location);
+  };
+  var out = {};
+  cls.forEach(function (x) {
+    var names = String(x.staff).split(',').map(function (n) { return n.trim(); }).filter(Boolean); if (!names.length) return;
+    var sh = 1 / names.length, b = bench(x), rev = Number(x.revenue) || 0;
+    names.concat([]).forEach(function (n) {
+      [x.location, 'Gesamt'].forEach(function (L) {
+        var k = L + '|' + n, o = out[k] = out[k] || { loc: L, name: n, classes: 0, ev: 0, att: 0, rev: 0, exp: 0, fac: 0, kids: 0 };
+        o.classes += 1; o.ev += x.events * sh; o.att += x.attended * sh; o.rev += rev * sh; o.exp += b * x.events * sh;
+        o.fac += x.events * sh * (la(x.location) ? b / la(x.location) : 1); if (x.segment === 'Kids') o.kids += x.events * sh;
+      });
+    });
+  });
+  return out;
+}
+function updateTrainerHistorie(ss, data) {
+  var mk = String((data.window || {}).start || '').slice(0, 7); if (!/^\d{4}-\d{2}$/.test(mk)) return;
+  var st = trainerStats(data.rows || []), sh = getOrCreate(ss, KA_TRAINER_HIST), head = ['Monat', 'Standort', 'Trainer', 'Termine', 'Besuche', 'Umsatz', 'Erwartet'];
+  if (!sh.isSheetHidden()) sh.hideSheet();
+  var old = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return mkOf(r[0]) !== mk; }) : [];
+  var add = Object.keys(st).map(function (k) { var o = st[k]; return [mk, o.loc, o.name, Math.round(o.ev * 10) / 10, Math.round(o.att), Math.round(o.rev), Math.round(o.exp)]; });
+  var all = [head].concat(old.map(function (r) { r[0] = mkOf(r[0]); return r; })).concat(add);
+  sh.clear(); sh.getRange(1, 1, all.length, 1).setNumberFormat('@'); sh.getRange(1, 1, all.length, head.length).setValues(all); sh.getRange(1, 1, 1, head.length).setFontWeight('bold');
+}
+function trainerBlock(ss, sh, r, data, fmt, win) {
+  var st = trainerStats(data.rows || []), mk = String(win.start || '').slice(0, 7);
+  var hist = ss.getSheetByName(KA_TRAINER_HIST), h3 = {}, m3 = {};
+  if (hist && hist.getLastRow() > 1) { var lim = addMonths(mk, -2); hist.getRange(2, 1, hist.getLastRow() - 1, 7).getValues().forEach(function (x) { var m = mkOf(x[0]); if (m < lim || m > mk) return; var k = x[1] + '|' + x[2], o = h3[k] = h3[k] || { rev: 0, exp: 0 }; o.rev += Number(x[5]) || 0; o.exp += Number(x[6]) || 0; m3[m] = 1; }); }
+  var nM = Object.keys(m3).length;
+  ['Zurich', 'Winterthur', 'Gesamt'].forEach(function (L) {
+    var lst = Object.keys(st).map(function (k) { return st[k]; }).filter(function (o) { return o.loc === L && o.ev >= 1; });
+    if (!lst.length) return;
+    lst.forEach(function (o) { o.rpe = o.ev ? o.rev / o.ev : 0; o.f = o.ev ? o.fac / o.ev : 1; o.adj = o.f ? o.rpe / o.f : o.rpe; o.idx = o.exp ? o.rev / o.exp : ''; var hh = h3[L + '|' + o.name]; o.i3 = nM >= 2 && hh && hh.exp ? hh.rev / hh.exp : ''; });
+    lst.sort(function (a, b) { return b.adj - a.adj; });
+    var LDE = L === 'Zurich' ? 'Zürich' : L === 'Winterthur' ? 'Winterthur' : 'Gesamt';
+    sh.getRange(r, 1).setValue('Trainer-Ranking ' + LDE + ' ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (Umsatz je Termin bereinigt um die Zeitfenster; Klassen mit mehreren Trainern geteilt, ohne Gratisklassen)').setFontWeight('bold').setFontSize(12); r++;
+    // Spalten F und L sind im Tab ausgeblendet, deshalb dort leer
+    var hh2 = ['Rang', 'Trainer', 'Klassen', 'Termine', 'Besuche', '', 'Umsatz CHF/Monat', 'Umsatz je Termin', 'Zeitfenster-Faktor', 'Umsatz je Termin bereinigt', 'Leistungsindex', '', 'Index 3 Monate', 'Anteil Kinderklassen'];
+    sh.getRange(r, 1, 1, hh2.length).setValues([hh2]).setFontWeight('bold').setBackground('#f3f3f3'); r++;
+    var v = lst.map(function (o, i) { return [i + 1, o.name, o.classes, Math.round(o.ev * 10) / 10, Math.round(o.att), '', Math.round(o.rev), o.rpe, o.f, o.adj, o.idx, '', o.i3 === '' ? (nM >= 2 ? 'n/a' : 'ab nächstem Monat') : o.i3, o.ev ? o.kids / o.ev : 0]; });
+    sh.getRange(r, 1, v.length, hh2.length).setValues(v);
+    sh.getRange(r, 7, v.length, 2).setNumberFormat('#,##0'); sh.getRange(r, 9, v.length, 1).setNumberFormat('0.00'); sh.getRange(r, 10, v.length, 1).setNumberFormat('#,##0'); sh.getRange(r, 11, v.length, 1).setNumberFormat('0.00'); sh.getRange(r, 13, v.length, 1).setNumberFormat('0.00'); sh.getRange(r, 14, v.length, 1).setNumberFormat('0%'); sh.getRange(r, 4, v.length, 1).setNumberFormat('0.0');
+    var fr = sh.getRange(r, 9, v.length, 1), ir = sh.getRange(r, 11, v.length, 1), rules = sh.getConditionalFormatRules();
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.85).setBackground('#F8CBAD').setRanges([fr]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThanOrEqualTo(1.15).setBackground('#C6E0B4').setRanges([fr]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0.85).setBackground('#F8CBAD').setRanges([ir]).build());
+    rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThanOrEqualTo(1.15).setBackground('#C6E0B4').setRanges([ir]).build());
+    sh.setConditionalFormatRules(rules);
+    r += v.length;
+    sh.getRange(r, 1).setValue('Umsatz je Klasse = Abo-Beiträge der Mitglieder verteilt auf ihre Besuche. Zeitfenster-Faktor: wie stark die Zeiten des Trainers sind (1.00 = Standort-Schnitt, rot unter 0.85 = schwache Zeiten, grün ab 1.15 = gute Zeiten), gemessen am Umsatz je Termin der anderen Klassen zur gleichen Zeit. Bereinigt = Umsatz je Termin geteilt durch den Faktor. Leistungsindex = Umsatz geteilt durch das, was die Zeitfenster im Schnitt bringen (1.00 = wie erwartet). Ein Monat hat pro Trainer oft wenige Termine, deshalb der 3-Monats-Index.').setFontColor('#666666').setFontStyle('italic').setWrap(false);
+    r += 2;
+  });
+  return r;
+}
 var KA_HIST = 'KlassenHistorie';
 var KA_HIST_D = 'KlassenHistorieDisziplin'; // Monat, Typ (Disziplin|Level), Name, Standort (Zurich|Winterthur|Mittel), Index, Auslastung, Besuche, Termine, Plaetze, Termine mit Vergleich
 // Spalten F (Tagtyp) und L (Plätze) werden ausgeblendet; Umsatz steht direkt nach der Zeit (Entscheid Ruben 03.09.2026)
@@ -468,6 +537,7 @@ function importKlassenanalyse(force) {
   var data = JSON.parse(f.getBlob().getDataAsString('UTF-8'));
   var ss = SpreadsheetApp.openById(SHEET_ID);
   updateKlassenHistorie(ss, data);
+  try { updateTrainerHistorie(ss, data); } catch (eTH) { Logger.log('TrainerHistorie: ' + eTH); }
   if (data.revenue && data.revenue.bands) updateZeitfensterHistorie(ss, data);
   buildKlassenanalyse(ss, data, f.getName());
   if (data.revenue) { updateRisikoHistorie(ss, data); buildRisiko(ss, data, f.getName()); }
@@ -757,6 +827,8 @@ function buildKlassenanalyse(ss, data, fileName) {
     hr = timeBlock(sh, hr, 'Ranking der Auslastung nach Uhrzeit ' + lc + ' Samstag ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (alle Klassen dieser Startzeit am Samstag, ohne Gratisklassen)', lrows, 'Sa', slotUsers, lc);
     hr = bandBlock(sh, hr, ss, lc, data);
   });
+  // ---- Trainer-Ranking je Standort und gesamt (Ruben 09.10.2026)
+  try { hr = trainerBlock(ss, sh, hr, data, fmt, win); } catch (eT) { Logger.log('Trainer-Ranking: ' + eT); }
   // ---- Slot-Tabelle
   var HR = hr + 1, D0 = HR + 1, last = D0 + rows.length - 1;
   sh.getRange(HR - 1, 1).setValue('Klassen nach Standort, Wochentag und Uhrzeit (liest sich wie der Stundenplan; Rangliste per Filter)').setFontWeight('bold').setFontSize(12);
@@ -918,6 +990,7 @@ function runKlassenanalyse(start, end) {
     PropertiesService.getScriptProperties().setProperty('KA_LAST', f.getId() + '@' + f.getLastUpdated().getTime());
   }
   updateKlassenHistorie(ss, data);
+  try { updateTrainerHistorie(ss, data); } catch (eTH) { Logger.log('TrainerHistorie: ' + eTH); }
   if (data.revenue && data.revenue.bands) updateZeitfensterHistorie(ss, data);
   buildKlassenanalyse(ss, data, name + ' (API)');
   if (data.revenue) { updateRisikoHistorie(ss, data); buildRisiko(ss, data, name + ' (API)'); }
