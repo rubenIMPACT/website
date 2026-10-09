@@ -23,6 +23,8 @@ var TEXT = {
         en: "Hi {name}, this is {sender} from IMPACT {studio}. Great that you want to get to know our training. We're getting a lot of requests right now, so I'll call you as soon as I can. When is the best time to reach you?" },
   A2: { de: 'Hi {name}, wenn du noch Interesse an einem Probetraining hast: Wann erreiche ich dich am besten kurz telefonisch?',
         en: "Hi {name}, Sorry, it took so long. If you're still keen on a trial session: when is the best time to reach you for a quick call?" },
+  A2M: { de: 'Hi {name}, hier ist {sender} von IMPACT {studio}. Ich hatte dir wegen deines Probetrainings eine Mail geschickt. Wann erreiche ich dich am besten für einen kurzen Call?', // Ruben 09.10.2026: message 2 when message 1 was the e-mail (it is then the first WhatsApp, so it introduces the sender)
+        en: "Hi {name}, this is {sender} from IMPACT {studio}. I sent you an email about your trial session. When's the best time to reach you for a quick call?" },
   A3: { de: 'Hi {name}, letzte Nachricht von mir zu deiner Anfrage. Wenn du später mal starten willst, sag mir kurz, wann ein Anruf passt. Alles Gute!',
         en: "Hi {name}, last message from me about your request. If you'd like to start later on, just tell me when a call suits you. All the best!" },
   B1: { de: 'Hi {name}, kurze Erinnerung: Heute um {time} ist dein {class} Probetraining bei uns an der {address}. Hier findest du uns: {maps_link} Bis später! 🙂', // Ruben 27.09.: address + Google Maps link ("go ohne Ort"); B, C, D texts = Google Doc, Ruben's go 10.09.2026
@@ -113,7 +115,8 @@ function waDryRunHourly() {
     var msg = 'A' + (slot + 1), due = lastAt ? lastAt.getTime() + RULE.NEXT_H * h : l.ts.getTime() + RULE.A1_H * h;
     if (msg === 'A1' ? !SW.first : !SW.followups) return; // Abdi's switches (tab "Automation switches", Ruben 04.10.)
     if (due <= now.getTime() && due > now.getTime() - 24 * h && takenOverBy(l.email)) { Logger.log('A skipped, ' + l.name + ': tag ' + takenOverBy(l.email) + ' (called by the team, Ruben 01.10.)'); return; }
-    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msg, l.loc, l.name, (calls[l.email.toLowerCase()] || {}).lang || l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
+    var msgT = msg === 'A2' && st.sentA.triedA1 === 'mail' ? 'A2M' : msg; // Ruben 09.10.: after the e-mail, message 2 introduces the sender (key stays A2)
+    if (due <= now.getTime() && due > now.getTime() - 24 * h) push('A', msgT, l.loc, l.name, (calls[l.email.toLowerCase()] || {}).lang || l.lang, msg + ': ' + (lastAt ? RULE.NEXT_H + ' h after message ' + slot + ' (' + fmtEuDT(lastAt) + ')' : RULE.A1_H + ' h after the request (' + fmtEuDT(l.ts) + ')') + ', no trial booked' + (stageOfLead(l) ? ', stage "' + stageOfLead(l) + '"' : ''), 'A:' + msg + ':' + id, {}, l.phone);
   });
   if (!pv) writeCallLists(leads, trials, trialNames, lastA, calls, now, stages, bookedLostEvents(leads, trials, stages, now)); // since 16.09. a hidden overview for Ruben only: the team works in exercise.com, no ticks
   if (!pv) migrateStageLog(trials); // one-off 15.09.: single "Stage log" -> "Stage log ZH" / "Stage log WT"
@@ -1192,6 +1195,7 @@ var TEMPLATES = [ // Meta message templates (Ruben 22.09., go): one per message 
   { id: 'A1', name: 'impact_a1', cat: 'MARKETING', src: 'TEXT', vars: ['name', 'sender', 'studio'] },
   { id: 'A2', name: 'impact_a2', cat: 'MARKETING', src: 'TEXT', vars: ['name'] },
   { id: 'A3', name: 'impact_a3', cat: 'MARKETING', src: 'TEXT', vars: ['name'] },
+  { id: 'A2M', name: 'impact_a2m', cat: 'MARKETING', src: 'TEXT', vars: ['name', 'sender', 'studio'], old: { name: 'impact_a2', vars: ['name'] } }, // 09.10.: until Meta approved it, the normal A2 goes out
   { id: 'B1', name: 'impact_b1a', cat: 'UTILITY', src: 'TEXT', vars: ['name', 'time', 'class', 'address', 'maps_link'], old: { name: 'impact_b1', vars: ['name', 'time', 'class'] } }, // 27.09.: new version with address + maps link; the sender uses the old one until Meta approved the new one
   { id: 'C1', name: 'impact_c1', cat: 'UTILITY', src: 'TEXT', vars: ['name'] },
   { id: 'D1', name: 'impact_d1', cat: 'UTILITY', src: 'TEXT', vars: ['name', 'date'] },
@@ -1321,6 +1325,7 @@ function waQuarterHour() { // the 15-minute trigger (installTagTrigger): trial t
   try { waTrialTags(); } catch (e) { Logger.log('waTrialTags failed: ' + e); }
   try { waContactStages(); } catch (e) { Logger.log('waContactStages failed: ' + e); }
   try { waPreAutoReplies(); } catch (e) { Logger.log('waPreAutoReplies failed: ' + e); }
+  try { waA1Replies(); } catch (e) { Logger.log('waA1Replies failed: ' + e); }
 }
 function storeFutureBookings(loc, rows, now) { // user ids with a reserved / registered class that starts after now (next 14 days), per studio in Script Properties, refreshed every 15 minutes by waTrialTags
   var set = {}; rows.forEach(function (r) { if (!/^(Reserved|Registered)$/i.test(String(r['Status'] || '')) || !r['User ID']) return; var m = /(\d{4})\/(\d{2})\/(\d{2}) (\d{1,2}):(\d{2}) (AM|PM)/.exec(String(r['Start Time'] || '')); if (!m) return; var hh = Number(m[4]) % 12 + (m[6] === 'PM' ? 12 : 0), d = new Date(m[1] + '-' + m[2] + '-' + m[3] + 'T' + ('0' + hh).slice(-2) + ':' + m[5] + ':00' + Utilities.formatDate(now, TZ, 'XXX')); if (d > now) set[String(r['User ID']).replace(/\D/g, '')] = 1; });
@@ -1469,7 +1474,7 @@ function waPreAutoReplies() { // every 15 minutes (waQuarterHour): replies to th
 }
 // First lead message as e-mail (Ruben 04.10.2026, Abdi's feedback: the WhatsApp A1 with its question caused calls and messages he could not handle yet).
 // Sent right after the request from Abdi's address (07-21 h), Zurich only; WhatsApp starts with message 2 on day 6. on = false until Ruben approved the text.
-var A1_MAIL = { on: true, en_ok: true }; // Ruben 04.10.: German text approved, on; 08.10.: English approved too
+var A1_MAIL = { on: true, en_ok: true, reply_copy: 'ruben+a1@impact-martialarts.com' }; // reply_copy (09.10.): replies go to Abdi AND to this plus address, which the automation reads (reply into the Message field, no stop) // Ruben 04.10.: German text approved, on; 08.10.: English approved too
 var A1_MAIL_TEXT = { // de approved by Ruben 04.10.2026 (no "Gratis", second "Probetraining" -> "Termin"); en approved 08.10.
   de: { subject: 'Deine Anfrage bei IMPACT Martial Arts', lines: ['Hi {name},', 'danke für deine Anfrage für ein Probetraining bei IMPACT Martial Arts. Momentan wollen sehr viele Leute bei uns starten. Wir melden uns so bald wie möglich telefonisch bei dir, um zusammen einen Termin zu planen.', 'Liebe Grüsse<br>Abdi, IMPACT Martial Arts Zürich'] },
   en: { subject: 'Your request at IMPACT Martial Arts', lines: ['Hi {name},', "thanks for your request for a trial session at IMPACT Martial Arts. A lot of people want to start with us right now. We'll call you as soon as possible to find a time together.", 'Best regards<br>Abdi, IMPACT Martial Arts Zurich'] }
@@ -1477,7 +1482,7 @@ var A1_MAIL_TEXT = { // de approved by Ruben 04.10.2026 (no "Gratis", second "Pr
 function sendA1Mail(l, lang, id, now) { // one first-message e-mail; logged in the WA Outbox as A1 with template "e-mail" (status "e-mail sent" does not count as a WhatsApp)
   lang = lang === 'en' ? 'en' : 'de'; var t = A1_MAIL_TEXT[lang], first = capName(String(l.first || l.name || '').trim().split(/\s+/)[0] || '');
   var lines = t.lines.map(function (x, j) { return j === 0 ? (first ? fill(x, { name: first }) : 'Hi,') : x; }), res = 'e-mail sent';
-  try { GmailApp.sendEmail(l.email, t.subject, lines.join('\n\n').replace(/<br>/g, '\n'), { htmlBody: lines.map(function (x) { return '<p>' + x + '</p>'; }).join(''), from: PREMAIL.from, name: PREMAIL.name }); } catch (e) { res = 'e-mail failed'; Logger.log('A1 e-mail failed for ' + l.name + ': ' + e); }
+  try { GmailApp.sendEmail(l.email, t.subject, lines.join('\n\n').replace(/<br>/g, '\n'), { htmlBody: lines.map(function (x) { return '<p>' + x + '</p>'; }).join(''), from: PREMAIL.from, name: PREMAIL.name, replyTo: PREMAIL.name + ' <' + PREMAIL.from + '>, IMPACT Martial Arts <' + A1_MAIL.reply_copy + '>' }); } catch (e) { res = 'e-mail failed'; Logger.log('A1 e-mail failed for ' + l.name + ': ' + e); }
   outboxSheet(SpreadsheetApp.openById(TEAM_ID)).appendRow([dayStart(now), fmtT(now), 'A', 'A1', l.loc, l.name, l.phone || '', lang, 'e-mail', l.email, '', res, 'first message as e-mail from ' + PREMAIL.from + ' (Ruben 04.10.)', 'A:A1:' + id]);
 }
 // Abdi's switches (Ruben 04.10.2026: Abdi must be able to pause the lead messages during Ruben's holiday): tab "Automation switches" in the sheet
@@ -1500,6 +1505,22 @@ function readSwitches(dry) {
       sh.getRange('A8').setValue('Last read by the automation: ' + fmtEuDT(new Date()) + (out.first && out.followups ? '' : '  (paused: ' + [out.first ? '' : 'first message', out.followups ? '' : 'follow-ups'].filter(Boolean).join(', ') + ')')).setFontColor('#666666'); }
   } catch (e) { Logger.log('switches unreadable, both on: ' + e); }
   return out;
+}
+function waA1Replies() { // every 15 minutes (waQuarterHour), Ruben 09.10.2026: replies to the first-message e-mail -> on top of the Message field in exercise.com; the WhatsApp chain goes on as usual
+  var props = PropertiesService.getScriptProperties(), done = {}; try { JSON.parse(props.getProperty('a1Replies') || '[]').forEach(function (x) { done[x] = 1; }); } catch (e) {}
+  var threads = GmailApp.search('deliveredto:' + A1_MAIL.reply_copy + ' newer_than:14d', 0, 50), handled = [];
+  threads.forEach(function (th) {
+    var msgs = th.getMessages(), to = '';
+    msgs.forEach(function (mm) { if (!to && /abdi@impact-martialarts\.com/i.test(mm.getFrom())) { var t0 = /[\w.+'-]+@[\w.-]+\.\w+/.exec(mm.getTo() || ''); if (t0) to = t0[0].toLowerCase(); } });
+    msgs.forEach(function (mm) {
+      var id = mm.getId(); if (done[id]) return;
+      var fr = (/[\w.+'-]+@[\w.-]+\.\w+/.exec(mm.getFrom() || '') || [''])[0].toLowerCase(); if (!fr || /@impact-martialarts\.com$|@strikingstudio\.com$/.test(fr)) return;
+      var key = to || fr, body = String(mm.getPlainBody() || '').split(/\n\s*(?:On .{0,120}wrote:|Am .{0,120}schrieb.{0,80}:|-{2,}\s*Original|Von:\s|From:\s|Gesendet von|Sent from)/)[0].split('\n').filter(function (l) { return !/^\s*>/.test(l); }).join('\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, 1500);
+      var when = Utilities.formatDate(mm.getDate(), TZ, 'dd.MM.yyyy HH:mm'), b = cfPost({ action: 'add_message', email: key, note: 'E-MAIL-ANTWORT ' + when + ' (auf die erste Mail):\n' + (body || '(leer)') });
+      if (b && (b.ok || b.error === 'client_not_found')) { done[id] = 1; handled.push(id); Logger.log('A1 reply ' + when + ' ' + key.replace(/^(..)[^@]*/, '$1***') + ': ' + (b.ok ? 'message saved' : 'not in exercise.com')); }
+    });
+  });
+  if (handled.length) props.setProperty('a1Replies', JSON.stringify(Object.keys(done).slice(-400)));
 }
 function installPreMailTrigger() { // once: daily at PREMAIL.hour (the weekday rule and the on switch sit in the function)
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'waPreAutoMail') ScriptApp.deleteTrigger(t); });
