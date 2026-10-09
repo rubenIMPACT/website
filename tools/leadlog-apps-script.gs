@@ -505,6 +505,14 @@ function trainerBlock(ss, sh, r, data, fmt, win) {
     rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThanOrEqualTo(1.15).setBackground('#C6E0B4').setRanges([ir]).build());
     sh.setConditionalFormatRules(rules);
     r += v.length;
+    // Nicht zuordenbar (Ruben 09.10.2026): Trainer-Summe + Rest = Abo-Umsatz total
+    var lcs = L === 'Gesamt' ? ['Zurich', 'Winterthur'] : [L], allR = data.rows || [], mem2 = (data.revenue || {}).members || {};
+    var sumT = lst.reduce(function (t, o) { return t + o.rev; }, 0), noStaff = 0, grat = 0, chf = 0, novis = 0, anyM = false;
+    allR.forEach(function (x) { if (lcs.indexOf(x.location) < 0) return; var rv = Number(x.revenue) || 0; if (x.segment === 'Gratis') grat += rv; else if (!x.staff) noStaff += rv; });
+    lcs.forEach(function (l) { var mm2 = mem2[l]; if (mm2 && mm2.chf != null) { anyM = true; chf += Number(mm2.chf) || 0; novis += Number(mm2.chf_novisit) || 0; } });
+    var rest = anyM ? chf - sumT - noStaff - grat - novis : '';
+    var nz = [['', 'Summe Trainer', Math.round(sumT)], ['', 'Nicht zuordenbar', anyM ? Math.round(chf - sumT) : ''], ['', '   davon Mitglieder ohne Besuch', anyM ? Math.round(novis) : ''], ['', '   davon Klassen ohne Trainer-Eintrag', Math.round(noStaff)], ['', '   davon Gratisklassen (Open Mat)', Math.round(grat)], ['', '   davon übrige, nicht zugeordnete Besuche', rest === '' ? '' : Math.round(rest)], ['', 'Abo-Umsatz total', anyM ? Math.round(chf) : '']];
+    nz.forEach(function (z) { sh.getRange(r, 2).setValue(z[1]); sh.getRange(r, 7).setValue(z[2]).setNumberFormat('#,##0'); if (!/^\s/.test(z[1])) sh.getRange(r, 2, 1, 6).setFontWeight('bold'); else sh.getRange(r, 2).setFontColor('#666666'); r++; });
     sh.getRange(r, 1).setValue('Umsatz je Klasse = Abo-Beiträge der Mitglieder verteilt auf ihre Besuche. Zeitfenster-Faktor: wie stark die Zeiten des Trainers sind (1.00 = Standort-Schnitt, rot unter 0.85 = schwache Zeiten, grün ab 1.15 = gute Zeiten), gemessen am Umsatz je Termin der anderen Klassen zur gleichen Zeit. Bereinigt = Umsatz je Termin geteilt durch den Faktor. Leistungsindex = Umsatz geteilt durch das, was die Zeitfenster im Schnitt bringen (1.00 = wie erwartet). Ein Monat hat pro Trainer oft wenige Termine, deshalb der 3-Monats-Index.').setFontColor('#666666').setFontStyle('italic').setWrap(false);
     r += 2;
   });
@@ -566,13 +574,14 @@ function updateKlassenHistorie(ss, data) {
 
 function updateKlassenHistorieDisziplin(ss, data, mkey) {
   var sh = getOrCreate(ss, KA_HIST_D);
-  var head = ['Monat', 'Typ', 'Name', 'Standort', 'Index', 'Auslastung', 'Besuche', 'Termine', 'Plätze', 'Termine mit Vergleich'];
+  var head = ['Monat', 'Typ', 'Name', 'Standort', 'Index', 'Auslastung', 'Besuche', 'Termine', 'Plätze', 'Termine mit Vergleich', 'Umsatz']; // Umsatz seit 09.10.2026 (rollierende Hitlist mit Umsatz)
   if (sh.getLastRow() === 0) { sh.appendRow(head); sh.getRange(1, 1, 1, head.length).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet(); }
+  else if (String(sh.getRange(1, head.length).getValue()) !== 'Umsatz') sh.getRange(1, head.length).setValue('Umsatz').setFontWeight('bold');
   var keep = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues().filter(function (r) { return String(r[0]) !== mkey; }) : [];
   [['Disziplin', data.hitlist || []]].forEach(function (pair) { // Level-Liste seit 03.09.2026 nicht mehr (Entscheid Ruben)
     pair[1].forEach(function (h) {
-      keep.push([mkey, pair[0], h.name, 'Mittel', h.index == null ? '' : h.index, h.util, h.attended, h.events, h.capacity, h.with_neighbor]);
-      ['Zurich', 'Winterthur'].forEach(function (loc) { var g = h[loc]; if (g) keep.push([mkey, pair[0], h.name, loc, g.index, g.util, g.attended, g.events, '', g.with_neighbor]); });
+      keep.push([mkey, pair[0], h.name, 'Mittel', h.index == null ? '' : h.index, h.util, h.attended, h.events, h.capacity, h.with_neighbor, h.revenue == null ? '' : h.revenue]);
+      ['Zurich', 'Winterthur'].forEach(function (loc) { var g = h[loc]; if (g) keep.push([mkey, pair[0], h.name, loc, g.index, g.util, g.attended, g.events, '', g.with_neighbor, g.revenue == null ? '' : g.revenue]); });
     });
   });
   keep.sort(function (a, b) { return (a[0] + a[1] + a[2]) < (b[0] + b[1] + b[2]) ? -1 : 1; });
@@ -582,6 +591,26 @@ function updateKlassenHistorieDisziplin(ss, data, mkey) {
 }
 
 // Rollierende Hitlist: Mittel der Monats-Indizes (Zeilen Standort=Mittel) ueber die letzten n importierten Monate
+// Rollierende Hitlist im Format der Monats-Hitlist (Ruben 09.10.2026): je Disziplin Monatsdurchschnitt von Umsatz, Besuchen, Terminen;
+// Index = Durchschnitt der Monatsindizes (Mittel bzw. je Standort), Auslastung aus den Summen; Rang nach Umsatz wie die Monats-Hitlist.
+function rollingHitlistFull(ss, typ, n) {
+  var sh = ss.getSheetByName(KA_HIST_D); if (!sh || sh.getLastRow() < 2) return { list: [], months: [] };
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, 11).getValues(), months = {};
+  v.forEach(function (r) { if (r[1] === typ && r[3] === 'Mittel') months[String(r[0])] = 1; });
+  var keep = Object.keys(months).sort().slice(-n), agg = {}, nm = keep.length;
+  v.forEach(function (r) {
+    if (r[1] !== typ || keep.indexOf(String(r[0])) < 0) return;
+    var a = agg[r[2]] = agg[r[2]] || { name: r[2], ix: [], ixZ: [], ixW: [], att: 0, ev: 0, cap: 0, nb: 0, rev: 0, hasRev: false };
+    if (r[3] === 'Mittel') { if (r[4] !== '') a.ix.push(Number(r[4])); a.att += Number(r[6] || 0); a.ev += Number(r[7] || 0); a.cap += Number(r[8] || 0); a.nb += Number(r[9] || 0); if (r[10] !== '' && r[10] != null) { a.rev += Number(r[10]) || 0; a.hasRev = true; } }
+    else if (r[4] !== '' && r[4] != null) (r[3] === 'Zurich' ? a.ixZ : a.ixW).push(Number(r[4]));
+  });
+  var avg = function (x) { return x.length ? x.reduce(function (t, y) { return t + y; }, 0) / x.length : null; };
+  var list = Object.keys(agg).map(function (k) { var a = agg[k]; return { name: a.name, revenue: a.hasRev ? a.rev / nm : null, index: avg(a.ix), util: a.cap ? a.att / a.cap : 0, attended: Math.round(a.att / nm), events: Math.round(a.ev / nm * 10) / 10, with_neighbor: Math.round(a.nb / nm * 10) / 10, uniq: '', Zurich: a.ixZ.length ? { index: avg(a.ixZ) } : null, Winterthur: a.ixW.length ? { index: avg(a.ixW) } : null }; });
+  var tot = list.reduce(function (t, x) { return t + (x.revenue || 0); }, 0);
+  list.forEach(function (x) { x.revenue_share = x.revenue != null && tot ? x.revenue / tot : null; });
+  list.sort(function (a, b) { return ((b.revenue || 0) - (a.revenue || 0)) || (b.attended - a.attended); });
+  return { list: list, months: keep };
+}
 function rollingHitlist(ss, typ, n) {
   var sh = ss.getSheetByName(KA_HIST_D); if (!sh || sh.getLastRow() < 2) return { rows: [], months: [] };
   var v = sh.getRange(2, 1, sh.getLastRow() - 1, 10).getValues(), months = {};
@@ -607,7 +636,7 @@ function hitlistBlock(sh, r, title, list, single) { // single = Standort-Hitlist
     var z = h.Zurich, w = h.Winterthur;
     var ix = function (o) { return !o ? '' : (o.index == null ? 'n/a' : o.index); };
     var rpe = (h.revenue != null && h.events) ? h.revenue / h.events : '';
-    return [i + 1, h.name, h.revenue == null ? '' : h.revenue, h.revenue_share == null ? '' : h.revenue_share, rpe, '', single ? '' : ix(z), single ? '' : ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, '', h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq || 0];
+    return [i + 1, h.name, h.revenue == null ? '' : h.revenue, h.revenue_share == null ? '' : h.revenue_share, rpe, '', single ? '' : ix(z), single ? '' : ix(w), h.index == null ? 'n/a' : h.index, h.util, h.attended, '', h.events, h.with_neighbor, h.events ? h.attended / h.events : '', h.uniq === '' ? '' : (h.uniq || 0)];
   });
   if (vals.length) {
     sh.getRange(r, 1, vals.length, hh.length).setValues(vals);
@@ -795,22 +824,19 @@ function buildKlassenanalyse(ss, data, fileName) {
   // ---- Hitlist Kampfsportarten (uhrzeitbereinigt; Entscheid Ruben 03.09.2026: Levels zusammen, BJJ Gi/No-Gi getrennt,
   //      Competition und Kids drin, Open Mat und Self Defense for Women raus; erst je Standort, dann Mittel)
   var hr = Math.max(vrow + keys.length + 2, 20);
-  hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (Slot-Index: Ø pro Klasse geteilt durch Ø der Uhrzeit, gewichtet mit Terminen; 1.00 = wie der Slot im Schnitt)', data.hitlist || []);
-  // Dieselbe Hitlist je Standort (Ruben 29.09.2026): Umsatz, Anteil und Index nur aus den Klassen des Standorts
+  var MDE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'], mName = function (k) { return MDE[Number(String(k).slice(5, 7)) - 1] + ' ' + String(k).slice(0, 4); };
+  var winM = mName(String(win.start || '').slice(0, 7));
+  hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten ' + winM + ', beide Standorte (' + fmt(win.start) + ' bis ' + fmt(win.end) + '; Slot-Index: Ø pro Klasse geteilt durch Ø der Uhrzeit, gewichtet mit Terminen; 1.00 = wie der Slot im Schnitt)', data.hitlist || []);
+  // Rollierend direkt darunter, gleicher Aufbau (Ruben 09.10.2026)
+  var rollF = rollingHitlistFull(ss, 'Disziplin', 3);
+  if (rollF.months.length > 1 && rollF.list.length) hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten, Durchschnitt der letzten ' + rollF.months.length + ' Monate (' + rollF.months.map(mName).join(', ') + '), beide Standorte (Werte pro Monat gemittelt; Index = Durchschnitt der Monatsindizes)', rollF.list);
+  // Dieselbe Monats-Hitlist je Standort (Ruben 29.09.2026): Umsatz, Anteil und Index nur aus den Klassen des Standorts
   ['Zurich', 'Winterthur'].forEach(function (lc) {
     var tot = ((data.summary || {})[lc] || {}).revenue || 0, lcDE = lc === 'Zurich' ? 'Zürich' : 'Winterthur';
     var lst = (data.hitlist || []).filter(function (h) { return h[lc]; }).map(function (h) { var g = h[lc], rv = g.revenue == null ? null : g.revenue; return { name: h.name, revenue: rv, revenue_share: rv != null && tot ? rv / tot : null, index: g.index, util: g.util, attended: g.attended, events: g.events, with_neighbor: g.with_neighbor, uniq: g.uniq || 0 }; })
       .sort(function (a, b) { return ((b.revenue || 0) - (a.revenue || 0)) || (b.attended - a.attended); });
-    if (lst.length) hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten ' + lcDE + ' ' + fmt(win.start) + ' bis ' + fmt(win.end) + ' (Slot-Index wie oben, nur ' + lcDE + ')', lst, true);
+    if (lst.length) hr = hitlistBlock(sh, hr, 'Hitlist Kampfsportarten ' + winM + ', nur ' + lcDE + ' (' + fmt(win.start) + ' bis ' + fmt(win.end) + '; Slot-Index wie oben, nur ' + lcDE + ')', lst, true);
   });
-  var roll = rollingHitlist(ss, 'Disziplin', 3);
-  if (roll.months.length > 1) {
-    sh.getRange(hr, 1).setValue('Hitlist rollierend, letzte ' + roll.months.length + ' Monate (' + roll.months.join(', ') + ')').setFontWeight('bold').setFontSize(12); hr++;
-    sh.getRange(hr, 1, 1, 8).setValues([['Rang', 'Disziplin', 'Index Mittel', 'Monate', 'Auslastung', '', 'Besuche', 'Termine']]).setFontWeight('bold').setBackground('#f3f3f3'); hr++;
-    var rv = roll.rows.map(function (x, i) { return [i + 1, x[0], x[1], x[2], x[3], '', x[4], x[5]]; }); // Spalte F ist ausgeblendet
-    sh.getRange(hr, 1, rv.length, 8).setValues(rv); sh.getRange(hr, 3, rv.length, 1).setNumberFormat('0.00'); sh.getRange(hr, 5, rv.length, 1).setNumberFormat('0%');
-    hr += rv.length + 1;
-  }
   // Klassen-Hitlist (Entscheid Ruben 03.09.2026, ersetzt die Level-Liste): Umsatz je Termin ist ueber alle Klassen vergleichbar
   // (60 Minuten, ein Trainer). Nur Klassen mit mindestens 4 Terminen, Open Mat raus.
   var ranked = rows.filter(function (x) { return x.segment !== 'Gratis' && x.events >= 4 && x.revenue_per_event != null && x.revenue_per_event !== ''; })
