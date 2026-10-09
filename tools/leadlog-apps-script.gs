@@ -1909,7 +1909,7 @@ function buildWerbekostenCore(ss, ctx) {
     var agencyOf = function (kk) { if (kk > curK || kk < '2026-01') return ''; var a = agencyM(kk); return Math.round(wrLocs.reduce(function (t, l) { return t + a[l]; }, 0)); };
     var totalM = function (kk) { var m = mediaM(kk), a = agencyOf(kk); return m === '' && a === '' ? '' : num(m) + num(a); };
     var ltvM = function (kk) { return vOf(kk, 'ltv_forecast'); };
-    var cvNetM = function (kk) { var ag = vOf(kk, 'abo_gross'), cv = vOf(kk, 'cv_active'); if (ag === '' || !num(cv)) return ''; var fp = 0, ff = 0; wrLocs.forEach(function (l) { var co = ctx.cashOf[l] && ctx.cashOf[l][kk]; if (co) { fp += co.paid; ff += co.fee; } }); return num(ag) / num(cv) * (1 / VAT - (fp ? ff / fp : 0)); }; // Payback nach Stripe-Gebuehren (Ruben 04.10.)
+    var cvNetM = function (kk) { var ag = vOf(kk, 'abo_spread') !== '' ? vOf(kk, 'abo_spread') : vOf(kk, 'abo_gross'), cv = vOf(kk, 'cv_active'); if (ag === '' || !num(cv)) return ''; var fp = 0, ff = 0; wrLocs.forEach(function (l) { var co = ctx.cashOf[l] && ctx.cashOf[l][kk]; if (co) { fp += co.paid; ff += co.fee; } }); return num(ag) / num(cv) * (1 / VAT - (fp ? ff / fp : 0)); }; // Payback nach Stripe-Gebuehren (Ruben 04.10.)
     var ratio = function (a, b) { return a === '' || b === '' || !num(b) ? '' : num(a) / num(b); };
     var cacAllM = function (kk) { var m = mediaM(kk), sg = salesM(kk); return m === '' || sg === '' || !num(sg) ? '' : (num(m) + num(agencyOf(kk))) / num(sg); };
     var paidM = function (kk) { var t = 0, any = false; WK_PLATFORMS.forEach(function (pn) { var v = skM(kk, pn); if (v !== '') { any = true; t += num(v); } }); return any ? t : ''; };
@@ -2120,7 +2120,7 @@ function runWerbekostenDaily() {
 // Report-Caches) in versteckten Tabs, Nachladen ab LTV_START in Etappen (Kette ueber Einmal-Trigger, Script-Lock), monatlich am 1.
 // um 05:00 der Vormonat; Kunden-Flags (action 'clients_flags') werden bei jedem Lauf komplett neu geholt.
 var LTV_SHEET = 'LTV', LTV_DATA = 'ZahlungenMonat', LTV_START = '2025-06', LTV_HEAD = ['Monat', 'UID', 'E-Mail', 'Standort', 'Typ', 'Netto', 'Brutto', 'Anzahl'];
-var LTV_INIT = '2026-09-06 Cash'; // Marke aendern = fehlende Monate werden beim naechsten Stundenlauf nachgeladen
+var LTV_INIT = '2026-10-09 PT/Vorauszahlung verteilt'; // Marke aendern = fehlende Monate werden beim naechsten Stundenlauf nachgeladen
 var LTV_TABS = {
   charges: { name: LTV_DATA, head: LTV_HEAD },
   cancelled: { name: 'KuendigungenMonat', head: ['Monat', 'UID', 'E-Mail', 'Standort', 'Ende', 'Converted', 'Paket', 'Grund'] },
@@ -2147,7 +2147,7 @@ function ltvRefreshSums(ss, mk) {
   if (n >= 2) { var a = sh.getRange(2, 1, n - 1, 1).getValues(); for (var i = a.length - 1; i >= 0; i--) if (mkOf(a[i][0]) === mk) sh.deleteRow(i + 2); }
   return ltvFetch(ss, mk, 'sums');
 }
-function ltvRead(ss) { return ltvRows(ss, 'charges').map(function (r) { return { mk: r[0], uid: String(r[1]), email: String(r[2] || ''), loc: String(r[3] || ''), type: String(r[4] || ''), net: Number(r[5]) || 0, gross: Number(r[6]) || 0, n: Number(r[7]) || 0 }; }); }
+function ltvRead(ss) { return ltvRows(ss, 'charges').map(function (r) { var ty = String(r[4] || ''), mo = 1, mm = /^(PT|Vorauszahlung):(\d+)$/.exec(ty); if (mm) { ty = mm[1]; mo = Math.max(1, Number(mm[2]) || 1); } return { mk: r[0], uid: String(r[1]), email: String(r[2] || ''), loc: String(r[3] || ''), type: ty, months: mo, net: Number(r[5]) || 0, gross: Number(r[6]) || 0, n: Number(r[7]) || 0 }; }); } // Typ PT:N / Vorauszahlung:N seit 09.10.2026
 function ltvQueue(ss) {
   var now = new Date(), last = monthKeyStr(new Date(now.getFullYear(), now.getMonth() - 1, 1)), out = [];
   Object.keys(LTV_TABS).forEach(function (kind) {
@@ -2236,10 +2236,17 @@ function buildLTV(ss) {
   // Kunde = mindestens eine Abo-Belastung. m = Brutto gesamt je Monat (Kohorten), abo = Abo-Brutto, one = Einmalkaeufe brutto, pay = Monate mit Abo-Belastung
   var cust = {};
   rows.forEach(function (x) {
-    var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, email: x.email, loc: x.loc, gross: 0, m: {}, abo: {}, one: {}, pay: {}, first: '', lastAbo: '', endCand: '', debt: '' };
+    var c = cust[x.uid] = cust[x.uid] || { uid: x.uid, email: x.email, loc: x.loc, gross: 0, m: {}, abo: {}, one: {}, pt: {}, aboC: {}, oneC: {}, pay: {}, first: '', lastAbo: '', endCand: '', debt: '' };
     c.gross += x.gross; c.m[x.mk] = (c.m[x.mk] || 0) + x.gross;
-    if (x.type === 'Abo') { c.loc = x.loc; if (!c.first || x.mk < c.first) c.first = x.mk; if (x.mk > c.lastAbo) c.lastAbo = x.mk; c.abo[x.mk] = (c.abo[x.mk] || 0) + x.gross; c.pay[x.mk] = 1; }
-    else c.one[x.mk] = (c.one[x.mk] || 0) + x.gross;
+    // abo/one/pt = fuer LTV und Abo-Umsatz je Kunde (Vorauszahlungen und PT ueber ihre Laufzeit verteilt, Ruben 09.10.2026); aboC/oneC = Cash fuer die Zahlungszeilen
+    if (x.type === 'Abo' || x.type === 'Vorauszahlung') {
+      c.loc = x.loc; if (!c.first || x.mk < c.first) c.first = x.mk; c.aboC[x.mk] = (c.aboC[x.mk] || 0) + x.gross;
+      var nm = x.type === 'Vorauszahlung' ? x.months : 1;
+      for (var vi = 0; vi < nm; vi++) { var vm = addMonths(x.mk, vi); if (vm > lastFull && vi > 0) break; c.abo[vm] = (c.abo[vm] || 0) + x.gross / nm; c.pay[vm] = 1; if (vm > c.lastAbo) c.lastAbo = vm; }
+    } else if (x.type === 'PT') {
+      c.oneC[x.mk] = (c.oneC[x.mk] || 0) + x.gross;
+      for (var pi = 0; pi < x.months; pi++) { var pm = addMonths(x.mk, pi); c.pt[pm] = (c.pt[pm] || 0) + x.gross / x.months; }
+    } else { c.one[x.mk] = (c.one[x.mk] || 0) + x.gross; c.oneC[x.mk] = (c.oneC[x.mk] || 0) + x.gross; }
   });
   var byEmail = {}; Object.keys(cust).forEach(function (u) { if (cust[u].email) byEmail[cust[u].email] = cust[u]; });
   // Ende = beendetes Abo (Cancelled Subscriptions ohne Converted = Paketwechsel), hinfaellig, wenn danach wieder Abo-Zahlungen kamen; Debt collection ist seit 09.09.2026 kein Ende mehr (Variante A, wie im Monatsabschluss)
@@ -2252,12 +2259,12 @@ function buildLTV(ss) {
     // Gebuendelte erste Belastung (v. a. Zuerich: Abo + Starterpaket in EINER Charge, Purchase Type "Subscription/Package, ProductVariant"):
     // der Mehrbetrag der ersten Abo-Zahlung gegenueber der ueblichen Monatszahlung des Kunden zaehlt als Starterpaket, nicht als Abo
     var later = Object.keys(c.abo).filter(function (mk) { return mk > c.first && c.abo[mk] > 0; }).map(function (mk) { return c.abo[mk]; }).sort(function (a, b) { return a - b; });
-    if (later.length) { var reg = later[Math.floor(later.length / 2)], ex = (c.abo[c.first] || 0) - reg; if ((c.abo[c.first] || 0) > 1.5 * reg && ex > 20) { c.abo[c.first] -= ex; c.one[c.first] = (c.one[c.first] || 0) + ex; c.bundled = ex; } }
+    if (later.length) { var reg = later[Math.floor(later.length / 2)], ex = (c.abo[c.first] || 0) - reg; if ((c.abo[c.first] || 0) > 1.5 * reg && ex > 20) { c.abo[c.first] -= ex; c.one[c.first] = (c.one[c.first] || 0) + ex; c.aboC[c.first] = (c.aboC[c.first] || 0) - ex; c.oneC[c.first] = (c.oneC[c.first] || 0) + ex; c.bundled = ex; } }
   });
   // Starterpaket = Einmalkaeufe im Startfenster (Monat vor der ersten Abo-Zahlung bis Monat danach); uebrige Einmalkaeufe = Shop, Events usw.
   var inStart = function (c, mk) { return mk >= prevMonth(c.first) && mk <= nextMonth(c.first); };
   var starterOf = function (c) { var s = 0; Object.keys(c.one).forEach(function (mk) { if (inStart(c, mk)) s += c.one[mk]; }); return s; };
-  var otherOf = function (c, mk) { return inStart(c, mk) ? 0 : (c.one[mk] || 0); };
+  var otherOf = function (c, mk) { return (inStart(c, mk) ? 0 : (c.one[mk] || 0)) + (c.pt[mk] || 0); }; // PT verteilt ueber die Paketlaufzeit, auch im Startfenster
   sh.getRange('A2').setValue('Kundenwert und LTV aus den Zahlungen in exercise.com (Charges-Report), Zahlungen bis ' + lastFull + ', Kündigungen bis ' + (kLast || '–') + '. Übliche Abo-Belastung brutto (Median) ' + Math.round(med) + ' CHF. ' + (hasFlags ? '' : '⚠️ Kunden-Flags fehlen noch, Migrierte nicht ausgeschlossen. ') + 'Kurzdefinitionen als Notiz an den Zeilen, alles Weitere im Tab Methodik.').setFontColor('#666666').setWrap(true);
   sh.getRange('A2:J2').merge(); sh.setRowHeight(2, 44);
   var r = 4, N = [3, 6, 9, 12], store = [];
@@ -2319,8 +2326,8 @@ function buildLTV(ss) {
     var allC = Object.keys(cust).map(function (u) { return cust[u]; }).filter(function (c) { return loc === 'Gesamt' || c.loc === loc; });
     months.forEach(function (mk) {
       var act = L.filter(function (c) { return c.first <= mk && (!c.end || c.end >= mk); }), nP = act.filter(function (c) { return c.pay[mk]; }).length, sAbo = 0, sOne = 0;
-      L.forEach(function (c) { sAbo += c.abo[mk] || 0; }); allC.forEach(function (c) { sOne += c.one[mk] || 0; });
-      store.push({ mk: mk, loc: loc, metrics: { cv_active: act.length, cv_nopay: act.length - nP, abo_gross: Math.round(sAbo), one_gross: Math.round(sOne) } });
+      var sSpr = 0; L.forEach(function (c) { sAbo += c.aboC[mk] || 0; sSpr += c.abo[mk] || 0; }); allC.forEach(function (c) { sOne += c.oneC[mk] || 0; });
+      store.push({ mk: mk, loc: loc, metrics: { cv_active: act.length, cv_nopay: act.length - nP, abo_gross: Math.round(sAbo), one_gross: Math.round(sOne), abo_spread: Math.round(sSpr) } }); // abo_gross/one_gross = Cash (PT bei Einmal), abo_spread = Vorauszahlungen verteilt
     });
     store.push({ mk: cur, loc: loc, metrics: { ltv_forecast: ltv, ltv_arpu: Math.round(arpu), ltv_arpu_gross: Math.round(arpuG), ltv_starter: Math.round(starter), ltv_other: Math.round(other), ltv_retention: 1 - rf.loss, ltv_loss_all: ra.loss, ltv_lifetime: Math.round(life * 10) / 10, ltv_sample: fresh.length } });
   });
@@ -2558,7 +2565,7 @@ var MA_NOTE = 'Kennzahlen je Standort aus exercise.com, Log und Team-Sheet, Zahl
 function colA1(n) { var t = ''; while (n > 0) { var m = (n - 1) % 26; t = String.fromCharCode(65 + m) + t; n = Math.floor((n - 1) / 26); } return t; }
 var MA_SNAP_FROM = '2026-09', MA_TEAM_FROM = '2026-09', VAT = 1.081; // Report-Stichtagszeilen erst ab Sep 2026 echt gemessen; Team-Sheet-Monatswerte (Gespraeche) erst ab Sep 2026 vollstaendig
 var MA_SNAP = ['subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs'];
-var MA_ADD = ['leads_all', 'leads_web', 'calls', 'losses', 'losses_pt', 'sales_pt', 'debt_collection', 'trial_booked_transitions', 'first_visits', 'first_visits_excluded', 'trial_noshow', 'trial_attended', 'signed_at_trial', 'sales_signed', 'sales_open', 'new_customers', 'switches', 'cancellations', 'net_growth', 'lost_after_trial', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'rev_membership_gross', 'rev_membership_net', 'starter_count', 'rev_starter_gross', 'pt_count', 'rev_pt_gross', 'rev_gear_gross', 'rev_total_gross', 'rev_total_net', 'conv_cohort_n', 'cv_active', 'cv_nopay', 'abo_gross', 'one_gross'];
+var MA_ADD = ['abo_spread', 'leads_all', 'leads_web', 'calls', 'losses', 'losses_pt', 'sales_pt', 'debt_collection', 'trial_booked_transitions', 'first_visits', 'first_visits_excluded', 'trial_noshow', 'trial_attended', 'signed_at_trial', 'sales_signed', 'sales_open', 'new_customers', 'switches', 'cancellations', 'net_growth', 'lost_after_trial', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'rev_membership_gross', 'rev_membership_net', 'starter_count', 'rev_starter_gross', 'pt_count', 'rev_pt_gross', 'rev_gear_gross', 'rev_total_gross', 'rev_total_net', 'conv_cohort_n', 'cv_active', 'cv_nopay', 'abo_gross', 'one_gross'];
 var MA_STOCK = ['cv_active', 'cv_nopay', 'subs_total', 'active_subs', 'paused_subs', 'pending_cancel', 'scheduled_subs', 'ltv'];
 function buildMonatsabschluss(ss) { // nie zwei Baue gleichzeitig (Stundenlauf, Tageslauf, Nachlauf): sonst doppelte Diagramme und leeres Blatt (Lehre 07.09.)
   var lock = LockService.getUserLock(); if (!lock.tryLock(0)) { Logger.log('Monatsabschluss: Bau laeuft bereits, uebersprungen'); return; }
@@ -2741,7 +2748,7 @@ function buildMonatsabschlussCore(ss) {
     put('cash_gross_fee', 'Umsatz brutto nach Gebühren', function (c, ci) { var a = cellOf('cash_paid', ci), f = cellOf('cash_fee', ci); return '=IF(' + a + '="","",' + a + '-N(' + f + '))'; }, '#,##0', { bold: true, weekly: true });
     put('cash_vat', 'MwSt darin (8.1 %)', function (c, ci) { var a = cellOf('cash_paid', ci); return '=IF(' + a + '="","",' + a + '-' + a + '/' + VAT + ')'; }, '#,##0', { weekly: true });
     put('cash_net', 'Umsatz netto nach Gebühren', function (c, ci) { var a = cellOf('cash_paid', ci), f = cellOf('cash_fee', ci); return '=IF(' + a + '="","",' + a + '/' + VAT + '-N(' + f + '))'; }, '#,##0', { bold: true, weekly: true }); // Umsatz netto vor Gebuehren entfaellt (Ruben 04.10.)
-    put('cv_abo_gross', 'Abo-Umsatz brutto je Kunde', ratio('abo_gross', 'cv_active'), '#,##0', { bold: true, weekly: true });
+    put('cv_abo_gross', 'Abo-Umsatz brutto je Kunde', function (c, ci) { if (c.m) { var sp = vOf(c.k, 'abo_spread'), cvv = V('cv_active')(c); if (sp !== '' && num(cvv)) return num(sp) / num(cvv); } return ratio('abo_gross', 'cv_active')(c, ci); }, '#,##0', { bold: true, weekly: true }); // Monat: Vorauszahlungen verteilt (Ruben 09.10.)
     put('cv_abo_net', 'Abo-Umsatz netto je Kunde', divVat('cv_abo_gross'), '#,##0', { weekly: true });
     put('cash_total', 'Bankeingang gesamt laut Konto', V('cash_total'), '#,##0', B);
     put('bank:stripe', '   davon Stripe', V('bank:stripe'), '#,##0', D);

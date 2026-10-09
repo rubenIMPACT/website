@@ -766,11 +766,22 @@ async function ltv(H, p) {
     return { ready: true, month: mk, kind, n: all.length, rows: all.filter((x) => keep.test(String(x["Transitioned To"] || ""))).map((x) => [String(x["Email"] || "").toLowerCase().trim(), chDate(x["Date"]), String(x["Transitioned From"] || "").slice(0, 40), String(x["Transitioned To"] || "").slice(0, 40)]).filter((a) => a[0]) };
   }
   const by = {};
+  // Klassierung je Zahlung (Ruben 09.10.2026): PT-Pakete (ausser 1x) mit Laufzeit aus dem Paketnamen ("valid for N Months") -> "PT:N";
+  // Vorauszahlungen (Abo-Zahlung >= 3x uebliche Monatszahlung desselben Pakets in diesem Monat) -> "Vorauszahlung:N" mit N = Betrag / Monatspreis.
+  // Das Apps Script verteilt PT und Vorauszahlungen im LTV ueber N Monate; die Zahlungszeilen bleiben Cash.
+  const isPTn = (n) => /personal training/i.test(n) && !/^\s*1\s*x\b/i.test(n);
+  const ptMonths = (n) => { const m = /valid for\s*(\d+)\s*month/i.exec(n); if (m) return Math.max(1, +m[1]); const c = /^\s*(\d+)\s*x/i.exec(n); const k = c ? +c[1] : 0; return k >= 32 ? 12 : k >= 16 ? 8 : k >= 8 ? 4 : 6; };
+  const amts = {}; all.forEach((x) => { const n = String(x["Item Name"] || ""); if (!/succeeded/i.test(String(x["Status"] || "")) || !/subscription/i.test(String(x["Purchase Type"] || "")) || isPTn(n)) return; (amts[n] = amts[n] || []).push(num(x["Amount"])); });
+  const monthly = {}; Object.keys(amts).forEach((n) => { const a = amts[n].filter((v) => v > 0).sort((p, q2) => p - q2); monthly[n] = a.length ? a[Math.floor(a.length / 2)] : 0; });
   all.forEach((x) => {
     if (!/succeeded/i.test(String(x["Status"] || ""))) return;
     const uid = String(x["User ID"] || ""), amt = num(x["Amount"]), ref = num(x["Amount Refund"]), tax = num(x["Tax"]);
     if (!uid || !amt) return;
-    const gross = amt - ref, net = gross - tax * (gross / amt), type = /subscription/i.test(String(x["Purchase Type"] || "")) ? "Abo" : "Einmalig";
+    const iname = String(x["Item Name"] || ""), sub = /subscription/i.test(String(x["Purchase Type"] || ""));
+    const gross = amt - ref, net = gross - tax * (gross / amt);
+    let type = sub ? "Abo" : "Einmalig";
+    if (isPTn(iname)) type = "PT:" + ptMonths(iname);
+    else if (sub && monthly[iname] > 0 && gross >= 3 * monthly[iname]) type = "Vorauszahlung:" + Math.min(36, Math.round(gross / monthly[iname]));
     const k = uid + "|" + type, o = by[k] = by[k] || { uid, email: String(x["Email"] || "").toLowerCase().trim(), loc: locOf(x["Location"] || x["Destination"]), type, net: 0, gross: 0, n: 0 };
     o.net += net; o.gross += gross; o.n += 1;
   });
