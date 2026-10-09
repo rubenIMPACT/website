@@ -667,9 +667,11 @@ function leadState(l, lastA, calls, now) { // slot = contacts so far (automatic 
   var lastAt = times.length ? new Date(Math.max.apply(null, times.map(function (d) { return d.getTime(); }))) : null;
   var lastCall = cs.called.length ? new Date(Math.max.apply(null, cs.called.map(function (d) { return d.getTime(); }))) : null;
   // Ruben 04.10.: when the first WhatsApp is deliberately not sent (first message by e-mail, or Abdi's switch off), it counts as contact 1 once its window is over, so message 2 still comes on day 6 and the stages / Lost work as before. Not for a failed A1 or one the coach replaced.
-  var virt = l.loc === 'Zurich' && !sentA.A1 && !cs.called.length && (!sentA.triedA1 || sentA.triedA1 === 'mail') && (now || new Date()).getTime() > l.ts.getTime() + (RULE.A1_H + 24) * 3600000;
-  if (virt && !lastAt) lastAt = new Date(l.ts.getTime() + RULE.A1_H * 3600000);
-  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length + (virt ? 1 : 0)), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length, lastCall: lastCall, replied: cs.replied, virtA1: virt };
+  // Ruben 09.10.: a first message that went out as e-mail always counts as contact 1 (Abdi's own WhatsApp afterwards = contact 2, then A3); its clock is the usual 48 h mark so message 2 still comes on day 6
+  var mailA1 = !sentA.A1 && sentA.triedA1 === 'mail';
+  var virt = !mailA1 && l.loc === 'Zurich' && !sentA.A1 && !cs.called.length && (!sentA.triedA1 || sentA.triedA1 === 'mailfail') && (now || new Date()).getTime() > l.ts.getTime() + (RULE.A1_H + 24) * 3600000;
+  if ((virt || mailA1) && !lastAt) lastAt = new Date(l.ts.getTime() + RULE.A1_H * 3600000);
+  return { slot: Math.min(RULE.A_MAX, done.length + cs.called.length + (virt || mailA1 ? 1 : 0)), lastAt: lastAt, done: done, sentA: sentA, calls: cs.called.length, lastCall: lastCall, replied: cs.replied, virtA1: virt || mailA1 };
 }
 function readPlans() { // lead e-mail -> latest training plan link (Leads Log, tab "Trainingsplan": Link col 15, E-Mail col 19)
   var m = {}, sh = SpreadsheetApp.openById(MAIN_ID).getSheetByName('Trainingsplan'); if (!sh || sh.getLastRow() < 2) return m;
@@ -745,7 +747,7 @@ function takenOverBy(email) { // '' = no owner tag; otherwise the tag (or 'check
 }
 function lastFlowA(sh) { // lead id -> { A1: Date sent, A2: Date, A3: Date }: while Flow A is live from the sales outbox (only messages really sent), before that from the Dry run rows
   var m = {}, n;
-  if (liveA()) { var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); n = ob.getLastRow(); if (n >= 3) ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k = String(r[13] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var idk = k.slice(2).join(':'); (m[idk] = m[idk] || {})['tried' + k[1]] = String(r[8]) === 'e-mail' ? 'mail' : 'wa'; if (!/^(sent|delivered|read)/.test(String(r[11]))) return; (m[k.slice(2).join(':')] = m[k.slice(2).join(':')] || {})[k[1]] = r[0] instanceof Date ? atTime(r[0], r[1]) : new Date(); }); return m; }
+  if (liveA()) { var ob = outboxSheet(SpreadsheetApp.openById(TEAM_ID)); n = ob.getLastRow(); if (n >= 3) ob.getRange(3, 1, n - 2, OUT_HEAD.length).getValues().forEach(function (r) { var k = String(r[13] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var idk = k.slice(2).join(':'); (m[idk] = m[idk] || {})['tried' + k[1]] = String(r[8]) === 'e-mail' ? (/^e-mail sent/.test(String(r[11])) ? 'mail' : 'mailfail') : 'wa'; if (!/^(sent|delivered|read)/.test(String(r[11]))) return; (m[k.slice(2).join(':')] = m[k.slice(2).join(':')] || {})[k[1]] = r[0] instanceof Date ? atTime(r[0], r[1]) : new Date(); }); return m; }
   n = sh.getLastRow(); if (n < TR_ROW0) return m;
   sh.getRange(TR_ROW0, 1, n - TR_ROW0 + 1, HEAD.length).getValues().forEach(function (r) { var k = String(r[10] || '').split(':'); if (k[0] !== 'A' || k.length < 3) return; var id = k.slice(2).join(':'), when = r[2] instanceof Date ? r[2] : new Date(String(r[2]).replace(' ', 'T') + ':00'); if (isNaN(when.getTime())) when = r[0] instanceof Date ? r[0] : new Date(); (m[id] = m[id] || {})[k[1]] = when; });
   return m;
