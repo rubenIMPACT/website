@@ -1442,7 +1442,7 @@ function waPreAutoMail(preview) { // daily trigger (installPreMailTrigger); prev
     var lines = t.lines.map(function (x, j) { return j === 0 ? (first ? fill(x, { name: first }) : (lang === 'en' ? 'Hi,' : 'Hi,')) : x; });
     var html = lines.map(function (x) { return '<p>' + x + '</p>'; }).join(''), text = lines.join('\n\n').replace(/<br>/g, '\n');
     if (preview) { Logger.log('PREMAIL ' + (i + 1) + ' | ' + c.loc + ' | ' + lang.toUpperCase() + ' | ' + (web[c.email] ? 'website ' + fmtD(web[c.email].ts) : 'no website request') + ' | ' + c.email.replace(/^(..)[^@]*/, '$1***') + (i === 0 ? '\nSubject: ' + t.subject + '\n' + text : '')); return; }
-    var res = 'sent'; try { GmailApp.sendEmail(c.email, t.subject, text, { htmlBody: html, from: PREMAIL.from, name: PREMAIL.name, replyTo: PREMAIL.name + ' <' + PREMAIL.reply_to + '>' }); sent++; } catch (e) { res = 'failed: ' + String(e.message || e).slice(0, 120); }
+    var res = 'sent'; try { GmailApp.sendEmail(c.email, t.subject, text, { htmlBody: html, from: PREMAIL.from, name: PREMAIL.name, replyTo: PREMAIL.name + ' <' + PREMAIL.from + '>, IMPACT Martial Arts <' + PREMAIL.reply_to + '>' }); // Ruben 13.10.: replies must land with Abdi; the plus address only gives the automation its copy sent++; } catch (e) { res = 'failed: ' + String(e.message || e).slice(0, 120); }
     sh.appendRow([Utilities.formatDate(now, TZ, 'dd.MM.yyyy'), Utilities.formatDate(new Date(), TZ, 'HH:mm'), c.email, c.name || '', c.loc, lang, res]);
   });
   Logger.log('pre-automation mail: ' + all.length + ' in the stage, ' + todo.length + ' still to mail, ' + (preview ? batch.length + ' in the next batch (preview, nothing sent)' : sent + ' sent today'));
