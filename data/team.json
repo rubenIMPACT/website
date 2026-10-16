@@ -255,7 +255,7 @@
   },
   {
    "website": true,
-   "order": 16,
+   "order": 15,
    "name": "Samuel S. Bauer",
    "location": "Both",
    "homepage": true,
@@ -273,7 +273,7 @@
   },
   {
    "website": true,
-   "order": 17,
+   "order": 16,
    "name": "Ruben Crawford",
    "location": "Both",
    "homepage": true,
@@ -291,7 +291,7 @@
   },
   {
    "website": true,
-   "order": 15,
+   "order": 17,
    "name": "Gian Andrea",
    "location": "Both",
    "homepage": false,
